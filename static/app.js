@@ -4,6 +4,7 @@ const CATEGORIES = ['Food','Transport','Housing','Entertainment','Health','Shopp
 
 // ── state ──────────────────────────────────────────────────────────────────
 let state = { transactions: [], weekly_plan: {} };
+let lastCalcPerWeek = 0;
 
 // ── api ────────────────────────────────────────────────────────────────────
 const api = {
@@ -277,6 +278,7 @@ function calcWeekly() {
   const available = Math.max(0, spendable - buffer);
   const weeks     = Math.ceil(days / 7);
   const perWeek   = weeks  > 0 ? available / weeks : 0;
+  lastCalcPerWeek = perWeek;
   const perDay    = days   > 0 ? available / days  : 0;
 
   // this-week spending (Mon → today)
@@ -287,7 +289,8 @@ function calcWeekly() {
   const weekSpent = state.transactions
     .filter(t => t.type === 'expense' && t.date >= mondayStr)
     .reduce((s, t) => s + t.amount, 0);
-  const weekPct   = perWeek > 0 ? Math.min(weekSpent / perWeek, 1) : 0;
+  const savedPerWeek = parseFloat(state.weekly_plan.per_week) || perWeek;
+  const weekPct   = savedPerWeek > 0 ? Math.min(weekSpent / savedPerWeek, 1) : 0;
   const barColor  = weekPct >= 1 ? 'var(--danger)' : weekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
 
   const summaryCards = [
@@ -333,7 +336,7 @@ function calcWeekly() {
       </div>
       <div class="wt-amounts">
         <span class="wt-spent" style="color:${barColor}">${fmt(weekSpent)}</span>
-        <span class="wt-of"> / ${fmt(perWeek)} weekly budget</span>
+        <span class="wt-of"> / ${fmt(savedPerWeek)} weekly budget</span>
       </div>
       <div class="progress-bar-bg">
         <div class="progress-bar-fill" style="width:${(weekPct * 100).toFixed(1)}%;background:${barColor}"></div>
@@ -459,10 +462,11 @@ function attachWeekly() {
 
   document.getElementById('wk-save')?.addEventListener('click', async () => {
     const plan = {
-      balance: document.getElementById('wk-balance').value,
-      bills:   document.getElementById('wk-bills').value,
-      paydate: document.getElementById('wk-paydate').value,
-      buffer:  parseInt(document.getElementById('wk-buffer').value),
+      balance:  document.getElementById('wk-balance').value,
+      bills:    document.getElementById('wk-bills').value,
+      paydate:  document.getElementById('wk-paydate').value,
+      buffer:   parseInt(document.getElementById('wk-buffer').value),
+      per_week: lastCalcPerWeek,
     };
     await api.saveWeeklyPlan(plan);
     const el = document.getElementById('wk-save-status');
