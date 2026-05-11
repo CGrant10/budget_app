@@ -226,10 +226,20 @@ function renderWeekly() {
     const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split('T')[0];
   })();
 
+  const balance = income - expense;
+  const balColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+
   return `
     <div class="page">
       <h1 class="page-title">Weekly Planner</h1>
       <p class="page-sub">estimate how much you can spend each week</p>
+      <div class="cards-grid" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card-title">CURRENT BALANCE</div>
+          <div class="card-value" style="color:${balColor}">${fmt(balance)}</div>
+          <div class="card-sub">income − expenses</div>
+        </div>
+      </div>
       <div class="form-card">
         <div class="form-row">
           <label class="form-label">Remaining balance ($)</label>
