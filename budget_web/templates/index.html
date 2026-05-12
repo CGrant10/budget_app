@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#7c6af7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Budget">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="stylesheet" href="/static/style.css">
+  <title>Budget</title>
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="header-inner">
+        <span class="logo">₿UDGET</span>
+        <span class="tagline">personal finance</span>
+      </div>
+    </header>
+
+    <main id="main-content"></main>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="dashboard">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+      <button class="nav-btn" data-tab="add">
+        <span class="nav-icon">➕</span>
+        <span class="nav-label">Add</span>
+      </button>
+      <button class="nav-btn" data-tab="ledger">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Ledger</span>
+      </button>
+      <button class="nav-btn" data-tab="weekly">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Weekly</span>
+      </button>
+      <button class="nav-btn" data-tab="import">
+        <span class="nav-icon">📥</span>
+        <span class="nav-label">Import</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Animation modal -->
+  <div id="anim-overlay" class="anim-overlay hidden">
+    <div class="anim-card">
+      <div id="anim-title" class="anim-title"></div>
+      <canvas id="anim-canvas" width="340" height="155"></canvas>
+      <button id="anim-dismiss" class="anim-dismiss"></button>
+    </div>
+  </div>
+
+  <script src="/static/animations.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
