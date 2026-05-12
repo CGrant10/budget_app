@@ -200,7 +200,6 @@ function robberyFrame(ctx, W, GY, f, amount) {
 
   // Patrick always visible
   drawPatrick(ctx, px, GY+2);
-  if (f>=10) txt(ctx, px, GY-62, "I'm helping!", '#7a7890', 8);
 
   if (f<=24) {
     const sx = Math.round(340 - (340-200)*f/24);
@@ -210,7 +209,7 @@ function robberyFrame(ctx, W, GY, f, amount) {
     const p=(f-25)/17;
     drawKrabs(ctx, kx, GY, p>0.5?'shocked':'count');
     drawSpongebob(ctx, 200, GY, 'grab', false);
-    if (p>0.4) txt(ctx, 185, 18, 'GIVE ME THE MONEY!!', '#f76a6a', 9, true);
+    if (p>0.4) txt(ctx, 185, 18, 'GIVE ME THE MONEY!!', '#f76a6a', 12, true);
   } else if (f<=58) {
     const p=(f-43)/15;
     drawKrabs(ctx, kx, GY, 'shocked');
@@ -221,24 +220,23 @@ function robberyFrame(ctx, W, GY, f, amount) {
         const fx=Math.round((kx-35)+(178-(kx-35))*t2);
         const fy=Math.round(GY-41+dy-22*t2);
         oval(ctx, fx-sz/2, fy-sz/2, fx+sz/2, fy+sz/2, '#f5c842','#c8a820',1);
-        txt(ctx, fx, fy, '$', '#8B6914', 6, true);
+        txt(ctx, fx, fy, '$', '#8B6914', 8, true);
       }
     }
-    txt(ctx, kx, GY-90, 'ME MONEY!!!', '#d63000', 8, true);
+    txt(ctx, kx, GY-90, 'ME MONEY!!!', '#d63000', 12, true);
   } else if (f<=78) {
     const p=(f-59)/20;
     const sx=Math.round(200-230*p);
     drawKrabs(ctx, kx, GY, 'empty');
     drawSpongebob(ctx, sx, GY, f%6<3?'flee':'happy', true);
-    txt(ctx, Math.max(sx,10), GY-82, "I'M READY!", '#f7c96a', 8, true);
+    txt(ctx, Math.max(sx,10), GY-82, "I'M READY!", '#f7c96a', 12, true);
   } else {
     drawKrabs(ctx, kx, GY, 'empty');
-    txt(ctx, kx, GY-90, 'me money...', '#7a7890', 8);
+    txt(ctx, kx, GY-90, 'me money...', '#7a7890', 11);
     for (const [tx,ty] of [[kx-10,GY-68],[kx+10,GY-68]]) {
       const dr=Math.min((f-79)*3,18);
       oval(ctx, tx-2, ty, tx+2, ty+dr, '#4ecb8d', null);
     }
-    txt(ctx, px, GY-62, 'We did it!!', '#ff9eb5', 8, true);
   }
 }
 
@@ -255,13 +253,12 @@ function paydayFrame(ctx, W, GY, f, amount) {
     const p=f/20;
     drawKrabs(ctx, kx, GY, 'count');
     drawSpongebob(ctx, sx, GY, 'stand', false);
-    if (p>0.5) txt(ctx, sx, GY-82, 'is it Friday?', '#7a7890', 8);
-    txt(ctx, px, GY-62, "I'm ready!", '#7a7890', 7);
+    if (p>0.5) txt(ctx, sx, GY-82, 'is it Friday?', '#7a7890', 11);
   } else if (f<=42) {
     const p=(f-21)/21;
     drawKrabs(ctx, kx, GY, 'shocked');
     drawSpongebob(ctx, sx, GY, 'grab', false);
-    txt(ctx, kx, GY-90, p>0.5 ? 'me money... 😭' : 'fine... FINE...', '#d63000', 8, true);
+    txt(ctx, kx, GY-90, p>0.5 ? 'me money... 😭' : 'fine... FINE...', '#d63000', 12, true);
   } else if (f<=58) {
     const p=(f-43)/15;
     drawKrabs(ctx, kx, GY, 'shocked');
@@ -272,14 +269,14 @@ function paydayFrame(ctx, W, GY, f, amount) {
         const fx=Math.round((kx-35)+(sx-20-(kx-35))*t2);
         const fy=Math.round(GY-41+dy-22*t2);
         oval(ctx, fx-sz/2, fy-sz/2, fx+sz/2, fy+sz/2, '#f5c842','#c8a820',1);
-        txt(ctx, fx, fy, '$', '#8B6914', 6, true);
+        txt(ctx, fx, fy, '$', '#8B6914', 8, true);
       }
     }
   } else if (f<=76) {
     drawKrabs(ctx, kx, GY, 'empty');
     drawSpongebob(ctx, sx, GY, f%8<4?'happy':'flee', true);
-    txt(ctx, sx, GY-82, 'PAYDAY!!!', '#4ecb8d', 9, true);
-    txt(ctx, kx, GY-90, 'me money...', '#d63000', 8);
+    txt(ctx, sx, GY-82, 'PAYDAY!!!', '#4ecb8d', 13, true);
+    txt(ctx, kx, GY-90, 'me money...', '#d63000', 11);
     for (const [tx,ty] of [[kx-10,GY-68],[kx+10,GY-68]]) {
       const dr=Math.min((f-59)*3,18);
       oval(ctx, tx-2, ty, tx+2, ty+dr, '#4ecb8d', null);
@@ -287,8 +284,7 @@ function paydayFrame(ctx, W, GY, f, amount) {
   } else {
     drawKrabs(ctx, kx, GY, 'empty');
     drawSpongebob(ctx, sx, GY, 'happy', true);
-    txt(ctx, sx, GY-82, 'PAYDAY!!!', '#4ecb8d', 9, true);
-    txt(ctx, px, GY-62, "we're rich!", '#ff9eb5', 8, true);
+    txt(ctx, sx, GY-82, 'PAYDAY!!!', '#4ecb8d', 13, true);
     for (const [tx,ty] of [[kx-10,GY-68],[kx+10,GY-68]])
       oval(ctx, tx-2, ty, tx+2, ty+18, '#4ecb8d', null);
   }
@@ -304,6 +300,14 @@ function runAnim(title, titleColor, frameFn, amount) {
   const dismiss  = document.getElementById('anim-dismiss');
   const ctx      = canvas.getContext('2d');
   const W=340, GY=128;
+
+  // HiDPI fix — makes text crisp on retina/phone screens
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = W   * dpr;
+  canvas.height = (GY + 10) * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = (GY + 10) + 'px';
+  ctx.scale(dpr, dpr);
 
   titleEl.textContent  = title;
   titleEl.style.color  = titleColor;
