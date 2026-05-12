@@ -335,6 +335,48 @@ function runAnim(title, titleColor, frameFn, amount) {
   };
 }
 
+// ── balance milestone ──────────────────────────────────────────────────────
+function showBalanceMilestone() {
+  const palette = ['#4ecb8d','#7c6af7','#f7c96a','#f7936a','#ff9eb5'];
+  const particles = [...Array(40)].map(() => ({
+    x:  170 + Math.random() * 20 - 10,
+    y:  80  + Math.random() * 20 - 10,
+    vx: Math.random() * 8 - 4,
+    vy: Math.random() * -8 - 2,
+    color: palette[Math.floor(Math.random() * palette.length)],
+    size: Math.random() * 5 + 3,
+  }));
+
+  function balanceMilestoneFrame(ctx, W, GY, f) {
+    ctx.clearRect(0, 0, W, GY + 10);
+    particles.forEach(p => {
+      p.x  += p.vx;
+      p.y  += p.vy;
+      p.vy += 0.4;
+      oval(ctx, p.x - p.size / 2, p.y - p.size / 2, p.x + p.size / 2, p.y + p.size / 2, p.color, null);
+    });
+    txt(ctx, W / 2, 20, 'POSITIVE BALANCE!', '#4ecb8d', 15, true);
+  }
+
+  runAnim('Balance is positive! 🎉', '#4ecb8d', (ctx, W, GY, f) => balanceMilestoneFrame(ctx, W, GY, f), 0);
+}
+
+// ── week win ───────────────────────────────────────────────────────────────
+function showWeekWin() {
+  function weekWinFrame(ctx, W, GY, f) {
+    ctx.clearRect(0, 0, W, GY + 10);
+    drawSpongebob(ctx, W / 2, GY, 'happy', false);
+    txt(ctx, W / 2, GY - 90, 'UNDER BUDGET!', '#4ecb8d', 15, true);
+    for (let i = 0; i < 8; i++) {
+      const angle = i * Math.PI / 4 + f * 0.1;
+      const cx = W / 2 + 60 * Math.cos(angle);
+      const cy = GY   + 60 * Math.sin(angle);
+      oval(ctx, cx - 5, cy - 5, cx + 5, cy + 5, '#4ecb8d', null);
+    }
+  }
+  runAnim('Week under budget! 🏆', '#4ecb8d', weekWinFrame, 0);
+}
+
 function showRobbery(amount) {
   runAnim(`SpongeBob stole $${amount.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`,
           '#f76a6a', robberyFrame, amount);

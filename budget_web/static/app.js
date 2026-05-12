@@ -2,8 +2,68 @@
 
 const CATEGORIES = ['Food','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
+// ── audio ──────────────────────────────────────────────────────────────────
+window.AudioContext = window.AudioContext || window.webkitAudioContext;
+let _audioCtx = null;
+function getAudio() { return _audioCtx || (_audioCtx = new AudioContext()); }
+
+function playSound(type) {
+  if (localStorage.getItem('sounds') === 'off') return;
+  try {
+    const ctx = getAudio();
+    function note(freq, start, dur) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'triangle';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.25, ctx.currentTime + start);
+      g.gain.linearRampToValueAtTime(0, ctx.currentTime + start + dur);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(ctx.currentTime + start);
+      o.stop(ctx.currentTime + start + dur + 0.05);
+    }
+    if (type === 'income') {
+      note(523, 0, .08); note(659, .08, .08); note(784, .16, .15);
+    } else {
+      note(494, 0, .12); note(392, .12, .12); note(330, .24, .15); note(262, .39, .2);
+    }
+  } catch(e) {}
+}
+
+// ── roasts ─────────────────────────────────────────────────────────────────
+const ROASTS = [
+  "That's me money you're wasting on {cat}!",
+  "You spent HOW MUCH on {cat}?! Me claws are shaking!",
+  "I've seen barnacles with better budgets!",
+  "Are ye made of money?! Because I'm not!",
+  "Every dollar on {cat} is a dollar I could've had!",
+  "SpongeBob spends less than you!",
+  "That category is hemorrhaging money!",
+  "I'm not cheap — YOU'RE irresponsible!"
+];
+
+function showRoast(msg) {
+  const el = document.createElement('div');
+  el.className = 'roast-toast';
+  el.textContent = '🦀 ' + msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function checkRoast(category) {
+  const m = new Date().toISOString().slice(0, 7);
+  const total = state.transactions
+    .filter(t => t.type === 'expense' && t.category === category && t.date.startsWith(m))
+    .reduce((s, t) => s + t.amount, 0);
+  const limit = parseFloat(state.budgets[category] || 0);
+  if (!limit) return;
+  if (total > limit) {
+    const quip = ROASTS[Math.floor(Math.random() * ROASTS.length)].replace('{cat}', category);
+    showRoast(quip);
+  }
+}
+
 // ── state ──────────────────────────────────────────────────────────────────
-let state = { transactions: [], weekly_plan: {} };
+let state = { transactions: [], weekly_plan: {}, budgets: {} };
 let lastCalcPerWeek = 0;
 
 // ── api ────────────────────────────────────────────────────────────────────
@@ -13,6 +73,8 @@ const api = {
     const d = await r.json();
     state.transactions = d.transactions || [];
     state.weekly_plan  = d.weekly_plan  || {};
+    state.budgets      = d.budgets      || {};
+    return d;
   },
   async addTransaction(t) {
     await fetch('/api/transactions', {
@@ -42,7 +104,35 @@ const api = {
     });
     state.weekly_plan = plan;
   },
+  saveBudgets: (b) => fetch('/api/budgets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(b),
+  }),
+  patchTransaction: (idx, patch) => fetch('/api/transactions/' + idx, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  }),
 };
+
+// ── recurring ──────────────────────────────────────────────────────────────
+async function processRecurring() {
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  for (let i = 0; i < state.transactions.length; i++) {
+    const t = state.transactions[i];
+    if (t.recurring === true && t.recur_month !== currentMonth) {
+      const copy = { ...t, date: currentMonth + '-01', recur_month: currentMonth };
+      delete copy.id;
+      await api.addTransaction(copy);
+      await api.patchTransaction(i, { recur_month: currentMonth });
+    }
+  }
+  const d = await api.load();
+  state.transactions = d.transactions;
+  state.budgets      = d.budgets      || {};
+  state.weekly_plan  = d.weekly_plan  || {};
+}
 
 // ── helpers ────────────────────────────────────────────────────────────────
 function totals() {
@@ -75,18 +165,117 @@ function showStatus(id, msg, type, ms = 3000) {
   if (ms) setTimeout(() => { el.textContent = ''; el.className = 'form-status'; }, ms);
 }
 
+// ── sounds toggle ──────────────────────────────────────────────────────────
+function initSoundsToggle() {
+  const btn = document.getElementById('sounds-toggle');
+  if (!btn) return;
+  btn.textContent = localStorage.getItem('sounds') === 'off' ? '🔕' : '🔔';
+  btn.onclick = () => {
+    const off = localStorage.getItem('sounds') === 'off';
+    localStorage.setItem('sounds', off ? 'on' : 'off');
+    btn.textContent = off ? '🔔' : '🔕';
+  };
+}
+
 // ── tabs ───────────────────────────────────────────────────────────────────
 let currentTab = 'dashboard';
 let selectedLedgerIdx = null;
+let ledgerFilter = '';
 
 function showTab(key) {
+  if (currentTab === 'ledger' && key !== 'ledger') {
+    ledgerFilter = '';
+  }
   currentTab = key;
   document.querySelectorAll('.nav-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.tab === key));
   render();
 }
 
+// ── chart ──────────────────────────────────────────────────────────────────
+let spendingChart = null;
+
+function getLastSixWeeks() {
+  const weeks = [];
+  for (let i = 0; i < 6; i++) {
+    const mon = new Date();
+    mon.setHours(0, 0, 0, 0);
+    mon.setDate(mon.getDate() - mon.getDay() + 1 - (5 - i) * 7);
+    const sun = new Date(mon);
+    sun.setDate(sun.getDate() + 6);
+    const monStr = mon.toISOString().slice(0, 10);
+    const sunStr = sun.toISOString().slice(0, 10);
+    const label = mon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    let income = 0, expense = 0;
+    for (const t of state.transactions) {
+      if (t.date >= monStr && t.date <= sunStr) {
+        if (t.type === 'income') income += t.amount;
+        else expense += t.amount;
+      }
+    }
+    weeks.push({ label, income, expense });
+  }
+  return weeks;
+}
+
+function attachDashboard() {
+  const weeks = getLastSixWeeks();
+  const ctx = document.getElementById('spending-chart');
+  if (ctx) {
+    spendingChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: weeks.map(w => w.label),
+        datasets: [
+          { label: 'Income',   data: weeks.map(w => w.income),  backgroundColor: '#4ecb8d' },
+          { label: 'Expenses', data: weeks.map(w => w.expense), backgroundColor: '#f7936a' },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#e8e6f0', font: { family: 'Courier New', size: 11 } } } },
+        scales: {
+          x: { ticks: { color: '#7a7890', font: { family: 'Courier New', size: 10 } }, grid: { color: '#2e2e40' } },
+          y: { ticks: { color: '#7a7890', font: { family: 'Courier New', size: 10 }, callback: v => '$' + v }, grid: { color: '#2e2e40' } },
+        },
+      },
+    });
+  }
+}
+
+// ── milestones ─────────────────────────────────────────────────────────────
+function checkMilestones(prevBal, newBal) {
+  if (prevBal < 0 && newBal >= 0) setTimeout(showBalanceMilestone, 500);
+}
+
+function getWeekNumber(d) {
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  return Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+}
+
+function checkWeekMilestone() {
+  const perWeek = parseFloat(state.weekly_plan?.per_week || 0);
+  if (!perWeek) return;
+  const today = new Date();
+  if (today.getDay() !== 0) return;
+  const mon = new Date(today);
+  mon.setDate(today.getDate() - 6);
+  const monStr   = mon.toISOString().slice(0, 10);
+  const todayStr = today.toISOString().slice(0, 10);
+  const weekSpent = state.transactions
+    .filter(t => t.type === 'expense' && t.date >= monStr && t.date <= todayStr)
+    .reduce((s, t) => s + t.amount, 0);
+  const isoWeek = today.getFullYear() + '-W' + String(getWeekNumber(today)).padStart(2, '0');
+  if (weekSpent < perWeek && localStorage.getItem('last_week_celebrated') !== isoWeek) {
+    localStorage.setItem('last_week_celebrated', isoWeek);
+    setTimeout(showWeekWin, 500);
+  }
+}
+
+// ── render ─────────────────────────────────────────────────────────────────
 function render() {
+  if (spendingChart) { spendingChart.destroy(); spendingChart = null; }
   const main = document.getElementById('main-content');
   switch (currentTab) {
     case 'dashboard': main.innerHTML = renderDashboard(); break;
@@ -94,6 +283,7 @@ function render() {
     case 'ledger':    main.innerHTML = renderLedger();    break;
     case 'weekly':    main.innerHTML = renderWeekly();    break;
     case 'import':    main.innerHTML = renderImport();    break;
+    case 'budgets':   main.innerHTML = renderBudgets();   break;
   }
   attachHandlers();
 }
@@ -105,10 +295,10 @@ function renderDashboard() {
   const balColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
 
   const cardDefs = [
-    { title: 'BALANCE',  value: fmt(balance),                    color: balColor,          sub: 'income − expenses' },
-    { title: 'INCOME',   value: fmt(income),                     color: 'var(--success)',  sub: 'total earned' },
-    { title: 'EXPENSES', value: fmt(expense),                    color: 'var(--accent2)',  sub: 'total spent' },
-    { title: 'ENTRIES',  value: String(state.transactions.length), color: 'var(--accent)', sub: 'transactions' },
+    { title: 'BALANCE',  value: fmt(balance),                      color: balColor,          sub: 'income − expenses' },
+    { title: 'INCOME',   value: fmt(income),                       color: 'var(--success)',  sub: 'total earned' },
+    { title: 'EXPENSES', value: fmt(expense),                      color: 'var(--accent2)',  sub: 'total spent' },
+    { title: 'ENTRIES',  value: String(state.transactions.length), color: 'var(--accent)',   sub: 'transactions' },
   ];
 
   const cardsHtml = cardDefs.map(c => `
@@ -121,24 +311,79 @@ function renderDashboard() {
   const maxCat = Math.max(...Object.values(bycat), 1);
   const breakdownHtml = Object.entries(bycat)
     .sort((a, b) => b[1] - a[1])
-    .map(([cat, amt]) => `
+    .map(([cat, amt]) => {
+      const limit = parseFloat(state.budgets[cat] || 0);
+      let barColor = 'var(--accent)';
+      let badge = '';
+      if (limit > 0) {
+        const pct = amt / limit;
+        if (pct >= 1) {
+          barColor = 'var(--danger)';
+          badge = '<span class="budget-badge over">OVER!</span>';
+        } else if (pct >= 0.8) {
+          barColor = 'var(--warn)';
+          badge = '<span class="budget-badge warn">80%</span>';
+        }
+      }
+      return `
       <div class="breakdown-row">
         <span class="breakdown-label">${cat}</span>
         <div class="breakdown-bar-bg">
-          <div class="breakdown-bar-fill" style="width:${(amt / maxCat * 100).toFixed(1)}%"></div>
+          <div class="breakdown-bar-fill" style="width:${(amt / maxCat * 100).toFixed(1)}%;background:${barColor}"></div>
         </div>
-        <span class="breakdown-amt">${fmt(amt)}</span>
-      </div>`).join('');
+        <span class="breakdown-amt">${fmt(amt)}${badge}</span>
+      </div>`;
+    }).join('');
 
   return `
     <div class="page">
       <h1 class="page-title">Dashboard</h1>
       <p class="page-sub">your financial snapshot</p>
       <div class="cards-grid">${cardsHtml}</div>
+      <div class="section-title">Spending — Last 6 Weeks</div>
+      <div class="chart-wrap"><canvas id="spending-chart"></canvas></div>
       ${Object.keys(bycat).length ? `
         <h2 class="section-title">Spending by Category</h2>
         <div class="breakdown">${breakdownHtml}</div>` : ''}
     </div>`;
+}
+
+// ── budgets ────────────────────────────────────────────────────────────────
+function renderBudgets() {
+  const rows = CATEGORIES.map(cat => `
+    <div class="form-row">
+      <label class="form-label">${cat}</label>
+      <input type="number" class="form-input" id="budget-${cat}" placeholder="no limit" value="${state.budgets[cat] || ''}">
+    </div>`).join('');
+  return `
+    <div class="page">
+      <h1 class="page-title">Budget Limits</h1>
+      <p class="page-sub">monthly cap per category</p>
+      <div class="form-card">
+        ${rows}
+        <div class="btn-row">
+          <button id="save-budgets" class="btn-primary">Save</button>
+          <span id="budgets-status"></span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function attachBudgets() {
+  document.getElementById('save-budgets')?.addEventListener('click', async () => {
+    const dict = {};
+    CATEGORIES.forEach(cat => {
+      const val = document.getElementById('budget-' + cat)?.value;
+      if (val) dict[cat] = parseFloat(val);
+    });
+    await api.saveBudgets(dict);
+    state.budgets = dict;
+    const status = document.getElementById('budgets-status');
+    if (status) {
+      status.textContent = '✓ Saved';
+      setTimeout(() => { status.textContent = ''; }, 3000);
+    }
+  });
 }
 
 // ── add ────────────────────────────────────────────────────────────────────
@@ -172,6 +417,10 @@ function renderAdd() {
           <label class="form-label">Date</label>
           <input type="date" id="add-date" class="form-input" value="${today()}">
         </div>
+        <div class="form-row">
+          <label class="form-label">Recurring</label>
+          <label class="radio-label"><input type="checkbox" id="add-recurring"> Auto-add monthly</label>
+        </div>
         <div id="add-status" class="form-status"></div>
         <button id="add-btn" class="btn-primary">Add Transaction</button>
       </div>
@@ -180,22 +429,30 @@ function renderAdd() {
 
 // ── ledger ─────────────────────────────────────────────────────────────────
 function renderLedger() {
-  const rows = [...state.transactions]
-    .map((t, i) => ({ ...t, idx: i }))
-    .reverse()
+  const allRows = state.transactions.map((t, i) => ({ ...t, _i: i }));
+  const rows = allRows
+    .slice().reverse()
+    .filter(t => !ledgerFilter ||
+      t.description.toLowerCase().includes(ledgerFilter) ||
+      t.category.toLowerCase().includes(ledgerFilter) ||
+      String(t.amount).includes(ledgerFilter))
     .map(t => {
       const sign = t.type === 'income' ? '+' : '-';
       const cls  = t.type === 'income' ? 'income' : 'expense';
+      const prefix = t.recurring ? '↻ ' : '';
       return `
-        <div class="ledger-row" data-idx="${t.idx}">
-          <div class="ledger-main">
-            <div class="ledger-desc">${t.description}</div>
-            <div class="ledger-meta">${t.date} · ${t.category}</div>
+        <div class="ledger-row" data-idx="${t._i}">
+          <div class="ledger-row-inner">
+            <div class="ledger-main">
+              <div class="ledger-desc">${prefix}${t.description}</div>
+              <div class="ledger-meta">${t.date} · ${t.category}</div>
+            </div>
+            <div class="ledger-right">
+              <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
+              <button class="ledger-delete" data-idx="${t._i}">✕</button>
+            </div>
           </div>
-          <div class="ledger-right">
-            <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
-            <button class="ledger-delete" data-idx="${t.idx}">✕</button>
-          </div>
+          <button class="swipe-delete-btn" data-idx="${t._i}">Delete</button>
         </div>`;
     }).join('');
 
@@ -203,6 +460,7 @@ function renderLedger() {
     <div class="page">
       <h1 class="page-title">Ledger</h1>
       <p class="page-sub">all transactions</p>
+      <input type="search" id="ledger-search" class="form-input" placeholder="Search transactions…" value="${ledgerFilter}" style="margin-bottom:12px;">
       <div class="ledger-edit-bar">
         <span class="form-label">Edit date:</span>
         <input type="date" id="ledger-date-input" class="form-input">
@@ -376,13 +634,55 @@ function renderImport() {
     </div>`;
 }
 
+// ── swipe to delete ────────────────────────────────────────────────────────
+function attachSwipeDelete() {
+  let startX, startY, swipedRow = null;
+  document.querySelectorAll('.ledger-row').forEach(row => {
+    row.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }, { passive: true });
+    row.addEventListener('touchmove', e => {
+      const dx = e.touches[0].clientX - startX;
+      const dy = Math.abs(e.touches[0].clientY - startY);
+      if (dy > 20) return;
+      if (dx < -40) {
+        if (swipedRow && swipedRow !== row) swipedRow.classList.remove('swiped');
+        row.classList.add('swiped');
+        swipedRow = row;
+      } else if (dx > 20) {
+        row.classList.remove('swiped');
+        if (swipedRow === row) swipedRow = null;
+      }
+    }, { passive: true });
+  });
+  document.addEventListener('touchstart', e => {
+    if (swipedRow && !swipedRow.contains(e.target)) {
+      swipedRow.classList.remove('swiped');
+      swipedRow = null;
+    }
+  }, { passive: true });
+  document.querySelectorAll('.swipe-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const idx = parseInt(btn.dataset.idx);
+      if (confirm('Delete this transaction?')) {
+        await api.deleteTransaction(idx);
+        ledgerFilter = '';
+        render();
+      }
+    });
+  });
+}
+
 // ── event handlers ─────────────────────────────────────────────────────────
 function attachHandlers() {
   switch (currentTab) {
-    case 'add':    attachAdd();    break;
-    case 'ledger': attachLedger(); break;
-    case 'weekly': attachWeekly(); calcWeekly(); break;
-    case 'import': attachImport(); break;
+    case 'dashboard': attachDashboard(); break;
+    case 'add':       attachAdd();       break;
+    case 'ledger':    attachLedger();    break;
+    case 'weekly':    attachWeekly(); calcWeekly(); break;
+    case 'import':    attachImport();    break;
+    case 'budgets':   attachBudgets();   break;
   }
 }
 
@@ -394,28 +694,57 @@ function attachAdd() {
       showStatus('add-status', 'Enter a valid amount.', 'error');
       return;
     }
+    const isRecurring = document.getElementById('add-recurring').checked;
     const t = {
       type:        document.querySelector('input[name="etype"]:checked').value,
       amount,
       description: document.getElementById('add-desc').value.trim() || '—',
       category:    document.getElementById('add-cat').value,
       date:        document.getElementById('add-date').value || today(),
+      recurring:   isRecurring,
     };
+    if (isRecurring) {
+      t.recur_month = new Date().toISOString().slice(0, 7);
+    }
+
+    // milestone: capture balance before add
+    const balFn = tx => tx.type === 'income' ? tx.amount : -tx.amount;
+    const prevBal = state.transactions.reduce((s, tx) => s + balFn(tx), 0);
+
     await api.addTransaction(t);
+
+    const newBal = state.transactions.reduce((s, tx) => s + balFn(tx), 0);
+
     showStatus('add-status', `✓ Added ${t.type}: ${fmt(t.amount)} (${t.category})`, 'success');
     document.getElementById('add-amount').value = '';
     document.getElementById('add-desc').value   = '';
+    document.getElementById('add-recurring').checked = false;
 
-    if (t.type === 'expense') showRobbery(t.amount);
-    else                      showPayday(t.amount);
+    playSound(t.type);
+
+    if (t.type === 'expense') {
+      showRobbery(t.amount);
+      checkRoast(t.category);
+    } else {
+      showPayday(t.amount);
+    }
+
+    checkMilestones(prevBal, newBal);
+    checkWeekMilestone();
   });
 }
 
 function attachLedger() {
+  // search filter
+  document.getElementById('ledger-search')?.addEventListener('input', e => {
+    ledgerFilter = e.target.value.toLowerCase();
+    render();
+  });
+
   // row tap → populate date editor
   document.querySelectorAll('.ledger-row').forEach(row => {
     row.addEventListener('click', e => {
-      if (e.target.closest('.ledger-delete')) return;
+      if (e.target.closest('.ledger-delete') || e.target.closest('.swipe-delete-btn')) return;
       const idx = parseInt(row.dataset.idx);
       selectedLedgerIdx = idx;
       document.querySelectorAll('.ledger-row').forEach(r => r.classList.remove('selected'));
@@ -434,6 +763,7 @@ function attachLedger() {
       if (confirm(`Delete: ${t.description} (${fmt(t.amount)})?`)) {
         await api.deleteTransaction(idx);
         selectedLedgerIdx = null;
+        ledgerFilter = '';
         render();
       }
     });
@@ -454,6 +784,8 @@ function attachLedger() {
     showStatus('ledger-date-status', '✓ Saved', 'success');
     render();
   });
+
+  attachSwipeDelete();
 }
 
 function attachWeekly() {
@@ -512,6 +844,8 @@ document.querySelectorAll('.nav-btn').forEach(btn =>
 
 (async () => {
   await api.load();
+  await processRecurring();
+  initSoundsToggle();
   render();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/static/sw.js').catch(() => {});

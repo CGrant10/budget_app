@@ -1,8 +1,11 @@
+# -*- coding: utf-8 -*-
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import json
 import csv
 import os
+import random
+import winsound
 from datetime import datetime, timedelta
 from collections import defaultdict
 
@@ -34,8 +37,10 @@ FONT_TINY = ("Courier New", 8)
 def load_data():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE) as f:
-            return json.load(f)
-    return {"transactions": [], "budgets": {}, "weekly_plan": {}}
+            d = json.load(f)
+        d.setdefault("prefs", {"sounds": True})
+        return d
+    return {"transactions": [], "budgets": {}, "weekly_plan": {}, "prefs": {"sounds": True}}
 
 
 def save_data(data):
@@ -51,8 +56,25 @@ class BudgetApp(tk.Tk):
         self.minsize(900, 640)
         self.configure(bg=BG)
         self.data = load_data()
+        self._process_recurring()
         self._build_ui()
         self.refresh()
+
+    # ── recurring transactions ────────────────────────────────────────────────
+    def _process_recurring(self):
+        current_month = datetime.today().strftime("%Y-%m")
+        added = False
+        originals = list(self.data["transactions"])
+        for t in originals:
+            if t.get("recurring") == True and t.get("recur_month", "") != current_month:
+                new_t = dict(t)
+                new_t["date"] = current_month + "-01"
+                new_t["recur_month"] = current_month
+                self.data["transactions"].append(new_t)
+                t["recur_month"] = current_month
+                added = True
+        if added:
+            save_data(self.data)
 
     # ── layout ────────────────────────────────────────────────────────────────
     def _build_ui(self):
@@ -72,6 +94,7 @@ class BudgetApp(tk.Tk):
                 ("➕  Add Entry",  "add"),
                 ("📋  Ledger",     "ledger"),
                 ("📅  Weekly Plan","weekly"),
+                ("💰  Budgets",    "budgets"),
                 ("📥  Import CSV", "import")]
         for label, key in tabs:
             b = tk.Button(side, text=label, font=FONT_BODY,
@@ -81,6 +104,16 @@ class BudgetApp(tk.Tk):
                           command=lambda k=key: self.show_tab(k))
             b.pack(fill="x")
             self.nav_btns[key] = b
+
+        # sounds toggle
+        self.sounds_var = tk.BooleanVar(value=self.data.get("prefs", {}).get("sounds", True))
+        def _toggle_sounds():
+            self.data.setdefault("prefs", {})["sounds"] = self.sounds_var.get()
+            save_data(self.data)
+        tk.Checkbutton(side, text="🔔 Sounds", variable=self.sounds_var,
+                       command=_toggle_sounds, bg=SURFACE, fg=MUTED,
+                       selectcolor=SURFACE, activebackground=SURFACE,
+                       font=FONT_TINY).pack(side="bottom", pady=(0, 4))
 
         # version tag at bottom
         tk.Label(side, text="v1.0", font=FONT_TINY,
@@ -92,7 +125,7 @@ class BudgetApp(tk.Tk):
 
         # build all frames
         self.frames = {}
-        for key in ("dashboard", "add", "ledger", "weekly", "import"):
+        for key in ("dashboard", "add", "ledger", "weekly", "budgets", "import"):
             f = tk.Frame(self.main, bg=BG)
             self.frames[key] = f
             f.place(relx=0, rely=0, relwidth=1, relheight=1)
@@ -101,6 +134,7 @@ class BudgetApp(tk.Tk):
         self._build_add()
         self._build_ledger()
         self._build_weekly()
+        self._build_budgets()
         self._build_import()
         self.show_tab("dashboard")
 
@@ -116,6 +150,7 @@ class BudgetApp(tk.Tk):
         if key == "dashboard": self._refresh_dashboard()
         elif key == "ledger":  self._refresh_ledger()
         elif key == "weekly":  self._refresh_weekly()
+        elif key == "budgets": self._refresh_budgets()
 
     def refresh(self):
         self.refresh_tab(self.current_tab.get())
@@ -157,6 +192,124 @@ class BudgetApp(tk.Tk):
         canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
         return inner
 
+    # ── sound effects ─────────────────────────────────────────────────────────
+    def _play_sound(self, sound_type):
+        if not self.data.get("prefs", {}).get("sounds", True):
+            return
+        try:
+            if sound_type == "income":
+                winsound.Beep(523, 80)
+                winsound.Beep(659, 80)
+                winsound.Beep(784, 150)
+            elif sound_type == "expense":
+                winsound.Beep(494, 120)
+                winsound.Beep(392, 120)
+                winsound.Beep(330, 150)
+                winsound.Beep(262, 200)
+        except RuntimeError:
+            pass
+
+    # ── milestone animations ──────────────────────────────────────────────────
+    def _show_confetti_popup(self, title, color):
+        pop = tk.Toplevel(self)
+        pop.title("")
+        pop.resizable(False, False)
+        pop.configure(bg=BG)
+        pop.geometry("320x180+{}+{}".format(
+            self.winfo_x() + self.winfo_width() // 2 - 160,
+            self.winfo_y() + self.winfo_height() // 2 - 90,
+        ))
+        tk.Label(pop, text=title, font=FONT_H2, bg=BG, fg=color).pack(pady=(12, 4))
+        canvas = tk.Canvas(pop, width=300, height=120, bg=BG, highlightthickness=0)
+        canvas.pack()
+        particles = [
+            {
+                "x": 150 + random.uniform(-20, 20),
+                "y": 60 + random.uniform(-10, 10),
+                "vx": random.uniform(-4, 4),
+                "vy": random.uniform(-6, -1),
+                "color": random.choice([SUCCESS, ACCENT, WARN, ACCENT2, "#ff9eb5"]),
+                "size": random.randint(4, 8)
+            }
+            for _ in range(40)
+        ]
+        self._confetti_frame(pop, canvas, particles, 0)
+        pop.after(3000, lambda: pop.destroy() if pop.winfo_exists() else None)
+
+    def _confetti_frame(self, pop, canvas, particles, f):
+        if not pop.winfo_exists() or f > 60:
+            return
+        canvas.delete("all")
+        for p in particles:
+            p["x"] += p["vx"]
+            p["y"] += p["vy"]
+            p["vy"] += 0.4
+            canvas.create_oval(
+                p["x"] - p["size"] // 2, p["y"] - p["size"] // 2,
+                p["x"] + p["size"] // 2, p["y"] + p["size"] // 2,
+                fill=p["color"], outline=""
+            )
+        pop.after(40, lambda: self._confetti_frame(pop, canvas, particles, f + 1))
+
+    def _check_milestones(self, prev_balance, new_balance):
+        if prev_balance < 0 and new_balance >= 0:
+            self.after(500, lambda: self._show_confetti_popup("Balance is positive! 🎉", SUCCESS))
+
+    def _check_week_milestone(self):
+        per_week = float(self.data.get("weekly_plan", {}).get("per_week", 0) or 0)
+        if per_week == 0:
+            return
+        today = datetime.today()
+        if today.weekday() != 6:
+            return
+        this_mon = today - timedelta(days=6)
+        this_mon_str = this_mon.strftime("%Y-%m-%d")
+        today_str = today.strftime("%Y-%m-%d")
+        week_spent = sum(
+            t["amount"] for t in self.data["transactions"]
+            if t["type"] == "expense"
+            and this_mon_str <= t.get("date", "") <= today_str
+        )
+        iso_week = today.strftime("%Y-W%W")
+        if week_spent < per_week and self.data.get("prefs", {}).get("last_week_celebrated", "") != iso_week:
+            self.data.setdefault("prefs", {})["last_week_celebrated"] = iso_week
+            save_data(self.data)
+            self.after(500, lambda: self._show_confetti_popup("Week under budget! 🏆", SUCCESS))
+
+    # ── spending roast ────────────────────────────────────────────────────────
+    def _check_roast(self, category):
+        ROASTS = [
+            "Wow, you really went ham on {cat} this month. A true connoisseur of spending.",
+            "Your {cat} budget called. It's crying.",
+            "At this rate, you'll need a second job just for {cat}.",
+            "{cat}? More like {cat}-astrophe for your wallet.",
+            "Bold of you to assume your {cat} budget was just a suggestion.",
+            "Financial advisors HATE this one trick: overspend on {cat} every month.",
+            "Your {cat} expenses are doing great. Your savings, not so much.",
+            "If overspending on {cat} was a sport, you'd be an Olympian.",
+        ]
+        current_month = datetime.today().strftime("%Y-%m")
+        total = sum(
+            t["amount"] for t in self.data["transactions"]
+            if t["type"] == "expense"
+            and t["category"] == category
+            and t.get("date", "").startswith(current_month)
+        )
+        limit = float(self.data.get("budgets", {}).get(category, 0) or 0)
+        if limit > 0 and total > limit:
+            roast = random.choice(ROASTS).format(cat=category)
+            pop = tk.Toplevel(self)
+            pop.title("")
+            pop.resizable(False, False)
+            pop.configure(bg=BG)
+            pop.geometry("320x110+{}+{}".format(
+                self.winfo_x() + self.winfo_width() // 2 - 160,
+                self.winfo_y() + self.winfo_height() // 2 - 55,
+            ))
+            tk.Label(pop, text=roast, font=FONT_SM, bg=BG, fg=DANGER,
+                     wraplength=280, justify="center").pack(expand=True, padx=20, pady=20)
+            pop.after(4000, lambda: pop.destroy() if pop.winfo_exists() else None)
+
     # ── dashboard ─────────────────────────────────────────────────────────────
     def _build_dashboard(self):
         f = self.frames["dashboard"]
@@ -171,8 +324,91 @@ class BudgetApp(tk.Tk):
         self.dash_cards = tk.Frame(sc, bg=BG)
         self.dash_cards.pack(fill="x", padx=28, pady=(0, 16))
 
+        self.chart_canvas = tk.Canvas(sc, bg=BG, highlightthickness=0, height=140)
+        self.chart_canvas.pack(fill="x", padx=28, pady=(0, 8))
+
         self.dash_breakdown = tk.Frame(sc, bg=BG)
         self.dash_breakdown.pack(fill="x", padx=28, pady=8)
+
+    def _draw_spending_chart(self):
+        self.chart_canvas.delete("all")
+        W = self.chart_canvas.winfo_width() or 560
+        today = datetime.today()
+        this_mon = today - timedelta(days=today.weekday())
+
+        weeks = []
+        for i in range(5, -1, -1):
+            mon = this_mon - timedelta(weeks=i)
+            sun = mon + timedelta(days=6)
+            weeks.append((mon, sun))
+
+        week_data = []
+        for mon, sun in weeks:
+            mon_str = mon.strftime("%Y-%m-%d")
+            sun_str = sun.strftime("%Y-%m-%d")
+            inc = sum(
+                t["amount"] for t in self.data["transactions"]
+                if t["type"] == "income" and mon_str <= t.get("date", "") <= sun_str
+            )
+            exp = sum(
+                t["amount"] for t in self.data["transactions"]
+                if t["type"] == "expense" and mon_str <= t.get("date", "") <= sun_str
+            )
+            week_data.append((mon, inc, exp))
+
+        left_margin = 40
+        right_margin = 16
+        bottom = 120
+        top = 20
+        all_vals = [v for _, inc, exp in week_data for v in (inc, exp)]
+        max_val = max(all_vals) if any(v > 0 for v in all_vals) else 1
+
+        group_w = (W - left_margin - right_margin) / 6
+        bar_w = group_w * 0.35
+
+        # y-axis gridlines
+        for gi in range(1, 4):
+            gy = bottom - (bottom - top) * gi / 3
+            self.chart_canvas.create_line(left_margin, gy, W - right_margin, gy,
+                                          fill=BORDER, dash=(2, 4))
+            label_val = max_val * gi / 3
+            self.chart_canvas.create_text(left_margin - 4, gy, text=f"${label_val:,.0f}",
+                                          anchor="e", fill=MUTED, font=FONT_TINY)
+
+        # baseline
+        self.chart_canvas.create_line(left_margin, bottom, W - right_margin, bottom, fill=BORDER)
+
+        for i, (mon, inc, exp) in enumerate(week_data):
+            gx = left_margin + i * group_w + group_w / 2
+
+            # income bar
+            if inc > 0:
+                ih = (inc / max_val) * (bottom - top)
+                self.chart_canvas.create_rectangle(
+                    gx - bar_w, bottom - ih, gx, bottom,
+                    fill=SUCCESS, outline=""
+                )
+
+            # expense bar
+            if exp > 0:
+                eh = (exp / max_val) * (bottom - top)
+                self.chart_canvas.create_rectangle(
+                    gx, bottom - eh, gx + bar_w, bottom,
+                    fill=ACCENT2, outline=""
+                )
+
+            # week label
+            self.chart_canvas.create_text(
+                gx + bar_w / 2, bottom + 10,
+                text=mon.strftime("%b %-d") if os.name != "nt" else mon.strftime("%b %d").lstrip("0") or "0",
+                fill=MUTED, font=FONT_TINY, anchor="n"
+            )
+
+        # legend
+        self.chart_canvas.create_text(W - right_margin - 70, top + 4,
+                                      text="■ Income", fill=SUCCESS, font=FONT_TINY, anchor="w")
+        self.chart_canvas.create_text(W - right_margin - 70, top + 16,
+                                      text="■ Expenses", fill=ACCENT2, font=FONT_TINY, anchor="w")
 
     def _refresh_dashboard(self):
         income, expense, by_cat = self._totals()
@@ -193,22 +429,47 @@ class BudgetApp(tk.Tk):
             c.grid(row=0, column=i, padx=(0, 12), sticky="ew")
             self.dash_cards.columnconfigure(i, weight=1)
 
+        self.chart_canvas.update_idletasks()
+        self._draw_spending_chart()
+
         # spending breakdown
         if by_cat:
             tk.Label(self.dash_breakdown, text="Spending by Category",
                      font=FONT_H2, bg=BG, fg=TEXT).pack(anchor="w", pady=(8, 4))
             max_val = max(by_cat.values()) or 1
+            budgets = self.data.get("budgets", {})
             for cat, amt in sorted(by_cat.items(), key=lambda x: -x[1]):
                 row = tk.Frame(self.dash_breakdown, bg=BG)
                 row.pack(fill="x", pady=2)
                 tk.Label(row, text=cat, font=FONT_SM, bg=BG, fg=MUTED, width=14, anchor="w").pack(side="left")
                 bar_w = int((amt / max_val) * 320)
+
+                # determine bar color based on budget
+                limit_str = budgets.get(cat, "")
+                bar_color = ACCENT
+                over_label = ""
+                if limit_str:
+                    try:
+                        limit = float(limit_str)
+                        if limit > 0:
+                            pct = amt / limit
+                            if pct >= 1.0:
+                                bar_color = DANGER
+                                over_label = "OVER!"
+                            elif pct >= 0.8:
+                                bar_color = WARN
+                                over_label = "80%"
+                    except (ValueError, ZeroDivisionError):
+                        pass
+
                 bar_bg = tk.Frame(row, bg=BORDER, height=12, width=320)
                 bar_bg.pack(side="left", padx=8)
                 bar_bg.pack_propagate(False)
-                bar_fill = tk.Frame(bar_bg, bg=ACCENT, height=12, width=max(4, bar_w))
+                bar_fill = tk.Frame(bar_bg, bg=bar_color, height=12, width=max(4, bar_w))
                 bar_fill.pack(side="left")
                 tk.Label(row, text=f"${amt:,.2f}", font=FONT_SM, bg=BG, fg=ACCENT2).pack(side="left", padx=6)
+                if over_label:
+                    tk.Label(row, text=over_label, font=FONT_TINY, bg=BG, fg=bar_color).pack(side="left", padx=2)
 
     # ── add entry ─────────────────────────────────────────────────────────────
     def _build_add(self):
@@ -258,6 +519,12 @@ class BudgetApp(tk.Tk):
         self.add_date = row("Date", lambda p: tk.Entry(p, **entry_cfg))
         self.add_date.insert(0, datetime.today().strftime("%Y-%m-%d"))
 
+        # Recurring checkbox
+        self.add_recurring = tk.BooleanVar(value=False)
+        tk.Checkbutton(form, text="Recurring monthly", variable=self.add_recurring,
+                       bg=CARD, fg=MUTED, selectcolor=CARD, activebackground=CARD,
+                       font=FONT_SM).pack(anchor="w", pady=(4, 0))
+
         tk.Frame(form, bg=BORDER, height=1).pack(fill="x", pady=16)
 
         self.add_status = tk.StringVar()
@@ -278,17 +545,39 @@ class BudgetApp(tk.Tk):
         cat  = self.add_cat.get()
         date = self.add_date.get().strip() or datetime.today().strftime("%Y-%m-%d")
         typ  = self.add_type.get()
+        recurring = self.add_recurring.get()
 
-        self.data["transactions"].append({
+        # compute prev balance for milestone check
+        income = sum(t["amount"] for t in self.data["transactions"] if t["type"] == "income")
+        expense = sum(t["amount"] for t in self.data["transactions"] if t["type"] == "expense")
+        prev_balance = income - expense
+
+        t_entry = {
             "type": typ, "amount": amt,
-            "description": desc, "category": cat, "date": date
-        })
+            "description": desc, "category": cat, "date": date,
+            "recurring": recurring,
+        }
+        if recurring:
+            t_entry["recur_month"] = datetime.today().strftime("%Y-%m")
+
+        self.data["transactions"].append(t_entry)
+        self._play_sound(typ)
         save_data(self.data)
+
+        # compute new balance
+        new_income = sum(t["amount"] for t in self.data["transactions"] if t["type"] == "income")
+        new_expense = sum(t["amount"] for t in self.data["transactions"] if t["type"] == "expense")
+        new_balance = new_income - new_expense
+
+        self._check_milestones(prev_balance, new_balance)
+        self._check_week_milestone()
+
         self.add_status.set(f"✓  Added {typ}: ${amt:,.2f} ({cat})")
         self.add_amount.delete(0, "end")
         self.add_desc.delete(0, "end")
         self.after(3000, lambda: self.add_status.set(""))
         if typ == "expense":
+            self._check_roast(cat)
             self._show_robbery(amt)
         else:
             self._show_payday(amt)
@@ -678,6 +967,14 @@ class BudgetApp(tk.Tk):
 
         toolbar = tk.Frame(f, bg=BG)
         toolbar.pack(fill="x", padx=28, pady=(0, 8))
+
+        search_cfg = dict(bg=SURFACE, fg=TEXT, insertbackground=TEXT, font=FONT_SM,
+                          relief="flat", bd=0, highlightthickness=1,
+                          highlightbackground=BORDER, highlightcolor=ACCENT, width=22)
+        self.ledger_search = tk.Entry(toolbar, **search_cfg)
+        self.ledger_search.pack(side="left", padx=(0, 12))
+        self.ledger_search.bind("<KeyRelease>", lambda e: self._refresh_ledger())
+
         tk.Button(toolbar, text="🗑  Clear All", font=FONT_SM,
                   bg=CARD, fg=DANGER, bd=0, padx=10, pady=6,
                   cursor="hand2", command=self._clear_all).pack(side="right")
@@ -732,16 +1029,26 @@ class BudgetApp(tk.Tk):
         self.tree.bind("<<TreeviewSelect>>", self._on_ledger_select)
 
     def _refresh_ledger(self):
+        query = self.ledger_search.get().strip().lower() if hasattr(self, "ledger_search") else ""
         for row in self.tree.get_children():
             self.tree.delete(row)
         total = len(self.data["transactions"])
         for i, t in enumerate(reversed(self.data["transactions"])):
             idx = total - 1 - i
+            if query and not (
+                query in t["description"].lower()
+                or query in t["category"].lower()
+                or query in str(t["amount"])
+            ):
+                continue
             sign = "+" if t["type"] == "income" else "-"
             color_tag = "income" if t["type"] == "income" else "expense"
+            desc = t["description"]
+            if t.get("recurring"):
+                desc = "↻ " + desc
             self.tree.insert("", "end", iid=str(idx),
                              values=(t.get("date",""), t["type"].upper(),
-                                     t["category"], t["description"],
+                                     t["category"], desc,
                                      f"{sign}${t['amount']:,.2f}"),
                              tags=(color_tag,))
         self.tree.tag_configure("income",  foreground=SUCCESS)
@@ -794,6 +1101,65 @@ class BudgetApp(tk.Tk):
             save_data(self.data)
             self._refresh_ledger()
             self._refresh_dashboard()
+
+    # ── budget limits ─────────────────────────────────────────────────────────
+    def _build_budgets(self):
+        f = self.frames["budgets"]
+        tk.Label(f, text="Budget Limits", font=FONT_H1, bg=BG, fg=TEXT).pack(anchor="w", padx=28, pady=(28, 4))
+        tk.Label(f, text="monthly cap per category", font=FONT_SM, bg=BG, fg=MUTED).pack(anchor="w", padx=28)
+        self._separator(f)
+
+        scroll_area = tk.Frame(f, bg=BG)
+        scroll_area.pack(fill="both", expand=True)
+        sc = self._make_scrollable(scroll_area)
+
+        card = tk.Frame(sc, bg=CARD, padx=24, pady=18)
+        card.pack(fill="x", padx=28, pady=(0, 16))
+
+        entry_cfg = dict(bg=SURFACE, fg=TEXT, insertbackground=TEXT,
+                         font=FONT_BODY, relief="flat", bd=0,
+                         highlightthickness=1, highlightbackground=BORDER,
+                         highlightcolor=ACCENT, width=14)
+
+        self.budget_entries = {}
+        for cat in CATEGORIES:
+            row = tk.Frame(card, bg=CARD)
+            row.pack(fill="x", pady=4)
+            tk.Label(row, text=cat, font=FONT_SM, bg=CARD, fg=TEXT, width=14, anchor="w").pack(side="left")
+            e = tk.Entry(row, **entry_cfg)
+            e.insert(0, self.data.get("budgets", {}).get(cat, ""))
+            e.pack(side="left", padx=(8, 0))
+            tk.Label(row, text="$/month", font=FONT_SM, bg=CARD, fg=MUTED).pack(side="left", padx=8)
+            self.budget_entries[cat] = e
+
+        btn_row = tk.Frame(sc, bg=BG)
+        btn_row.pack(anchor="w", padx=28, pady=(0, 8))
+        tk.Button(btn_row, text="  Save Limits  ", font=FONT_BODY,
+                  bg=ACCENT, fg="white", bd=0, padx=14, pady=8,
+                  cursor="hand2", activebackground="#6455d4",
+                  command=self._save_budgets).pack(side="left")
+        self.budgets_status = tk.StringVar()
+        tk.Label(btn_row, textvariable=self.budgets_status, font=FONT_SM,
+                 bg=BG, fg=SUCCESS).pack(side="left", padx=12)
+
+    def _save_budgets(self):
+        budgets = {}
+        for cat, e in self.budget_entries.items():
+            val = e.get().strip()
+            if val:
+                try:
+                    budgets[cat] = str(float(val))
+                except ValueError:
+                    pass
+        self.data["budgets"] = budgets
+        save_data(self.data)
+        self.budgets_status.set("✓  Saved")
+        self.after(3000, lambda: self.budgets_status.set(""))
+
+    def _refresh_budgets(self):
+        for cat, e in self.budget_entries.items():
+            e.delete(0, "end")
+            e.insert(0, self.data.get("budgets", {}).get(cat, ""))
 
     # ── weekly planner ────────────────────────────────────────────────────────
     def _build_weekly(self):

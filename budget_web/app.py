@@ -15,6 +15,7 @@ def load():
     d.setdefault("transactions", [])
     d.setdefault("budgets", {})
     d.setdefault("weekly_plan", {})
+    d.setdefault("prefs", {"sounds": True})
     return d
 
 
@@ -56,6 +57,14 @@ def patch_transaction(idx):
     if 0 <= idx < len(data["transactions"]):
         data["transactions"][idx].update(request.json)
         save(data)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/budgets", methods=["POST"])
+def save_budgets():
+    data = load()
+    data["budgets"] = request.json
+    save(data)
     return jsonify({"ok": True})
 
 
