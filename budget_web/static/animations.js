@@ -40,9 +40,13 @@ function arc(ctx, x1, y1, x2, y2, start, extent, color, lw) {
 
 function txt(ctx, x, y, text, color, size, bold) {
   ctx.fillStyle = color;
-  ctx.font = `${bold?'bold ':''}${size||9}px "Courier New"`;
+  ctx.font = `${bold?'bold ':''}${size||11}px "Courier New"`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,0.85)';
+  ctx.shadowBlur = 4;
   ctx.fillText(text, x, y);
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
 }
 
 // ── draw Mr. Krabs ─────────────────────────────────────────────────────────
@@ -82,7 +86,7 @@ function drawKrabs(ctx, cx, gy, action) {
     oval(ctx, cx-46, Y-50, cx-24, Y-32, RED, DRK, 2);
     arc(ctx, cx-46, Y-50, cx-24, Y-32, 20, 70, DRK, 2);
     oval(ctx, cx-40, Y-46, cx-30, Y-36, '#f5c842', '#c8a820', 1);
-    txt(ctx, cx-35, Y-41, '$', '#8B6914', 7, true);
+    txt(ctx, cx-35, Y-41, '$', '#8B6914', 9, true);
     oval(ctx, cx+24, Y-50, cx+46, Y-32, RED, DRK, 2);
     arc(ctx, cx+24, Y-50, cx+46, Y-32, 110, 70, DRK, 2);
   } else if (action==='shocked') {
@@ -154,7 +158,7 @@ function drawSpongebob(ctx, cx, gy, action, coin) {
   // coin
   if (coin) {
     oval(ctx, cx-30,Y-62, cx-18,Y-50, '#f5c842','#c8a820',2);
-    txt(ctx, cx-24, Y-56, '$', '#8B6914', 8, true);
+    txt(ctx, cx-24, Y-56, '$', '#8B6914', 10, true);
   }
 }
 
@@ -209,7 +213,7 @@ function robberyFrame(ctx, W, GY, f, amount) {
     const p=(f-25)/17;
     drawKrabs(ctx, kx, GY, p>0.5?'shocked':'count');
     drawSpongebob(ctx, 200, GY, 'grab', false);
-    if (p>0.4) txt(ctx, 185, 18, 'GIVE ME THE MONEY!!', '#f76a6a', 12, true);
+    if (p>0.4) txt(ctx, 185, 18, 'GIVE ME THE MONEY!!', '#f76a6a', 14, true);
   } else if (f<=58) {
     const p=(f-43)/15;
     drawKrabs(ctx, kx, GY, 'shocked');
@@ -220,19 +224,19 @@ function robberyFrame(ctx, W, GY, f, amount) {
         const fx=Math.round((kx-35)+(178-(kx-35))*t2);
         const fy=Math.round(GY-41+dy-22*t2);
         oval(ctx, fx-sz/2, fy-sz/2, fx+sz/2, fy+sz/2, '#f5c842','#c8a820',1);
-        txt(ctx, fx, fy, '$', '#8B6914', 8, true);
+        txt(ctx, fx, fy, '$', '#8B6914', 10, true);
       }
     }
-    txt(ctx, kx, GY-90, 'ME MONEY!!!', '#d63000', 12, true);
+    txt(ctx, kx, GY-90, 'ME MONEY!!!', '#d63000', 14, true);
   } else if (f<=78) {
     const p=(f-59)/20;
     const sx=Math.round(200-230*p);
     drawKrabs(ctx, kx, GY, 'empty');
     drawSpongebob(ctx, sx, GY, f%6<3?'flee':'happy', true);
-    txt(ctx, Math.max(sx,10), GY-82, "I'M READY!", '#f7c96a', 12, true);
+    txt(ctx, Math.max(sx,10), GY-82, "I'M READY!", '#f7c96a', 14, true);
   } else {
     drawKrabs(ctx, kx, GY, 'empty');
-    txt(ctx, kx, GY-90, 'me money...', '#7a7890', 11);
+    txt(ctx, kx, GY-90, 'me money...', '#7a7890', 13);
     for (const [tx,ty] of [[kx-10,GY-68],[kx+10,GY-68]]) {
       const dr=Math.min((f-79)*3,18);
       oval(ctx, tx-2, ty, tx+2, ty+dr, '#4ecb8d', null);
@@ -253,12 +257,12 @@ function paydayFrame(ctx, W, GY, f, amount) {
     const p=f/20;
     drawKrabs(ctx, kx, GY, 'count');
     drawSpongebob(ctx, sx, GY, 'stand', false);
-    if (p>0.5) txt(ctx, sx, GY-82, 'is it Friday?', '#7a7890', 11);
+    if (p>0.5) txt(ctx, sx, GY-82, 'is it Friday?', '#7a7890', 13);
   } else if (f<=42) {
     const p=(f-21)/21;
     drawKrabs(ctx, kx, GY, 'shocked');
     drawSpongebob(ctx, sx, GY, 'grab', false);
-    txt(ctx, kx, GY-90, p>0.5 ? 'me money... 😭' : 'fine... FINE...', '#d63000', 12, true);
+    txt(ctx, kx, GY-90, p>0.5 ? 'me money... :((' : 'fine... FINE...', '#d63000', 14, true);
   } else if (f<=58) {
     const p=(f-43)/15;
     drawKrabs(ctx, kx, GY, 'shocked');
@@ -269,14 +273,14 @@ function paydayFrame(ctx, W, GY, f, amount) {
         const fx=Math.round((kx-35)+(sx-20-(kx-35))*t2);
         const fy=Math.round(GY-41+dy-22*t2);
         oval(ctx, fx-sz/2, fy-sz/2, fx+sz/2, fy+sz/2, '#f5c842','#c8a820',1);
-        txt(ctx, fx, fy, '$', '#8B6914', 8, true);
+        txt(ctx, fx, fy, '$', '#8B6914', 10, true);
       }
     }
   } else if (f<=76) {
     drawKrabs(ctx, kx, GY, 'empty');
     drawSpongebob(ctx, sx, GY, f%8<4?'happy':'flee', true);
-    txt(ctx, sx, GY-82, 'PAYDAY!!!', '#4ecb8d', 13, true);
-    txt(ctx, kx, GY-90, 'me money...', '#d63000', 11);
+    txt(ctx, sx, GY-82, 'PAYDAY!!!', '#4ecb8d', 15, true);
+    txt(ctx, kx, GY-90, 'me money...', '#d63000', 13);
     for (const [tx,ty] of [[kx-10,GY-68],[kx+10,GY-68]]) {
       const dr=Math.min((f-59)*3,18);
       oval(ctx, tx-2, ty, tx+2, ty+dr, '#4ecb8d', null);
@@ -284,7 +288,7 @@ function paydayFrame(ctx, W, GY, f, amount) {
   } else {
     drawKrabs(ctx, kx, GY, 'empty');
     drawSpongebob(ctx, sx, GY, 'happy', true);
-    txt(ctx, sx, GY-82, 'PAYDAY!!!', '#4ecb8d', 13, true);
+    txt(ctx, sx, GY-82, 'PAYDAY!!!', '#4ecb8d', 15, true);
     for (const [tx,ty] of [[kx-10,GY-68],[kx+10,GY-68]])
       oval(ctx, tx-2, ty, tx+2, ty+18, '#4ecb8d', null);
   }
