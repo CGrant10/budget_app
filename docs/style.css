@@ -43,7 +43,7 @@ html, body {
   flex-direction: row;
   height: auto;
   padding-bottom: 0;
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: max(env(safe-area-inset-top, 0px), 28px);
   position: sticky;
   top: 0;
 }
