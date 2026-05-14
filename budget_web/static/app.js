@@ -595,11 +595,11 @@ function calcWeekly() {
   const monLabel = monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const weekRows = Array.from({ length: weeks }, (_, w) => {
     const s0 = w * 7, s1 = Math.min((w + 1) * 7, days);
-    const amt = days > 0 ? (s1 - s0) / days * available : 0;
+    const amt = perWeek;
     const sd  = new Date(now); sd.setDate(now.getDate() + s0);
     const ed  = new Date(now); ed.setDate(now.getDate() + s1 - 1);
     const lbl = `${sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
-    const pct = available > 0 ? amt / available * 100 : 0;
+    const pct = weeks > 0 ? 100 / weeks : 0;
     return `
       <div class="week-row">
         <span class="week-label">Wk ${w + 1}</span>

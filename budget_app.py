@@ -1456,14 +1456,13 @@ class BudgetApp(tk.Tk):
         for w in range(weeks):
             start_day = w * 7
             end_day   = min((w + 1) * 7, days)
-            days_this = end_day - start_day
-            amt       = (days_this / days) * available if days else 0
+            amt       = per_week
 
             start_dt = datetime.fromordinal(today.toordinal() + start_day)
             end_dt   = datetime.fromordinal(today.toordinal() + end_day - 1)
             date_str = f"{start_dt.strftime('%b %d')} – {end_dt.strftime('%b %d')}"
 
-            bar_pct = amt / available if available else 0
+            bar_pct = 1.0 / weeks if weeks else 0
             bar_w   = max(4, int(bar_pct * 340))
 
             row = tk.Frame(self.wk_results, bg=BG)
