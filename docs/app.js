@@ -1,5 +1,6 @@
 'use strict';
 
+const VERSION = '1.2.0';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 // ── audio ──────────────────────────────────────────────────────────────────
@@ -258,6 +259,7 @@ function render() {
     case 'weekly':    main.innerHTML = renderWeekly();    break;
     case 'import':    main.innerHTML = renderImport();    break;
     case 'budgets':   main.innerHTML = renderBudgets();   break;
+    case 'about':     main.innerHTML = renderAbout();     break;
   }
   attachHandlers();
 }
@@ -659,6 +661,38 @@ function renderImport() {
     </div>`;
 }
 
+// ── about ──────────────────────────────────────────────────────────────────
+const QUOTES = [
+  "A budget is telling your money where to go instead of wondering where it went. — Dave Ramsey",
+  "Do not save what is left after spending, but spend what is left after saving. — Warren Buffett",
+  "Wealth is not about having a lot of money; it's about having a lot of options. — Chris Rock",
+  "Financial freedom is available to those who learn about it and work for it. — Robert Kiyosaki",
+  "It's not how much money you make, but how much money you keep. — Robert Kiyosaki",
+  "The secret to wealth is simple: find a way to do more for others than anyone else does. — Tony Robbins",
+  "Money is a tool. Used properly it makes something beautiful; used wrong, it makes a mess. — Bradley Vinson",
+  "Every dollar you own is a soldier you can send to work for you. — Unknown",
+];
+
+function renderAbout() {
+  const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  const built = new Date().getFullYear();
+  return `
+    <div class="page">
+      <h1 class="page-title">About</h1>
+      <div class="form-card" style="text-align:center;padding:28px 20px">
+        <div style="font-size:2.4rem;margin-bottom:4px">💸</div>
+        <div style="font-size:1.5rem;font-weight:700;color:var(--accent)">SlawMinYaw</div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:16px">money moves</div>
+        <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
+        <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
+        <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Quote of the Day</div>
+        <p style="font-size:.9rem;color:var(--text);line-height:1.6;font-style:italic;margin:0">"${quote}"</p>
+      </div>
+      <p style="text-align:center;font-size:.75rem;color:var(--muted);margin-top:8px">© ${built} SlawMinYaw. All rights reserved.</p>
+    </div>`;
+}
+
 function parseCSVLine(line) {
   const result = []; let cur = '', inQ = false;
   for (const ch of line) {
@@ -703,6 +737,7 @@ function attachHandlers() {
     case 'weekly':    attachWeekly(); calcWeekly(); break;
     case 'import':    attachImport();    break;
     case 'budgets':   attachBudgets();   break;
+    case 'about':                        break;
   }
 }
 
