@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '1.4.2';
+const VERSION = '1.4.3';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 // ── audio ──────────────────────────────────────────────────────────────────
@@ -780,7 +780,7 @@ function attachAbout() {
         await Promise.all(regs.map(r => r.unregister()));
       }
       btn.textContent = 'Reloading…';
-      window.location.reload();
+      window.location.href = window.location.pathname + '?v=' + Date.now();
     } catch(e) {
       status.textContent = 'Error: ' + e.message;
       btn.disabled = false;
@@ -1047,7 +1047,7 @@ document.querySelectorAll('.nav-btn').forEach(btn =>
     }).catch(() => {});
     // When a new service worker takes over, reload to get fresh files
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      window.location.reload();
+      window.location.href = window.location.pathname + '?v=' + Date.now();
     });
   }
 })();
