@@ -34,10 +34,20 @@ html, body {
   height: 100dvh;
 }
 
-/* nav-top: header + nav on top, main below */
-#app.nav-top    { flex-direction: column; }
-#app.nav-top    .bottom-nav { order: -2; border-top: none; border-bottom: 1px solid var(--border); flex-direction: row; height: auto; padding-bottom: 0; }
-#app.nav-top    .header     { order: -1; }
+/* nav-top: nav on very top, header below it, main below that */
+#app.nav-top { flex-direction: column; }
+#app.nav-top .bottom-nav {
+  order: -2;
+  border-top: none;
+  border-bottom: 1px solid var(--border);
+  flex-direction: row;
+  height: auto;
+  padding-bottom: 0;
+  padding-top: env(safe-area-inset-top, 0px);
+  position: sticky;
+  top: 0;
+}
+#app.nav-top .header { order: -1; padding-top: 0; }
 
 /* nav-bottom (default): header on top, main in middle, nav on bottom */
 #app.nav-bottom { flex-direction: column; }
