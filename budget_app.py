@@ -1356,8 +1356,7 @@ class BudgetApp(tk.Tk):
         per_week  = available / weeks
         per_day   = available / days if days else available
 
-        # Use locked-in weekly limit for tracker; only update it on explicit Save
-        saved_per_week = self.data.get("weekly_plan", {}).get("per_week", per_week)
+        saved_per_week = per_week
 
         # ── summary cards ──
         cards_row = tk.Frame(self.wk_results, bg=BG)

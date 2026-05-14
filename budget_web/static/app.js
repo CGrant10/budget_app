@@ -561,7 +561,7 @@ function calcWeekly() {
     .filter(t => t.type === 'income' && t.date >= mondayStr)
     .reduce((s, t) => s + t.amount, 0);
   const weekNet    = Math.max(0, weekExpenses - weekIncomeOffset);
-  const savedPerWeek = parseFloat(state.weekly_plan.per_week) || perWeek;
+  const savedPerWeek = perWeek;
   const weekPct   = savedPerWeek > 0 ? Math.min(weekNet / savedPerWeek, 1) : 0;
   const barColor  = weekPct >= 1 ? 'var(--danger)' : weekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
 
