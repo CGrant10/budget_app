@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '1.4.6';
+const VERSION = '1.5.0';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 // ── audio ──────────────────────────────────────────────────────────────────
@@ -71,16 +71,34 @@ const SETTINGS_KEY  = 'slawminyaw_settings';
 
 function loadSettings() { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); }
 function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
+const NAV_ITEMS = [
+  { key: 'dashboard', label: 'Dashboard', icon: '📊', required: true },
+  { key: 'add',       label: 'Add',       icon: '➕' },
+  { key: 'ledger',    label: 'Ledger',    icon: '📋' },
+  { key: 'weekly',    label: 'Weekly',    icon: '📅' },
+  { key: 'import',    label: 'Import',    icon: '📥' },
+  { key: 'budgets',   label: 'Budgets',   icon: '💰' },
+  { key: 'settings',  label: 'Settings',  icon: '⚙️',  required: true },
+  { key: 'about',     label: 'About',     icon: 'ℹ️' },
+];
+
 function applySettings() {
   const s = loadSettings();
   const logo = document.querySelector('.logo');
   if (logo) logo.textContent = s.name ? s.name + "'s Budget" : 'SlawMinYaw';
   applyNavPosition(s.navPosition || 'bottom');
+  applyNavItems(s.hiddenTabs || []);
 }
 function applyNavPosition(pos) {
   const app = document.getElementById('app');
   app.classList.remove('nav-top', 'nav-bottom', 'nav-left', 'nav-right');
   app.classList.add('nav-' + pos);
+}
+function applyNavItems(hiddenTabs) {
+  NAV_ITEMS.forEach(item => {
+    const btn = document.querySelector(`.nav-btn[data-tab="${item.key}"]`);
+    if (btn) btn.style.display = hiddenTabs.includes(item.key) ? 'none' : '';
+  });
 }
 
 function _save() {
@@ -681,9 +699,19 @@ function renderImport() {
 function renderSettings() {
   const s = loadSettings();
   const navPos = s.navPosition || 'bottom';
+  const hiddenTabs = s.hiddenTabs || [];
   const navOpts = ['bottom','top','left','right'].map(p =>
     `<button class="nav-pos-btn${navPos===p?' active':''}" data-pos="${p}">${p.charAt(0).toUpperCase()+p.slice(1)}</button>`
   ).join('');
+  const tabToggles = NAV_ITEMS.map(item => `
+    <label class="tab-toggle${item.required?' tab-toggle--disabled':''}">
+      <span class="tab-toggle-icon">${item.icon}</span>
+      <span class="tab-toggle-label">${item.label}</span>
+      <input type="checkbox" class="tab-toggle-input" data-tab="${item.key}"
+        ${!hiddenTabs.includes(item.key) ? 'checked' : ''}
+        ${item.required ? 'disabled' : ''}>
+      <span class="tab-toggle-switch"></span>
+    </label>`).join('');
   return `
     <div class="page">
       <h1 class="page-title">Settings</h1>
@@ -702,6 +730,11 @@ function renderSettings() {
         <h2 class="section-title" style="margin-bottom:8px">Navigation Position</h2>
         <p class="code-hint" style="margin-bottom:12px">Choose which side of the screen the nav bar sits on.</p>
         <div class="nav-pos-grid">${navOpts}</div>
+      </div>
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Customize Nav</h2>
+        <p class="code-hint" style="margin-bottom:12px">Show or hide tabs in the nav bar.</p>
+        <div class="tab-toggles">${tabToggles}</div>
       </div>
     </div>`;
 }
@@ -722,6 +755,19 @@ function attachSettings() {
       saveSettings(s);
       applyNavPosition(btn.dataset.pos);
       document.querySelectorAll('.nav-pos-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  document.querySelectorAll('.tab-toggle-input').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const s = loadSettings();
+      const hidden = [];
+      document.querySelectorAll('.tab-toggle-input').forEach(c => {
+        if (!c.checked && !c.disabled) hidden.push(c.dataset.tab);
+      });
+      s.hiddenTabs = hidden;
+      saveSettings(s);
+      applyNavItems(hidden);
     });
   });
 }
