@@ -184,12 +184,12 @@ class BudgetApp(tk.Tk):
         canvas.pack(side="left", fill="both", expand=True)
         inner = tk.Frame(canvas, bg=BG)
         win_id = canvas.create_window((0, 0), window=inner, anchor="nw")
-        inner.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        _rjob = [None]
-        def _on_resize(e):
-            if _rjob[0]: canvas.after_cancel(_rjob[0])
-            _rjob[0] = canvas.after(30, lambda: canvas.itemconfig(win_id, width=e.width))
-        canvas.bind("<Configure>", _on_resize)
+        _srjob = [None]
+        def _update_sr(e):
+            if _srjob[0]: canvas.after_cancel(_srjob[0])
+            _srjob[0] = canvas.after(100, lambda: canvas.configure(scrollregion=canvas.bbox("all")))
+        inner.bind("<Configure>", _update_sr)
+        canvas.bind("<Configure>", lambda e: canvas.itemconfig(win_id, width=e.width))
         def _scroll(event):
             canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
         canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _scroll))
