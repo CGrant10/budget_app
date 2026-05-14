@@ -327,6 +327,7 @@ html, body {
 .empty-msg { color: var(--muted); font-size: 13px; padding: 20px 0; text-align: center; }
 
 /* ── weekly ──────────────────────────────────────────────────────────────── */
+#wk-results { margin-top: 16px; }
 .week-tracker {
   background: var(--card);
   border-radius: 12px;
