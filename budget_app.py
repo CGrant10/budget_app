@@ -576,11 +576,43 @@ class BudgetApp(tk.Tk):
         self.add_amount.delete(0, "end")
         self.add_desc.delete(0, "end")
         self.after(3000, lambda: self.add_status.set(""))
+        if typ == "income":
+            self._auto_update_weekly_plan()
         if typ == "expense":
             self._check_roast(cat)
             self._show_robbery(amt)
         else:
             self._show_payday(amt)
+
+    def _auto_update_weekly_plan(self):
+        wp = self.data.get("weekly_plan", {})
+        if not wp.get("paydate"):
+            return
+        income, expense, _ = self._totals()
+        new_balance = income - expense
+        try:
+            bills = float(str(wp.get("bills", "0")).replace("$", "").replace(",", ""))
+        except ValueError:
+            bills = 0
+        try:
+            paydate = datetime.strptime(wp["paydate"].strip(), "%Y-%m-%d")
+            days = max(1, (paydate - datetime.today()).days + 1)
+        except ValueError:
+            return
+        buf_pct   = int(wp.get("buffer", 10))
+        spendable = max(0, new_balance - bills)
+        available = max(0, spendable - round(spendable * buf_pct / 100, 2))
+        weeks     = max(1, -(-days // 7))
+        per_week  = available / weeks
+
+        self.data["weekly_plan"]["balance"]  = f"{new_balance:.2f}"
+        self.data["weekly_plan"]["per_week"] = per_week
+        save_data(self.data)
+
+        if hasattr(self, "wk_balance"):
+            self.wk_balance.delete(0, "end")
+            self.wk_balance.insert(0, f"{new_balance:.2f}")
+            self._refresh_weekly()
 
     # ── payday animation (income) ─────────────────────────────────────────────
     def _show_payday(self, amount):
@@ -1374,6 +1406,40 @@ class BudgetApp(tk.Tk):
         bar_fill = tk.Frame(bar_bg, bg=bar_color, height=8)
         bar_fill.place(relx=0, rely=0, relwidth=week_pct, relheight=1)
 
+        # ── this week transactions ──
+        week_txns = [t for t in self.data["transactions"]
+                     if t.get("date", "") >= week_start_str]
+        week_txns.sort(key=lambda t: t.get("date", ""), reverse=True)
+
+        tk.Frame(tracker, bg=BORDER, height=1).pack(fill="x", pady=(10, 6))
+        txn_hdr = tk.Frame(tracker, bg=CARD)
+        txn_hdr.pack(fill="x", pady=(0, 4))
+        tk.Label(txn_hdr, text="TRANSACTIONS THIS WEEK", font=FONT_TINY,
+                 bg=CARD, fg=MUTED).pack(side="left")
+        if week_txns:
+            week_income = sum(t["amount"] for t in week_txns if t["type"] == "income")
+            if week_income:
+                tk.Label(txn_hdr, text=f"+${week_income:,.2f} income",
+                         font=FONT_TINY, bg=CARD, fg=SUCCESS).pack(side="right")
+
+        if week_txns:
+            for t in week_txns:
+                color = SUCCESS if t["type"] == "income" else TEXT
+                sign  = "+" if t["type"] == "income" else "−"
+                trow  = tk.Frame(tracker, bg=CARD)
+                trow.pack(fill="x", pady=1)
+                tk.Label(trow, text=t.get("date", ""), font=FONT_TINY,
+                         bg=CARD, fg=MUTED, width=10, anchor="w").pack(side="left")
+                tk.Label(trow, text=f"{sign}${t['amount']:,.2f}", font=FONT_SM,
+                         bg=CARD, fg=color, width=12, anchor="e").pack(side="left")
+                tk.Label(trow, text=t.get("category", ""), font=FONT_TINY,
+                         bg=CARD, fg=MUTED, width=13, anchor="w").pack(side="left", padx=6)
+                tk.Label(trow, text=t.get("description", ""), font=FONT_SM,
+                         bg=CARD, fg=TEXT).pack(side="left")
+        else:
+            tk.Label(tracker, text="No transactions yet this week.",
+                     font=FONT_TINY, bg=CARD, fg=MUTED).pack(anchor="w", pady=4)
+
         # ── week breakdown bars ──
         tk.Label(self.wk_results, text="Week-by-week breakdown",
                  font=FONT_H2, bg=BG, fg=TEXT).pack(anchor="w", pady=(4, 8))
@@ -1406,6 +1472,91 @@ class BudgetApp(tk.Tk):
 
             tk.Label(row, text=f"${amt:,.2f}", font=FONT_SM, bg=BG, fg=SUCCESS).pack(side="left", padx=6)
             tk.Label(row, text=f"(${per_day:,.2f}/day)", font=FONT_TINY, bg=BG, fg=MUTED).pack(side="left")
+
+        # ── past weeks ──
+        tk.Label(self.wk_results, text="Past Weeks",
+                 font=FONT_H2, bg=BG, fg=TEXT).pack(anchor="w", pady=(20, 8))
+
+        monday_this = datetime.today() - timedelta(days=datetime.today().weekday())
+        found_any = False
+        for i in range(8):
+            wk_start = monday_this - timedelta(weeks=i + 1)
+            wk_end   = wk_start + timedelta(days=6)
+            wk_start_str = wk_start.strftime("%Y-%m-%d")
+            wk_end_str   = wk_end.strftime("%Y-%m-%d")
+
+            txns = [t for t in self.data["transactions"]
+                    if wk_start_str <= t.get("date", "") <= wk_end_str]
+            if not txns and i >= 4:
+                continue
+
+            found_any = True
+            spent  = sum(t["amount"] for t in txns if t["type"] == "expense")
+            earned = sum(t["amount"] for t in txns if t["type"] == "income")
+            lbl    = f"{wk_start.strftime('%b %d')} – {wk_end.strftime('%b %d')}"
+
+            pw_row = tk.Frame(self.wk_results, bg=CARD, padx=14, pady=10, cursor="hand2")
+            pw_row.pack(fill="x", pady=2)
+
+            tk.Label(pw_row, text=lbl, font=FONT_SM, bg=CARD, fg=TEXT, width=16, anchor="w").pack(side="left")
+            tk.Label(pw_row, text=f"spent: ${spent:,.2f}", font=FONT_SM, bg=CARD,
+                     fg=DANGER if spent else MUTED, width=18, anchor="w").pack(side="left")
+            if earned:
+                tk.Label(pw_row, text=f"income: ${earned:,.2f}", font=FONT_SM, bg=CARD,
+                         fg=SUCCESS, width=18, anchor="w").pack(side="left")
+            tk.Label(pw_row, text="▶ view", font=FONT_TINY, bg=CARD, fg=ACCENT).pack(side="right")
+
+            _s, _e, _lbl = wk_start_str, wk_end_str, lbl
+            cb = lambda e, s=_s, end=_e, title=_lbl: self._show_week_transactions(s, end, title)
+            pw_row.bind("<Button-1>", cb)
+            for child in pw_row.winfo_children():
+                child.bind("<Button-1>", cb)
+
+        if not found_any:
+            tk.Label(self.wk_results, text="No past transactions found.",
+                     font=FONT_SM, bg=BG, fg=MUTED).pack(anchor="w", pady=4)
+
+    def _show_week_transactions(self, start_str, end_str, title):
+        txns = [t for t in self.data["transactions"]
+                if start_str <= t.get("date", "") <= end_str]
+
+        pop = tk.Toplevel(self)
+        pop.title(f"Week: {title}")
+        pop.configure(bg=BG)
+        pop.geometry("580x420")
+        pop.resizable(True, True)
+
+        tk.Label(pop, text=title, font=FONT_H2, bg=BG, fg=TEXT).pack(anchor="w", padx=20, pady=(16, 4))
+
+        if not txns:
+            tk.Label(pop, text="No transactions this week.", font=FONT_BODY, bg=BG, fg=MUTED).pack(padx=20, pady=20)
+            return
+
+        spent  = sum(t["amount"] for t in txns if t["type"] == "expense")
+        earned = sum(t["amount"] for t in txns if t["type"] == "income")
+
+        summary = tk.Frame(pop, bg=CARD, padx=14, pady=10)
+        summary.pack(fill="x", padx=20, pady=(0, 12))
+        tk.Label(summary, text=f"Spent: ${spent:,.2f}", font=FONT_BODY, bg=CARD,
+                 fg=DANGER if spent else MUTED).pack(side="left")
+        if earned:
+            tk.Label(summary, text=f"   Income: ${earned:,.2f}", font=FONT_BODY, bg=CARD, fg=SUCCESS).pack(side="left")
+        net_col = SUCCESS if earned >= spent else DANGER
+        tk.Label(summary, text=f"Net: ${earned - spent:,.2f}", font=FONT_BODY, bg=CARD, fg=net_col).pack(side="right")
+
+        sc_frame = tk.Frame(pop, bg=BG)
+        sc_frame.pack(fill="both", expand=True, padx=20, pady=(0, 16))
+        sc = self._make_scrollable(sc_frame)
+
+        for t in sorted(txns, key=lambda x: x.get("date", ""), reverse=True):
+            color = SUCCESS if t["type"] == "income" else TEXT
+            row = tk.Frame(sc, bg=CARD, padx=12, pady=8)
+            row.pack(fill="x", pady=2)
+            tk.Label(row, text=t.get("date", ""), font=FONT_TINY, bg=CARD, fg=MUTED, width=10, anchor="w").pack(side="left")
+            sign = "+" if t["type"] == "income" else "−"
+            tk.Label(row, text=f"{sign}${t['amount']:,.2f}", font=FONT_BODY, bg=CARD, fg=color, width=12, anchor="e").pack(side="left")
+            tk.Label(row, text=t.get("category", ""), font=FONT_SM, bg=CARD, fg=MUTED, width=13, anchor="w").pack(side="left", padx=8)
+            tk.Label(row, text=t.get("description", ""), font=FONT_SM, bg=CARD, fg=TEXT).pack(side="left")
 
     # ── CSV import ────────────────────────────────────────────────────────────
     def _build_import(self):
