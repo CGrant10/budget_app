@@ -1376,11 +1376,16 @@ class BudgetApp(tk.Tk):
         # ── this week actual tracker ──
         week_start = datetime.today() - timedelta(days=datetime.today().weekday())
         week_start_str = week_start.strftime("%Y-%m-%d")
-        week_spent = sum(
+        week_expenses = sum(
             t["amount"] for t in self.data["transactions"]
             if t["type"] == "expense" and t.get("date", "") >= week_start_str
         )
-        week_pct  = min(week_spent / saved_per_week, 1.0) if saved_per_week else 0
+        week_income = sum(
+            t["amount"] for t in self.data["transactions"]
+            if t["type"] == "income" and t.get("date", "") >= week_start_str
+        )
+        week_net  = max(0, week_expenses - week_income)
+        week_pct  = min(week_net / saved_per_week, 1.0) if saved_per_week else 0
         bar_color = DANGER if week_pct >= 1.0 else (WARN if week_pct >= 0.8 else SUCCESS)
 
         tracker = tk.Frame(self.wk_results, bg=CARD, padx=20, pady=14)
@@ -1396,10 +1401,13 @@ class BudgetApp(tk.Tk):
 
         amt_row = tk.Frame(tracker, bg=CARD)
         amt_row.pack(fill="x", pady=(4, 6))
-        tk.Label(amt_row, text=f"${week_spent:,.2f}", font=("Georgia", 20, "bold"),
+        tk.Label(amt_row, text=f"${week_net:,.2f}", font=("Georgia", 20, "bold"),
                  bg=CARD, fg=bar_color).pack(side="left")
         tk.Label(amt_row, text=f"  /  ${saved_per_week:,.2f} weekly budget",
                  font=FONT_BODY, bg=CARD, fg=MUTED).pack(side="left")
+        if week_income:
+            tk.Label(amt_row, text=f"   (${week_expenses:,.2f} spent − ${week_income:,.2f} income)",
+                     font=FONT_TINY, bg=CARD, fg=MUTED).pack(side="left")
 
         bar_bg = tk.Frame(tracker, bg=BORDER, height=8)
         bar_bg.pack(fill="x")
@@ -1416,11 +1424,9 @@ class BudgetApp(tk.Tk):
         txn_hdr.pack(fill="x", pady=(0, 4))
         tk.Label(txn_hdr, text="TRANSACTIONS THIS WEEK", font=FONT_TINY,
                  bg=CARD, fg=MUTED).pack(side="left")
-        if week_txns:
-            week_income = sum(t["amount"] for t in week_txns if t["type"] == "income")
-            if week_income:
-                tk.Label(txn_hdr, text=f"+${week_income:,.2f} income",
-                         font=FONT_TINY, bg=CARD, fg=SUCCESS).pack(side="right")
+        if week_income:
+            tk.Label(txn_hdr, text=f"−${week_income:,.2f} offset from income",
+                     font=FONT_TINY, bg=CARD, fg=SUCCESS).pack(side="right")
 
         if week_txns:
             for t in week_txns:

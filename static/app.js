@@ -296,11 +296,15 @@ function calcWeekly() {
   const monday = new Date(now);
   monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
   const mondayStr = monday.toISOString().split('T')[0];
-  const weekSpent = state.transactions
+  const weekExpenses = state.transactions
     .filter(t => t.type === 'expense' && t.date >= mondayStr)
     .reduce((s, t) => s + t.amount, 0);
+  const weekIncomeOffset = state.transactions
+    .filter(t => t.type === 'income' && t.date >= mondayStr)
+    .reduce((s, t) => s + t.amount, 0);
+  const weekNet    = Math.max(0, weekExpenses - weekIncomeOffset);
   const savedPerWeek = parseFloat(state.weekly_plan.per_week) || perWeek;
-  const weekPct   = savedPerWeek > 0 ? Math.min(weekSpent / savedPerWeek, 1) : 0;
+  const weekPct   = savedPerWeek > 0 ? Math.min(weekNet / savedPerWeek, 1) : 0;
   const barColor  = weekPct >= 1 ? 'var(--danger)' : weekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
 
   const summaryCards = [
@@ -319,7 +323,7 @@ function calcWeekly() {
   const thisWeekTxns = state.transactions
     .filter(t => t.date >= mondayStr)
     .sort((a, b) => b.date.localeCompare(a.date));
-  const weekIncomeAmt = thisWeekTxns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const weekIncomeAmt = weekIncomeOffset;
   const thisWeekTxnHtml = thisWeekTxns.length
     ? thisWeekTxns.map(t => `
         <div class="pw-txn-row">
@@ -401,12 +405,12 @@ function calcWeekly() {
         <span class="wt-label">THIS WEEK</span>
         <span class="wt-dates">(Mon ${monLabel} – today)</span>
         <span class="wt-pct" style="color:${barColor}">${(weekPct * 100).toFixed(0)}% used</span>
-        ${weekIncomeAmt ? `<span class="wt-income">+${fmt(weekIncomeAmt)} income</span>` : ''}
       </div>
       <div class="wt-amounts">
-        <span class="wt-spent" style="color:${barColor}">${fmt(weekSpent)}</span>
+        <span class="wt-spent" style="color:${barColor}">${fmt(weekNet)}</span>
         <span class="wt-of"> / ${fmt(savedPerWeek)} weekly budget</span>
       </div>
+      ${weekIncomeAmt ? `<div class="wt-offset">${fmt(weekExpenses)} spent − ${fmt(weekIncomeAmt)} income = ${fmt(weekNet)} net</div>` : ''}
       <div class="progress-bar-bg">
         <div class="progress-bar-fill" style="width:${(weekPct * 100).toFixed(1)}%;background:${barColor}"></div>
       </div>
