@@ -986,6 +986,14 @@ document.querySelectorAll('.nav-btn').forEach(btn =>
   applySettings();
   render();
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      // Force an update check every time the app is opened
+      reg.update();
+      window.addEventListener('focus', () => reg.update());
+    }).catch(() => {});
+    // When a new service worker takes over, reload to get fresh files
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
   }
 })();
