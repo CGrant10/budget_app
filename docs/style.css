@@ -27,11 +27,53 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* ── app shell — nav position ─────────────────────────────────────────────── */
 #app {
   display: flex;
   flex-direction: column;
   height: 100dvh;
 }
+
+/* nav-top: header + nav on top, main below */
+#app.nav-top    { flex-direction: column; }
+#app.nav-top    .bottom-nav { order: -2; border-top: none; border-bottom: 1px solid var(--border); flex-direction: row; height: auto; padding-bottom: 0; }
+#app.nav-top    .header     { order: -1; }
+
+/* nav-bottom (default): header on top, main in middle, nav on bottom */
+#app.nav-bottom { flex-direction: column; }
+
+/* nav-left / nav-right: row layout, nav is a vertical sidebar */
+#app.nav-left, #app.nav-right { flex-direction: row; }
+#app.nav-left  .header, #app.nav-right .header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+  height: var(--header-h);
+}
+#app.nav-left  #main-content, #app.nav-right #main-content {
+  margin-top: var(--header-h);
+  flex: 1;
+  min-width: 0;
+}
+#app.nav-left  .bottom-nav {
+  order: -1;
+  flex-direction: column;
+  width: var(--nav-h);
+  height: 100dvh;
+  border-top: none;
+  border-right: 1px solid var(--border);
+  padding-bottom: 0;
+  padding-top: var(--header-h);
+}
+#app.nav-right .bottom-nav {
+  flex-direction: column;
+  width: var(--nav-h);
+  height: 100dvh;
+  border-top: none;
+  border-left: 1px solid var(--border);
+  padding-bottom: 0;
+  padding-top: var(--header-h);
+}
+#app.nav-left  .nav-btn, #app.nav-right .nav-btn { flex: 0 0 auto; padding: 14px 0; width: 100%; }
+#app.nav-left  .header .header-inner, #app.nav-right .header .header-inner { padding: 0 16px; }
 
 /* ── header ──────────────────────────────────────────────────────────────── */
 .header {
@@ -183,6 +225,23 @@ html, body {
   font-family: "Courier New", monospace;
   font-size: 14px;
   cursor: pointer;
+}
+
+.nav-pos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.nav-pos-btn {
+  background: var(--card);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.nav-pos-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .btn-sm {
@@ -429,6 +488,9 @@ html, body {
   border-top: 1px solid var(--border);
   display: flex;
   align-items: stretch;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 .nav-btn {
   flex: 1;

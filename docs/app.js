@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '1.3.0';
+const VERSION = '1.4.0';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 // ── audio ──────────────────────────────────────────────────────────────────
@@ -75,6 +75,12 @@ function applySettings() {
   const s = loadSettings();
   const logo = document.querySelector('.logo');
   if (logo) logo.textContent = s.name ? s.name + "'s Budget" : 'SlawMinYaw';
+  applyNavPosition(s.navPosition || 'bottom');
+}
+function applyNavPosition(pos) {
+  const app = document.getElementById('app');
+  app.classList.remove('nav-top', 'nav-bottom', 'nav-left', 'nav-right');
+  app.classList.add('nav-' + pos);
 }
 
 function _save() {
@@ -674,6 +680,10 @@ function renderImport() {
 // ── settings ───────────────────────────────────────────────────────────────
 function renderSettings() {
   const s = loadSettings();
+  const navPos = s.navPosition || 'bottom';
+  const navOpts = ['bottom','top','left','right'].map(p =>
+    `<button class="nav-pos-btn${navPos===p?' active':''}" data-pos="${p}">${p.charAt(0).toUpperCase()+p.slice(1)}</button>`
+  ).join('');
   return `
     <div class="page">
       <h1 class="page-title">Settings</h1>
@@ -688,15 +698,31 @@ function renderSettings() {
           <span id="settings-status" class="status-inline"></span>
         </div>
       </div>
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Navigation Position</h2>
+        <p class="code-hint" style="margin-bottom:12px">Choose which side of the screen the nav bar sits on.</p>
+        <div class="nav-pos-grid">${navOpts}</div>
+      </div>
     </div>`;
 }
 
 function attachSettings() {
   document.getElementById('settings-save')?.addEventListener('click', () => {
-    const name = document.getElementById('setting-name').value.trim();
-    saveSettings({ name });
+    const s = loadSettings();
+    s.name = document.getElementById('setting-name').value.trim();
+    saveSettings(s);
     applySettings();
     showStatus('settings-status', '✓ Saved', 'success', 2000);
+  });
+
+  document.querySelectorAll('.nav-pos-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = loadSettings();
+      s.navPosition = btn.dataset.pos;
+      saveSettings(s);
+      applyNavPosition(btn.dataset.pos);
+      document.querySelectorAll('.nav-pos-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
   });
 }
 
