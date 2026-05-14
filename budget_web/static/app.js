@@ -742,9 +742,18 @@ function calcWeekly() {
 function renderImport() {
   return `
     <div class="page">
-      <h1 class="page-title">Import CSV</h1>
-      <p class="page-sub">bulk-load transactions from a spreadsheet</p>
+      <h1 class="page-title">Import / Export</h1>
+      <p class="page-sub">move data between desktop and mobile</p>
+
       <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Export to Phone</h2>
+        <p class="code-hint">Download all your transactions, budgets, and weekly plan — then import the file into the mobile app.</p>
+        <button id="export-json-btn" class="btn-primary" style="margin-top:10px;width:100%">⬇ Download SlawMinYaw Backup</button>
+      </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Import CSV</h2>
+        <p class="page-sub" style="margin:0 0 8px">bulk-load transactions from a spreadsheet</p>
         <p class="code-hint">Expected columns:</p>
         <code class="code-block">date, type, category, description, amount</code>
         <p class="code-hint" style="margin-top:12px">Example row:</p>
@@ -978,6 +987,20 @@ function attachWeekly() {
 }
 
 function attachImport() {
+  document.getElementById('export-json-btn')?.addEventListener('click', () => {
+    const payload = JSON.stringify({
+      transactions: state.transactions,
+      weekly_plan:  state.weekly_plan,
+      budgets:      state.budgets,
+    }, null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `slawminyaw-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
   document.getElementById('import-file')?.addEventListener('change', async e => {
     const file = e.target.files[0];
     if (!file) return;
