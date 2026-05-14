@@ -533,20 +533,46 @@ html, body {
 
   /* wider page padding and content */
   .page { padding: 32px 40px 40px; }
-  .page-title { font-size: 26px; }
+  .page-title { font-size: 26px; margin-bottom: 4px; }
+  .page-sub   { font-size: 13px; margin-bottom: 24px; }
+  .section-title { font-size: 15px; margin: 24px 0 12px; }
 
-  /* 4-column summary cards on dashboard */
-  .cards-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  /* readable card text */
+  .card-title { font-size: 11px; letter-spacing: .08em; margin-bottom: 6px; }
+  .card-value { font-size: 22px; margin-bottom: 4px; }
+  .card-sub   { font-size: 11px; }
+
+  /* 4-column summary cards with clear gap */
+  .cards-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }
+
+  /* form card separated from results */
+  .form-card { max-width: 560px; margin-bottom: 28px; }
+  .form-label { font-size: 13px; }
+  .form-input { font-size: 15px; }
 
   /* wider breakdown rows */
-  .breakdown-row { grid-template-columns: 110px 1fr 80px; }
+  .breakdown-row { grid-template-columns: 120px 1fr 90px; gap: 12px; }
+  .breakdown-label { font-size: 13px; }
+  .breakdown-amt   { font-size: 13px; }
 
-  /* ledger edit bar full width */
+  /* ledger */
+  .ledger-desc { font-size: 14px; }
+  .ledger-meta { font-size: 11px; }
+  .ledger-amt  { font-size: 15px; }
   .ledger-edit-bar .form-input { min-width: 180px; }
-
-  /* form cards wider */
-  .form-card { max-width: 560px; }
 
   /* chart taller on desktop */
   .chart-wrap { height: 220px; }
+
+  /* week tracker text */
+  .wt-spent { font-size: 26px; }
+  .wt-label { font-size: 11px; }
+  .wt-pct   { font-size: 13px; }
+  .wt-of    { font-size: 14px; }
+
+  /* week breakdown rows */
+  .wkb-amounts { font-size: 13px; }
+  .week-dates  { font-size: 12px; }
+  .pw-week-dates { font-size: 13px; }
+  .pw-txn-row { font-size: 12px; }
 }
