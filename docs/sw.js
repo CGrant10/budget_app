@@ -1,4 +1,4 @@
-const CACHE = "slawminyaw-v13";
+const CACHE = "slawminyaw-v14";
 const ASSETS = [
   "./",
   "./index.html",
@@ -27,13 +27,14 @@ self.addEventListener("activate", e => {
 });
 
 self.addEventListener("fetch", e => {
-  // Always fetch sw.js itself from network so updates are detected
-  if (e.request.url.includes("sw.js")) {
-    e.respondWith(fetch(e.request));
-    return;
-  }
-  // For everything else: serve cache, fall back to network
+  // Network-first: always try network, fall back to cache if offline
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    fetch(e.request)
+      .then(response => {
+        const clone = response.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
