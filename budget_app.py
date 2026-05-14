@@ -1416,25 +1416,27 @@ class BudgetApp(tk.Tk):
         bar_fill = tk.Frame(bar_bg, bg=bar_color, height=8)
         bar_fill.place(relx=0, rely=0, relwidth=week_pct, relheight=1)
 
-        # ── this week transactions ──
+        # ── this week transactions (collapsible) ──
         week_txns = [t for t in self.data["transactions"]
                      if t.get("date", "") >= week_start_str]
         week_txns.sort(key=lambda t: t.get("date", ""), reverse=True)
 
-        tk.Frame(tracker, bg=BORDER, height=1).pack(fill="x", pady=(10, 6))
+        tk.Frame(tracker, bg=BORDER, height=1).pack(fill="x", pady=(10, 0))
         txn_hdr = tk.Frame(tracker, bg=CARD)
-        txn_hdr.pack(fill="x", pady=(0, 4))
+        txn_hdr.pack(fill="x", pady=(6, 0))
         tk.Label(txn_hdr, text="TRANSACTIONS THIS WEEK", font=FONT_TINY,
                  bg=CARD, fg=MUTED).pack(side="left")
-        if week_income:
-            tk.Label(txn_hdr, text=f"−${week_income:,.2f} offset from income",
-                     font=FONT_TINY, bg=CARD, fg=SUCCESS).pack(side="right")
 
+        tw_tog_lbl = tk.Label(txn_hdr, text="▼  show", font=FONT_TINY,
+                              bg=CARD, fg=ACCENT, cursor="hand2")
+        tw_tog_lbl.pack(side="right")
+
+        txn_body = tk.Frame(tracker, bg=CARD)
         if week_txns:
             for t in week_txns:
                 color = SUCCESS if t["type"] == "income" else TEXT
                 sign  = "+" if t["type"] == "income" else "−"
-                trow  = tk.Frame(tracker, bg=CARD)
+                trow  = tk.Frame(txn_body, bg=CARD)
                 trow.pack(fill="x", pady=1)
                 tk.Label(trow, text=t.get("date", ""), font=FONT_TINY,
                          bg=CARD, fg=MUTED, width=10, anchor="w").pack(side="left")
@@ -1445,40 +1447,86 @@ class BudgetApp(tk.Tk):
                 tk.Label(trow, text=t.get("description", ""), font=FONT_SM,
                          bg=CARD, fg=TEXT).pack(side="left")
         else:
-            tk.Label(tracker, text="No transactions yet this week.",
+            tk.Label(txn_body, text="No transactions yet this week.",
                      font=FONT_TINY, bg=CARD, fg=MUTED).pack(anchor="w", pady=4)
 
-        # ── week breakdown bars ──
+        tw_shown = [False]
+        def _tw_toggle(b=txn_body, s=tw_shown, l=tw_tog_lbl):
+            if s[0]:
+                b.pack_forget(); l.config(text="▼  show"); s[0] = False
+            else:
+                b.pack(fill="x", pady=(4, 0)); l.config(text="▲  hide"); s[0] = True
+        tw_tog_lbl.bind("<Button-1>", lambda e: _tw_toggle())
+
+        # ── week breakdown ──
         tk.Label(self.wk_results, text="Week-by-week breakdown",
-                 font=FONT_H2, bg=BG, fg=TEXT).pack(anchor="w", pady=(4, 8))
+                 font=FONT_H2, bg=BG, fg=TEXT).pack(anchor="w", pady=(16, 8))
 
         today = datetime.today()
         for w in range(weeks):
             start_day = w * 7
             end_day   = min((w + 1) * 7, days)
-            amt       = per_week
+            start_dt  = datetime.fromordinal(today.toordinal() + start_day)
+            end_dt    = datetime.fromordinal(today.toordinal() + end_day - 1)
+            wk_s      = start_dt.strftime("%Y-%m-%d")
+            wk_e      = end_dt.strftime("%Y-%m-%d")
+            date_str  = f"{start_dt.strftime('%b %d')} – {end_dt.strftime('%b %d')}"
 
-            start_dt = datetime.fromordinal(today.toordinal() + start_day)
-            end_dt   = datetime.fromordinal(today.toordinal() + end_day - 1)
-            date_str = f"{start_dt.strftime('%b %d')} – {end_dt.strftime('%b %d')}"
+            wk_txns   = [t for t in self.data["transactions"]
+                         if wk_s <= t.get("date", "") <= wk_e]
+            wk_exp    = sum(t["amount"] for t in wk_txns if t["type"] == "expense")
+            wk_inc    = sum(t["amount"] for t in wk_txns if t["type"] == "income")
+            wk_net    = max(0, wk_exp - wk_inc)
+            wk_pct    = min(wk_net / per_week, 1.0) if per_week else 0
+            bar_color = DANGER if wk_pct >= 1.0 else (WARN if wk_pct >= 0.8 else SUCCESS)
+            amt_color = bar_color if wk_net > 0 else MUTED
 
-            bar_pct = 1.0 / weeks if weeks else 0
-            bar_w   = max(4, int(bar_pct * 340))
+            card = tk.Frame(self.wk_results, bg=CARD, padx=14, pady=10)
+            card.pack(fill="x", pady=2)
 
-            row = tk.Frame(self.wk_results, bg=BG)
-            row.pack(fill="x", pady=3)
+            hdr = tk.Frame(card, bg=CARD)
+            hdr.pack(fill="x")
+            tk.Label(hdr, text=f"Week {w+1}", font=FONT_SM, bg=CARD, fg=MUTED, width=7, anchor="w").pack(side="left")
+            tk.Label(hdr, text=date_str, font=FONT_SM, bg=CARD, fg=TEXT, width=14, anchor="w").pack(side="left")
 
-            tk.Label(row, text=f"Week {w+1}", font=FONT_SM, bg=BG, fg=MUTED, width=7, anchor="w").pack(side="left")
-            tk.Label(row, text=date_str, font=FONT_SM, bg=BG, fg=MUTED, width=14, anchor="w").pack(side="left")
+            tog_lbl = tk.Label(hdr, text="▼", font=FONT_TINY, bg=CARD, fg=ACCENT, cursor="hand2")
+            tog_lbl.pack(side="right")
+            tk.Label(hdr, text=f"${wk_net:,.2f} / ${per_week:,.2f}",
+                     font=FONT_SM, bg=CARD, fg=amt_color).pack(side="right", padx=(0, 12))
 
-            bar_bg = tk.Frame(row, bg=BORDER, height=12, width=340)
-            bar_bg.pack(side="left", padx=8)
-            bar_bg.pack_propagate(False)
-            bar_fill = tk.Frame(bar_bg, bg=SUCCESS, height=12, width=bar_w)
-            bar_fill.pack(side="left")
+            bar_bg = tk.Frame(card, bg=BORDER, height=6)
+            bar_bg.pack(fill="x", pady=(6, 0))
+            bar_fill = tk.Frame(bar_bg, bg=bar_color if wk_net > 0 else BORDER, height=6)
+            bar_fill.place(relx=0, rely=0, relwidth=wk_pct, relheight=1)
 
-            tk.Label(row, text=f"${amt:,.2f}", font=FONT_SM, bg=BG, fg=SUCCESS).pack(side="left", padx=6)
-            tk.Label(row, text=f"(${per_day:,.2f}/day)", font=FONT_TINY, bg=BG, fg=MUTED).pack(side="left")
+            txn_area = tk.Frame(card, bg=CARD)
+            wk_txns_sorted = sorted(wk_txns, key=lambda t: t.get("date", ""), reverse=True)
+            if wk_txns_sorted:
+                tk.Frame(txn_area, bg=BORDER, height=1).pack(fill="x", pady=(8, 4))
+                for t in wk_txns_sorted:
+                    color = SUCCESS if t["type"] == "income" else TEXT
+                    sign  = "+" if t["type"] == "income" else "−"
+                    trow  = tk.Frame(txn_area, bg=CARD)
+                    trow.pack(fill="x", pady=1)
+                    tk.Label(trow, text=t.get("date", ""), font=FONT_TINY, bg=CARD, fg=MUTED, width=10, anchor="w").pack(side="left")
+                    tk.Label(trow, text=f"{sign}${t['amount']:,.2f}", font=FONT_SM, bg=CARD, fg=color, width=12, anchor="e").pack(side="left")
+                    tk.Label(trow, text=t.get("category", ""), font=FONT_TINY, bg=CARD, fg=MUTED, width=13, anchor="w").pack(side="left", padx=6)
+                    tk.Label(trow, text=t.get("description", ""), font=FONT_SM, bg=CARD, fg=TEXT).pack(side="left")
+            else:
+                tk.Frame(txn_area, bg=BORDER, height=1).pack(fill="x", pady=(8, 4))
+                tk.Label(txn_area, text="No transactions.", font=FONT_TINY, bg=CARD, fg=MUTED).pack(anchor="w")
+
+            shown = [False]
+            def _toggle(ta=txn_area, s=shown, tl=tog_lbl):
+                if s[0]:
+                    ta.pack_forget(); tl.config(text="▼"); s[0] = False
+                else:
+                    ta.pack(fill="x"); tl.config(text="▲"); s[0] = True
+            tog_lbl.bind("<Button-1>", lambda e, fn=_toggle: fn())
+            hdr.bind("<Button-1>", lambda e, fn=_toggle: fn())
+            for child in hdr.winfo_children():
+                if child != tog_lbl:
+                    child.bind("<Button-1>", lambda e, fn=_toggle: fn())
 
         # ── past weeks ──
         tk.Label(self.wk_results, text="Past Weeks",

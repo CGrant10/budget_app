@@ -595,19 +595,41 @@ function calcWeekly() {
   const monLabel = monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const weekRows = Array.from({ length: weeks }, (_, w) => {
     const s0 = w * 7, s1 = Math.min((w + 1) * 7, days);
-    const amt = perWeek;
     const sd  = new Date(now); sd.setDate(now.getDate() + s0);
     const ed  = new Date(now); ed.setDate(now.getDate() + s1 - 1);
+    const wkStartStr = sd.toISOString().split('T')[0];
+    const wkEndStr   = ed.toISOString().split('T')[0];
     const lbl = `${sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
-    const pct = weeks > 0 ? 100 / weeks : 0;
+
+    const wkTxns  = state.transactions.filter(t => t.date >= wkStartStr && t.date <= wkEndStr);
+    const wkExp   = wkTxns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const wkInc   = wkTxns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const wkNet   = Math.max(0, wkExp - wkInc);
+    const wkPct   = perWeek > 0 ? Math.min(wkNet / perWeek * 100, 100) : 0;
+    const wkColor = wkPct >= 100 ? 'var(--danger)' : wkPct >= 80 ? 'var(--warn)' : wkNet > 0 ? 'var(--success)' : 'var(--muted)';
+
+    const txnHtml = wkTxns.length
+      ? wkTxns.sort((a,b) => b.date.localeCompare(a.date)).map(t => `
+          <div class="pw-txn-row">
+            <span class="pw-txn-date">${t.date}</span>
+            <span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--text)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span>
+            <span class="pw-txn-cat">${t.category||''}</span>
+            <span class="pw-txn-desc">${t.description||''}</span>
+          </div>`).join('')
+      : '<p class="pw-empty">No transactions.</p>';
+
     return `
-      <div class="week-row">
-        <span class="week-label">Wk ${w + 1}</span>
-        <span class="week-dates">${lbl}</span>
-        <div class="breakdown-bar-bg small">
-          <div class="breakdown-bar-fill" style="width:${pct.toFixed(1)}%;background:var(--success)"></div>
+      <div class="wkb-row">
+        <div class="wkb-header">
+          <span class="week-label">Wk ${w + 1}</span>
+          <span class="week-dates">${lbl}</span>
+          <div class="breakdown-bar-bg small">
+            <div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div>
+          </div>
+          <span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(perWeek)}</span>
+          <span class="pw-week-toggle">▼</span>
         </div>
-        <span class="week-amt">${fmt(amt)}</span>
+        <div class="pw-week-txns">${txnHtml}</div>
       </div>`;
   }).join('');
 
@@ -673,17 +695,25 @@ function calcWeekly() {
         <div class="progress-bar-fill" style="width:${(weekPct * 100).toFixed(1)}%;background:${barColor}"></div>
       </div>
       <div class="wt-txns-section">
-        <div class="wt-txns-label">TRANSACTIONS THIS WEEK</div>
-        <div class="pw-week-txns" style="display:block">${thisWeekTxnHtml}</div>
+        <button class="wt-txns-toggle">▼  show transactions</button>
+        <div class="pw-week-txns wt-txns-body">${thisWeekTxnHtml}</div>
       </div>
     </div>
     <h2 class="section-title">Week-by-week breakdown</h2>
-    <div class="week-breakdown">${weekRows}</div>
+    <div class="wkb-rows">${weekRows}</div>
     ${pastWeeksHtml ? `<h2 class="section-title" style="margin-top:20px">Past Weeks</h2><div class="pw-weeks">${pastWeeksHtml}</div>` : ''}`;
 
-  el.querySelectorAll('.pw-week-header').forEach(hdr => {
+  el.querySelector('.wt-txns-toggle')?.addEventListener('click', function() {
+    const body = this.nextElementSibling;
+    const open = body.style.display !== 'block';
+    body.style.display = open ? 'block' : 'none';
+    this.textContent = open ? '▲  hide transactions' : '▼  show transactions';
+  });
+
+  el.querySelectorAll('.wkb-header, .pw-week-header').forEach(hdr => {
     hdr.addEventListener('click', () => {
-      const txns = hdr.closest('.pw-week-row').querySelector('.pw-week-txns');
+      const row  = hdr.closest('.wkb-row, .pw-week-row');
+      const txns = row.querySelector('.pw-week-txns');
       const tog  = hdr.querySelector('.pw-week-toggle');
       const open = txns.style.display !== 'block';
       txns.style.display = open ? 'block' : 'none';
