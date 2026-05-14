@@ -185,12 +185,21 @@ class BudgetApp(tk.Tk):
         inner = tk.Frame(canvas, bg=BG)
         win_id = canvas.create_window((0, 0), window=inner, anchor="nw")
         inner.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.bind("<Configure>", lambda e: canvas.itemconfig(win_id, width=e.width))
+        _rjob = [None]
+        def _on_resize(e):
+            if _rjob[0]: canvas.after_cancel(_rjob[0])
+            _rjob[0] = canvas.after(30, lambda: canvas.itemconfig(win_id, width=e.width))
+        canvas.bind("<Configure>", _on_resize)
         def _scroll(event):
             canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
         canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _scroll))
         canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
         return inner
+
+    def _schedule_refresh(self):
+        if hasattr(self, '_refresh_job') and self._refresh_job:
+            self.after_cancel(self._refresh_job)
+        self._refresh_job = self.after(150, self._refresh_weekly)
 
     # ── sound effects ─────────────────────────────────────────────────────────
     def _play_sound(self, sound_type):
@@ -1256,8 +1265,8 @@ class BudgetApp(tk.Tk):
         self.wk_paydate.insert(0, wp.get("paydate", default_pay))
         self.wk_paydate.pack(side="left", padx=(8, 0))
         tk.Label(r3, text="YYYY-MM-DD", font=FONT_TINY, bg=CARD, fg=BORDER).pack(side="left", padx=8)
-        self.wk_paydate.bind("<Return>", lambda e: self._refresh_weekly())
-        self.wk_paydate.bind("<FocusOut>", lambda e: self._refresh_weekly())
+        self.wk_paydate.bind("<Return>", lambda e: self._schedule_refresh())
+        self.wk_paydate.bind("<FocusOut>", lambda e: self._schedule_refresh())
 
         # row 4 — buffer slider (live)
         r4 = tk.Frame(inp, bg=CARD)
@@ -1269,7 +1278,7 @@ class BudgetApp(tk.Tk):
 
         def _on_buf_slide(v):
             self.wk_buf_label.config(text=f"{v}%")
-            self._refresh_weekly()
+            self._schedule_refresh()
 
         sl2 = tk.Scale(r4, from_=0, to=30, orient="horizontal",
                        variable=self.wk_buf_var, bg=CARD, fg=TEXT,
@@ -1411,10 +1420,11 @@ class BudgetApp(tk.Tk):
             tk.Label(amt_row, text=f"   (${week_expenses:,.2f} spent − ${week_income:,.2f} income)",
                      font=FONT_TINY, bg=CARD, fg=MUTED).pack(side="left")
 
-        bar_bg = tk.Frame(tracker, bg=BORDER, height=8)
-        bar_bg.pack(fill="x")
-        bar_fill = tk.Frame(bar_bg, bg=bar_color, height=8)
-        bar_fill.place(relx=0, rely=0, relwidth=week_pct, relheight=1)
+        bar_cv = tk.Canvas(tracker, bg=BORDER, height=8, highlightthickness=0)
+        bar_cv.pack(fill="x")
+        _rid = bar_cv.create_rectangle(0, 0, 0, 8, fill=bar_color, outline='')
+        bar_cv.bind("<Configure>", lambda e, r=_rid, p=min(week_pct, 1.0), c=bar_color:
+                    bar_cv.coords(r, 0, 0, e.width * p, e.height))
 
         # ── this week transactions (collapsible) ──
         week_txns = [t for t in self.data["transactions"]
@@ -1462,15 +1472,21 @@ class BudgetApp(tk.Tk):
         tk.Label(self.wk_results, text="Week-by-week breakdown",
                  font=FONT_H2, bg=BG, fg=TEXT).pack(anchor="w", pady=(16, 8))
 
-        today = datetime.today()
-        for w in range(weeks):
-            start_day = w * 7
-            end_day   = min((w + 1) * 7, days)
-            start_dt  = datetime.fromordinal(today.toordinal() + start_day)
-            end_dt    = datetime.fromordinal(today.toordinal() + end_day - 1)
-            wk_s      = start_dt.strftime("%Y-%m-%d")
-            wk_e      = end_dt.strftime("%Y-%m-%d")
-            date_str  = f"{start_dt.strftime('%b %d')} – {end_dt.strftime('%b %d')}"
+        today_dt = datetime.today()
+        monday   = today_dt - timedelta(days=today_dt.weekday())
+        try:
+            paydate_dt = datetime.strptime(self.wk_paydate.get().strip(), "%Y-%m-%d")
+        except ValueError:
+            paydate_dt = today_dt + timedelta(days=days - 1)
+        days_from_mon = max(1, (paydate_dt - monday).days + 1)
+        weeks_display = max(1, -(-days_from_mon // 7))
+
+        for w in range(weeks_display):
+            start_dt = monday + timedelta(weeks=w)
+            end_dt   = min(start_dt + timedelta(days=6), paydate_dt)
+            wk_s     = start_dt.strftime("%Y-%m-%d")
+            wk_e     = end_dt.strftime("%Y-%m-%d")
+            date_str = f"{start_dt.strftime('%b %d')} – {end_dt.strftime('%b %d')}"
 
             wk_txns   = [t for t in self.data["transactions"]
                          if wk_s <= t.get("date", "") <= wk_e]
@@ -1487,17 +1503,19 @@ class BudgetApp(tk.Tk):
             hdr = tk.Frame(card, bg=CARD)
             hdr.pack(fill="x")
             tk.Label(hdr, text=f"Week {w+1}", font=FONT_SM, bg=CARD, fg=MUTED, width=7, anchor="w").pack(side="left")
-            tk.Label(hdr, text=date_str, font=FONT_SM, bg=CARD, fg=TEXT, width=14, anchor="w").pack(side="left")
+            tk.Label(hdr, text=date_str, font=FONT_SM, bg=CARD, fg=TEXT, width=17, anchor="w").pack(side="left")
 
             tog_lbl = tk.Label(hdr, text="▼", font=FONT_TINY, bg=CARD, fg=ACCENT, cursor="hand2")
             tog_lbl.pack(side="right")
             tk.Label(hdr, text=f"${wk_net:,.2f} / ${per_week:,.2f}",
                      font=FONT_SM, bg=CARD, fg=amt_color).pack(side="right", padx=(0, 12))
 
-            bar_bg = tk.Frame(card, bg=BORDER, height=6)
-            bar_bg.pack(fill="x", pady=(6, 0))
-            bar_fill = tk.Frame(bar_bg, bg=bar_color if wk_net > 0 else BORDER, height=6)
-            bar_fill.place(relx=0, rely=0, relwidth=wk_pct, relheight=1)
+            bar_cv = tk.Canvas(card, bg=BORDER, height=6, highlightthickness=0)
+            bar_cv.pack(fill="x", pady=(6, 0))
+            _fill_color = bar_color if wk_net > 0 else BORDER
+            _rid = bar_cv.create_rectangle(0, 0, 0, 6, fill=_fill_color, outline='')
+            bar_cv.bind("<Configure>", lambda e, r=_rid, p=min(wk_pct, 1.0), c=_fill_color:
+                        bar_cv.coords(r, 0, 0, e.width * p, e.height))
 
             txn_area = tk.Frame(card, bg=CARD)
             wk_txns_sorted = sorted(wk_txns, key=lambda t: t.get("date", ""), reverse=True)
