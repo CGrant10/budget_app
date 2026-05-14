@@ -593,10 +593,13 @@ function calcWeekly() {
     : '<p class="pw-empty">No transactions yet this week.</p>';
 
   const monLabel = monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const weekRows = Array.from({ length: weeks }, (_, w) => {
-    const s0 = w * 7, s1 = Math.min((w + 1) * 7, days);
-    const sd  = new Date(now); sd.setDate(now.getDate() + s0);
-    const ed  = new Date(now); ed.setDate(now.getDate() + s1 - 1);
+  const paydate     = paydateStr ? new Date(paydateStr + 'T00:00:00') : new Date(now.getTime() + (days - 1) * 86400000);
+  const daysFromMon = Math.max(1, Math.round((paydate - monday) / 86400000) + 1);
+  const weeksDisplay = Math.ceil(daysFromMon / 7);
+  const weekRows = Array.from({ length: weeksDisplay }, (_, w) => {
+    const sd = new Date(monday); sd.setDate(monday.getDate() + w * 7);
+    const ed = new Date(monday); ed.setDate(monday.getDate() + (w + 1) * 7 - 1);
+    if (ed > paydate) { ed.setTime(paydate.getTime()); }
     const wkStartStr = sd.toISOString().split('T')[0];
     const wkEndStr   = ed.toISOString().split('T')[0];
     const lbl = `${sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
