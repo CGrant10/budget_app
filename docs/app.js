@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '1.5.0';
+const VERSION = '1.5.1';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 // ── audio ──────────────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ const NAV_ITEMS = [
   { key: 'import',    label: 'Import',    icon: '📥' },
   { key: 'budgets',   label: 'Budgets',   icon: '💰' },
   { key: 'settings',  label: 'Settings',  icon: '⚙️',  required: true },
-  { key: 'about',     label: 'About',     icon: 'ℹ️' },
+  { key: 'about',     label: 'About',     icon: 'ℹ️',  required: true },
 ];
 
 function applySettings() {
