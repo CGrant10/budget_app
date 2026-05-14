@@ -201,6 +201,36 @@ class BudgetApp(tk.Tk):
             self.after_cancel(self._refresh_job)
         self._refresh_job = self.after(150, self._refresh_weekly)
 
+    def _txn_text(self, parent, txns):
+        """Render a transaction list as a single Text widget (no per-row Frame/Label)."""
+        if not txns:
+            tk.Label(parent, text="No transactions.", font=FONT_TINY,
+                     bg=CARD, fg=MUTED).pack(anchor="w", pady=2)
+            return
+        txt = tk.Text(parent, bg=CARD, fg=TEXT, relief="flat", bd=0,
+                      font=FONT_SM, state="disabled", cursor="arrow",
+                      highlightthickness=0, wrap="none",
+                      height=len(txns), padx=0, pady=2)
+        txt.pack(fill="x", pady=(2, 0))
+        txt.tag_configure("muted", foreground=MUTED)
+        txt.tag_configure("inc",   foreground=SUCCESS)
+        txt.tag_configure("exp",   foreground=ACCENT2)
+        txt.config(state="normal")
+        for i, t in enumerate(txns):
+            if i > 0:
+                txt.insert("end", "\n")
+            is_inc = t["type"] == "income"
+            sign   = "+" if is_inc else "−"
+            date   = t.get("date", "").ljust(12)
+            amt    = f"{sign}${t['amount']:,.2f}".rjust(11)
+            cat    = ("  " + t.get("category", "")).ljust(18)
+            desc   = "  " + t.get("description", "")
+            txt.insert("end", date, "muted")
+            txt.insert("end", amt,  "inc" if is_inc else "exp")
+            txt.insert("end", cat,  "muted")
+            txt.insert("end", desc)
+        txt.config(state="disabled")
+
     # ── sound effects ─────────────────────────────────────────────────────────
     def _play_sound(self, sound_type):
         if not self.data.get("prefs", {}).get("sounds", True):
@@ -1442,23 +1472,7 @@ class BudgetApp(tk.Tk):
         tw_tog_lbl.pack(side="right")
 
         txn_body = tk.Frame(tracker, bg=CARD)
-        if week_txns:
-            for t in week_txns:
-                color = SUCCESS if t["type"] == "income" else TEXT
-                sign  = "+" if t["type"] == "income" else "−"
-                trow  = tk.Frame(txn_body, bg=CARD)
-                trow.pack(fill="x", pady=1)
-                tk.Label(trow, text=t.get("date", ""), font=FONT_TINY,
-                         bg=CARD, fg=MUTED, width=10, anchor="w").pack(side="left")
-                tk.Label(trow, text=f"{sign}${t['amount']:,.2f}", font=FONT_SM,
-                         bg=CARD, fg=color, width=12, anchor="e").pack(side="left")
-                tk.Label(trow, text=t.get("category", ""), font=FONT_TINY,
-                         bg=CARD, fg=MUTED, width=13, anchor="w").pack(side="left", padx=6)
-                tk.Label(trow, text=t.get("description", ""), font=FONT_SM,
-                         bg=CARD, fg=TEXT).pack(side="left")
-        else:
-            tk.Label(txn_body, text="No transactions yet this week.",
-                     font=FONT_TINY, bg=CARD, fg=MUTED).pack(anchor="w", pady=4)
+        self._txn_text(txn_body, week_txns)
 
         tw_shown = [False]
         def _tw_toggle(b=txn_body, s=tw_shown, l=tw_tog_lbl):
@@ -1519,20 +1533,8 @@ class BudgetApp(tk.Tk):
 
             txn_area = tk.Frame(card, bg=CARD)
             wk_txns_sorted = sorted(wk_txns, key=lambda t: t.get("date", ""), reverse=True)
-            if wk_txns_sorted:
-                tk.Frame(txn_area, bg=BORDER, height=1).pack(fill="x", pady=(8, 4))
-                for t in wk_txns_sorted:
-                    color = SUCCESS if t["type"] == "income" else TEXT
-                    sign  = "+" if t["type"] == "income" else "−"
-                    trow  = tk.Frame(txn_area, bg=CARD)
-                    trow.pack(fill="x", pady=1)
-                    tk.Label(trow, text=t.get("date", ""), font=FONT_TINY, bg=CARD, fg=MUTED, width=10, anchor="w").pack(side="left")
-                    tk.Label(trow, text=f"{sign}${t['amount']:,.2f}", font=FONT_SM, bg=CARD, fg=color, width=12, anchor="e").pack(side="left")
-                    tk.Label(trow, text=t.get("category", ""), font=FONT_TINY, bg=CARD, fg=MUTED, width=13, anchor="w").pack(side="left", padx=6)
-                    tk.Label(trow, text=t.get("description", ""), font=FONT_SM, bg=CARD, fg=TEXT).pack(side="left")
-            else:
-                tk.Frame(txn_area, bg=BORDER, height=1).pack(fill="x", pady=(8, 4))
-                tk.Label(txn_area, text="No transactions.", font=FONT_TINY, bg=CARD, fg=MUTED).pack(anchor="w")
+            tk.Frame(txn_area, bg=BORDER, height=1).pack(fill="x", pady=(8, 4))
+            self._txn_text(txn_area, wk_txns_sorted)
 
             shown = [False]
             def _toggle(ta=txn_area, s=shown, tl=tog_lbl):
@@ -1617,19 +1619,9 @@ class BudgetApp(tk.Tk):
         net_col = SUCCESS if earned >= spent else DANGER
         tk.Label(summary, text=f"Net: ${earned - spent:,.2f}", font=FONT_BODY, bg=CARD, fg=net_col).pack(side="right")
 
-        sc_frame = tk.Frame(pop, bg=BG)
-        sc_frame.pack(fill="both", expand=True, padx=20, pady=(0, 16))
-        sc = self._make_scrollable(sc_frame)
-
-        for t in sorted(txns, key=lambda x: x.get("date", ""), reverse=True):
-            color = SUCCESS if t["type"] == "income" else TEXT
-            row = tk.Frame(sc, bg=CARD, padx=12, pady=8)
-            row.pack(fill="x", pady=2)
-            tk.Label(row, text=t.get("date", ""), font=FONT_TINY, bg=CARD, fg=MUTED, width=10, anchor="w").pack(side="left")
-            sign = "+" if t["type"] == "income" else "−"
-            tk.Label(row, text=f"{sign}${t['amount']:,.2f}", font=FONT_BODY, bg=CARD, fg=color, width=12, anchor="e").pack(side="left")
-            tk.Label(row, text=t.get("category", ""), font=FONT_SM, bg=CARD, fg=MUTED, width=13, anchor="w").pack(side="left", padx=8)
-            tk.Label(row, text=t.get("description", ""), font=FONT_SM, bg=CARD, fg=TEXT).pack(side="left")
+        inner = tk.Frame(pop, bg=CARD, padx=12, pady=8)
+        inner.pack(fill="both", expand=True, padx=20, pady=(0, 16))
+        self._txn_text(inner, sorted(txns, key=lambda x: x.get("date", ""), reverse=True))
 
     # ── CSV import ────────────────────────────────────────────────────────────
     def _build_import(self):
