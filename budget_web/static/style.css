@@ -79,7 +79,7 @@ html, body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 .card {
   background: var(--card);
@@ -331,7 +331,7 @@ html, body {
   background: var(--card);
   border-radius: 12px;
   padding: 16px;
-  margin: 16px 0 8px;
+  margin: 12px 0 12px;
 }
 .wt-header {
   display: flex;
@@ -363,7 +363,7 @@ html, body {
 }
 .wt-txns-body { display: none; }
 
-.wkb-rows { display: flex; flex-direction: column; gap: 6px; }
+.wkb-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
 .wkb-row { background: var(--card); border-radius: 10px; overflow: hidden; }
 .wkb-header {
   display: flex; align-items: center; gap: 8px;
@@ -375,7 +375,7 @@ html, body {
 .week-dates { font-size: 10px; color: var(--text); min-width: 110px; }
 
 /* ── past weeks ──────────────────────────────────────────────────────────── */
-.pw-weeks { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.pw-weeks { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .pw-week-row { background: var(--card); border-radius: 10px; overflow: hidden; }
 .pw-week-header {
   display: flex;
