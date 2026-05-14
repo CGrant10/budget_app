@@ -440,6 +440,8 @@ function renderLedger() {
       const sign = t.type === 'income' ? '+' : '-';
       const cls  = t.type === 'income' ? 'income' : 'expense';
       const prefix = t.recurring ? '↻ ' : '';
+      const catOptions = CATEGORIES.map(c =>
+        `<option value="${c}"${c === t.category ? ' selected' : ''}>${c}</option>`).join('');
       return `
         <div class="ledger-row" data-idx="${t._i}">
           <div class="ledger-row-inner">
@@ -449,7 +451,24 @@ function renderLedger() {
             </div>
             <div class="ledger-right">
               <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
+              <button class="ledger-edit-btn" data-idx="${t._i}" title="Edit">✏️</button>
               <button class="ledger-delete" data-idx="${t._i}">✕</button>
+            </div>
+          </div>
+          <div class="ledger-inline-edit">
+            <div class="ie-grid">
+              <select class="form-input ie-type">
+                <option value="expense"${t.type==='expense'?' selected':''}>Expense</option>
+                <option value="income"${t.type==='income'?' selected':''}>Income</option>
+              </select>
+              <input type="date" class="form-input ie-date" value="${t.date}">
+              <select class="form-input ie-cat">${catOptions}</select>
+              <input type="text" class="form-input ie-desc" value="${t.description}" placeholder="Description">
+              <input type="number" class="form-input ie-amount" value="${t.amount}" step="0.01" min="0" placeholder="Amount">
+            </div>
+            <div class="ie-btns">
+              <button class="btn-sm ie-save" data-idx="${t._i}">Save</button>
+              <button class="ie-cancel">Cancel</button>
             </div>
           </div>
           <button class="swipe-delete-btn" data-idx="${t._i}">Delete</button>
@@ -461,12 +480,6 @@ function renderLedger() {
       <h1 class="page-title">Ledger</h1>
       <p class="page-sub">all transactions</p>
       <input type="search" id="ledger-search" class="form-input" placeholder="Search transactions…" value="${ledgerFilter}" style="margin-bottom:12px;">
-      <div class="ledger-edit-bar">
-        <span class="form-label">Edit date:</span>
-        <input type="date" id="ledger-date-input" class="form-input">
-        <button id="ledger-save-date" class="btn-sm">Save</button>
-        <span id="ledger-date-status" class="status-inline"></span>
-      </div>
       <div class="ledger-list">
         ${rows || '<p class="empty-msg">No transactions yet.</p>'}
       </div>
@@ -871,16 +884,47 @@ function attachLedger() {
     render();
   });
 
-  // row tap → populate date editor
-  document.querySelectorAll('.ledger-row').forEach(row => {
-    row.addEventListener('click', e => {
-      if (e.target.closest('.ledger-delete') || e.target.closest('.swipe-delete-btn')) return;
-      const idx = parseInt(row.dataset.idx);
-      selectedLedgerIdx = idx;
+  // pencil → toggle inline edit form
+  document.querySelectorAll('.ledger-edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const row = btn.closest('.ledger-row');
+      const editDiv = row.querySelector('.ledger-inline-edit');
+      const isOpen = editDiv.style.display === 'block';
+      // close all others
+      document.querySelectorAll('.ledger-inline-edit').forEach(d => d.style.display = 'none');
       document.querySelectorAll('.ledger-row').forEach(r => r.classList.remove('selected'));
-      row.classList.add('selected');
-      const inp = document.getElementById('ledger-date-input');
-      if (inp) inp.value = state.transactions[idx]?.date || '';
+      if (!isOpen) {
+        editDiv.style.display = 'block';
+        row.classList.add('selected');
+      }
+    });
+  });
+
+  // inline save
+  document.querySelectorAll('.ie-save').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx);
+      const edit = btn.closest('.ledger-inline-edit');
+      const patch = {
+        type:        edit.querySelector('.ie-type').value,
+        date:        edit.querySelector('.ie-date').value,
+        category:    edit.querySelector('.ie-cat').value,
+        description: edit.querySelector('.ie-desc').value,
+        amount:      parseFloat(edit.querySelector('.ie-amount').value) || 0,
+      };
+      await api.patchTransaction(idx, patch);
+      render();
+    });
+  });
+
+  // inline cancel
+  document.querySelectorAll('.ie-cancel').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      btn.closest('.ledger-inline-edit').style.display = 'none';
+      btn.closest('.ledger-row').classList.remove('selected');
     });
   });
 
@@ -897,22 +941,6 @@ function attachLedger() {
         render();
       }
     });
-  });
-
-  // save date
-  document.getElementById('ledger-save-date')?.addEventListener('click', async () => {
-    if (selectedLedgerIdx === null) {
-      showStatus('ledger-date-status', 'Tap a row first', 'error');
-      return;
-    }
-    const newDate = document.getElementById('ledger-date-input').value;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
-      showStatus('ledger-date-status', 'Invalid date', 'error');
-      return;
-    }
-    await api.patchTransaction(selectedLedgerIdx, { date: newDate });
-    showStatus('ledger-date-status', '✓ Saved', 'success');
-    render();
   });
 
   attachSwipeDelete();

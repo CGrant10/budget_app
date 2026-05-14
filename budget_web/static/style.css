@@ -271,6 +271,17 @@ html, body {
 .ledger-amt { font-size: 14px; font-weight: bold; }
 .ledger-amt.income  { color: var(--success); }
 .ledger-amt.expense { color: var(--accent2); }
+.ledger-edit-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  opacity: .5;
+  transition: opacity .15s;
+}
+.ledger-edit-btn:hover { opacity: 1; }
 .ledger-delete {
   background: none;
   border: none;
@@ -279,6 +290,39 @@ html, body {
   cursor: pointer;
   padding: 4px 6px;
   border-radius: 4px;
+}
+.ledger-inline-edit {
+  display: none;
+  padding: 10px 4px 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+.ie-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ie-grid .form-input {
+  padding: 7px 10px;
+  font-size: 13px;
+  height: 36px;
+}
+.ie-type   { width: 100px; flex-shrink: 0; }
+.ie-date   { width: 148px; flex-shrink: 0; }
+.ie-cat    { width: 130px; flex-shrink: 0; }
+.ie-desc   { flex: 1; min-width: 120px; }
+.ie-amount { width: 100px; flex-shrink: 0; }
+.ie-btns   { display: flex; gap: 8px; }
+.ie-cancel {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  cursor: pointer;
 }
 .empty-msg { color: var(--muted); font-size: 13px; padding: 20px 0; text-align: center; }
 
