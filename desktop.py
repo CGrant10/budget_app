@@ -8,7 +8,7 @@ if __name__ == "__main__":
     FlaskUI(
         app=flask_app,
         server="flask",
-        width=430,
-        height=860,
+        width=1100,
+        height=720,
         port=5173,
     ).run()
