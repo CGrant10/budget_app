@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '1.4.0';
+const VERSION = '1.4.1';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 // ── audio ──────────────────────────────────────────────────────────────────
@@ -757,8 +757,36 @@ function renderAbout() {
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Quote of the Day</div>
         <p style="font-size:.9rem;color:var(--text);line-height:1.6;font-style:italic;margin:0">"${quote}"</p>
       </div>
+      <div class="form-card" style="text-align:center">
+        <p class="code-hint" style="margin-bottom:12px">If the app feels out of date, tap below to clear the cache and reload the latest version.</p>
+        <button id="force-update-btn" class="btn-primary" style="width:100%">🔄 Force Update</button>
+        <div id="force-update-status" class="form-status" style="margin-top:8px"></div>
+      </div>
       <p style="text-align:center;font-size:.75rem;color:var(--muted);margin-top:8px">© ${built} SlawMinYaw. All rights reserved.</p>
     </div>`;
+}
+
+function attachAbout() {
+  document.getElementById('force-update-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('force-update-btn');
+    const status = document.getElementById('force-update-status');
+    btn.disabled = true;
+    btn.textContent = 'Clearing cache…';
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      btn.textContent = 'Reloading…';
+      window.location.reload();
+    } catch(e) {
+      status.textContent = 'Error: ' + e.message;
+      btn.disabled = false;
+      btn.textContent = '🔄 Force Update';
+    }
+  });
 }
 
 function parseCSVLine(line) {
@@ -806,7 +834,7 @@ function attachHandlers() {
     case 'import':    attachImport();    break;
     case 'budgets':   attachBudgets();   break;
     case 'settings':  attachSettings();  break;
-    case 'about':                        break;
+    case 'about':     attachAbout();     break;
   }
 }
 
