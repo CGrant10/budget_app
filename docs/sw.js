@@ -1,4 +1,4 @@
-const CACHE = "slawminyaw-v14";
+const CACHE = "slawminyaw-v15";
 const ASSETS = [
   "./",
   "./index.html",
@@ -27,9 +27,10 @@ self.addEventListener("activate", e => {
 });
 
 self.addEventListener("fetch", e => {
-  // Network-first: always try network, fall back to cache if offline
+  // Always bypass browser HTTP cache, fall back to SW cache if offline
+  const fresh = new Request(e.request, { cache: 'no-cache' });
   e.respondWith(
-    fetch(e.request)
+    fetch(fresh)
       .then(response => {
         const clone = response.clone();
         caches.open(CACHE).then(c => c.put(e.request, clone));

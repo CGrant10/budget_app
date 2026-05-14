@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '1.4.5';
+const VERSION = '1.4.6';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 // ── audio ──────────────────────────────────────────────────────────────────
