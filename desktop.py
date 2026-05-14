@@ -11,5 +11,4 @@ if __name__ == "__main__":
         width=1100,
         height=720,
         port=5173,
-        title="SlawMinYaw",
     ).run()
