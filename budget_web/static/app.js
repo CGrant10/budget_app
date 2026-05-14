@@ -764,11 +764,11 @@ function attachHandlers() {
   }
 }
 
-async function autoUpdateWeeklyPlan() {
+async function autoUpdateWeeklyPlan(incomeAdded) {
   const wp = state.weekly_plan;
-  if (!wp || !wp.paydate) return;
-  const { income, expense } = totals();
-  const newBalance = income - expense;
+  if (!wp || !wp.paydate || !wp.per_week) return;
+  const storedBalance = parseFloat(wp.balance || '0') || 0;
+  const newBalance = storedBalance + incomeAdded;
   const bills  = parseFloat(wp.bills  || '0') || 0;
   const bufPct = parseInt(wp.buffer   || '0') || 0;
   const paydate = new Date(wp.paydate + 'T00:00:00');
@@ -808,7 +808,7 @@ function attachAdd() {
     const prevBal = state.transactions.reduce((s, tx) => s + balFn(tx), 0);
 
     await api.addTransaction(t);
-    if (t.type === 'income') await autoUpdateWeeklyPlan();
+    if (t.type === 'income') await autoUpdateWeeklyPlan(t.amount);
 
     const newBal = state.transactions.reduce((s, tx) => s + balFn(tx), 0);
 

@@ -577,19 +577,22 @@ class BudgetApp(tk.Tk):
         self.add_desc.delete(0, "end")
         self.after(3000, lambda: self.add_status.set(""))
         if typ == "income":
-            self._auto_update_weekly_plan()
+            self._auto_update_weekly_plan(amt)
         if typ == "expense":
             self._check_roast(cat)
             self._show_robbery(amt)
         else:
             self._show_payday(amt)
 
-    def _auto_update_weekly_plan(self):
+    def _auto_update_weekly_plan(self, income_added):
         wp = self.data.get("weekly_plan", {})
-        if not wp.get("paydate"):
+        if not wp.get("paydate") or not wp.get("per_week"):
             return
-        income, expense, _ = self._totals()
-        new_balance = income - expense
+        try:
+            stored_balance = float(str(wp.get("balance", "0")).replace("$", "").replace(",", ""))
+        except ValueError:
+            return
+        new_balance = stored_balance + income_added
         try:
             bills = float(str(wp.get("bills", "0")).replace("$", "").replace(",", ""))
         except ValueError:

@@ -464,11 +464,11 @@ function attachHandlers() {
   }
 }
 
-async function autoUpdateWeeklyPlan() {
+async function autoUpdateWeeklyPlan(incomeAdded) {
   const wp = state.weekly_plan;
-  if (!wp || !wp.paydate) return;
-  const { income, expense } = totals();
-  const newBalance = income - expense;
+  if (!wp || !wp.paydate || !wp.per_week) return;
+  const storedBalance = parseFloat(wp.balance || '0') || 0;
+  const newBalance = storedBalance + incomeAdded;
   const bills  = parseFloat(wp.bills  || '0') || 0;
   const bufPct = parseInt(wp.buffer   || '0') || 0;
   const paydate = new Date(wp.paydate + 'T00:00:00');
@@ -498,7 +498,7 @@ function attachAdd() {
       date:        document.getElementById('add-date').value || today(),
     };
     await api.addTransaction(t);
-    if (t.type === 'income') await autoUpdateWeeklyPlan();
+    if (t.type === 'income') await autoUpdateWeeklyPlan(t.amount);
     showStatus('add-status', `✓ Added ${t.type}: ${fmt(t.amount)} (${t.category})`, 'success');
     document.getElementById('add-amount').value = '';
     document.getElementById('add-desc').value   = '';
