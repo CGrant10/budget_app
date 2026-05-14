@@ -11,7 +11,7 @@ from collections import defaultdict
 
 DATA_FILE = os.path.expanduser("~/.budget_data.json")
 
-CATEGORIES = ["Food", "Transport", "Housing", "Entertainment", "Health", "Shopping", "Income", "Other"]
+CATEGORIES = ["Food", "Snacks", "Gas", "Car", "Boat", "Transport", "Housing", "Entertainment", "Health", "Shopping", "Income", "Other"]
 
 # ── palette ──────────────────────────────────────────────────────────────────
 BG        = "#0f0f14"

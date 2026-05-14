@@ -1,6 +1,6 @@
 'use strict';
 
-const CATEGORIES = ['Food','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
+const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 // ── audio ──────────────────────────────────────────────────────────────────
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
