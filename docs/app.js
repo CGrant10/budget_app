@@ -66,7 +66,16 @@ function checkRoast(category) {
 // ── state + localStorage ───────────────────────────────────────────────────
 let state = { transactions: [], weekly_plan: {}, budgets: {} };
 let lastCalcPerWeek = 0;
-const STORAGE_KEY = 'slawminyaw';
+const STORAGE_KEY   = 'slawminyaw';
+const SETTINGS_KEY  = 'slawminyaw_settings';
+
+function loadSettings() { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); }
+function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
+function applySettings() {
+  const s = loadSettings();
+  const logo = document.querySelector('.logo');
+  if (logo) logo.textContent = s.name ? s.name + "'s Budget" : 'SlawMinYaw';
+}
 
 function _save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -259,6 +268,7 @@ function render() {
     case 'weekly':    main.innerHTML = renderWeekly();    break;
     case 'import':    main.innerHTML = renderImport();    break;
     case 'budgets':   main.innerHTML = renderBudgets();   break;
+    case 'settings':  main.innerHTML = renderSettings();  break;
     case 'about':     main.innerHTML = renderAbout();     break;
   }
   attachHandlers();
@@ -661,6 +671,35 @@ function renderImport() {
     </div>`;
 }
 
+// ── settings ───────────────────────────────────────────────────────────────
+function renderSettings() {
+  const s = loadSettings();
+  return `
+    <div class="page">
+      <h1 class="page-title">Settings</h1>
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Personalize</h2>
+        <div class="form-row">
+          <label class="form-label">Your name</label>
+          <input type="text" id="setting-name" class="form-input" value="${s.name || ''}" placeholder="e.g. Cole">
+        </div>
+        <div class="btn-row">
+          <button id="settings-save" class="btn-primary">Save</button>
+          <span id="settings-status" class="status-inline"></span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function attachSettings() {
+  document.getElementById('settings-save')?.addEventListener('click', () => {
+    const name = document.getElementById('setting-name').value.trim();
+    saveSettings({ name });
+    applySettings();
+    showStatus('settings-status', '✓ Saved', 'success', 2000);
+  });
+}
+
 // ── about ──────────────────────────────────────────────────────────────────
 const QUOTES = [
   "A budget is telling your money where to go instead of wondering where it went. — Dave Ramsey",
@@ -676,12 +715,15 @@ const QUOTES = [
 function renderAbout() {
   const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
   const built = new Date().getFullYear();
+  const s = loadSettings();
+  const userName = s.name ? `${s.name}'s Budget` : null;
   return `
     <div class="page">
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:28px 20px">
         <div style="font-size:2.4rem;margin-bottom:4px">💸</div>
-        <div style="font-size:1.5rem;font-weight:700;color:var(--accent)">SlawMinYaw</div>
+        ${userName ? `<div style="font-size:1.5rem;font-weight:700;color:var(--accent)">${userName}</div><div style="font-size:.8rem;color:var(--muted);margin-bottom:4px">Powered by</div>` : ''}
+        <div style="font-size:${userName?'1.1rem':'1.5rem'};font-weight:700;color:var(--accent)">SlawMinYaw</div>
         <div style="font-size:.85rem;color:var(--muted);margin-bottom:16px">money moves</div>
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
@@ -737,6 +779,7 @@ function attachHandlers() {
     case 'weekly':    attachWeekly(); calcWeekly(); break;
     case 'import':    attachImport();    break;
     case 'budgets':   attachBudgets();   break;
+    case 'settings':  attachSettings();  break;
     case 'about':                        break;
   }
 }
@@ -940,6 +983,7 @@ document.querySelectorAll('.nav-btn').forEach(btn =>
   await api.load();
   await processRecurring();
   initSoundsToggle();
+  applySettings();
   render();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
