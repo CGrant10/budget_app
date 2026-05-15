@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.8.1';
+const VERSION = '2.8.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.8.2', date: '2026-05-15', changes: [
+    'Expense amounts are now red everywhere: dashboard, weekly, all transaction rows',
+    'Weekly Per Week and Per Day budgets now use the warning (amber) color',
+    'Emergency buffer card uses the accent (steel blue) color — reserved, not spent',
+  ]},
   { version: '2.8.1', date: '2026-05-15', changes: [
     'Expense amounts now always show in red across all themes',
   ]},
@@ -757,7 +762,7 @@ function renderDashboard() {
   const cardDefs = [
     { title: 'BALANCE',  value: fmt(balance),                      color: balColor,         sub: 'income − expenses' },
     { title: 'INCOME',   value: fmt(income),                       color: 'var(--success)', sub: 'total earned' },
-    { title: 'EXPENSES', value: fmt(expense),                      color: 'var(--accent2)', sub: 'total spent' },
+    { title: 'EXPENSES', value: fmt(expense),                      color: 'var(--danger)',  sub: 'total spent' },
     { title: 'HEALTH',   value: String(health.total),              color: health.color,     sub: `grade ${health.grade}` },
   ];
   const cardsHtml = cardDefs.map(c => `
@@ -1097,14 +1102,14 @@ function calcWeekly() {
 
   const summaryCards = [
     ['SPENDABLE', fmt(available), 'var(--text)',    `after bills${bufPct?' + buffer':''}`],
-    ['PER WEEK',  fmt(perWeek),   'var(--success)', `across ${weeks} week${weeks!==1?'s':''}`],
-    ['PER DAY',   fmt(perDay),    'var(--accent)',  'daily limit'],
-    ...(bufPct ? [['BUFFER', fmt(buffer), 'var(--warn)', 'emergency fund']] : []),
+    ['PER WEEK',  fmt(perWeek),   'var(--warn)',    `across ${weeks} week${weeks!==1?'s':''}`],
+    ['PER DAY',   fmt(perDay),    'var(--warn)',    'daily limit'],
+    ...(bufPct ? [['BUFFER', fmt(buffer), 'var(--accent)', 'emergency fund']] : []),
   ].map(([t,v,c,s]) => `<div class="card"><div class="card-title">${t}</div><div class="card-value" style="color:${c}">${v}</div><div class="card-sub">${s}</div></div>`).join('');
 
   const thisWeekTxns = state.transactions.filter(t=>t.date>=mondayStr).sort((a,b)=>b.date.localeCompare(a.date));
   const thisWeekTxnHtml = thisWeekTxns.length
-    ? thisWeekTxns.map(t=>`<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--text)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`).join('')
+    ? thisWeekTxns.map(t=>`<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`).join('')
     : '<p class="pw-empty">No transactions yet this week.</p>';
 
   const monLabel     = monday.toLocaleDateString('en-US',{month:'short',day:'numeric'});
@@ -1126,7 +1131,7 @@ function calcWeekly() {
     const wkPct  = perWeek > 0 ? Math.min(wkNet/perWeek*100,100) : 0;
     const wkColor = wkPct>=100?'var(--danger)':wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
     const txnHtml = wkTxns.length
-      ? wkTxns.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--text)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`).join('')
+      ? wkTxns.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`).join('')
       : '<p class="pw-empty">No transactions.</p>';
     return `<div class="wkb-row"><div class="wkb-header"><span class="week-label">Wk ${w+1}</span><span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(perWeek)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`;
   }).join('');
@@ -1144,7 +1149,7 @@ function calcWeekly() {
       const earned = weekTxns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
       const lbl = `${wkStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${wkEnd.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
       const txnHtml = weekTxns.length
-        ? weekTxns.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--text)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`).join('')
+        ? weekTxns.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`).join('')
         : '<p class="pw-empty">No transactions this week.</p>';
       rows.push(`<div class="pw-week-row"><div class="pw-week-header"><span class="pw-week-dates">${lbl}</span><span class="pw-week-spent" style="color:${spent?'var(--danger)':'var(--muted)'}">spent ${fmt(spent)}</span>${earned?`<span class="pw-week-earned">income ${fmt(earned)}</span>`:''}<span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     }
