@@ -553,7 +553,7 @@ function gengarIncomeFrame(ctx, W, GY, f) {
   } else if (f <= 55) {
     const p = (f - 26) / 29;
     drawGengar(ctx, W / 2, GY - 10 + bob, 'reach');
-    txt(ctx, W / 2, GY - 100, p > 0.5 ? 'YOINK! 💜' : 'ooh ooh ooh...', '#9b5fc7', 14, true);
+    txt(ctx, W / 2, GY - 100, p > 0.5 ? 'YOINK! 👻' : 'ooh ooh ooh...', '#9b5fc7', 14, true);
     for (const [i, [dy, sz]] of [[0,[0,11]],[1,[-10,9]],[2,[8,8]]].entries()) {
       const t2 = Math.min(p * 1.5 - i * 0.3, 1);
       if (t2 > 0) {
@@ -565,7 +565,7 @@ function gengarIncomeFrame(ctx, W, GY, f) {
     }
   } else {
     drawGengar(ctx, W / 2, GY - 10 + bob, 'scare');
-    txt(ctx, W / 2, GY - 100, 'GHOST GOT PAID! 💜', '#9b5fc7', 15, true);
+    txt(ctx, W / 2, GY - 100, 'GHOST GOT PAID! 👻', '#9b5fc7', 15, true);
     // celebration sparkles
     for (let i = 0; i < 8; i++) {
       const a = i / 8 * Math.PI * 2 + f * 0.08;
@@ -654,12 +654,14 @@ function trexIncomeFrame(ctx, W, GY, f) {
 
 // ── theme helper ────────────────────────────────────────────────────────────
 function _activeTheme() {
+  try { return JSON.parse(localStorage.getItem('slawminyaw_settings') || '{}').theme || 'dark'; } catch(e) { return 'dark'; }
+}
 
 function showRobbery(amount) {
   const fmt = amount.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   const theme = _activeTheme();
   if (theme === 'gengar') {
-    runAnim(`Gengar ate your $${fmt} 👻`, '#c45f9b', gengarExpenseFrame, amount);
+    runAnim(`Gengar ate $${fmt}... 👻`, '#c45f9b', gengarExpenseFrame, amount);
   } else if (theme === 'jurassicpark') {
     runAnim(`T-Rex chomped $${fmt} 🦖`, '#c84030', trexExpenseFrame, amount);
   } else {
@@ -671,7 +673,7 @@ function showPayday(amount) {
   const fmt = amount.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   const theme = _activeTheme();
   if (theme === 'gengar') {
-    runAnim(`Gengar found $${fmt}! 💜`, '#9b5fc7', gengarIncomeFrame, amount);
+    runAnim(`Gengar snagged $${fmt}! 👻`, '#9b5fc7', gengarIncomeFrame, amount);
   } else if (theme === 'jurassicpark') {
     runAnim(`Payday! +$${fmt} 🌿`, '#c8a020', trexIncomeFrame, amount);
   } else {

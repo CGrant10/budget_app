@@ -1027,6 +1027,16 @@ body.light .alert-toast { background: #f0f0f8; }
   color: #fff;
 }
 
+/* ── gengar background overlay ────────────────────────────────────────────── */
+#gengar-bg-overlay {
+  position: fixed;
+  inset: 0;
+  background: url('gengar.png') center / 70% no-repeat;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: -1;
+}
+
 /* ── tutorial overlay ─────────────────────────────────────────────────────── */
 .tut-overlay {
   position: fixed;

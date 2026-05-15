@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.9.7';
+const VERSION = '2.9.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,15 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.9.8', date: '2026-05-15', changes: [
+    'Transaction animations fixed — syntax error in animations.js was silently killing all of them',
+    'Font picker previews now work correctly — double-quote HTML escape bug resolved',
+    'Removed all heart emojis from the app',
+    'Gengar theme now uses neutral dark grey backgrounds (matches Dusk base)',
+    'Gengar theme: gengar.png appears as a faint ghost watermark in the background',
+    'Gengar removed from About page',
+    'Added 8-bit font: Press Start 2P',
+  ]},
   { version: '2.9.7', date: '2026-05-15', changes: [
     'Font picker: all 14 fonts now appear correctly (group keys were mismatched)',
     'Font picker preview now actually shows each font — CSS override removed',
@@ -188,10 +197,9 @@ const THEMES = {
   },
   gengar: {
     label:'Gengar 👻',
-    bg:'#0f0d16', surface:'#191626', surface2:'#221e30', card:'#1c1928',
-    text:'#e2dcf0', muted:'#9080b8', border:'#302850',
-    accent:'#9b5fc7', accent2:'#c45f9b', success:'#52a872', warn:'#c0a038', danger:'#c05070',
-    cats:{ Food:'#7a5ec8', Gas:'#c45070', Car:'#5050b8', Boat:'#6060d8', Tools:'#b860a0', Home:'#7840b0', Entertainment:'#a040c8', Health:'#6870c8', Other:'#806898' },
+    ..._D,
+    accent:'#a060c8', accent2:'#c06880', success:'#52a872', warn:'#c0a038', danger:'#c05050',
+    cats:{ Food:'#52a872', Gas:'#c06878', Car:'#9060c8', Boat:'#6080b8', Tools:'#c07060', Home:'#88a050', Entertainment:'#a850b8', Health:'#5880b0', Other:'#887898' },
   },
   jurassicpark: {
     label:'Jurassic Park 🦖',
@@ -383,6 +391,17 @@ function applyTheme(theme) {
   document.body.classList.toggle('light', !!t.light);
   // Update category colors to match theme
   if (t.cats) Object.assign(CAT_COLORS, t.cats);
+  // Gengar ghost background overlay
+  let gOverlay = document.getElementById('gengar-bg-overlay');
+  if (theme === 'gengar') {
+    if (!gOverlay) {
+      gOverlay = document.createElement('div');
+      gOverlay.id = 'gengar-bg-overlay';
+      document.body.insertBefore(gOverlay, document.body.firstChild);
+    }
+  } else if (gOverlay) {
+    gOverlay.remove();
+  }
 }
 
 function _save() {
@@ -1627,22 +1646,23 @@ function renderSettings() {
 
   const fonts = [
     // — Anime / Cool —
-    { label:'Bangers',           value:'Bangers, cursive',               style:'font-family:"Bangers",cursive;letter-spacing:.08em',        group:'anime' },
-    { label:'Russo One',         value:'Russo One, sans-serif',          style:'font-family:"Russo One",sans-serif',                        group:'anime' },
-    { label:'Orbitron',          value:'Orbitron, sans-serif',           style:'font-family:"Orbitron",sans-serif;font-weight:700',          group:'anime' },
-    { label:'Audiowide',         value:'Audiowide, sans-serif',          style:'font-family:"Audiowide",sans-serif',                        group:'anime' },
-    { label:'Chakra Petch',      value:'Chakra Petch, sans-serif',       style:'font-family:"Chakra Petch",sans-serif;font-weight:700',      group:'anime' },
+    { label:'Bangers',           value:'Bangers, cursive',               style:"font-family:'Bangers',cursive;letter-spacing:.08em",        group:'anime' },
+    { label:'Russo One',         value:'Russo One, sans-serif',          style:"font-family:'Russo One',sans-serif",                        group:'anime' },
+    { label:'Orbitron',          value:'Orbitron, sans-serif',           style:"font-family:'Orbitron',sans-serif;font-weight:700",          group:'anime' },
+    { label:'Audiowide',         value:'Audiowide, sans-serif',          style:"font-family:'Audiowide',sans-serif",                        group:'anime' },
+    { label:'Chakra Petch',      value:'Chakra Petch, sans-serif',       style:"font-family:'Chakra Petch',sans-serif;font-weight:700",      group:'anime' },
+    { label:'Press Start 2P',    value:'Press Start 2P, cursive',        style:"font-family:'Press Start 2P',cursive;font-size:.75em",       group:'anime' },
     // — Modern —
-    { label:'Poppins',           value:'Poppins, sans-serif',            style:'font-family:"Poppins",sans-serif;font-weight:600',           group:'modern' },
-    { label:'Montserrat',        value:'Montserrat, sans-serif',         style:'font-family:"Montserrat",sans-serif;font-weight:700',        group:'modern' },
-    { label:'Raleway',           value:'Raleway, sans-serif',            style:'font-family:"Raleway",sans-serif;font-weight:600',           group:'modern' },
-    { label:'Plus Jakarta Sans', value:'Plus Jakarta Sans, sans-serif',  style:'font-family:"Plus Jakarta Sans",sans-serif;font-weight:600', group:'modern' },
+    { label:'Poppins',           value:'Poppins, sans-serif',            style:"font-family:'Poppins',sans-serif;font-weight:600",           group:'modern' },
+    { label:'Montserrat',        value:'Montserrat, sans-serif',         style:"font-family:'Montserrat',sans-serif;font-weight:700",        group:'modern' },
+    { label:'Raleway',           value:'Raleway, sans-serif',            style:"font-family:'Raleway',sans-serif;font-weight:600",           group:'modern' },
+    { label:'Plus Jakarta Sans', value:'Plus Jakarta Sans, sans-serif',  style:"font-family:'Plus Jakarta Sans',sans-serif;font-weight:600", group:'modern' },
     // — Cursive / Script —
-    { label:'Dancing Script',    value:'Dancing Script, cursive',        style:'font-family:"Dancing Script",cursive;font-weight:700',       group:'cursive' },
-    { label:'Great Vibes',       value:'Great Vibes, cursive',           style:'font-family:"Great Vibes",cursive',                         group:'cursive' },
-    { label:'Sacramento',        value:'Sacramento, cursive',            style:'font-family:"Sacramento",cursive;font-size:1.2em',           group:'cursive' },
-    { label:'Pacifico',          value:'Pacifico, cursive',              style:'font-family:"Pacifico",cursive',                            group:'cursive' },
-    { label:'Satisfy',           value:'Satisfy, cursive',               style:'font-family:"Satisfy",cursive',                             group:'cursive' },
+    { label:'Dancing Script',    value:'Dancing Script, cursive',        style:"font-family:'Dancing Script',cursive;font-weight:700",       group:'cursive' },
+    { label:'Great Vibes',       value:'Great Vibes, cursive',           style:"font-family:'Great Vibes',cursive",                         group:'cursive' },
+    { label:'Sacramento',        value:'Sacramento, cursive',            style:"font-family:'Sacramento',cursive;font-size:1.2em",           group:'cursive' },
+    { label:'Pacifico',          value:'Pacifico, cursive',              style:"font-family:'Pacifico',cursive",                            group:'cursive' },
+    { label:'Satisfy',           value:'Satisfy, cursive',               style:"font-family:'Satisfy',cursive",                             group:'cursive' },
   ];
 
   const fontGroupDefs = [
@@ -2005,12 +2025,10 @@ const QUOTES = [
 ];
 
 function renderAbout() {
-  const quote       = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-  const built       = new Date().getFullYear();
-  const s           = loadSettings();
-  const userName    = s.name || null;
-  const activeTheme = s.theme || 'dark';
-  const isGengar    = activeTheme === 'gengar';
+  const quote    = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  const built    = new Date().getFullYear();
+  const s        = loadSettings();
+  const userName = s.name || null;
   // Only show changelog entries for the current major.minor (e.g. 2.8.x)
   const [major, minor] = VERSION.split('.');
   const verPrefix = `${major}.${minor}.`;
@@ -2030,8 +2048,7 @@ function renderAbout() {
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:24px 20px">
         <img src="newicon.png" alt="Budget DAWGs"
-             style="width:90%;height:auto;display:block;margin:8px auto ${isGengar ? '8px' : '14px'};filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
-        ${isGengar ? `<img src="gengar.png" alt="Gengar" style="width:70%;height:auto;display:block;margin:0 auto 14px;filter:drop-shadow(0 4px 12px rgba(155,95,199,0.5))">` : ''}
+             style="width:90%;height:auto;display:block;margin:8px auto 14px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
@@ -2426,7 +2443,7 @@ function spawnDollarBurst(originEl) {
   const cy      = rect.top  + rect.height / 2;
   const theme   = (loadSettings().theme) || 'dark';
   const symbols = theme === 'gengar'
-    ? ['👻','💜','👻','🔮','💜','👻','🔮']
+    ? ['👻','🔮','👻','⚡','🔮','👻','✨']
     : theme === 'jurassicpark'
     ? ['🦖','🌿','🦖','🦕','🌿','🦖','🦕']
     : ['$','$','$','💸','$','💵','$'];
