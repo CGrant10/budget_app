@@ -393,7 +393,7 @@ html, body {
 .ledger-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .ledger-amt { font-size: 14px; font-weight: bold; }
 .ledger-amt.income  { color: var(--success); }
-.ledger-amt.expense { color: var(--accent2); }
+.ledger-amt.expense { color: var(--danger); }
 .ledger-edit-btn {
   background: none;
   border: none;

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.8.0';
+const VERSION = '2.8.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.8.1', date: '2026-05-15', changes: [
+    'Expense amounts now always show in red across all themes',
+  ]},
   { version: '2.8.0', date: '2026-05-15', changes: [
     'Dark mode is now fully neutral grey — all purple removed from accents, text, and UI',
     'Font picker converted to a clean dropdown grouped by style',
