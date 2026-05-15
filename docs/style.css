@@ -33,6 +33,7 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100dvh;
+  position: relative;
 }
 
 /* nav-top: nav on very top, header below it, main below that */
@@ -1032,13 +1033,14 @@ body.light .alert-toast { background: #f0f0f8; }
 
 /* ── gengar background overlay ────────────────────────────────────────────── */
 #gengar-bg-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: url('gengar.png') center / 70% no-repeat;
   opacity: 0.12;
   pointer-events: none;
-  z-index: -1;
+  z-index: 0;
 }
+.header, #main-content, .bottom-nav { z-index: 1; }
 
 /* ── tutorial overlay ─────────────────────────────────────────────────────── */
 .tut-overlay {

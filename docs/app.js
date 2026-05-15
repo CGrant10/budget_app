@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.9.9';
+const VERSION = '3.0.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.0.0', date: '2026-05-15', changes: [
+    'Transaction animations removed',
+    'Press Start 2P font fixed — digit in name requires CSS quoting, now applies correctly',
+    'Gengar background finally visible — overlay was hidden behind body solid background, moved inside #app',
+  ]},
   { version: '2.9.9', date: '2026-05-15', changes: [
     'App title shadow softened with blur — no more hard edge, light mode looks much cleaner',
     'Light mode theme dot now shows white circle with border instead of purple',
@@ -391,13 +396,14 @@ function applyTheme(theme) {
   document.body.classList.toggle('light', !!t.light);
   // Update category colors to match theme
   if (t.cats) Object.assign(CAT_COLORS, t.cats);
-  // Gengar ghost background overlay
+  // Gengar ghost background overlay — lives inside #app so it's above body's solid bg
   let gOverlay = document.getElementById('gengar-bg-overlay');
   if (theme === 'gengar') {
     if (!gOverlay) {
       gOverlay = document.createElement('div');
       gOverlay.id = 'gengar-bg-overlay';
-      document.body.insertBefore(gOverlay, document.body.firstChild);
+      const app = document.getElementById('app');
+      if (app) app.insertBefore(gOverlay, app.firstChild);
     }
   } else if (gOverlay) {
     gOverlay.remove();
@@ -1651,7 +1657,7 @@ function renderSettings() {
     { label:'Orbitron',          value:'Orbitron, sans-serif',           style:"font-family:'Orbitron',sans-serif;font-weight:700",          group:'anime' },
     { label:'Audiowide',         value:'Audiowide, sans-serif',          style:"font-family:'Audiowide',sans-serif",                        group:'anime' },
     { label:'Chakra Petch',      value:'Chakra Petch, sans-serif',       style:"font-family:'Chakra Petch',sans-serif;font-weight:700",      group:'anime' },
-    { label:'Press Start 2P',    value:'Press Start 2P, cursive',        style:"font-family:'Press Start 2P',cursive;font-size:.75em",       group:'anime' },
+    { label:'Press Start 2P',    value:'"Press Start 2P", cursive',       style:"font-family:'Press Start 2P',cursive;font-size:.75em",       group:'anime' },
     // — Modern —
     { label:'Poppins',           value:'Poppins, sans-serif',            style:"font-family:'Poppins',sans-serif;font-weight:600",           group:'modern' },
     { label:'Montserrat',        value:'Montserrat, sans-serif',         style:"font-family:'Montserrat',sans-serif;font-weight:700",        group:'modern' },
@@ -2234,8 +2240,7 @@ function attachAdd() {
     document.getElementById('add-desc').value   = '';
     document.getElementById('add-recurring').checked = false;
     playSound(t.type);
-    if (t.type === 'expense') { showRobbery(t.amount); checkRoast(t.category); checkSpendingAlert(t.category); }
-    else { showPayday(t.amount); }
+    if (t.type === 'expense') { checkRoast(t.category); checkSpendingAlert(t.category); }
     checkMilestones(prevBal, newBal);
     checkWeekMilestone();
   });
