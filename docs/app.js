@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.7.0';
+const VERSION = '2.7.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.7.1', date: '2026-05-15', changes: [
+    'Chart text, legend, and grid lines now adapt to any theme (fixes light mode readability)',
+    'About page icon shown as-is — no more blend mode or opacity alteration',
+    'Nav bar tightened: smaller icons, compact labels, labels truncate cleanly',
+  ]},
   { version: '2.7.0', date: '2026-05-15', changes: [
     'Preset color themes: Dark, Light, Ocean, Sunset, Forest, Midnight',
     'Logo font and color customization in Settings',
@@ -495,6 +500,13 @@ function attachDashboard() {
   if (!chartEl) return;
   if (spendingChart) { spendingChart.destroy(); spendingChart = null; }
 
+  // Read current theme colors so charts adapt to any theme (dark, light, ocean, etc.)
+  const cs        = getComputedStyle(document.documentElement);
+  const textColor = cs.getPropertyValue('--text').trim()   || '#e8e6f0';
+  const mutedColor= cs.getPropertyValue('--muted').trim()  || '#b0aec8';
+  const gridColor = cs.getPropertyValue('--border').trim() || '#2e2e40';
+  const bgColor   = cs.getPropertyValue('--bg').trim()     || '#0f0f14';
+
   if (dashChartMode === 'bar') {
     const weeks = getLastSixWeeks();
     spendingChart = new Chart(chartEl, {
@@ -509,10 +521,10 @@ function attachDashboard() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#e8e6f0', font: { size: 12 } } } },
+        plugins: { legend: { labels: { color: textColor, font: { size: 12 } } } },
         scales: {
-          x: { ticks: { color: '#b0aec8', font: { size: 11 } }, grid: { color: '#2e2e40' } },
-          y: { ticks: { color: '#b0aec8', font: { size: 11 }, callback: v => '$' + v }, grid: { color: '#2e2e40' } },
+          x: { ticks: { color: mutedColor, font: { size: 11 } }, grid: { color: gridColor } },
+          y: { ticks: { color: mutedColor, font: { size: 11 }, callback: v => '$' + v }, grid: { color: gridColor } },
         },
       },
     });
@@ -527,7 +539,7 @@ function attachDashboard() {
         type: 'pie',
         data: {
           labels,
-          datasets: [{ data, backgroundColor: colors, borderColor: '#0f0f14', borderWidth: 1 }],
+          datasets: [{ data, backgroundColor: colors, borderColor: bgColor, borderWidth: 1 }],
         },
         options: {
           responsive: true,
@@ -537,7 +549,7 @@ function attachDashboard() {
               position: 'right',
               align: 'center',
               labels: {
-                color: '#ffffff',
+                color: textColor,
                 font: { size: 12, family: 'Outfit' },
                 boxWidth: 13,
                 padding: 10,
@@ -547,7 +559,7 @@ function attachDashboard() {
                     text: `${lbl}  ${fmt(ds.data[i])}  (${((ds.data[i]/total)*100).toFixed(0)}%)`,
                     fillStyle: ds.backgroundColor[i],
                     strokeStyle: 'transparent',
-                    fontColor: '#ffffff',
+                    fontColor: textColor,
                     lineWidth: 0,
                     hidden: false,
                     index: i,
@@ -1672,7 +1684,7 @@ function renderAbout() {
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:28px 20px">
         <img src="app-icon-about.png" alt="$MY Budgeting DAWGS"
-             style="width:220px;height:auto;display:block;margin:0 auto 8px;mix-blend-mode:screen;opacity:.92">
+             style="width:220px;height:auto;display:block;margin:0 auto 8px">
         ${userName ? `<div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:16px">${userName}</div>` : ''}
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
