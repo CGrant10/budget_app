@@ -1249,3 +1249,44 @@ body.light .alert-toast { background: #f0f0f8; }
 .cat-modal-date { font-size:.78rem; color:var(--muted); min-width:40px; }
 .cat-modal-desc { flex:1; font-size:.85rem; color:var(--text); }
 .cat-modal-amt { font-size:.88rem; color:var(--danger); font-weight:600; }
+
+/* ── debt tab ── */
+.debt-summary-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-bottom:16px; text-align:center; }
+.debt-summary-label { font-size:.7rem; font-weight:700; letter-spacing:.08em; color:var(--muted); margin-bottom:4px; }
+.debt-summary-value { font-size:2rem; font-weight:800; line-height:1.1; margin-bottom:4px; }
+.debt-summary-sub { font-size:.78rem; color:var(--muted); }
+
+.debt-subnav { display:flex; gap:8px; margin-bottom:16px; }
+.debt-pill { flex:1; padding:9px 0; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:.82rem; font-weight:600; cursor:pointer; transition:all .15s; }
+.debt-pill.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+.debt-acct-list { display:flex; flex-direction:column; gap:12px; }
+.debt-acct-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+.debt-acct-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px 8px; }
+.debt-acct-name { font-size:1rem; font-weight:700; color:var(--text); }
+.debt-acct-type { font-size:.72rem; color:var(--muted); }
+
+.debt-owed-row { display:flex; align-items:baseline; gap:10px; padding:0 16px 12px; }
+.debt-owed-label { font-size:.68rem; font-weight:700; letter-spacing:.08em; color:var(--muted); }
+.debt-owed-value { font-size:1.6rem; font-weight:800; line-height:1; }
+
+.debt-progress-wrap { padding:0 16px 12px; }
+.debt-progress-bg { background:var(--surface2); border-radius:4px; height:6px; overflow:hidden; margin-bottom:4px; }
+.debt-progress-fill { height:100%; border-radius:4px; transition:width .3s; }
+.debt-progress-labels { display:flex; justify-content:space-between; }
+
+.debt-last-pmt { padding:0 16px 10px; font-size:.8rem; color:var(--muted); }
+
+.debt-section-toggle { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-top:1px solid var(--border); cursor:pointer; font-size:.82rem; font-weight:600; color:var(--muted); background:var(--surface2); }
+.debt-section-toggle:hover { color:var(--text); }
+.debt-toggle-arrow { font-size:.75rem; }
+
+.debt-txn-list { padding:0 16px; }
+.debt-txn-list.hidden { display:none; }
+.debt-txn-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); }
+.debt-txn-row:last-child { border-bottom:none; }
+.debt-txn-date { font-size:.75rem; color:var(--muted); min-width:72px; }
+.debt-txn-desc { flex:1; font-size:.83rem; color:var(--text); }
+.debt-txn-amt { font-size:.85rem; font-weight:600; white-space:nowrap; }
+.debt-txn-amt.success { color:var(--success); }
+.debt-txn-amt.danger  { color:var(--danger); }

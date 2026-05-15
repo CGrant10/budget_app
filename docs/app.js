@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.3.3';
+const VERSION = '3.4.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.4.0', date: '2026-05-15', changes: [
+    'New Debt tab (💳): dedicated dashboard for credit cards and loans',
+    'Shows total owed, per-account balance, payoff progress bar, payment history, and charges',
+    'Add accounts with type Credit or Loan in Settings → Accounts',
+    'Loan added as a new account type option',
+  ]},
   { version: '3.3.3', date: '2026-05-15', changes: [
     'Dashboard balance now shows end-of-month balance when browsing past months, not current live balance',
     'Balance sub-label updates to e.g. "end of Apr 2026" for past months',
@@ -372,6 +378,7 @@ const NAV_ITEMS = [
   { key: 'ledger',    label: 'Ledger',    icon: '📋' },
   { key: 'weekly',    label: 'Weekly',    icon: '📅' },
   { key: 'bills',     label: 'Bills',     icon: '📑' },
+  { key: 'debt',     label: 'Debt',      icon: '💳' },
   { key: 'goals',     label: 'Goals',     icon: '🎯' },
   { key: 'import',    label: 'Import',    icon: '📥' },
   { key: 'budgets',   label: 'Budgets',   icon: '💰' },
@@ -675,6 +682,7 @@ function calcHealthScore() {
 // ── tabs ───────────────────────────────────────────────────────────────────
 let currentTab = 'dashboard';
 let dashMonth = new Date().toISOString().slice(0, 7);
+let debtSubTab = 'credit'; // 'credit' | 'loan'
 let selectedLedgerIdx = null;
 let ledgerFilter = '';
 let ledgerSort = 'date-desc';
@@ -1065,6 +1073,152 @@ function getSpendingInsights(monthStr) {
   return insights;
 }
 
+// ── debt ───────────────────────────────────────────────────────────────────
+function renderDebt() {
+  const creditAccts = state.accounts.filter(a => a.type === 'credit');
+  const loanAccts   = state.accounts.filter(a => a.type === 'loan');
+  const allDebt     = [...creditAccts, ...loanAccts];
+
+  if (allDebt.length === 0) {
+    return `<div class="page">
+      <h1 class="page-title">Debt</h1>
+      <p class="page-sub">credit cards &amp; loans</p>
+      <div class="form-card" style="text-align:center;padding:32px 20px">
+        <div style="font-size:2rem;margin-bottom:12px">💳</div>
+        <p style="color:var(--muted);font-size:.9rem">No credit card or loan accounts yet.</p>
+        <p style="color:var(--muted);font-size:.82rem;margin-top:6px">Go to Settings → Accounts and add an account with type <strong>Credit</strong> or <strong>Loan</strong>, then set the starting balance to what you currently owe.</p>
+      </div>
+    </div>`;
+  }
+
+  // Calculate owed amount for each account
+  function getOwed(acct) {
+    const d = JSON.parse(localStorage.getItem(accountDataKey(acct.id)) || '{}');
+    const txns = d.transactions || [];
+    const startingBal = parseFloat(d.startingBalance) || 0;
+    let income = 0, expense = 0;
+    for (const t of txns) { if (t.type === 'income') income += t.amount; else expense += t.amount; }
+    return { owed: Math.max(0, startingBal + expense - income), txns, startingBal, income, expense };
+  }
+
+  const totalOwed = allDebt.reduce((s, a) => s + getOwed(a).owed, 0);
+
+  // Determine which sub-tabs have accounts
+  const hasCredit = creditAccts.length > 0;
+  const hasLoans  = loanAccts.length  > 0;
+  // Snap debtSubTab to a valid value
+  if (debtSubTab === 'credit' && !hasCredit) debtSubTab = 'loan';
+  if (debtSubTab === 'loan'   && !hasLoans)  debtSubTab = 'credit';
+
+  const subNavHtml = (hasCredit && hasLoans) ? `
+    <div class="debt-subnav">
+      <button class="debt-pill${debtSubTab === 'credit' ? ' active' : ''}" data-sub="credit">💳 Credit Cards</button>
+      <button class="debt-pill${debtSubTab === 'loan'   ? ' active' : ''}" data-sub="loan">🏦 Loans</button>
+    </div>` : '';
+
+  const acctList = debtSubTab === 'credit' ? creditAccts : loanAccts;
+
+  const acctCards = acctList.map(acct => {
+    const { owed, txns, startingBal } = getOwed(acct);
+    const paidDown = Math.max(0, startingBal - owed);
+    const pct      = startingBal > 0 ? Math.min(paidDown / startingBal * 100, 100) : 0;
+    const barColor = pct >= 75 ? 'var(--success)' : pct >= 40 ? 'var(--warn)' : 'var(--accent)';
+
+    // Payment transactions (income = paying down the debt)
+    const payments = txns.filter(t => t.type === 'income').sort((a, b) => b.date.localeCompare(a.date));
+    const lastPmt  = payments[0];
+
+    const paymentRows = payments.slice(0, 20).map(t => `
+      <div class="debt-txn-row">
+        <span class="debt-txn-date">${t.date}</span>
+        <span class="debt-txn-desc">${t.description || 'Payment'}</span>
+        <span class="debt-txn-amt success">-${fmt(t.amount)}</span>
+      </div>`).join('');
+
+    // Charge/expense transactions
+    const charges = txns.filter(t => t.type === 'expense').sort((a, b) => b.date.localeCompare(a.date));
+    const chargeRows = charges.slice(0, 20).map(t => `
+      <div class="debt-txn-row">
+        <span class="debt-txn-date">${t.date}</span>
+        <span class="debt-txn-desc">${t.description || t.category || '—'}</span>
+        <span class="debt-txn-amt danger">+${fmt(t.amount)}</span>
+      </div>`).join('');
+
+    const progressHtml = startingBal > 0 ? `
+      <div class="debt-progress-wrap">
+        <div class="debt-progress-bg">
+          <div class="debt-progress-fill" style="width:${pct.toFixed(1)}%;background:${barColor}"></div>
+        </div>
+        <div class="debt-progress-labels">
+          <span style="color:var(--muted);font-size:.75rem">Paid: ${fmt(paidDown)} (${pct.toFixed(0)}%)</span>
+          <span style="color:var(--muted);font-size:.75rem">Original: ${fmt(startingBal)}</span>
+        </div>
+      </div>` : '';
+
+    const lastPmtHtml = lastPmt ? `
+      <div class="debt-last-pmt">Last payment: <strong style="color:var(--success)">-${fmt(lastPmt.amount)}</strong> on ${lastPmt.date}</div>` : '';
+
+    return `
+      <div class="debt-acct-card">
+        <div class="debt-acct-header">
+          <div class="debt-acct-name">${acct.name}</div>
+          <div class="debt-acct-type">${acct.type === 'loan' ? '🏦 Loan' : '💳 Credit'}</div>
+        </div>
+        <div class="debt-owed-row">
+          <span class="debt-owed-label">OWED</span>
+          <span class="debt-owed-value" style="color:${owed > 0 ? 'var(--danger)' : 'var(--success)'}">${fmt(owed)}</span>
+        </div>
+        ${progressHtml}
+        ${lastPmtHtml}
+        <div class="debt-section-toggle" data-id="${acct.id}" data-section="payments">
+          <span>Payments (${payments.length})</span><span class="debt-toggle-arrow">▼</span>
+        </div>
+        <div class="debt-txn-list hidden" id="debt-payments-${acct.id}">${paymentRows || '<p class="empty-msg">No payments recorded.</p>'}</div>
+        ${charges.length ? `
+        <div class="debt-section-toggle" data-id="${acct.id}" data-section="charges">
+          <span>${acct.type === 'loan' ? 'Fees / Charges' : 'Charges'} (${charges.length})</span><span class="debt-toggle-arrow">▼</span>
+        </div>
+        <div class="debt-txn-list hidden" id="debt-charges-${acct.id}">${chargeRows}</div>` : ''}
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="page">
+      <h1 class="page-title">Debt</h1>
+      <p class="page-sub">credit cards &amp; loans</p>
+      <div class="debt-summary-card">
+        <div class="debt-summary-label">TOTAL OWED</div>
+        <div class="debt-summary-value" style="color:${totalOwed > 0 ? 'var(--danger)' : 'var(--success)'}">${fmt(totalOwed)}</div>
+        <div class="debt-summary-sub">${allDebt.length} account${allDebt.length !== 1 ? 's' : ''}</div>
+      </div>
+      ${subNavHtml}
+      <div class="debt-acct-list">${acctCards}</div>
+    </div>`;
+}
+
+function attachDebt() {
+  // Sub-tab pills
+  document.querySelectorAll('.debt-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      debtSubTab = btn.dataset.sub;
+      render();
+    });
+  });
+
+  // Expand/collapse payment and charge lists
+  document.querySelectorAll('.debt-section-toggle').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      const id      = toggle.dataset.id;
+      const section = toggle.dataset.section;
+      const list    = document.getElementById(`debt-${section}-${id}`);
+      const arrow   = toggle.querySelector('.debt-toggle-arrow');
+      if (!list) return;
+      const open = list.classList.toggle('hidden');
+      if (arrow) arrow.textContent = open ? '▼' : '▲';
+    });
+  });
+}
+
 // ── render ─────────────────────────────────────────────────────────────────
 function render() {
   if (spendingChart) { spendingChart.destroy(); spendingChart = null; }
@@ -1075,6 +1229,7 @@ function render() {
     case 'ledger':    main.innerHTML = renderLedger();    break;
     case 'weekly':    main.innerHTML = renderWeekly();    break;
     case 'bills':     main.innerHTML = renderBills();     break;
+    case 'debt':      main.innerHTML = renderDebt();      break;
     case 'goals':     main.innerHTML = renderGoals();     break;
     case 'import':    main.innerHTML = renderImport();    break;
     case 'budgets':   main.innerHTML = renderBudgets();   break;
@@ -2127,6 +2282,7 @@ function renderSettings() {
               <option value="checking">Checking</option>
               <option value="savings">Savings</option>
               <option value="credit">Credit</option>
+              <option value="loan">Loan</option>
               <option value="cash">Cash</option>
             </select>
           </div>
@@ -2592,6 +2748,7 @@ function attachHandlers() {
     case 'ledger':    attachLedger();    break;
     case 'weekly':    attachWeekly(); calcWeekly(); break;
     case 'bills':     attachBills();     break;
+    case 'debt':      attachDebt();      break;
     case 'goals':     attachGoals();     break;
     case 'import':    attachImport();    break;
     case 'budgets':   attachBudgets();   break;
