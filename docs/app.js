@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.6.2';
+const VERSION = '2.6.3';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 const CAT_COLORS = {
@@ -309,43 +309,66 @@ function initSoundsToggle() {
 
 // ── health score ───────────────────────────────────────────────────────────
 function calcHealthScore() {
-  const now = new Date();
-  const m  = now.toISOString().slice(0, 7);
-  const pm = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
-  const thisMonth = monthTotals(m);
-  const lastMonth = monthTotals(pm);
+  const m = new Date().toISOString().slice(0, 7);
+  const { income, expense, bycat } = monthTotals(m);
 
+  // ── Savings Rate (40 pts) — most important metric ──────────────
+  let savingsScore, savingsLabel;
+  if (income > 0) {
+    const rate = (income - expense) / income;
+    if      (rate >= 0.20) { savingsScore = 40; savingsLabel = `Saving ${(rate*100).toFixed(0)}% of income`; }
+    else if (rate >= 0.10) { savingsScore = 28; savingsLabel = `Saving ${(rate*100).toFixed(0)}% of income`; }
+    else if (rate >= 0.01) { savingsScore = 15; savingsLabel = `Saving ${(rate*100).toFixed(0)}% — aim for 10%+`; }
+    else if (rate > -0.05) { savingsScore = 5;  savingsLabel = 'Nearly breaking even'; }
+    else                   { savingsScore = 0;  savingsLabel = 'Spending more than earning'; }
+  } else {
+    savingsScore = 20; savingsLabel = 'No income recorded this month';
+  }
+
+  // ── Budget Control (30 pts) ────────────────────────────────────
   const budgetedCats = Object.keys(state.budgets).filter(c => parseFloat(state.budgets[c]) > 0);
-  let budgetScore = 20;
-  if (budgetedCats.length > 0) {
-    const onTrack = budgetedCats.filter(c => (thisMonth.bycat[c] || 0) <= parseFloat(state.budgets[c])).length;
-    budgetScore = Math.round((onTrack / budgetedCats.length) * 40);
+  let budgetScore, budgetLabel;
+  if (budgetedCats.length === 0) {
+    budgetScore = 15; budgetLabel = 'Set budget limits to track this';
+  } else {
+    const onTrack = budgetedCats.filter(c => (bycat[c] || 0) <= parseFloat(state.budgets[c])).length;
+    budgetScore = Math.round((onTrack / budgetedCats.length) * 30);
+    budgetLabel = `${onTrack} of ${budgetedCats.length} categories on track`;
   }
 
-  let savingsScore = 0;
-  if (thisMonth.income > 0) {
-    const rate = (thisMonth.income - thisMonth.expense) / thisMonth.income;
-    savingsScore = Math.round(Math.min(Math.max(rate, 0), 1) * 30);
+  // ── Bills Health (15 pts) ──────────────────────────────────────
+  let billScore, billLabel;
+  if (state.bills.length === 0) {
+    billScore = 15; billLabel = 'No bills tracked';
+  } else {
+    const paid = state.bills.filter(b => b.paidMonth === m).length;
+    billScore = Math.round((paid / state.bills.length) * 15);
+    billLabel = `${paid} of ${state.bills.length} bills paid this month`;
   }
 
-  let trendScore = 15;
-  if (lastMonth.expense > 0 && thisMonth.expense > 0) {
-    const improvement = (lastMonth.expense - thisMonth.expense) / lastMonth.expense;
-    trendScore = Math.round(Math.min(Math.max(improvement + 0.5, 0), 1) * 30);
-  } else if (lastMonth.expense > 0 && thisMonth.expense === 0) {
-    trendScore = 30;
+  // ── Savings Goals (15 pts) ─────────────────────────────────────
+  let goalScore, goalLabel;
+  if (state.goals.length === 0) {
+    goalScore = 0; goalLabel = 'Add a savings goal to earn points';
+  } else {
+    const inProgress = state.goals.filter(g => g.current > 0 && g.current < g.target).length;
+    const completed  = state.goals.filter(g => g.current >= g.target && g.target > 0).length;
+    if (completed > 0)    { goalScore = 15; goalLabel = `${completed} goal${completed>1?'s':''} completed 🎉`; }
+    else if (inProgress > 0) { goalScore = 10; goalLabel = `${inProgress} goal${inProgress>1?'s':''} in progress`; }
+    else                  { goalScore = 5;  goalLabel = `${state.goals.length} goal${state.goals.length>1?'s':''} set — start saving!`; }
   }
 
-  const total = budgetScore + savingsScore + trendScore;
+  const total = Math.min(savingsScore + budgetScore + billScore + goalScore, 100);
   let grade, color;
-  if (total >= 90)      { grade = 'A+'; color = 'var(--success)'; }
+  if      (total >= 90) { grade = 'A+'; color = 'var(--success)'; }
   else if (total >= 80) { grade = 'A';  color = 'var(--success)'; }
   else if (total >= 70) { grade = 'B';  color = '#8dcb4e'; }
-  else if (total >= 60) { grade = 'C';  color = 'var(--warn)'; }
-  else if (total >= 50) { grade = 'D';  color = 'var(--accent2)'; }
+  else if (total >= 55) { grade = 'C';  color = 'var(--warn)'; }
+  else if (total >= 40) { grade = 'D';  color = 'var(--accent2)'; }
   else                  { grade = 'F';  color = 'var(--danger)'; }
 
-  return { total, grade, color, budgetScore, savingsScore, trendScore };
+  return { total, grade, color, savingsScore, budgetScore, billScore, goalScore,
+           savingsLabel, budgetLabel, billLabel, goalLabel };
 }
 
 // ── tabs ───────────────────────────────────────────────────────────────────
@@ -433,26 +456,29 @@ function attachDashboard() {
         type: 'pie',
         data: {
           labels,
-          datasets: [{ data, backgroundColor: colors, borderColor: '#1a1a24', borderWidth: 3 }],
+          datasets: [{ data, backgroundColor: colors, borderColor: '#0f0f14', borderWidth: 1 }],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              position: 'bottom',
+              position: 'right',
+              align: 'center',
               labels: {
-                color: '#e8e6f0',
-                font: { size: 12 },
-                boxWidth: 14,
-                padding: 12,
+                color: '#ffffff',
+                font: { size: 12, family: 'Outfit' },
+                boxWidth: 13,
+                padding: 10,
                 generateLabels: (chart) => {
                   const ds = chart.data.datasets[0];
                   return chart.data.labels.map((lbl, i) => ({
                     text: `${lbl}  ${fmt(ds.data[i])}  (${((ds.data[i]/total)*100).toFixed(0)}%)`,
                     fillStyle: ds.backgroundColor[i],
-                    strokeStyle: ds.backgroundColor[i],
+                    strokeStyle: 'transparent',
+                    fontColor: '#ffffff',
                     lineWidth: 0,
+                    hidden: false,
                     index: i,
                   }));
                 },
@@ -1075,13 +1101,17 @@ function attachBills() {
 // ── goals ──────────────────────────────────────────────────────────────────
 function renderGoals() {
   const health = calcHealthScore();
-  const hBar = (score, max, label) => {
+  const hBar = (score, max, label, desc) => {
     const pct = Math.round((score / max) * 100);
+    const barColor = pct >= 80 ? 'var(--success)' : pct >= 50 ? 'var(--warn)' : 'var(--danger)';
     return `
       <div class="health-bar-row">
-        <span class="health-bar-label">${label}</span>
-        <div class="breakdown-bar-bg"><div class="breakdown-bar-fill" style="width:${pct}%;background:${health.color}"></div></div>
-        <span class="health-bar-score">${score}/${max}</span>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+          <span class="health-bar-label">${label}</span>
+          <span class="health-bar-score">${score}/${max}</span>
+        </div>
+        <div class="breakdown-bar-bg"><div class="breakdown-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+        ${desc ? `<span style="font-size:11px;color:var(--muted);display:block;margin-top:3px">${desc}</span>` : ''}
       </div>`;
   };
 
@@ -1122,9 +1152,10 @@ function renderGoals() {
           </div>
         </div>
         <div class="health-bars">
-          ${hBar(health.budgetScore, 40, 'Budget Adherence')}
-          ${hBar(health.savingsScore, 30, 'Savings Rate')}
-          ${hBar(health.trendScore, 30, 'Spending Trend')}
+          ${hBar(health.savingsScore, 40, 'Savings Rate',    health.savingsLabel)}
+          ${hBar(health.budgetScore,  30, 'Budget Control',  health.budgetLabel)}
+          ${hBar(health.billScore,    15, 'Bills',           health.billLabel)}
+          ${hBar(health.goalScore,    15, 'Goals',           health.goalLabel)}
         </div>
       </div>
       <div class="form-card" style="margin-top:16px">
