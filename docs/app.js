@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.7.9';
+const VERSION = '2.8.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.8.0', date: '2026-05-15', changes: [
+    'Dark mode is now fully neutral grey — all purple removed from accents, text, and UI',
+    'Font picker converted to a clean dropdown grouped by style',
+  ]},
   { version: '2.7.9', date: '2026-05-15', changes: [
     'About icon now has a subtle drop shadow for definition and clarity',
     'Font picker expanded: added cursive/script options — Dancing Script, Pacifico, Satisfy, Great Vibes, Lobster',
@@ -83,15 +87,15 @@ const CHANGELOG = [
   ]},
 ];
 
-// Shared neutral dark base — no color tinting in backgrounds
-const _D = { bg:'#111113', surface:'#1a1a1d', surface2:'#242428', card:'#1e1e22', text:'#e0dfe8', muted:'#86849a', border:'#28282e' };
+// Shared neutral dark base — pure grey, no color cast
+const _D = { bg:'#111112', surface:'#1a1a1b', surface2:'#242425', card:'#1e1e1f', text:'#e2e2e4', muted:'#888890', border:'#28282a' };
 
 const THEMES = {
   dark: {
     label:'Dark',
     ..._D,
-    accent:'#8070c0', accent2:'#c07850', success:'#52a872', warn:'#c0a038', danger:'#c05050',
-    cats:{ Food:'#52a872', Gas:'#c05858', Car:'#6070b8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#9858a8', Health:'#4090a8', Other:'#787890' },
+    accent:'#7a8898', accent2:'#a07858', success:'#52a872', warn:'#c0a038', danger:'#c05050',
+    cats:{ Food:'#52a872', Gas:'#c05858', Car:'#6888a8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#8890a8', Health:'#4090a8', Other:'#787880' },
   },
   light: {
     label:'Light',
@@ -1518,18 +1522,21 @@ function renderSettings() {
     { label:'Mono',             value:'monospace',                       style:'font-family:monospace',                                 group:'mono' },
   ];
 
-  const fontGroups = [
+  const fontGroupDefs = [
     { key:'sans',    label:'Sans-serif' },
     { key:'serif',   label:'Serif' },
     { key:'cursive', label:'Script / Cursive' },
     { key:'mono',    label:'Mono' },
   ];
-  const fontChips = fontGroups.map(g => {
-    const chips = fonts.filter(f => f.group === g.key).map(f => `
-      <button class="font-chip${logoFont === f.value ? ' active' : ''}" data-font="${f.value}"
-        style="${f.style}">${f.label}</button>`).join('');
-    return `<div class="font-group-label">${g.label}</div><div class="font-grid">${chips}</div>`;
+  const fontOptGroups = fontGroupDefs.map(g => {
+    const opts = fonts.filter(f => f.group === g.key).map(f =>
+      `<option value="${f.value}"${logoFont === f.value ? ' selected' : ''}>${f.label}</option>`
+    ).join('');
+    return `<optgroup label="${g.label}">${opts}</optgroup>`;
   }).join('');
+  const fontSelect = `<select id="logo-font-select" class="form-input font-select">${
+    `<option value=""${!logoFont ? ' selected' : ''}>Default (Outfit)</option>`
+  }${fontOptGroups}</select>`;
 
   const logoTransform = s.logoTransform || '';
   const caps = [
@@ -1559,7 +1566,7 @@ function renderSettings() {
         </div>
         <div class="form-row">
           <label class="form-label">Title font</label>
-          <div class="font-groups">${fontChips}</div>
+          ${fontSelect}
         </div>
         <div class="form-row">
           <label class="form-label">Capitalization</label>
@@ -1656,17 +1663,17 @@ function attachSettings() {
     render();
   });
 
-  // Font chips — immediate apply + save
-  document.querySelectorAll('.font-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
+  // Font dropdown — immediate apply + save
+  const fontSel = document.getElementById('logo-font-select');
+  if (fontSel) {
+    fontSel.addEventListener('change', () => {
       const s = loadSettings();
-      s.logoFont = btn.dataset.font;
+      s.logoFont = fontSel.value;
       saveSettings(s);
       const logo = document.querySelector('.logo');
-      if (logo) logo.style.fontFamily = s.logoFont;
-      document.querySelectorAll('.font-chip').forEach(b => b.classList.toggle('active', b === btn));
+      if (logo) logo.style.fontFamily = s.logoFont || '';
     });
-  });
+  }
 
   // Capitalization chips — immediate apply + save
   document.querySelectorAll('.cap-chip').forEach(btn => {

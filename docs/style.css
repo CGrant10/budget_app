@@ -1,16 +1,16 @@
 :root {
-  --bg:      #0f0f14;
-  --surface: #1a1a24;
-  --card:    #22222f;
-  --accent:  #7c6af7;
-  --accent2: #f7936a;
+  --bg:      #111112;
+  --surface: #1a1a1b;
+  --card:    #1e1e1f;
+  --accent:  #7a8898;
+  --accent2: #a07858;
   --success: #4ecb8d;
   --warn:    #f7c96a;
   --danger:  #f76a6a;
-  --text:    #e8e6f0;
-  --muted:   #b0aec8;
-  --border:  #2e2e40;
-  --surface2: #252535;
+  --text:    #e2e2e4;
+  --muted:   #888890;
+  --border:  #28282a;
+  --surface2: #242425;
 
   --header-h: 56px;
   --nav-h: 58px;
@@ -904,35 +904,16 @@ body.light .alert-toast { background: #f0f0f8; }
 .theme-row-name { flex: 1; font-size: .9rem; color: var(--text); font-weight: 500; }
 .theme-check { font-size: .85rem; color: var(--accent); font-weight: 700; }
 
-/* ── font chips ───────────────────────────────────────────────────────────── */
-.font-groups { display: flex; flex-direction: column; gap: 10px; }
-.font-group-label {
-  font-size: .68rem;
-  font-weight: 600;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 2px;
-}
-.font-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
-.font-chip {
-  padding: 8px 12px;
-  text-align: center;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: var(--surface);
-  color: var(--text);
+/* ── font select dropdown ─────────────────────────────────────────────────── */
+.font-select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888890' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
   cursor: pointer;
-  font-size: .9rem;
-  transition: border-color .15s, background .15s, color .15s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.font-chip.active {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
 }
 
 /* ── capitalization chips ─────────────────────────────────────────────────── */
