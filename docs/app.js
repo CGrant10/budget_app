@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.1.0';
+const VERSION = '3.2.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,15 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.2.0', date: '2026-05-15', changes: [
+    'Health score rebuilt: savings rate (50%), balance buffer (25%), bills paid (25%) — no budget limits required',
+    'Credit card accounts now subtract from net worth correctly',
+    'Auto-log bill: marking a bill paid offers to add it as an expense transaction',
+    'Spending insights: month-over-month comparison, biggest category, savings rate, monthly pace',
+    'Transfer between accounts: move money without affecting income/expense totals',
+    'PIN lock: set a 4-digit PIN in Settings → Privacy to lock the app',
+    'Customizable dashboard: toggle sections on/off from Settings',
+  ]},
   { version: '3.1.0', date: '2026-05-15', changes: [
     'Net worth view on dashboard: total across all accounts when you have 2+',
     'CSV export: download full transaction history from the Ledger tab',
@@ -574,55 +583,65 @@ function initSoundsToggle() {
 // ── health score ───────────────────────────────────────────────────────────
 function calcHealthScore() {
   const m = new Date().toISOString().slice(0, 7);
-  const { income, expense, bycat } = monthTotals(m);
+  const { income, expense } = monthTotals(m);
 
-  // ── Savings Rate (40 pts) — most important metric ──────────────
+  // ── Savings Rate (50 pts) ──────────────────────────────────────
   let savingsScore, savingsLabel;
-  if (income > 0) {
+  if (income <= 0) {
+    savingsScore = 25; savingsLabel = 'No income recorded yet';
+  } else {
     const rate = (income - expense) / income;
-    if      (rate >= 0.20) { savingsScore = 40; savingsLabel = `Saving ${(rate*100).toFixed(0)}% of income`; }
-    else if (rate >= 0.10) { savingsScore = 28; savingsLabel = `Saving ${(rate*100).toFixed(0)}% of income`; }
-    else if (rate >= 0.01) { savingsScore = 15; savingsLabel = `Saving ${(rate*100).toFixed(0)}% — aim for 10%+`; }
-    else if (rate > -0.05) { savingsScore = 5;  savingsLabel = 'Nearly breaking even'; }
+    const pct  = (rate * 100).toFixed(0);
+    if      (rate >= 0.30) { savingsScore = 50; savingsLabel = `Saving ${pct}% of income — excellent`; }
+    else if (rate >= 0.20) { savingsScore = 40; savingsLabel = `Saving ${pct}% of income — great`; }
+    else if (rate >= 0.10) { savingsScore = 28; savingsLabel = `Saving ${pct}% of income — good, aim for 20%+`; }
+    else if (rate >= 0.01) { savingsScore = 15; savingsLabel = `Saving ${pct}% — aim for 10%+`; }
+    else if (rate >= -0.05){ savingsScore = 5;  savingsLabel = 'Nearly breaking even'; }
     else                   { savingsScore = 0;  savingsLabel = 'Spending more than earning'; }
-  } else {
-    savingsScore = 20; savingsLabel = 'No income recorded this month';
   }
 
-  // ── Budget Control (30 pts) ────────────────────────────────────
-  const budgetedCats = Object.keys(state.budgets).filter(c => parseFloat(state.budgets[c]) > 0);
-  let budgetScore, budgetLabel;
-  if (budgetedCats.length === 0) {
-    budgetScore = 15; budgetLabel = 'Set budget limits to track this';
-  } else {
-    const onTrack = budgetedCats.filter(c => (bycat[c] || 0) <= parseFloat(state.budgets[c])).length;
-    budgetScore = Math.round((onTrack / budgetedCats.length) * 30);
-    budgetLabel = `${onTrack} of ${budgetedCats.length} categories on track`;
+  // ── Balance Health (25 pts) ────────────────────────────────────
+  let balanceScore, balanceLabel;
+  {
+    let allIncome = 0, allExpense = 0;
+    for (const acctId of [currentAccountId]) {
+      const d = JSON.parse(localStorage.getItem(accountDataKey(acctId)) || '{}');
+      const txns = d.transactions || [];
+      for (const t of txns) {
+        if (t.type === 'income') allIncome += t.amount;
+        else allExpense += t.amount;
+      }
+    }
+    const balance = (state.startingBalance || 0) + allIncome - allExpense;
+    if (income <= 0) {
+      balanceScore = 12; balanceLabel = 'No income to compare buffer against';
+    } else {
+      const ratio = balance / income;
+      const rx    = ratio.toFixed(1);
+      if      (ratio >= 3)   { balanceScore = 25; balanceLabel = `Strong buffer — ${rx}× monthly income`; }
+      else if (ratio >= 1)   { balanceScore = 18; balanceLabel = `Healthy buffer — ${rx}× monthly income`; }
+      else if (ratio >= 0.5) { balanceScore = 12; balanceLabel = 'Thin buffer — aim for 1 month of income'; }
+      else if (balance > 0)  { balanceScore = 6;  balanceLabel = 'Positive balance but low buffer'; }
+      else                   { balanceScore = 0;  balanceLabel = 'Balance is negative'; }
+    }
   }
 
-  // ── Bills Health (15 pts) ──────────────────────────────────────
+  // ── Bills (25 pts) ─────────────────────────────────────────────
   let billScore, billLabel;
   if (state.bills.length === 0) {
-    billScore = 15; billLabel = 'No bills tracked';
+    billScore = 25; billLabel = 'No bills tracked';
   } else {
+    const n    = state.bills.length;
     const paid = state.bills.filter(b => b.paidMonth === m).length;
-    billScore = Math.round((paid / state.bills.length) * 15);
-    billLabel = `${paid} of ${state.bills.length} bills paid this month`;
+    const pct  = paid / n;
+    if      (pct === 1)    { billScore = 25; billLabel = `${paid} of ${n} bills paid this month`; }
+    else if (pct >= 0.75)  { billScore = 18; billLabel = `${paid} of ${n} bills paid this month`; }
+    else if (pct >= 0.50)  { billScore = 12; billLabel = `${paid} of ${n} bills paid this month`; }
+    else if (pct >= 0.25)  { billScore = 6;  billLabel = `${paid} of ${n} bills paid this month`; }
+    else                   { billScore = 0;  billLabel = `${paid} of ${n} bills paid this month`; }
   }
 
-  // ── Savings Goals (15 pts) ─────────────────────────────────────
-  let goalScore, goalLabel;
-  if (state.goals.length === 0) {
-    goalScore = 0; goalLabel = 'Add a savings goal to earn points';
-  } else {
-    const inProgress = state.goals.filter(g => g.current > 0 && g.current < g.target).length;
-    const completed  = state.goals.filter(g => g.current >= g.target && g.target > 0).length;
-    if (completed > 0)    { goalScore = 15; goalLabel = `${completed} goal${completed>1?'s':''} completed 🎉`; }
-    else if (inProgress > 0) { goalScore = 10; goalLabel = `${inProgress} goal${inProgress>1?'s':''} in progress`; }
-    else                  { goalScore = 5;  goalLabel = `${state.goals.length} goal${state.goals.length>1?'s':''} set — start saving!`; }
-  }
-
-  const total = Math.min(savingsScore + budgetScore + billScore + goalScore, 100);
+  const total = Math.min(savingsScore + balanceScore + billScore, 100);
   let grade, color;
   if      (total >= 90) { grade = 'A+'; color = 'var(--success)'; }
   else if (total >= 80) { grade = 'A';  color = 'var(--success)'; }
@@ -631,8 +650,8 @@ function calcHealthScore() {
   else if (total >= 40) { grade = 'D';  color = 'var(--accent2)'; }
   else                  { grade = 'F';  color = 'var(--danger)'; }
 
-  return { total, grade, color, savingsScore, budgetScore, billScore, goalScore,
-           savingsLabel, budgetLabel, billLabel, goalLabel };
+  return { total, grade, color, savingsScore, balanceScore, billScore,
+           savingsLabel, balanceLabel, billLabel };
 }
 
 // ── tabs ───────────────────────────────────────────────────────────────────
@@ -890,8 +909,7 @@ function updateBillBadge() {
 
 // ── net worth ──────────────────────────────────────────────────────────────
 function getNetWorth() {
-  const accounts = state.accounts;
-  const items = accounts.map(a => {
+  const items = state.accounts.map(a => {
     const d = JSON.parse(localStorage.getItem(accountDataKey(a.id)) || '{}');
     const txns = d.transactions || [];
     const startingBal = parseFloat(d.startingBalance) || 0;
@@ -900,10 +918,55 @@ function getNetWorth() {
       if (t.type === 'income') income += t.amount;
       else expense += t.amount;
     }
-    return { name: a.name, balance: startingBal + income - expense };
+    const isCredit = a.type === 'credit';
+    // For credit: startingBal is existing debt; expenses increase debt, income (payments) reduce it
+    const balance = isCredit
+      ? -(startingBal + expense - income)   // net worth contribution is negative
+      : startingBal + income - expense;
+    return { name: a.name, balance, type: a.type };
   });
   const total = items.reduce((s, a) => s + a.balance, 0);
   return { accounts: items, total };
+}
+
+// ── spending insights ──────────────────────────────────────────────────────
+function getSpendingInsights() {
+  const now = new Date();
+  const thisM = now.toISOString().slice(0, 7);
+  const lastM = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
+  const cur  = monthTotals(thisM);
+  const prev = monthTotals(lastM);
+  const insights = [];
+
+  // Savings rate this month
+  if (cur.income > 0) {
+    const rate  = ((cur.income - cur.expense) / cur.income * 100).toFixed(0);
+    const saved = cur.income - cur.expense;
+    if (saved > 0) insights.push(`💰 You've kept ${rate}% of income this month — ${fmt(saved)} saved`);
+    else insights.push(`⚠️ Spending exceeds income by ${fmt(-saved)} this month`);
+  }
+
+  // Month over month total spending
+  if (prev.expense > 0 && cur.expense > 0) {
+    const diff = cur.expense - prev.expense;
+    const pct  = Math.abs(diff / prev.expense * 100).toFixed(0);
+    if (diff > 0) insights.push(`📈 Spending up ${pct}% from last month (+${fmt(diff)})`);
+    else insights.push(`📉 Spending down ${pct}% from last month (${fmt(diff)})`);
+  }
+
+  // Biggest category this month
+  const cats = Object.entries(cur.bycat).sort((a, b) => b[1] - a[1]);
+  if (cats.length > 0) insights.push(`🏆 Biggest category: ${cats[0][0]} at ${fmt(cats[0][1])}`);
+
+  // Monthly pace
+  const day = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  if (cur.expense > 0 && day < daysInMonth) {
+    const pace = (cur.expense / day * daysInMonth).toFixed(2);
+    insights.push(`📅 At this pace, you'll spend ${fmt(parseFloat(pace))} this month`);
+  }
+
+  return insights;
 }
 
 // ── render ─────────────────────────────────────────────────────────────────
@@ -928,12 +991,21 @@ function render() {
 
 // ── dashboard ──────────────────────────────────────────────────────────────
 function renderDashboard() {
+  const ds = loadSettings();
+  const showBills     = ds.dashBills     !== false;
+  const showInsights  = ds.dashInsights  !== false;
+  const showChart     = ds.dashChart     !== false;
+  const showBreakdown = ds.dashBreakdown !== false;
+  const showNetWorth  = ds.dashNetWorth  !== false;
+
   const { income, expense, bycat } = totals();
   const balance  = (state.startingBalance || 0) + income - expense;
   const balColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
   const health   = calcHealthScore();
+  const acct = state.accounts.find(a => a.id === currentAccountId);
+  const isCredit = acct?.type === 'credit';
   const cardDefs = [
-    { title: 'BALANCE',  value: fmt(balance),  color: balColor,         sub: state.startingBalance ? 'starting + income − expenses' : 'income − expenses' },
+    { title: isCredit ? 'BALANCE OWED' : 'BALANCE',  value: fmt(balance),  color: isCredit ? 'var(--danger)' : balColor,         sub: state.startingBalance ? 'starting + income − expenses' : 'income − expenses' },
     { title: 'INCOME',   value: fmt(income),   color: 'var(--success)', sub: 'total earned' },
     { title: 'EXPENSES', value: fmt(expense),  color: 'var(--danger)',  sub: 'total spent' },
     { title: 'HEALTH',   value: String(health.total), color: health.color, sub: `grade ${health.grade}` },
@@ -958,12 +1030,16 @@ function renderDashboard() {
     </div>`).join('');
 
   const nw = getNetWorth();
-  const netWorthHtml = state.accounts.length >= 2 ? `
+  const netWorthHtml = showNetWorth && state.accounts.length >= 2 ? `
     <div class="net-worth-card">
       <div class="net-worth-total-label">Net Worth</div>
       <div class="net-worth-total-value" style="color:${nw.total >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(nw.total)}</div>
       <div class="net-worth-rows">
-        ${nw.accounts.map(a => `
+        ${nw.accounts.map(a => a.type === 'credit' ? `
+          <div class="net-worth-row">
+            <span class="net-worth-acct">${a.name} <span style="font-size:10px;color:var(--muted)">(Credit)</span></span>
+            <span class="net-worth-bal" style="color:var(--danger)">Owes: ${fmt(-a.balance)}</span>
+          </div>` : `
           <div class="net-worth-row">
             <span class="net-worth-acct">${a.name}</span>
             <span class="net-worth-bal" style="color:${a.balance >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(a.balance)}</span>
@@ -972,7 +1048,7 @@ function renderDashboard() {
     </div>` : '';
 
   const upcoming = getUpcomingBills(7);
-  const upcomingHtml = upcoming.length ? `
+  const upcomingHtml = showBills && upcoming.length ? `
     <h2 class="section-title">Bills Due Soon</h2>
     <div class="bills-list" style="margin-bottom:8px">
       ${upcoming.map(b => {
@@ -1006,6 +1082,13 @@ function renderDashboard() {
   const chartTitle = 'This Month by Category';
   const toggleLabel = dashChartMode === 'bar' ? '🥧 Pie' : '📊 Bar';
 
+  const insights = getSpendingInsights();
+  const insightsHtml = showInsights && insights.length ? `
+    <h2 class="section-title">Insights</h2>
+    <div class="insights-list">
+      ${insights.map(i => `<div class="insight-item">${i}</div>`).join('')}
+    </div>` : '';
+
   return `
     <div class="page">
       <h1 class="page-title">Dashboard</h1>
@@ -1014,12 +1097,13 @@ function renderDashboard() {
       <div class="cards-grid">${cardsHtml}</div>
       ${netWorthHtml}
       ${upcomingHtml}
-      <div class="chart-header">
+      ${insightsHtml}
+      ${showChart ? `<div class="chart-header">
         <div class="section-title chart-section-title" style="margin:0">${chartTitle}</div>
         <button id="chart-toggle-btn" class="btn-xs">${toggleLabel}</button>
       </div>
-      <div class="chart-wrap"><canvas id="spending-chart"></canvas></div>
-      ${Object.keys(bycat).length ? `<h2 class="section-title">Spending by Category</h2><div class="breakdown">${breakdownHtml}</div>` : ''}
+      <div class="chart-wrap"><canvas id="spending-chart"></canvas></div>` : ''}
+      ${showBreakdown && Object.keys(bycat).length ? `<h2 class="section-title">Spending by Category</h2><div class="breakdown">${breakdownHtml}</div>` : ''}
     </div>`;
 }
 
@@ -1076,6 +1160,7 @@ function attachBudgets() {
 function renderAdd() {
   const catOptions  = getCategories().map(c => `<option>${c}</option>`).join('');
   const acctOptions = state.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+  const toAcctOptions = state.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
   return `
     <div class="page">
       <h1 class="page-title">Add Entry</h1>
@@ -1086,29 +1171,34 @@ function renderAdd() {
           <div class="radio-group">
             <label class="radio-label"><input type="radio" name="etype" value="expense" checked> Expense</label>
             <label class="radio-label"><input type="radio" name="etype" value="income"> Income</label>
+            <label class="radio-label"><input type="radio" name="etype" value="transfer"> Transfer</label>
           </div>
         </div>
         <div class="form-row">
           <label class="form-label">Amount ($)</label>
           <input type="number" id="add-amount" class="form-input" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
         </div>
-        <div class="form-row">
+        <div class="form-row" id="add-desc-row">
           <label class="form-label">Description</label>
           <input type="text" id="add-desc" class="form-input" placeholder="What was this for?">
         </div>
-        <div class="form-row">
+        <div class="form-row" id="add-cat-row">
           <label class="form-label">Category</label>
           <select id="add-cat" class="form-input form-select">${catOptions}</select>
         </div>
         <div class="form-row">
-          <label class="form-label">Account</label>
+          <label class="form-label">From Account</label>
           <select id="add-acct" class="form-input form-select">${acctOptions}</select>
+        </div>
+        <div class="form-row" id="add-to-acct-row" style="display:none">
+          <label class="form-label">To Account</label>
+          <select id="add-to-acct" class="form-input form-select">${toAcctOptions}</select>
         </div>
         <div class="form-row">
           <label class="form-label">Date</label>
           <input type="date" id="add-date" class="form-input" value="${today()}">
         </div>
-        <div class="form-row">
+        <div class="form-row" id="add-recurring-row">
           <label class="form-label">Recurring</label>
           <label class="radio-label"><input type="checkbox" id="add-recurring"> Auto-add monthly</label>
         </div>
@@ -1503,6 +1593,20 @@ function attachBills() {
       const m    = new Date().toISOString().slice(0, 7);
       state.bills[i].paidMonth = paid ? null : m;
       await api.saveBills(state.bills);
+      if (!paid) {
+        // Was just marked paid — offer to log as expense
+        const b = state.bills[i];
+        if (confirm(`Log "${b.name}" as a $${b.amount.toFixed(2)} expense?`)) {
+          await api.addTransaction({
+            type: 'expense',
+            amount: b.amount,
+            description: b.name,
+            category: b.category,
+            date: new Date().toISOString().slice(0, 10),
+            account: currentAccountId,
+          });
+        }
+      }
       render();
     });
   });
@@ -1573,10 +1677,9 @@ function renderGoals() {
           </div>
         </div>
         <div class="health-bars">
-          ${hBar(health.savingsScore, 40, 'Savings Rate',    health.savingsLabel)}
-          ${hBar(health.budgetScore,  30, 'Budget Control',  health.budgetLabel)}
-          ${hBar(health.billScore,    15, 'Bills',           health.billLabel)}
-          ${hBar(health.goalScore,    15, 'Goals',           health.goalLabel)}
+          ${hBar(health.savingsScore, 50, 'Savings Rate',    health.savingsLabel)}
+          ${hBar(health.balanceScore, 25, 'Balance Buffer',  health.balanceLabel)}
+          ${hBar(health.billScore,    25, 'Bills',           health.billLabel)}
         </div>
       </div>
       <div class="form-card" style="margin-top:16px">
@@ -1914,6 +2017,38 @@ function renderSettings() {
         </div>
         ${typeof Notification !== 'undefined' && Notification.permission !== 'granted' ? `<button id="notif-enable-btn" class="btn-sm" style="margin-top:4px">Enable Notifications</button>` : ''}
       </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Privacy</h2>
+        <p class="code-hint" style="margin-bottom:12px">Require a 4-digit PIN to open the app.</p>
+        ${localStorage.getItem('slawminyaw_pin') ? `
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:.9rem;color:var(--success)">PIN Enabled ✓</span>
+          <button id="pin-remove-btn" class="btn-xs" style="background:var(--danger);color:#fff;border-color:var(--danger)">Remove PIN</button>
+        </div>` : `
+        <button id="pin-set-btn" class="btn-sm">Set PIN</button>`}
+        <span id="pin-status" class="form-status" style="font-size:11px;margin-top:8px"></span>
+      </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Dashboard</h2>
+        <p class="code-hint" style="margin-bottom:12px">Choose which sections appear on your dashboard.</p>
+        <div class="tab-toggles">
+          ${[
+            { key:'dashBills',     label:'Bills Due Soon' },
+            { key:'dashInsights',  label:'Spending Insights' },
+            { key:'dashChart',     label:'Chart' },
+            { key:'dashBreakdown', label:'Spending Breakdown' },
+            { key:'dashNetWorth',  label:'Net Worth' },
+          ].map(item => `
+          <label class="tab-toggle">
+            <span class="tab-toggle-label">${item.label}</span>
+            <input type="checkbox" class="tab-toggle-input dash-section-toggle" data-key="${item.key}"
+              ${s[item.key] !== false ? 'checked' : ''}>
+            <span class="tab-toggle-switch"></span>
+          </label>`).join('')}
+        </div>
+      </div>
     </div>`;
 }
 
@@ -2128,6 +2263,33 @@ function attachSettings() {
     await requestNotifPermission();
     render();
   });
+
+  // PIN lock
+  document.getElementById('pin-set-btn')?.addEventListener('click', () => {
+    const pin1 = prompt('Enter a 4-digit PIN:');
+    if (!pin1 || !/^\d{4}$/.test(pin1)) { showStatus('pin-status', 'PIN must be exactly 4 digits.', 'error'); return; }
+    const pin2 = prompt('Confirm PIN:');
+    if (pin1 !== pin2) { showStatus('pin-status', 'PINs do not match.', 'error'); return; }
+    localStorage.setItem('slawminyaw_pin', pin1);
+    showStatus('pin-status', '✓ PIN set.', 'success');
+    render();
+  });
+
+  document.getElementById('pin-remove-btn')?.addEventListener('click', () => {
+    if (confirm('Remove PIN lock?')) {
+      localStorage.removeItem('slawminyaw_pin');
+      render();
+    }
+  });
+
+  // Dashboard section toggles
+  document.querySelectorAll('.dash-section-toggle').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const s = loadSettings();
+      s[cb.dataset.key] = cb.checked;
+      saveSettings(s);
+    });
+  });
 }
 
 // ── about ──────────────────────────────────────────────────────────────────
@@ -2327,18 +2489,57 @@ async function autoUpdateWeeklyPlan(incomeAdded) {
 }
 
 function attachAdd() {
+  // Show/hide transfer-specific fields
+  document.querySelectorAll('input[name="etype"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const isTransfer = radio.value === 'transfer';
+      const toRow      = document.getElementById('add-to-acct-row');
+      const catRow     = document.getElementById('add-cat-row');
+      const recurRow   = document.getElementById('add-recurring-row');
+      const descRow    = document.getElementById('add-desc-row');
+      if (toRow)    toRow.style.display    = isTransfer ? '' : 'none';
+      if (catRow)   catRow.style.display   = isTransfer ? 'none' : '';
+      if (recurRow) recurRow.style.display = isTransfer ? 'none' : '';
+      if (descRow)  descRow.style.display  = isTransfer ? 'none' : '';
+    });
+  });
+
   document.getElementById('add-btn')?.addEventListener('click', async () => {
     const amtVal = document.getElementById('add-amount').value;
     const amount = parseFloat(amtVal);
     if (!amtVal || isNaN(amount) || amount <= 0) { showStatus('add-status', 'Enter a valid amount.', 'error'); return; }
+    const type = document.querySelector('input[name="etype"]:checked').value;
+    const date = document.getElementById('add-date').value || today();
+
+    if (type === 'transfer') {
+      const toAcctId   = document.getElementById('add-to-acct')?.value;
+      const curAcctId  = document.getElementById('add-acct').value || currentAccountId;
+      if (!toAcctId || toAcctId === curAcctId) {
+        showStatus('add-status', 'Choose a different destination account.', 'error'); return;
+      }
+      const toAcctName  = state.accounts.find(a => a.id === toAcctId)?.name  || 'Other';
+      const curAcctName = state.accounts.find(a => a.id === curAcctId)?.name || 'Other';
+      // Add expense on current account
+      await api.addTransaction({ type: 'expense', amount, description: 'Transfer → ' + toAcctName, category: 'Transfer', date, account: curAcctId });
+      // Add income on destination account (direct localStorage write to avoid switching)
+      const destKey  = accountDataKey(toAcctId);
+      const destData = JSON.parse(localStorage.getItem(destKey) || '{}');
+      if (!destData.transactions) destData.transactions = [];
+      destData.transactions.push({ type: 'income', amount, description: 'Transfer ← ' + curAcctName, category: 'Transfer', date, account: toAcctId });
+      localStorage.setItem(destKey, JSON.stringify(destData));
+      showStatus('add-status', `✓ Transferred ${fmt(amount)}`, 'success');
+      document.getElementById('add-amount').value = '';
+      render(); return;
+    }
+
     const isRecurring = document.getElementById('add-recurring').checked;
     const t = {
-      type:        document.querySelector('input[name="etype"]:checked').value,
+      type,
       amount,
       description: document.getElementById('add-desc').value.trim() || '—',
       category:    document.getElementById('add-cat').value,
       account:     document.getElementById('add-acct').value,
-      date:        document.getElementById('add-date').value || today(),
+      date,
       recurring:   isRecurring,
     };
     if (isRecurring) t.recur_month = new Date().toISOString().slice(0, 7);
@@ -2601,6 +2802,54 @@ function spawnDollarBurst(originEl) {
   }
 }
 
+// ── pin lock ───────────────────────────────────────────────────────────────
+function showPinLock(onSuccess) {
+  const existing = document.getElementById('pin-lock-overlay');
+  if (existing) existing.remove();
+  const saved = localStorage.getItem('slawminyaw_pin');
+  if (!saved) { onSuccess(); return; }
+
+  let entered = '';
+  const overlay = document.createElement('div');
+  overlay.id = 'pin-lock-overlay';
+  overlay.className = 'pin-lock-overlay';
+  overlay.innerHTML = `
+    <div class="pin-lock-card">
+      <div class="pin-lock-title">Enter PIN</div>
+      <div class="pin-dots" id="pin-dots">
+        <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+      </div>
+      <div class="pin-numpad">
+        ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k => `<button class="pin-key${k===''?' pin-key-blank':''}" data-key="${k}">${k}</button>`).join('')}
+      </div>
+      <div id="pin-error" class="pin-error"></div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  function updateDots() {
+    overlay.querySelectorAll('.pin-dot').forEach((d, i) => d.classList.toggle('filled', i < entered.length));
+  }
+  overlay.querySelectorAll('.pin-key').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.key;
+      if (k === '⌫') { entered = entered.slice(0, -1); }
+      else if (k !== '' && entered.length < 4) { entered += k; }
+      updateDots();
+      if (entered.length === 4) {
+        if (entered === saved) {
+          overlay.remove();
+          onSuccess();
+        } else {
+          overlay.querySelector('#pin-error').textContent = 'Incorrect PIN';
+          entered = '';
+          updateDots();
+          setTimeout(() => { if (overlay.isConnected) overlay.querySelector('#pin-error').textContent = ''; }, 1500);
+        }
+      }
+    });
+  });
+}
+
 // ── init ───────────────────────────────────────────────────────────────────
 document.querySelectorAll('.nav-btn').forEach(btn =>
   btn.addEventListener('click', () => {
@@ -2616,29 +2865,31 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
 });
 
 (async () => {
-  await api.load();
-  await processRecurring();
-  initSoundsToggle();
-  applySettings();
-  updateAccountSwitcher();
-  document.getElementById('account-switcher')?.addEventListener('change', async e => {
-    await api.switchAccount(e.target.value);
-  });
-  render();
-  updateBillBadge();
-  checkBillNotifications();
-
-  // Check for a new version every open and every time the app is foregrounded
-  checkForUpdate();
-  window.addEventListener('focus', checkForUpdate);
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').then(reg => {
-      reg.update();
-      window.addEventListener('focus', () => reg.update());
-    }).catch(() => {});
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!_reloading) { _reloading = true; window.location.reload(); }
+  showPinLock(async () => {
+    await api.load();
+    await processRecurring();
+    initSoundsToggle();
+    applySettings();
+    updateAccountSwitcher();
+    document.getElementById('account-switcher')?.addEventListener('change', async e => {
+      await api.switchAccount(e.target.value);
     });
-  }
+    render();
+    updateBillBadge();
+    checkBillNotifications();
+
+    // Check for a new version every open and every time the app is foregrounded
+    checkForUpdate();
+    window.addEventListener('focus', checkForUpdate);
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        reg.update();
+        window.addEventListener('focus', () => reg.update());
+      }).catch(() => {});
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!_reloading) { _reloading = true; window.location.reload(); }
+      });
+    }
+  });
 })();
