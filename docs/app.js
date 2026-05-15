@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.8.3';
+const VERSION = '2.8.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.8.4', date: '2026-05-15', changes: [
+    'About icon: removed pixel-art sharpening filter that was hurting logo quality, tightened drop-shadow',
+    'About icon moved closer to the version number',
+    'What\'s New now only shows updates for the current version series (e.g. v2.8.x)',
+  ]},
   { version: '2.8.3', date: '2026-05-15', changes: [
     'App title now has a subtle drop shadow for depth',
     'Emergency buffer card color changed to a soft sky teal — lighter and easier on the eyes',
@@ -1820,7 +1825,10 @@ function renderAbout() {
   const built    = new Date().getFullYear();
   const s        = loadSettings();
   const userName = s.name || null;
-  const changelogHtml = CHANGELOG.map(entry => `
+  // Only show changelog entries for the current major.minor (e.g. 2.8.x)
+  const [major, minor] = VERSION.split('.');
+  const verPrefix = `${major}.${minor}.`;
+  const changelogHtml = CHANGELOG.filter(e => e.version.startsWith(verPrefix)).map(entry => `
     <div style="margin-bottom:18px">
       <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
         <span style="font-size:.95rem;font-weight:700;color:var(--accent)">v${entry.version}</span>
@@ -1836,7 +1844,7 @@ function renderAbout() {
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:24px 20px">
         <img src="app-icon-about.png" alt="$MY Budgeting DAWGS"
-             style="width:100%;max-width:340px;height:auto;display:block;margin:0 auto 20px;filter:drop-shadow(0 4px 18px rgba(0,0,0,0.55)) drop-shadow(0 1px 4px rgba(0,0,0,0.35));image-rendering:-webkit-optimize-contrast">
+             style="width:100%;max-width:280px;height:auto;display:block;margin:12px auto 10px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
