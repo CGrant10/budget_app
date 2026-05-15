@@ -907,9 +907,10 @@ body.light .alert-toast { background: #f0f0f8; }
 .theme-chip:hover  { border-color: rgba(255,255,255,.4); }
 
 /* ── font chips ───────────────────────────────────────────────────────────── */
-.font-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.font-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .font-chip {
-  padding: 6px 14px;
+  padding: 8px 14px;
+  text-align: center;
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--surface);

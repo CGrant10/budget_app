@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.7.2';
+const VERSION = '2.7.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.7.3', date: '2026-05-15', changes: [
+    'About icon now uses correct transparency — shows clean logo on any background',
+    'Themes completely redesigned with real color: Slate, Pebble, Dusk (purple), Denim (navy), Moss (green), Ember (warm amber)',
+    '8 font choices added: Outfit, Inter, DM Sans, Nunito, Space Grotesk, Playfair, Georgia, Mono',
+  ]},
   { version: '2.7.2', date: '2026-05-15', changes: [
     'All 6 themes redesigned with softer, muted modern palettes',
     'Themes renamed: Slate, Pebble, Dusk, Denim, Moss, Ink',
@@ -50,18 +55,18 @@ const CHANGELOG = [
 ];
 
 const THEMES = {
-  // Slate — soft charcoal with lavender tint (default dark)
-  slate:  { label:'Slate',  bg:'#13141f', surface:'#1c1e2e', surface2:'#252840', card:'#20223a', accent:'#9d94f0', accent2:'#f0936a', success:'#68c99a', warn:'#e8c46a', danger:'#e07070', text:'#e2e0f0', muted:'#8e8cb0', border:'#2e3050' },
-  // Pebble — warm off-white light mode
+  // Slate — neutral charcoal, soft lavender accent (default dark)
+  slate:  { label:'Slate',  bg:'#13141f', surface:'#1c1d2c', surface2:'#252640', card:'#21223a', accent:'#9d94f0', accent2:'#f0936a', success:'#68c99a', warn:'#e8c46a', danger:'#e07070', text:'#e2e0f0', muted:'#8e8cb0', border:'#30324e' },
+  // Pebble — warm cream light mode
   pebble: { label:'Pebble', bg:'#edebe6', surface:'#f7f5f1', surface2:'#e6e3dc', card:'#efece6', accent:'#7068cc', accent2:'#c87848', success:'#4aaa78', warn:'#b89020', danger:'#c85050', text:'#1e1c2c', muted:'#6e6c88', border:'#d4d0c8', light:true },
-  // Dusk — muted mauve / dusty rose
-  dusk:   { label:'Dusk',   bg:'#151018', surface:'#1e1624', surface2:'#281e30', card:'#221a2c', accent:'#c490cc', accent2:'#e8a060', success:'#70b888', warn:'#d4b060', danger:'#d87070', text:'#ecdaf0', muted:'#9878a8', border:'#362040' },
-  // Denim — dusty steel blue
-  denim:  { label:'Denim',  bg:'#0e1420', surface:'#141d2e', surface2:'#1a2438', card:'#162030', accent:'#6a9ec8', accent2:'#e8a060', success:'#60b890', warn:'#d4b060', danger:'#d87070', text:'#ccd8e8', muted:'#6888a0', border:'#1e2c40' },
-  // Moss — warm sage green
-  moss:   { label:'Moss',   bg:'#0c1210', surface:'#141a14', surface2:'#1c2418', card:'#18201a', accent:'#78b880', accent2:'#d4b060', success:'#78b880', warn:'#d4b060', danger:'#d87070', text:'#cce0cc', muted:'#6a8870', border:'#202e22' },
-  // Ink — deep soft violet
-  ink:    { label:'Ink',    bg:'#0d0d16', surface:'#131222', surface2:'#191828', card:'#171626', accent:'#9888d0', accent2:'#88b4e0', success:'#60c090', warn:'#d0b860', danger:'#d87070', text:'#dcdaf0', muted:'#8884a8', border:'#1e1c30' },
+  // Dusk — deep jewel purple
+  dusk:   { label:'Dusk',   bg:'#180f28', surface:'#231540', surface2:'#301a52', card:'#2c1a48', accent:'#c080e0', accent2:'#e88060', success:'#70c888', warn:'#d4b060', danger:'#d87070', text:'#f0d8ff', muted:'#a878c8', border:'#3e2060' },
+  // Denim — real navy blue
+  denim:  { label:'Denim',  bg:'#091828', surface:'#102238', surface2:'#163048', card:'#142840', accent:'#4a90d0', accent2:'#e89060', success:'#60c898', warn:'#d4b060', danger:'#d87070', text:'#d0e8ff', muted:'#6090b8', border:'#1e3858' },
+  // Moss — rich forest green
+  moss:   { label:'Moss',   bg:'#081610', surface:'#0e2018', surface2:'#142a20', card:'#122018', accent:'#60b870', accent2:'#c8d060', success:'#60b870', warn:'#c8c060', danger:'#d87070', text:'#c8f0cc', muted:'#60987a', border:'#183824' },
+  // Ember — warm amber / burnt sienna
+  ember:  { label:'Ember',  bg:'#1c1008', surface:'#281808', surface2:'#362010', card:'#301810', accent:'#e09040', accent2:'#e06040', success:'#70b888', warn:'#e0c040', danger:'#d87060', text:'#ffe8cc', muted:'#b07848', border:'#402818' },
 };
 
 const CAT_COLORS = {
@@ -219,7 +224,7 @@ function applyNavItems(hiddenTabs) {
 }
 
 function applyTheme(theme) {
-  const t = THEMES[theme] || THEMES.slate;
+  const t = THEMES[theme] || THEMES.slate || THEMES[Object.keys(THEMES)[0]];
   const root = document.documentElement;
   root.style.setProperty('--bg',       t.bg);
   root.style.setProperty('--surface',  t.surface);
@@ -1426,10 +1431,14 @@ function renderSettings() {
     </button>`).join('');
 
   const fonts = [
-    { label:'Classic', value:'Georgia, serif',     style:'font-family:Georgia,serif' },
-    { label:'Modern',  value:'Outfit, sans-serif', style:'font-family:Outfit,sans-serif' },
-    { label:'Bold',    value:'Impact, sans-serif', style:'font-family:Impact,sans-serif;letter-spacing:.03em' },
-    { label:'Mono',    value:'monospace',          style:'font-family:monospace' },
+    { label:'Outfit',         value:'Outfit, sans-serif',          style:'font-family:"Outfit",sans-serif' },
+    { label:'Inter',          value:'Inter, sans-serif',           style:'font-family:"Inter",sans-serif' },
+    { label:'DM Sans',        value:'DM Sans, sans-serif',         style:'font-family:"DM Sans",sans-serif' },
+    { label:'Nunito',         value:'Nunito, sans-serif',          style:'font-family:"Nunito",sans-serif;font-weight:700' },
+    { label:'Space Grotesk',  value:'Space Grotesk, sans-serif',   style:'font-family:"Space Grotesk",sans-serif' },
+    { label:'Playfair',       value:'Playfair Display, serif',     style:'font-family:"Playfair Display",serif' },
+    { label:'Georgia',        value:'Georgia, serif',              style:'font-family:Georgia,serif' },
+    { label:'Mono',           value:'monospace',                   style:'font-family:monospace' },
   ];
   const fontChips = fonts.map(f => `
     <button class="font-chip${logoFont === f.value ? ' active' : ''}" data-font="${f.value}"
@@ -1695,7 +1704,7 @@ function renderAbout() {
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:28px 20px">
         <img src="app-icon-about.png" alt="$MY Budgeting DAWGS"
-             style="width:220px;height:auto;display:block;margin:0 auto 16px;border-radius:16px">
+             style="width:260px;height:auto;display:block;margin:0 auto 16px">
         ${userName ? `<div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:16px">${userName}</div>` : ''}
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
