@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.0.0';
+const VERSION = '3.0.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.0.1', date: '2026-05-15', changes: [
+    'Press Start 2P actually works now — font value had double-quotes inside a double-quoted HTML attribute (data-font), snapping it to empty string',
+  ]},
   { version: '3.0.0', date: '2026-05-15', changes: [
     'Transaction animations removed',
     'Press Start 2P font fixed — digit in name requires CSS quoting, now applies correctly',
@@ -1681,9 +1684,10 @@ function renderSettings() {
     { label:'Default', value:'', style:'' },
     ...fonts,
   ];
+  const esc = s => s.replace(/"/g, '&quot;');
   const fontPickerOptions = fontGroupDefs.map(g => {
     const items = fonts.filter(f => f.group === g.key).map(f => `
-      <div class="fp-option${logoFont === f.value ? ' active' : ''}" data-font="${f.value}" data-style="${f.style}">
+      <div class="fp-option${logoFont === f.value ? ' active' : ''}" data-font="${esc(f.value)}" data-style="${esc(f.style)}">
         <span class="fp-opt-name">${f.label}</span>
         <span class="fp-opt-preview" style="${f.style}">${titlePreview}</span>
       </div>`).join('');
