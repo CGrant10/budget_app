@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.5.8';
+const VERSION = '2.6.0';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 const CAT_COLORS = {
@@ -108,12 +108,15 @@ function checkSpendingAlert(category) {
 let state = { transactions: [], weekly_plan: {}, budgets: {}, bills: [], goals: [], accounts: [] };
 let lastCalcPerWeek = 0;
 let dashChartMode = 'bar';
+let currentAccountId = 'main';
 const STORAGE_KEY  = 'slawminyaw';
 const SETTINGS_KEY = 'slawminyaw_settings';
+const ACCOUNTS_KEY = 'slawminyaw_accounts';
+function accountDataKey(id) { return 'slawminyaw_data_' + id; }
 
 function loadSettings() { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); }
 function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
-function defaultAccounts() { return [{ id: 'main', name: 'Checking', type: 'checking' }]; }
+function defaultAccounts() { return [{ id: 'main', name: 'Main', type: 'checking' }]; }
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Dashboard', icon: '📊', required: true },
@@ -155,27 +158,82 @@ function applyTheme(theme) {
 }
 
 function _save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+  localStorage.setItem(accountDataKey(currentAccountId), JSON.stringify({
     transactions: state.transactions,
     weekly_plan:  state.weekly_plan,
     budgets:      state.budgets,
     bills:        state.bills,
     goals:        state.goals,
-    accounts:     state.accounts,
   }));
+}
+function _saveAccounts() {
+  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
+}
+function _loadAccountData(id) {
+  const d = JSON.parse(localStorage.getItem(accountDataKey(id)) || '{}');
+  state.transactions = d.transactions || [];
+  state.weekly_plan  = d.weekly_plan  || {};
+  state.budgets      = d.budgets      || {};
+  state.bills        = d.bills        || [];
+  state.goals        = d.goals        || [];
 }
 
 const api = {
   async load() {
-    const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    state.transactions = d.transactions || [];
-    state.weekly_plan  = d.weekly_plan  || {};
-    state.budgets      = d.budgets      || {};
-    state.bills        = d.bills        || [];
-    state.goals        = d.goals        || [];
-    state.accounts     = d.accounts     || defaultAccounts();
+    const accStr = localStorage.getItem(ACCOUNTS_KEY);
+    if (accStr) {
+      state.accounts = JSON.parse(accStr);
+    } else {
+      // Migrate from old single-key format
+      const old = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      state.accounts = old.accounts || defaultAccounts();
+      _saveAccounts();
+      if (old.transactions !== undefined || old.budgets !== undefined) {
+        localStorage.setItem(accountDataKey('main'), JSON.stringify({
+          transactions: old.transactions || [],
+          weekly_plan:  old.weekly_plan  || {},
+          budgets:      old.budgets      || {},
+          bills:        old.bills        || [],
+          goals:        old.goals        || [],
+        }));
+      }
+    }
     if (!state.accounts.length) state.accounts = defaultAccounts();
-    return state;
+    if (!state.accounts.find(a => a.id === 'main')) {
+      state.accounts.unshift({ id: 'main', name: 'Main', type: 'checking' });
+      _saveAccounts();
+    }
+    _loadAccountData(currentAccountId);
+  },
+  async switchAccount(id) {
+    currentAccountId = id;
+    _loadAccountData(id);
+    updateAccountSwitcher();
+    render();
+  },
+  async addAccount(name, type) {
+    const id = 'acct_' + Date.now();
+    state.accounts.push({ id, name, type });
+    _saveAccounts();
+    localStorage.setItem(accountDataKey(id), JSON.stringify({
+      transactions: [], weekly_plan: {}, budgets: {}, bills: [], goals: []
+    }));
+    updateAccountSwitcher();
+  },
+  async deleteAccount(id) {
+    if (id === 'main') return;
+    state.accounts = state.accounts.filter(a => a.id !== id);
+    localStorage.removeItem(accountDataKey(id));
+    _saveAccounts();
+    if (currentAccountId === id) {
+      currentAccountId = 'main';
+      _loadAccountData('main');
+    }
+    updateAccountSwitcher();
+  },
+  async renameAccount(id, name) {
+    const acct = state.accounts.find(a => a.id === id);
+    if (acct) { acct.name = name; _saveAccounts(); updateAccountSwitcher(); }
   },
   async addTransaction(t)          { state.transactions.push(t); _save(); },
   async deleteTransaction(idx)     { state.transactions.splice(idx, 1); _save(); },
@@ -184,7 +242,7 @@ const api = {
   async saveBudgets(b)             { state.budgets = b; _save(); },
   async saveBills(bills)           { state.bills = bills; _save(); },
   async saveGoals(goals)           { state.goals = goals; _save(); },
-  async saveAccounts(accounts)     { state.accounts = accounts; _save(); },
+  async saveAccounts(accounts)     { state.accounts = accounts; _saveAccounts(); },
 };
 
 // ── recurring ──────────────────────────────────────────────────────────────
@@ -1153,11 +1211,14 @@ function renderSettings() {
         ${item.required ? 'disabled' : ''}>
       <span class="tab-toggle-switch"></span>
     </label>`).join('');
-  const accountRows = state.accounts.map((a, i) => `
-    <div class="account-row">
-      <span class="account-name">${a.name}</span>
-      <span class="account-type">${a.type}</span>
-      ${a.id === 'main' ? '<span class="acct-badge">default</span>' : `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-idx="${i}">✕</button>`}
+  const accountRows = state.accounts.map((a) => `
+    <div class="account-row" style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+      <input type="text" class="form-input acct-name-input" value="${a.name}" data-id="${a.id}"
+        style="flex:1;padding:6px 10px;font-size:12px${a.id === currentAccountId ? ';border-color:var(--accent)' : ''}">
+      <span class="account-type" style="font-size:10px;white-space:nowrap">${a.type}</span>
+      <button class="btn-xs acct-rename-btn" data-id="${a.id}" title="Rename">✓</button>
+      ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">✕</button>` : ''}
+      ${a.id === currentAccountId ? '<span class="acct-badge" style="font-size:9px">active</span>' : `<button class="btn-xs acct-switch-btn" data-id="${a.id}" style="background:var(--surface2)">Switch</button>`}
     </div>`).join('');
   return `
     <div class="page">
@@ -1257,17 +1318,36 @@ function attachSettings() {
     const name = document.getElementById('new-acct-name').value.trim();
     const type = document.getElementById('new-acct-type').value;
     if (!name) { showStatus('acct-status', 'Enter an account name.', 'error'); return; }
-    state.accounts.push({ id: 'acct_' + Date.now(), name, type });
-    await api.saveAccounts(state.accounts);
+    await api.addAccount(name, type);
+    showStatus('acct-status', `✓ "${name}" added. Switch to it above.`, 'success');
+    document.getElementById('new-acct-name').value = '';
     render();
+  });
+
+  document.querySelectorAll('.acct-rename-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id    = btn.dataset.id;
+      const input = btn.closest('.account-row').querySelector('.acct-name-input');
+      const name  = input.value.trim();
+      if (!name) return;
+      await api.renameAccount(id, name);
+      showStatus('acct-status', '✓ Renamed.', 'success');
+    });
+  });
+
+  document.querySelectorAll('.acct-switch-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await api.switchAccount(btn.dataset.id);
+    });
   });
 
   document.querySelectorAll('.acct-delete-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const i = parseInt(btn.dataset.idx);
-      if (confirm(`Delete account: ${state.accounts[i].name}?`)) {
-        state.accounts.splice(i, 1);
-        await api.saveAccounts(state.accounts);
+      const id   = btn.dataset.id;
+      const acct = state.accounts.find(a => a.id === id);
+      if (!acct) return;
+      if (confirm(`Delete "${acct.name}"? All its transactions, budgets, and bills will be permanently removed.`)) {
+        await api.deleteAccount(id);
         render();
       }
     });
@@ -1295,7 +1375,7 @@ function renderAbout() {
     <div class="page">
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:28px 20px">
-        <div style="font-size:2.4rem;margin-bottom:4px">💸</div>
+        <img src="icon-192.png" alt="$MY Budgeting DAWGS" style="width:96px;height:96px;border-radius:20px;margin-bottom:12px;object-fit:cover;box-shadow:0 4px 18px rgba(0,0,0,0.35)">
         ${userName ? `<div style="font-size:1.5rem;font-weight:700;color:var(--accent)">${userName}</div><div style="font-size:.8rem;color:var(--muted);margin-bottom:4px">Powered by</div>` : ''}
         <div style="font-size:${userName?'1.1rem':'1.5rem'};font-weight:700;color:var(--accent)">SlawMinYaw</div>
         <div style="font-size:.85rem;color:var(--muted);margin-bottom:16px">money moves</div>
@@ -1588,6 +1668,15 @@ function attachImport() {
   });
 }
 
+// ── account switcher ───────────────────────────────────────────────────────
+function updateAccountSwitcher() {
+  const sel = document.getElementById('account-switcher');
+  if (!sel) return;
+  sel.innerHTML = state.accounts.map(a =>
+    `<option value="${a.id}"${a.id === currentAccountId ? ' selected' : ''}>${a.name}</option>`
+  ).join('');
+}
+
 // ── version check ──────────────────────────────────────────────────────────
 let _reloading = false;
 async function checkForUpdate() {
@@ -1611,6 +1700,10 @@ document.querySelectorAll('.nav-btn').forEach(btn =>
   await processRecurring();
   initSoundsToggle();
   applySettings();
+  updateAccountSwitcher();
+  document.getElementById('account-switcher')?.addEventListener('change', async e => {
+    await api.switchAccount(e.target.value);
+  });
   render();
 
   // Check for a new version every open and every time the app is foregrounded
