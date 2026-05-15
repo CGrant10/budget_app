@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.7.6';
+const VERSION = '2.7.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.7.7', date: '2026-05-15', changes: [
+    'Dark mode is now true neutral dark grey — no purple or colored tinting',
+    'All dark themes share the same neutral backgrounds; only accent and category colors change',
+    'Category dot colors tuned per theme to be distinct and intentional',
+  ]},
   { version: '2.7.6', date: '2026-05-15', changes: [
     'Each theme now recolors category dots/bars/charts to match — everything shifts together',
     'Theme selector redesigned: clean list with accent color dot and checkmark, no weird preview boxes',
@@ -68,42 +73,46 @@ const CHANGELOG = [
   ]},
 ];
 
+// Shared neutral dark base — no color tinting in backgrounds
+const _D = { bg:'#111113', surface:'#1a1a1d', surface2:'#242428', card:'#1e1e22', text:'#e0dfe8', muted:'#86849a', border:'#28282e' };
+
 const THEMES = {
   dark: {
-    label:'Dark', bg:'#13141f', surface:'#1c1d2c', surface2:'#252640', card:'#21223a',
-    accent:'#8878c8', accent2:'#c87858', success:'#58b888', warn:'#c8a850', danger:'#c86060',
-    text:'#d8d6e8', muted:'#7e7ca0', border:'#2e3050',
-    cats:{ Food:'#5abd88', Gas:'#e06868', Car:'#7878d0', Boat:'#50b8c0', Tools:'#d08858', Home:'#88b850', Entertainment:'#c060a8', Health:'#50a8c0', Other:'#8888a0' },
+    label:'Dark',
+    ..._D,
+    accent:'#8070c0', accent2:'#c07850', success:'#52a872', warn:'#c0a038', danger:'#c05050',
+    cats:{ Food:'#52a872', Gas:'#c05858', Car:'#6070b8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#9858a8', Health:'#4090a8', Other:'#787890' },
   },
   light: {
-    label:'Light', bg:'#eeece8', surface:'#f8f6f2', surface2:'#e6e3dc', card:'#f0ede8',
-    accent:'#6860b0', accent2:'#b87048', success:'#489870', warn:'#a88018', danger:'#b84848',
-    text:'#1e1c2c', muted:'#6e6c88', border:'#d4d0c8', light:true,
-    cats:{ Food:'#4a9a70', Gas:'#b85050', Car:'#5858b8', Boat:'#3888a0', Tools:'#b07030', Home:'#709840', Entertainment:'#a04898', Health:'#3890a8', Other:'#707088' },
+    label:'Light',
+    bg:'#f3f3f3', surface:'#ffffff', surface2:'#e8e8e8', card:'#efefef',
+    accent:'#5e58a8', accent2:'#a06838', success:'#3e8a60', warn:'#988018', danger:'#a84040',
+    text:'#181820', muted:'#606070', border:'#d5d5d5', light:true,
+    cats:{ Food:'#3e8a60', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
   },
   dusk: {
-    label:'Dusk', bg:'#180f28', surface:'#231540', surface2:'#2e1a50', card:'#2a1845',
-    accent:'#a06aba', accent2:'#c87060', success:'#60a880', warn:'#b89850', danger:'#c06060',
-    text:'#e0ccf0', muted:'#906898', border:'#382055',
-    cats:{ Food:'#70b878', Gas:'#c06878', Car:'#8868c8', Boat:'#6090b8', Tools:'#c07868', Home:'#98a860', Entertainment:'#b058b0', Health:'#5890b0', Other:'#807890' },
+    label:'Dusk',
+    ..._D,
+    accent:'#a060c8', accent2:'#c06880', success:'#52a872', warn:'#c0a038', danger:'#c05050',
+    cats:{ Food:'#52a872', Gas:'#c06878', Car:'#9060c8', Boat:'#6080b8', Tools:'#c07060', Home:'#88a050', Entertainment:'#a850b8', Health:'#5880b0', Other:'#887898' },
   },
   denim: {
-    label:'Denim', bg:'#0b1828', surface:'#102235', surface2:'#162d45', card:'#142840',
-    accent:'#4880a8', accent2:'#c07848', success:'#50a080', warn:'#b89850', danger:'#c06060',
-    text:'#c8ddf0', muted:'#508098', border:'#1c3455',
-    cats:{ Food:'#58b080', Gas:'#c06868', Car:'#4870a8', Boat:'#40a0b8', Tools:'#c08850', Home:'#6898a0', Entertainment:'#7060a8', Health:'#38a8c0', Other:'#6080a0' },
+    label:'Denim',
+    ..._D,
+    accent:'#4080b0', accent2:'#b07840', success:'#52a872', warn:'#c0a038', danger:'#c05050',
+    cats:{ Food:'#52a872', Gas:'#c05858', Car:'#4070b0', Boat:'#3898b8', Tools:'#b07840', Home:'#608898', Entertainment:'#6060a8', Health:'#3898b8', Other:'#607898' },
   },
   moss: {
-    label:'Moss', bg:'#0a1510', surface:'#101e16', surface2:'#162820', card:'#121c16',
-    accent:'#58986a', accent2:'#a0a848', success:'#58986a', warn:'#a09848', danger:'#b86060',
-    text:'#c0e0c8', muted:'#508860', border:'#183020',
-    cats:{ Food:'#70c080', Gas:'#c07068', Car:'#5878a8', Boat:'#40a898', Tools:'#c09850', Home:'#88b858', Entertainment:'#9868a8', Health:'#48a898', Other:'#708878' },
+    label:'Moss',
+    ..._D,
+    accent:'#509860', accent2:'#98a040', success:'#509860', warn:'#a89838', danger:'#b85858',
+    cats:{ Food:'#58b068', Gas:'#c05858', Car:'#6080a8', Boat:'#3898a0', Tools:'#b08840', Home:'#78a848', Entertainment:'#8858a8', Health:'#409898', Other:'#688070' },
   },
   ember: {
-    label:'Ember', bg:'#1a1008', surface:'#241808', surface2:'#302010', card:'#2c1a0c',
-    accent:'#b87838', accent2:'#b85838', success:'#60a070', warn:'#c8a030', danger:'#c06050',
-    text:'#f0d8b8', muted:'#a07040', border:'#3c2010',
-    cats:{ Food:'#80b868', Gas:'#d06050', Car:'#c08840', Boat:'#689888', Tools:'#d07840', Home:'#b0a858', Entertainment:'#b86878', Health:'#70a878', Other:'#a08868' },
+    label:'Ember',
+    ..._D,
+    accent:'#c07830', accent2:'#c05030', success:'#52a872', warn:'#c0a038', danger:'#c05050',
+    cats:{ Food:'#78a858', Gas:'#c85040', Car:'#b07830', Boat:'#509880', Tools:'#c86830', Home:'#a89840', Entertainment:'#b06070', Health:'#609878', Other:'#988060' },
   },
 };
 
