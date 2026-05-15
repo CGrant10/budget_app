@@ -1,9 +1,21 @@
 'use strict';
 
-const VERSION = '2.6.4';
-const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
+const VERSION = '2.7.0';
+const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
+
+function getCategories() {
+  const s = loadSettings();
+  return [...DEFAULT_CATEGORIES, ...(s.customCategories || [])];
+}
 
 const CHANGELOG = [
+  { version: '2.7.0', date: '2026-05-15', changes: [
+    'Preset color themes: Dark, Light, Ocean, Sunset, Forest, Midnight',
+    'Logo font and color customization in Settings',
+    'Custom categories — add your own and remove them anytime',
+    'Removed built-in categories: Snacks, Transport, Housing, Shopping, Income',
+    'Ledger: sort by date/amount, filter by type, category, and date range',
+  ]},
   { version: '2.6.4', date: '2026-05-15', changes: [
     'About page now shows transparent brand icon blended into the background',
     'Added this changelog — updates will now show what changed',
@@ -26,6 +38,15 @@ const CHANGELOG = [
     'Removed "money moves" tagline',
   ]},
 ];
+
+const THEMES = {
+  dark:     { label:'Dark',     bg:'#0f0f14', surface:'#1a1a24', surface2:'#252535', card:'#22222f', accent:'#7c6af7', accent2:'#f7936a', success:'#4ecb8d', warn:'#f7c96a', danger:'#f76a6a', text:'#e8e6f0', muted:'#b0aec8', border:'#2e2e40' },
+  light:    { label:'Light',    bg:'#f4f4f9', surface:'#ffffff',  surface2:'#eaeaf2', card:'#eaeaf2', accent:'#7c6af7', accent2:'#f7936a', success:'#2ea870', warn:'#d4a017', danger:'#d94f4f', text:'#1a1a2e', muted:'#4a4860', border:'#d0d0e0', light:true },
+  ocean:    { label:'Ocean',    bg:'#071525', surface:'#0d1e35',  surface2:'#132640', card:'#112241', accent:'#38b2f4', accent2:'#f7936a', success:'#4ecb8d', warn:'#f7c96a', danger:'#f76a6a', text:'#d0e8f8', muted:'#7dadc4', border:'#1a3050' },
+  sunset:   { label:'Sunset',   bg:'#1a0e1e', surface:'#241228',  surface2:'#301638', card:'#2c1630', accent:'#f76ab5', accent2:'#f7936a', success:'#4ecb8d', warn:'#f7c96a', danger:'#f76a6a', text:'#f0e0ec', muted:'#c090b0', border:'#3c1a40' },
+  forest:   { label:'Forest',   bg:'#08110c', surface:'#0f1c14',  surface2:'#162418', card:'#142018', accent:'#4ecb8d', accent2:'#f7c96a', success:'#4ecb8d', warn:'#f7c96a', danger:'#f76a6a', text:'#d0ecd8', muted:'#7ab890', border:'#1a3020' },
+  midnight: { label:'Midnight', bg:'#060612', surface:'#0d0d20',  surface2:'#141428', card:'#14142a', accent:'#a78bfa', accent2:'#60a5fa', success:'#34d399', warn:'#fbbf24', danger:'#f87171', text:'#e2e8f0', muted:'#94a3b8', border:'#1e1e3a' },
+};
 
 const CAT_COLORS = {
   Food:          '#4ecb8d',
@@ -158,7 +179,11 @@ const NAV_ITEMS = [
 function applySettings() {
   const s = loadSettings();
   const logo = document.querySelector('.logo');
-  if (logo) logo.textContent = s.name || 'SlawMinYaw';
+  if (logo) {
+    logo.textContent = s.name || 'SlawMinYaw';
+    logo.style.fontFamily = s.logoFont || '';
+    logo.style.color = s.logoColor || '';
+  }
   applyNavPosition(s.navPosition || 'bottom');
   applyNavItems(s.hiddenTabs || []);
   applyTheme(s.theme || 'dark');
@@ -178,7 +203,21 @@ function applyNavItems(hiddenTabs) {
 }
 
 function applyTheme(theme) {
-  document.body.classList.toggle('light', theme === 'light');
+  const t = THEMES[theme] || THEMES.dark;
+  const root = document.documentElement;
+  root.style.setProperty('--bg',       t.bg);
+  root.style.setProperty('--surface',  t.surface);
+  root.style.setProperty('--surface2', t.surface2);
+  root.style.setProperty('--card',     t.card);
+  root.style.setProperty('--accent',   t.accent);
+  root.style.setProperty('--accent2',  t.accent2);
+  root.style.setProperty('--success',  t.success);
+  root.style.setProperty('--warn',     t.warn);
+  root.style.setProperty('--danger',   t.danger);
+  root.style.setProperty('--text',     t.text);
+  root.style.setProperty('--muted',    t.muted);
+  root.style.setProperty('--border',   t.border);
+  document.body.classList.toggle('light', !!t.light);
 }
 
 function _save() {
@@ -399,9 +438,17 @@ function calcHealthScore() {
 let currentTab = 'dashboard';
 let selectedLedgerIdx = null;
 let ledgerFilter = '';
+let ledgerSort = 'date-desc';
+let ledgerTypeFilter = 'all';
+let ledgerCatFilter = '';
+let ledgerDateFrom = '';
+let ledgerDateTo = '';
 
 function showTab(key) {
-  if (currentTab === 'ledger' && key !== 'ledger') ledgerFilter = '';
+  if (currentTab === 'ledger' && key !== 'ledger') {
+    ledgerFilter = ''; ledgerSort = 'date-desc'; ledgerTypeFilter = 'all';
+    ledgerCatFilter = ''; ledgerDateFrom = ''; ledgerDateTo = '';
+  }
   currentTab = key;
   document.querySelectorAll('.nav-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.tab === key));
@@ -675,7 +722,7 @@ function renderDashboard() {
 function renderBudgets() {
   const m = new Date().toISOString().slice(0, 7);
   const { bycat } = monthTotals(m);
-  const rows = CATEGORIES.filter(c => c !== 'Income').map(cat => {
+  const rows = getCategories().map(cat => {
     const spent    = bycat[cat] || 0;
     const limit    = parseFloat(state.budgets[cat] || 0);
     const pct      = limit > 0 ? Math.min(spent / limit * 100, 100) : 0;
@@ -710,7 +757,7 @@ function renderBudgets() {
 function attachBudgets() {
   document.getElementById('save-budgets')?.addEventListener('click', async () => {
     const dict = {};
-    CATEGORIES.forEach(cat => {
+    getCategories().forEach(cat => {
       const val = document.getElementById('budget-' + cat)?.value;
       if (val) dict[cat] = parseFloat(val);
     });
@@ -722,7 +769,7 @@ function attachBudgets() {
 
 // ── add ────────────────────────────────────────────────────────────────────
 function renderAdd() {
-  const catOptions  = CATEGORIES.map(c => `<option>${c}</option>`).join('');
+  const catOptions  = getCategories().map(c => `<option>${c}</option>`).join('');
   const acctOptions = state.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
   return `
     <div class="page">
@@ -768,60 +815,104 @@ function renderAdd() {
 
 // ── ledger ─────────────────────────────────────────────────────────────────
 function renderLedger() {
-  const allRows = state.transactions.map((t, i) => ({ ...t, _i: i }));
-  const rows = allRows.slice().reverse()
-    .filter(t => !ledgerFilter ||
-      t.description.toLowerCase().includes(ledgerFilter) ||
-      t.category.toLowerCase().includes(ledgerFilter) ||
-      String(t.amount).includes(ledgerFilter))
-    .map(t => {
-      const sign     = t.type === 'income' ? '+' : '-';
-      const cls      = t.type === 'income' ? 'income' : 'expense';
-      const prefix   = t.recurring ? '↻ ' : '';
-      const catColor = CAT_COLORS[t.category] || '#9896a4';
-      const acct     = state.accounts.find(a => a.id === (t.account || 'main'));
-      const acctBadge = acct && acct.id !== 'main' ? `<span class="acct-badge">${acct.name}</span>` : '';
-      const catOptions = CATEGORIES.map(c =>
-        `<option value="${c}"${c === t.category ? ' selected' : ''}>${c}</option>`).join('');
-      return `
-        <div class="ledger-row" data-idx="${t._i}">
-          <div class="ledger-row-inner">
-            <div class="ledger-main">
-              <div class="ledger-desc"><span class="cat-dot" style="background:${catColor}"></span>${prefix}${t.description}</div>
-              <div class="ledger-meta">${t.date} · ${t.category}${acctBadge}</div>
-            </div>
-            <div class="ledger-right">
-              <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
-              <button class="ledger-edit-btn" data-idx="${t._i}" title="Edit">✏️</button>
-              <button class="ledger-delete" data-idx="${t._i}">✕</button>
-            </div>
+  const cats = getCategories();
+  const catOptFilter = cats.map(c =>
+    `<option value="${c}"${c === ledgerCatFilter ? ' selected' : ''}>${c}</option>`).join('');
+
+  let rows = state.transactions.map((t, i) => ({ ...t, _i: i }));
+  if (ledgerTypeFilter !== 'all') rows = rows.filter(t => t.type === ledgerTypeFilter);
+  if (ledgerCatFilter)  rows = rows.filter(t => t.category === ledgerCatFilter);
+  if (ledgerDateFrom)   rows = rows.filter(t => t.date >= ledgerDateFrom);
+  if (ledgerDateTo)     rows = rows.filter(t => t.date <= ledgerDateTo);
+  if (ledgerFilter)     rows = rows.filter(t =>
+    t.description.toLowerCase().includes(ledgerFilter) ||
+    t.category.toLowerCase().includes(ledgerFilter) ||
+    String(t.amount).includes(ledgerFilter));
+
+  rows.sort((a, b) => {
+    if (ledgerSort === 'date-desc')   return b.date.localeCompare(a.date) || b._i - a._i;
+    if (ledgerSort === 'date-asc')    return a.date.localeCompare(b.date) || a._i - b._i;
+    if (ledgerSort === 'amount-desc') return b.amount - a.amount;
+    if (ledgerSort === 'amount-asc')  return a.amount - b.amount;
+    return 0;
+  });
+
+  const rowsHtml = rows.map(t => {
+    const sign      = t.type === 'income' ? '+' : '-';
+    const cls       = t.type === 'income' ? 'income' : 'expense';
+    const prefix    = t.recurring ? '↻ ' : '';
+    const catColor  = CAT_COLORS[t.category] || '#9896a4';
+    const acct      = state.accounts.find(a => a.id === (t.account || 'main'));
+    const acctBadge = acct && acct.id !== 'main' ? `<span class="acct-badge">${acct.name}</span>` : '';
+    const allCats   = [...new Set([...cats, t.category])];
+    const catOptions = allCats.map(c =>
+      `<option value="${c}"${c === t.category ? ' selected' : ''}>${c}</option>`).join('');
+    return `
+      <div class="ledger-row" data-idx="${t._i}">
+        <div class="ledger-row-inner">
+          <div class="ledger-main">
+            <div class="ledger-desc"><span class="cat-dot" style="background:${catColor}"></span>${prefix}${t.description}</div>
+            <div class="ledger-meta">${t.date} · ${t.category}${acctBadge}</div>
           </div>
-          <div class="ledger-inline-edit">
-            <div class="ie-grid">
-              <select class="form-input ie-type">
-                <option value="expense"${t.type==='expense'?' selected':''}>Expense</option>
-                <option value="income"${t.type==='income'?' selected':''}>Income</option>
-              </select>
-              <input type="date" class="form-input ie-date" value="${t.date}">
-              <select class="form-input ie-cat">${catOptions}</select>
-              <input type="text" class="form-input ie-desc" value="${t.description}" placeholder="Description">
-              <input type="number" class="form-input ie-amount" value="${t.amount}" step="0.01" min="0" placeholder="Amount">
-            </div>
-            <div class="ie-btns">
-              <button class="btn-sm ie-save" data-idx="${t._i}">Save</button>
-              <button class="ie-cancel">Cancel</button>
-            </div>
+          <div class="ledger-right">
+            <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
+            <button class="ledger-edit-btn" data-idx="${t._i}" title="Edit">✏️</button>
+            <button class="ledger-delete" data-idx="${t._i}">✕</button>
           </div>
-          <button class="swipe-delete-btn" data-idx="${t._i}">Delete</button>
-        </div>`;
-    }).join('');
+        </div>
+        <div class="ledger-inline-edit">
+          <div class="ie-grid">
+            <select class="form-input ie-type">
+              <option value="expense"${t.type === 'expense' ? ' selected' : ''}>Expense</option>
+              <option value="income"${t.type === 'income' ? ' selected' : ''}>Income</option>
+            </select>
+            <input type="date" class="form-input ie-date" value="${t.date}">
+            <select class="form-input ie-cat">${catOptions}</select>
+            <input type="text" class="form-input ie-desc" value="${t.description}" placeholder="Description">
+            <input type="number" class="form-input ie-amount" value="${t.amount}" step="0.01" min="0" placeholder="Amount">
+          </div>
+          <div class="ie-btns">
+            <button class="btn-sm ie-save" data-idx="${t._i}">Save</button>
+            <button class="ie-cancel">Cancel</button>
+          </div>
+        </div>
+        <button class="swipe-delete-btn" data-idx="${t._i}">Delete</button>
+      </div>`;
+  }).join('');
+
   return `
     <div class="page">
       <h1 class="page-title">Ledger</h1>
-      <p class="page-sub">all transactions</p>
-      <input type="search" id="ledger-search" class="form-input" placeholder="Search transactions…" value="${ledgerFilter}" style="margin-bottom:12px;">
+      <p class="page-sub">${rows.length} transaction${rows.length !== 1 ? 's' : ''}</p>
+      <div class="ledger-filter-bar">
+        <div class="lf-row1">
+          <input type="search" id="ledger-search" class="form-input lf-search" placeholder="Search…" value="${ledgerFilter}">
+          <select id="ledger-sort" class="form-input lf-sort">
+            <option value="date-desc"${ledgerSort === 'date-desc' ? ' selected' : ''}>Newest</option>
+            <option value="date-asc"${ledgerSort === 'date-asc' ? ' selected' : ''}>Oldest</option>
+            <option value="amount-desc"${ledgerSort === 'amount-desc' ? ' selected' : ''}>$ High</option>
+            <option value="amount-asc"${ledgerSort === 'amount-asc' ? ' selected' : ''}>$ Low</option>
+          </select>
+        </div>
+        <div class="lf-row2">
+          <div class="type-pills">
+            <button class="type-pill${ledgerTypeFilter === 'all' ? ' active' : ''}" data-type="all">All</button>
+            <button class="type-pill${ledgerTypeFilter === 'income' ? ' active' : ''}" data-type="income">Income</button>
+            <button class="type-pill${ledgerTypeFilter === 'expense' ? ' active' : ''}" data-type="expense">Expense</button>
+          </div>
+          <select id="ledger-cat-filter" class="form-input lf-cat">
+            <option value="">All Cats</option>
+            ${catOptFilter}
+          </select>
+        </div>
+        <div class="lf-row3">
+          <input type="date" id="ledger-date-from" class="form-input lf-date" value="${ledgerDateFrom}" title="From date">
+          <span class="lf-dash">—</span>
+          <input type="date" id="ledger-date-to" class="form-input lf-date" value="${ledgerDateTo}" title="To date">
+        </div>
+      </div>
       <div class="ledger-list">
-        ${rows || '<p class="empty-msg">No transactions yet.</p>'}
+        ${rowsHtml || '<p class="empty-msg">No matching transactions.</p>'}
       </div>
     </div>`;
 }
@@ -1009,7 +1100,7 @@ function calcWeekly() {
 // ── bills ──────────────────────────────────────────────────────────────────
 function renderBills() {
   const m = new Date().toISOString().slice(0, 7);
-  const catOptions = CATEGORIES.map(c => `<option>${c}</option>`).join('');
+  const catOptions = getCategories().map(c => `<option>${c}</option>`).join('');
   const billsHtml = state.bills.length ? state.bills.map((b, i) => {
     const d    = getDaysUntilDue(b.dueDay);
     const paid = b.paidMonth === m;
@@ -1273,15 +1364,20 @@ function renderImport() {
 
 // ── settings ───────────────────────────────────────────────────────────────
 function renderSettings() {
-  const s         = loadSettings();
-  const navPos    = s.navPosition || 'bottom';
+  const s          = loadSettings();
+  const navPos     = s.navPosition || 'bottom';
   const hiddenTabs = s.hiddenTabs || [];
-  const theme     = s.theme || 'dark';
-  const navOpts   = ['bottom','top','left','right'].map(p =>
-    `<button class="nav-pos-btn${navPos===p?' active':''}" data-pos="${p}">${p.charAt(0).toUpperCase()+p.slice(1)}</button>`
+  const theme      = s.theme || 'dark';
+  const logoFont   = s.logoFont || '';
+  const logoColor  = s.logoColor || '';
+  const customCats = s.customCategories || [];
+
+  const navOpts = ['bottom','top','left','right'].map(p =>
+    `<button class="nav-pos-btn${navPos === p ? ' active' : ''}" data-pos="${p}">${p.charAt(0).toUpperCase() + p.slice(1)}</button>`
   ).join('');
+
   const tabToggles = NAV_ITEMS.map(item => `
-    <label class="tab-toggle${item.required?' tab-toggle--disabled':''}">
+    <label class="tab-toggle${item.required ? ' tab-toggle--disabled' : ''}">
       <span class="tab-toggle-icon">${item.icon}</span>
       <span class="tab-toggle-label">${item.label}</span>
       <input type="checkbox" class="tab-toggle-input" data-tab="${item.key}"
@@ -1289,6 +1385,7 @@ function renderSettings() {
         ${item.required ? 'disabled' : ''}>
       <span class="tab-toggle-switch"></span>
     </label>`).join('');
+
   const accountRows = state.accounts.map((a) => `
     <div class="account-row" style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
       <input type="text" class="form-input acct-name-input" value="${a.name}" data-id="${a.id}"
@@ -1298,39 +1395,84 @@ function renderSettings() {
       ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">✕</button>` : ''}
       ${a.id === currentAccountId ? '<span class="acct-badge" style="font-size:9px">active</span>' : `<button class="btn-xs acct-switch-btn" data-id="${a.id}" style="background:var(--surface2)">Switch</button>`}
     </div>`).join('');
+
+  const themeChips = Object.entries(THEMES).map(([key, t]) => `
+    <button class="theme-chip${theme === key ? ' active' : ''}" data-theme="${key}"
+      style="background:linear-gradient(135deg,${t.bg} 50%,${t.accent} 50%)">
+      ${t.label}
+    </button>`).join('');
+
+  const fonts = [
+    { label:'Classic', value:'Georgia, serif',     style:'font-family:Georgia,serif' },
+    { label:'Modern',  value:'Outfit, sans-serif', style:'font-family:Outfit,sans-serif' },
+    { label:'Bold',    value:'Impact, sans-serif', style:'font-family:Impact,sans-serif;letter-spacing:.03em' },
+    { label:'Mono',    value:'monospace',          style:'font-family:monospace' },
+  ];
+  const fontChips = fonts.map(f => `
+    <button class="font-chip${logoFont === f.value ? ' active' : ''}" data-font="${f.value}"
+      style="${f.style}">${f.label}</button>`).join('');
+
+  const customCatRows = customCats.length ? customCats.map((c, i) => `
+    <div class="custom-cat-row">
+      <span class="custom-cat-name">${c}</span>
+      <button class="btn-xs custom-cat-del" data-idx="${i}" style="background:var(--danger);color:#fff;border-color:var(--danger)">✕</button>
+    </div>`).join('') : '<p style="font-size:.8rem;color:var(--muted);margin-bottom:6px">No custom categories yet.</p>';
+
   return `
     <div class="page">
       <h1 class="page-title">Settings</h1>
+
       <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Personalize</h2>
+        <h2 class="section-title" style="margin-bottom:12px">Personalize</h2>
         <div class="form-row">
           <label class="form-label">App title</label>
           <input type="text" id="setting-name" class="form-input" value="${s.name || ''}" placeholder="e.g. Cole's Finances">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Title font</label>
+          <div class="font-grid">${fontChips}</div>
+        </div>
+        <div class="form-row" style="align-items:center">
+          <label class="form-label">Title color</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input type="color" id="logo-color" value="${logoColor || '#7c6af7'}" style="width:40px;height:32px;padding:2px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer">
+            ${logoColor ? `<button id="logo-color-reset" class="btn-xs" style="font-size:.7rem">Use theme</button>` : ''}
+          </div>
         </div>
         <div class="btn-row">
           <button id="settings-save" class="btn-primary">Save</button>
           <span id="settings-status" class="status-inline"></span>
         </div>
       </div>
+
       <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Theme</h2>
-        <label class="tab-toggle">
-          <span class="tab-toggle-icon">🌙</span>
-          <span class="tab-toggle-label">Dark Mode</span>
-          <input type="checkbox" id="theme-toggle" class="tab-toggle-input" ${theme === 'dark' ? 'checked' : ''}>
-          <span class="tab-toggle-switch"></span>
-        </label>
+        <h2 class="section-title" style="margin-bottom:12px">Theme</h2>
+        <div class="theme-grid">${themeChips}</div>
       </div>
+
       <div class="form-card">
         <h2 class="section-title" style="margin-bottom:8px">Navigation Position</h2>
         <p class="code-hint" style="margin-bottom:12px">Choose which side of the screen the nav bar sits on.</p>
         <div class="nav-pos-grid">${navOpts}</div>
       </div>
+
       <div class="form-card">
         <h2 class="section-title" style="margin-bottom:8px">Customize Nav</h2>
         <p class="code-hint" style="margin-bottom:12px">Show or hide tabs in the nav bar.</p>
         <div class="tab-toggles">${tabToggles}</div>
       </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Custom Categories</h2>
+        <p class="code-hint" style="margin-bottom:12px">Add categories beyond the built-in ones.</p>
+        <div class="custom-cat-list">${customCatRows}</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="new-cat-input" class="form-input" placeholder="Category name" style="flex:1">
+          <button id="add-cat-btn" class="btn-sm">Add</button>
+        </div>
+        <span id="cat-status" class="form-status" style="font-size:11px"></span>
+      </div>
+
       <div class="form-card">
         <h2 class="section-title" style="margin-bottom:8px">Accounts</h2>
         <p class="code-hint" style="margin-bottom:12px">Label transactions by account.</p>
@@ -1362,11 +1504,46 @@ function attachSettings() {
     showStatus('settings-status', '✓ Saved', 'success', 2000);
   });
 
-  document.getElementById('theme-toggle')?.addEventListener('change', e => {
+  // Logo color — immediate apply + save
+  document.getElementById('logo-color')?.addEventListener('input', e => {
     const s = loadSettings();
-    s.theme = e.target.checked ? 'dark' : 'light';
+    s.logoColor = e.target.value;
     saveSettings(s);
-    applyTheme(s.theme);
+    const logo = document.querySelector('.logo');
+    if (logo) logo.style.color = s.logoColor;
+  });
+
+  // Reset logo color to theme default
+  document.getElementById('logo-color-reset')?.addEventListener('click', () => {
+    const s = loadSettings();
+    delete s.logoColor;
+    saveSettings(s);
+    const logo = document.querySelector('.logo');
+    if (logo) logo.style.color = '';
+    render();
+  });
+
+  // Font chips — immediate apply + save
+  document.querySelectorAll('.font-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = loadSettings();
+      s.logoFont = btn.dataset.font;
+      saveSettings(s);
+      const logo = document.querySelector('.logo');
+      if (logo) logo.style.fontFamily = s.logoFont;
+      document.querySelectorAll('.font-chip').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  // Theme chips — immediate apply + save
+  document.querySelectorAll('.theme-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = loadSettings();
+      s.theme = btn.dataset.theme;
+      saveSettings(s);
+      applyTheme(s.theme);
+      document.querySelectorAll('.theme-chip').forEach(b => b.classList.toggle('active', b === btn));
+    });
   });
 
   document.querySelectorAll('.nav-pos-btn').forEach(btn => {
@@ -1379,16 +1556,46 @@ function attachSettings() {
     });
   });
 
-  document.querySelectorAll('.tab-toggle-input:not(#theme-toggle)').forEach(cb => {
+  document.querySelectorAll('.tab-toggle-input').forEach(cb => {
     cb.addEventListener('change', () => {
       const s = loadSettings();
       const hidden = [];
-      document.querySelectorAll('.tab-toggle-input:not(#theme-toggle)').forEach(c => {
+      document.querySelectorAll('.tab-toggle-input').forEach(c => {
         if (!c.checked && !c.disabled) hidden.push(c.dataset.tab);
       });
       s.hiddenTabs = hidden;
       saveSettings(s);
       applyNavItems(hidden);
+    });
+  });
+
+  // Custom categories
+  document.getElementById('add-cat-btn')?.addEventListener('click', () => {
+    const input = document.getElementById('new-cat-input');
+    const name = input.value.trim();
+    if (!name) { showStatus('cat-status', 'Enter a category name.', 'error'); return; }
+    const s = loadSettings();
+    const custom = s.customCategories || [];
+    if (DEFAULT_CATEGORIES.includes(name) || custom.includes(name)) {
+      showStatus('cat-status', 'Category already exists.', 'error'); return;
+    }
+    custom.push(name);
+    s.customCategories = custom;
+    saveSettings(s);
+    input.value = '';
+    showStatus('cat-status', `✓ "${name}" added.`, 'success');
+    render();
+  });
+
+  document.querySelectorAll('.custom-cat-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      const s = loadSettings();
+      const custom = s.customCategories || [];
+      custom.splice(idx, 1);
+      s.customCategories = custom;
+      saveSettings(s);
+      render();
     });
   });
 
@@ -1612,7 +1819,27 @@ function attachAdd() {
 }
 
 function attachLedger() {
-  document.getElementById('ledger-search')?.addEventListener('input', e => { ledgerFilter = e.target.value.toLowerCase(); render(); });
+  document.getElementById('ledger-search')?.addEventListener('input', e => {
+    ledgerFilter = e.target.value.toLowerCase(); render();
+  });
+  document.getElementById('ledger-sort')?.addEventListener('change', e => {
+    ledgerSort = e.target.value; render();
+  });
+  document.getElementById('ledger-cat-filter')?.addEventListener('change', e => {
+    ledgerCatFilter = e.target.value; render();
+  });
+  document.getElementById('ledger-date-from')?.addEventListener('change', e => {
+    ledgerDateFrom = e.target.value; render();
+  });
+  document.getElementById('ledger-date-to')?.addEventListener('change', e => {
+    ledgerDateTo = e.target.value; render();
+  });
+  document.querySelectorAll('.type-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ledgerTypeFilter = btn.dataset.type;
+      render();
+    });
+  });
 
   document.querySelectorAll('.ledger-edit-btn').forEach(btn => {
     btn.addEventListener('click', e => {
@@ -1656,7 +1883,10 @@ function attachLedger() {
       const idx = parseInt(btn.dataset.idx);
       const t   = state.transactions[idx];
       if (confirm(`Delete: ${t.description} (${fmt(t.amount)})?`)) {
-        await api.deleteTransaction(idx); selectedLedgerIdx = null; ledgerFilter = ''; render();
+        await api.deleteTransaction(idx);
+        selectedLedgerIdx = null;
+        ledgerFilter = '';
+        render();
       }
     });
   });
