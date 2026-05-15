@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.0.1';
+const VERSION = '3.1.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.1.0', date: '2026-05-15', changes: [
+    'Net worth view on dashboard: total across all accounts when you have 2+',
+    'CSV export: download full transaction history from the Ledger tab',
+    'Bill notifications: get alerted about bills due in 3 days when you open the app',
+    'Bills nav tab shows a badge count when bills are due soon',
+  ]},
   { version: '3.0.1', date: '2026-05-15', changes: [
     'Press Start 2P actually works now — font value had double-quotes inside a double-quoted HTML attribute (data-font), snapping it to empty string',
   ]},
@@ -867,6 +873,39 @@ function getUpcomingBills(days = 7) {
     .sort((a, b) => getDaysUntilDue(a.dueDay) - getDaysUntilDue(b.dueDay));
 }
 
+// ── bill badge ─────────────────────────────────────────────────────────────
+function updateBillBadge() {
+  const count = getUpcomingBills(3).length;
+  document.querySelectorAll('.nav-bill-badge').forEach(el => el.remove());
+  if (count > 0) {
+    const btn = document.querySelector('.nav-btn[data-tab="bills"]');
+    if (btn) {
+      const badge = document.createElement('span');
+      badge.className = 'nav-bill-badge';
+      badge.textContent = count;
+      btn.appendChild(badge);
+    }
+  }
+}
+
+// ── net worth ──────────────────────────────────────────────────────────────
+function getNetWorth() {
+  const accounts = state.accounts;
+  const items = accounts.map(a => {
+    const d = JSON.parse(localStorage.getItem(accountDataKey(a.id)) || '{}');
+    const txns = d.transactions || [];
+    const startingBal = parseFloat(d.startingBalance) || 0;
+    let income = 0, expense = 0;
+    for (const t of txns) {
+      if (t.type === 'income') income += t.amount;
+      else expense += t.amount;
+    }
+    return { name: a.name, balance: startingBal + income - expense };
+  });
+  const total = items.reduce((s, a) => s + a.balance, 0);
+  return { accounts: items, total };
+}
+
 // ── render ─────────────────────────────────────────────────────────────────
 function render() {
   if (spendingChart) { spendingChart.destroy(); spendingChart = null; }
@@ -884,6 +923,7 @@ function render() {
     case 'about':     main.innerHTML = renderAbout();     break;
   }
   attachHandlers();
+  updateBillBadge();
 }
 
 // ── dashboard ──────────────────────────────────────────────────────────────
@@ -916,6 +956,20 @@ function renderDashboard() {
       <div class="card-value" style="color:${c.color}">${c.value}</div>
       <div class="card-sub">${c.sub}</div>
     </div>`).join('');
+
+  const nw = getNetWorth();
+  const netWorthHtml = state.accounts.length >= 2 ? `
+    <div class="net-worth-card">
+      <div class="net-worth-total-label">Net Worth</div>
+      <div class="net-worth-total-value" style="color:${nw.total >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(nw.total)}</div>
+      <div class="net-worth-rows">
+        ${nw.accounts.map(a => `
+          <div class="net-worth-row">
+            <span class="net-worth-acct">${a.name}</span>
+            <span class="net-worth-bal" style="color:${a.balance >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(a.balance)}</span>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
 
   const upcoming = getUpcomingBills(7);
   const upcomingHtml = upcoming.length ? `
@@ -958,6 +1012,7 @@ function renderDashboard() {
       <p class="page-sub">your financial snapshot</p>
       ${firstRunHtml}
       <div class="cards-grid">${cardsHtml}</div>
+      ${netWorthHtml}
       ${upcomingHtml}
       <div class="chart-header">
         <div class="section-title chart-section-title" style="margin:0">${chartTitle}</div>
@@ -1159,6 +1214,7 @@ function renderLedger() {
           <input type="date" id="ledger-date-from" class="form-input lf-date" value="${ledgerDateFrom}" title="From date">
           <span class="lf-dash">—</span>
           <input type="date" id="ledger-date-to" class="form-input lf-date" value="${ledgerDateTo}" title="To date">
+          <button id="ledger-export-csv" class="btn-xs">📥 CSV</button>
         </div>
       </div>
       <div class="ledger-list">
@@ -1612,6 +1668,34 @@ function renderImport() {
     </div>`;
 }
 
+// ── notifications ──────────────────────────────────────────────────────────
+async function requestNotifPermission() {
+  if (!('Notification' in window)) return false;
+  const p = await Notification.requestPermission();
+  return p === 'granted';
+}
+
+async function checkBillNotifications() {
+  if (!('Notification' in window)) return;
+  const s = loadSettings();
+  if (!s.notifications) return;
+  if (Notification.permission !== 'granted') return;
+  const today = new Date().toISOString().slice(0,10);
+  if (s.lastNotifDate === today) return;
+  const due = getUpcomingBills(3);
+  if (!due.length) return;
+  const reg = await navigator.serviceWorker?.ready.catch(() => null);
+  due.forEach(b => {
+    const d = getDaysUntilDue(b.dueDay);
+    const when = d === 0 ? 'due TODAY' : `due in ${d} day${d===1?'':'s'}`;
+    const opts = { body: `${fmt(b.amount)} — ${when}`, icon: 'icon-192.png', badge: 'icon-192.png', tag: `bill-${b.id||b.name}` };
+    if (reg) reg.showNotification(`📑 ${b.name}`, opts);
+    else new Notification(`📑 ${b.name}`, opts);
+  });
+  s.lastNotifDate = today;
+  saveSettings(s);
+}
+
 // ── settings ───────────────────────────────────────────────────────────────
 function renderSettings() {
   const s          = loadSettings();
@@ -1818,6 +1902,18 @@ function renderSettings() {
         <button id="add-acct-btn" class="btn-sm">Add Account</button>
         <span id="acct-status" class="form-status" style="font-size:11px"></span>
       </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Notifications</h2>
+        <div class="form-row">
+          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="notif-toggle" ${s.notifications ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
+            Bill reminders
+          </label>
+          <p class="code-hint" style="margin-top:6px">You'll be notified about bills due within 3 days each time you open the app. Requires notification permission.</p>
+        </div>
+        ${typeof Notification !== 'undefined' && Notification.permission !== 'granted' ? `<button id="notif-enable-btn" class="btn-sm" style="margin-top:4px">Enable Notifications</button>` : ''}
+      </div>
     </div>`;
 }
 
@@ -2019,6 +2115,18 @@ function attachSettings() {
         render();
       }
     });
+  });
+
+  document.getElementById('notif-toggle')?.addEventListener('change', async e => {
+    const s = loadSettings();
+    s.notifications = e.target.checked;
+    saveSettings(s);
+    if (e.target.checked) await requestNotifPermission();
+  });
+
+  document.getElementById('notif-enable-btn')?.addEventListener('click', async () => {
+    await requestNotifPermission();
+    render();
   });
 }
 
@@ -2250,6 +2358,23 @@ function attachAdd() {
   });
 }
 
+function exportCSV() {
+  const rows = [['Date','Type','Category','Description','Amount','Account']];
+  [...state.transactions]
+    .sort((a,b) => b.date.localeCompare(a.date))
+    .forEach(t => {
+      const acctName = (state.accounts.find(a => a.id === (t.account||'main'))?.name) || 'Main';
+      rows.push([t.date, t.type, t.category, t.description || '', t.amount.toFixed(2), acctName]);
+    });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `budget-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
 function attachLedger() {
   document.getElementById('ledger-search')?.addEventListener('input', e => {
     ledgerFilter = e.target.value.toLowerCase(); render();
@@ -2324,6 +2449,8 @@ function attachLedger() {
   });
 
   attachSwipeDelete();
+
+  document.getElementById('ledger-export-csv')?.addEventListener('click', exportCSV);
 }
 
 function attachWeekly() {
@@ -2498,6 +2625,8 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
     await api.switchAccount(e.target.value);
   });
   render();
+  updateBillBadge();
+  checkBillNotifications();
 
   // Check for a new version every open and every time the app is foregrounded
   checkForUpdate();
