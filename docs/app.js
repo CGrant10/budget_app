@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.8.5';
+const VERSION = '2.9.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.9.0', date: '2026-05-15', changes: [
+    'Starting balance: set your real account balance in Settings → Account (or on the first-run card)',
+    'Balance cards now include your starting balance — no need to log it as income',
+    'Tutorial: 8-slide guided walkthrough, launched from About or the floating ? button',
+  ]},
   { version: '2.8.5', date: '2026-05-15', changes: [
     'Bar chart now shows spending by category (same data as pie chart, just a different view)',
     'About page icon now fills the full card width',
@@ -247,7 +252,7 @@ function checkSpendingAlert(category) {
 }
 
 // ── state + localStorage ───────────────────────────────────────────────────
-let state = { transactions: [], weekly_plan: {}, budgets: {}, bills: [], goals: [], accounts: [] };
+let state = { transactions: [], weekly_plan: {}, budgets: {}, bills: [], goals: [], accounts: [], startingBalance: 0 };
 let lastCalcPerWeek = 0;
 let dashChartMode = 'bar';
 let currentAccountId = 'main';
@@ -324,11 +329,12 @@ function applyTheme(theme) {
 
 function _save() {
   localStorage.setItem(accountDataKey(currentAccountId), JSON.stringify({
-    transactions: state.transactions,
-    weekly_plan:  state.weekly_plan,
-    budgets:      state.budgets,
-    bills:        state.bills,
-    goals:        state.goals,
+    transactions:    state.transactions,
+    weekly_plan:     state.weekly_plan,
+    budgets:         state.budgets,
+    bills:           state.bills,
+    goals:           state.goals,
+    startingBalance: state.startingBalance,
   }));
 }
 function _saveAccounts() {
@@ -336,11 +342,12 @@ function _saveAccounts() {
 }
 function _loadAccountData(id) {
   const d = JSON.parse(localStorage.getItem(accountDataKey(id)) || '{}');
-  state.transactions = d.transactions || [];
-  state.weekly_plan  = d.weekly_plan  || {};
-  state.budgets      = d.budgets      || {};
-  state.bills        = d.bills        || [];
-  state.goals        = d.goals        || [];
+  state.transactions    = d.transactions    || [];
+  state.weekly_plan     = d.weekly_plan     || {};
+  state.budgets         = d.budgets         || {};
+  state.bills           = d.bills           || [];
+  state.goals           = d.goals           || [];
+  state.startingBalance = parseFloat(d.startingBalance) || 0;
 }
 
 const api = {
@@ -714,6 +721,21 @@ function attachDashboard() {
   }
 }
 
+  // Starting balance (first-run card)
+  const sbSave = document.getElementById('starting-bal-save');
+  if (sbSave) {
+    sbSave.addEventListener('click', async () => {
+      const val = parseFloat(document.getElementById('starting-bal-input')?.value);
+      if (isNaN(val)) return;
+      state.startingBalance = val;
+      _save();
+      const st = document.getElementById('starting-bal-status');
+      if (st) { st.textContent = '✓ Balance set!'; }
+      setTimeout(() => render(), 800);
+    });
+  }
+}
+
 // ── milestones ─────────────────────────────────────────────────────────────
 function checkMilestones(prevBal, newBal) {
   if (prevBal < 0 && newBal >= 0) setTimeout(showBalanceMilestone, 500);
@@ -782,15 +804,27 @@ function render() {
 // ── dashboard ──────────────────────────────────────────────────────────────
 function renderDashboard() {
   const { income, expense, bycat } = totals();
-  const balance  = income - expense;
+  const balance  = (state.startingBalance || 0) + income - expense;
   const balColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
   const health   = calcHealthScore();
   const cardDefs = [
-    { title: 'BALANCE',  value: fmt(balance),                      color: balColor,         sub: 'income − expenses' },
-    { title: 'INCOME',   value: fmt(income),                       color: 'var(--success)', sub: 'total earned' },
-    { title: 'EXPENSES', value: fmt(expense),                      color: 'var(--danger)',  sub: 'total spent' },
-    { title: 'HEALTH',   value: String(health.total),              color: health.color,     sub: `grade ${health.grade}` },
+    { title: 'BALANCE',  value: fmt(balance),  color: balColor,         sub: state.startingBalance ? 'starting + income − expenses' : 'income − expenses' },
+    { title: 'INCOME',   value: fmt(income),   color: 'var(--success)', sub: 'total earned' },
+    { title: 'EXPENSES', value: fmt(expense),  color: 'var(--danger)',  sub: 'total spent' },
+    { title: 'HEALTH',   value: String(health.total), color: health.color, sub: `grade ${health.grade}` },
   ];
+
+  const firstRunHtml = state.transactions.length === 0 ? `
+    <div class="form-card first-run-card" style="margin-bottom:16px;text-align:center;padding:20px">
+      <div style="font-size:1.5rem;margin-bottom:8px">👋</div>
+      <div style="font-weight:600;color:var(--text);margin-bottom:6px">Set your starting balance</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px">Enter what's currently in your account so your balance is accurate from day one.</p>
+      <div style="display:flex;gap:8px;justify-content:center;max-width:260px;margin:0 auto">
+        <input type="number" id="starting-bal-input" class="form-input" placeholder="e.g. 1500.00" step="0.01" inputmode="decimal" style="flex:1">
+        <button id="starting-bal-save" class="btn-primary" style="white-space:nowrap">Set Balance</button>
+      </div>
+      <span id="starting-bal-status" class="status-inline" style="display:block;margin-top:8px"></span>
+    </div>` : '';
   const cardsHtml = cardDefs.map(c => `
     <div class="card">
       <div class="card-title">${c.title}</div>
@@ -837,6 +871,7 @@ function renderDashboard() {
     <div class="page">
       <h1 class="page-title">Dashboard</h1>
       <p class="page-sub">your financial snapshot</p>
+      ${firstRunHtml}
       <div class="cards-grid">${cardsHtml}</div>
       ${upcomingHtml}
       <div class="chart-header">
@@ -1051,13 +1086,13 @@ function renderLedger() {
 function renderWeekly() {
   const { income, expense } = totals();
   const wp = state.weekly_plan;
-  const defBalance = wp.balance ?? (income - expense).toFixed(2);
+  const defBalance = wp.balance ?? ((state.startingBalance || 0) + income - expense).toFixed(2);
   const defBills   = wp.bills   ?? '0';
   const defBuffer  = wp.buffer  ?? 10;
   const defPaydate = wp.paydate ?? (() => {
     const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split('T')[0];
   })();
-  const balance  = income - expense;
+  const balance  = (state.startingBalance || 0) + income - expense;
   const balColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
   return `
     <div class="page">
@@ -1620,6 +1655,19 @@ function renderSettings() {
       </div>
 
       <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Account</h2>
+        <p class="code-hint" style="margin-bottom:12px">Your starting balance is added to your running balance but not counted as income.</p>
+        <div class="form-row" style="align-items:center">
+          <label class="form-label">Starting balance ($)</label>
+          <input type="number" id="starting-bal-settings" class="form-input" value="${state.startingBalance || ''}" placeholder="0.00" step="0.01" inputmode="decimal" style="max-width:140px">
+        </div>
+        <div class="btn-row">
+          <button id="starting-bal-settings-save" class="btn-primary">Save</button>
+          <span id="starting-bal-settings-status" class="status-inline"></span>
+        </div>
+      </div>
+
+      <div class="form-card">
         <h2 class="section-title" style="margin-bottom:12px">Theme</h2>
         <div class="theme-list">${themeRows}</div>
       </div>
@@ -1676,6 +1724,13 @@ function attachSettings() {
     saveSettings(s);
     applySettings();
     showStatus('settings-status', '✓ Saved', 'success', 2000);
+  });
+
+  document.getElementById('starting-bal-settings-save')?.addEventListener('click', () => {
+    const val = parseFloat(document.getElementById('starting-bal-settings')?.value);
+    state.startingBalance = isNaN(val) ? 0 : val;
+    _save();
+    showStatus('starting-bal-settings-status', '✓ Saved', 'success', 2000);
   });
 
   // Logo color — immediate apply + save
@@ -1873,6 +1928,9 @@ function renderAbout() {
         ${changelogHtml}
       </div>
       <div class="form-card" style="text-align:center;margin-top:20px">
+        <p class="code-hint" style="margin-bottom:12px">New here? Get a quick walkthrough of everything the app can do.</p>
+        <button id="open-tutorial-btn" class="btn-secondary" style="width:100%;margin-bottom:10px">📖 App Tutorial</button>
+        <hr style="border:none;border-top:1px solid var(--border);margin:0 0 12px">
         <p class="code-hint" style="margin-bottom:12px">If the app feels out of date, tap below to clear the cache and reload the latest version.</p>
         <button id="force-update-btn" class="btn-primary" style="width:100%">🔄 Force Update</button>
         <div id="force-update-status" class="form-status" style="margin-top:8px"></div>
@@ -1881,7 +1939,52 @@ function renderAbout() {
     </div>`;
 }
 
+// ── tutorial ───────────────────────────────────────────────────────────────
+const TUTORIAL_SLIDES = [
+  { icon:'👋', title:'Welcome to SlawMinYaw',      body:'SlawMinYaw is your personal budgeting companion. Track every dollar, plan your weeks, and stay on top of bills and goals — all in one place.' },
+  { icon:'💰', title:'Setting Your Balance',        body:'Head to Settings → Account to enter your current account balance. This starting balance is added to your running total without counting as income.' },
+  { icon:'➕', title:'Adding Transactions',         body:'Tap the ➕ Add tab to log an income or expense. Pick a category, enter an amount, add a date and optional note, then hit Save.' },
+  { icon:'📊', title:'Dashboard & Charts',          body:'The Dashboard shows your balance, income, expenses, and a health score. Toggle between a bar chart and a pie chart to see this month\'s spending by category.' },
+  { icon:'📅', title:'Weekly Planner',              body:'The Weekly tab calculates exactly how much you can spend per week and per day until your next paycheck, after bills and an optional emergency buffer.' },
+  { icon:'💰', title:'Budget Limits',               body:'In the Budgets tab, set a monthly spending cap for any category. The dashboard and ledger will warn you when you\'re getting close or over.' },
+  { icon:'📑', title:'Bills & Goals',               body:'Track recurring bills so you never miss a due date, and set savings goals to see your progress grow over time.' },
+  { icon:'⚙️', title:'Personalizing the App',       body:'Visit Settings to change your app title, pick a font and capitalization style, choose a color theme, and reorder or hide nav tabs.' },
+];
+
+let tutorialSlide = 0;
+
+function openTutorial() {
+  tutorialSlide = 0;
+  const overlay = document.getElementById('tutorial-overlay');
+  if (overlay) { renderTutorialSlide(); overlay.classList.remove('hidden'); }
+}
+function closeTutorial() {
+  document.getElementById('tutorial-overlay')?.classList.add('hidden');
+}
+function renderTutorialSlide() {
+  const slide = TUTORIAL_SLIDES[tutorialSlide];
+  const el    = document.getElementById('tutorial-card');
+  if (!el || !slide) return;
+  const isLast = tutorialSlide === TUTORIAL_SLIDES.length - 1;
+  el.innerHTML = `
+    <div class="tut-icon">${slide.icon}</div>
+    <div class="tut-title">${slide.title}</div>
+    <p class="tut-body">${slide.body}</p>
+    <div class="tut-dots">${TUTORIAL_SLIDES.map((_,i)=>`<span class="tut-dot${i===tutorialSlide?' active':''}"></span>`).join('')}</div>
+    <div class="tut-btns">
+      <button class="btn-secondary tut-btn-prev" id="tut-prev" ${tutorialSlide===0?'style="visibility:hidden"':''}>← Back</button>
+      <button class="btn-primary tut-btn-next" id="tut-next">${isLast ? 'Done ✓' : 'Next →'}</button>
+    </div>`;
+  document.getElementById('tut-prev')?.addEventListener('click', () => { tutorialSlide--; renderTutorialSlide(); });
+  document.getElementById('tut-next')?.addEventListener('click', () => {
+    if (tutorialSlide < TUTORIAL_SLIDES.length - 1) { tutorialSlide++; renderTutorialSlide(); }
+    else closeTutorial();
+  });
+}
+
 function attachAbout() {
+  document.getElementById('open-tutorial-btn')?.addEventListener('click', openTutorial);
+
   document.getElementById('force-update-btn')?.addEventListener('click', async () => {
     const btn    = document.getElementById('force-update-btn');
     const status = document.getElementById('force-update-status');
@@ -2204,6 +2307,13 @@ async function checkForUpdate() {
 // ── init ───────────────────────────────────────────────────────────────────
 document.querySelectorAll('.nav-btn').forEach(btn =>
   btn.addEventListener('click', () => showTab(btn.dataset.tab)));
+
+// Floating tutorial button
+document.getElementById('tut-float-btn')?.addEventListener('click', openTutorial);
+// Close tutorial on backdrop click
+document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('tutorial-overlay')) closeTutorial();
+});
 
 (async () => {
   await api.load();
