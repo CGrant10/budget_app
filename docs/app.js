@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.9.1';
+const VERSION = '2.9.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,13 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.9.2', date: '2026-05-15', changes: [
+    'App title now uses Bangers font by default — comic/anime style',
+    'Nav labels switched to Bangers font; active icon gets a subtle glow + scale',
+    'Header has an accent-color underline for edge',
+    'Settings cards now have proper spacing between them',
+    'Font picker: added Grunge/Anime group — Bangers, Russo One, Righteous, Exo 2, Permanent Marker, Boogaloo',
+  ]},
   { version: '2.9.1', date: '2026-05-15', changes: [
     "Default app name updated to SlawMinYaw's Budget DAWGs",
   ]},
@@ -1571,6 +1578,13 @@ function renderSettings() {
     </button>`).join('');
 
   const fonts = [
+    // — Grunge / Anime —
+    { label:'Bangers',          value:'Bangers, cursive',                style:'font-family:"Bangers",cursive;letter-spacing:.08em',     group:'grunge' },
+    { label:'Russo One',        value:'Russo One, sans-serif',           style:'font-family:"Russo One",sans-serif',                     group:'grunge' },
+    { label:'Righteous',        value:'Righteous, cursive',              style:'font-family:"Righteous",cursive',                       group:'grunge' },
+    { label:'Exo 2',            value:'Exo 2, sans-serif',               style:'font-family:"Exo 2",sans-serif;font-weight:700',         group:'grunge' },
+    { label:'Permanent Marker', value:'Permanent Marker, cursive',       style:'font-family:"Permanent Marker",cursive',                group:'grunge' },
+    { label:'Boogaloo',         value:'Boogaloo, cursive',               style:'font-family:"Boogaloo",cursive',                        group:'grunge' },
     // — Modern sans-serif —
     { label:'Outfit',           value:'Outfit, sans-serif',              style:'font-family:"Outfit",sans-serif',                       group:'sans' },
     { label:'Inter',            value:'Inter, sans-serif',               style:'font-family:"Inter",sans-serif',                        group:'sans' },
@@ -1594,6 +1608,7 @@ function renderSettings() {
   ];
 
   const fontGroupDefs = [
+    { key:'grunge',  label:'Grunge / Anime' },
     { key:'sans',    label:'Sans-serif' },
     { key:'serif',   label:'Serif' },
     { key:'cursive', label:'Script / Cursive' },
