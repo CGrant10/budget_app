@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.7.7';
+const VERSION = '2.7.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.7.8', date: '2026-05-15', changes: [
+    'Removed Moss (green) theme — conflicts with the logo color',
+    'About page always shows in Dark or Light colors regardless of active theme',
+  ]},
   { version: '2.7.7', date: '2026-05-15', changes: [
     'Dark mode is now true neutral dark grey — no purple or colored tinting',
     'All dark themes share the same neutral backgrounds; only accent and category colors change',
@@ -101,12 +105,6 @@ const THEMES = {
     ..._D,
     accent:'#4080b0', accent2:'#b07840', success:'#52a872', warn:'#c0a038', danger:'#c05050',
     cats:{ Food:'#52a872', Gas:'#c05858', Car:'#4070b0', Boat:'#3898b8', Tools:'#b07840', Home:'#608898', Entertainment:'#6060a8', Health:'#3898b8', Other:'#607898' },
-  },
-  moss: {
-    label:'Moss',
-    ..._D,
-    accent:'#509860', accent2:'#98a040', success:'#509860', warn:'#a89838', danger:'#b85858',
-    cats:{ Food:'#58b068', Gas:'#c05858', Car:'#6080a8', Boat:'#3898a0', Tools:'#b08840', Home:'#78a848', Entertainment:'#8858a8', Health:'#409898', Other:'#688070' },
   },
   ember: {
     label:'Ember',
@@ -520,6 +518,14 @@ function showTab(key) {
   if (currentTab === 'ledger' && key !== 'ledger') {
     ledgerFilter = ''; ledgerSort = 'date-desc'; ledgerTypeFilter = 'all';
     ledgerCatFilter = ''; ledgerDateFrom = ''; ledgerDateTo = '';
+  }
+  // About page always uses base dark/light — unaffected by Dusk/Denim/Ember etc.
+  const activeTheme = (loadSettings().theme) || 'dark';
+  if (key === 'about') {
+    const isLight = !!(THEMES[activeTheme] || THEMES.dark).light;
+    applyTheme(isLight ? 'light' : 'dark');
+  } else if (currentTab === 'about') {
+    applyTheme(activeTheme);
   }
   currentTab = key;
   document.querySelectorAll('.nav-btn').forEach(b =>
