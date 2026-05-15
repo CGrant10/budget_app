@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.5.0';
+const VERSION = '3.5.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.5.1', date: '2026-05-15', changes: [
+    'Loan accounts now show balance owed in red (same as credit cards) — was incorrectly treated as a positive asset',
+    'Dashboard balance card shows "LOAN BALANCE" / "BALANCE OWED" with "(Loan)" or "(Credit)" sub-label',
+    'Tutorial rewritten — 10 slides covering accounts picker, month navigator, running balance, chart tap, debt tab, bills, and settings',
+  ]},
   { version: '3.5.0', date: '2026-05-15', changes: [
     'Account picker: opening the app with multiple accounts now shows a tile grid — tap one to enter its dashboard',
     'Each tile shows account type icon, name, and current balance (or amount owed for credit/loan)',
@@ -1320,25 +1325,43 @@ function renderDashboard() {
   const { income, expense, bycat } = monthTotals(dashMonth);
   const currentM = new Date().toISOString().slice(0, 7);
   const isPastMonth = dashMonth < currentM;
-  // For past months show balance at end of that month; for current show live balance
-  const balance = isPastMonth ? (() => {
+  const acct   = state.accounts.find(a => a.id === currentAccountId);
+  const isDebt = acct?.type === 'credit' || acct?.type === 'loan';
+
+  // Balance: for debt accounts owed = startBal + expenses − income (payments reduce debt)
+  // For past months compute as-of last day of that month
+  let balance;
+  if (isPastMonth) {
     const mo = parseInt(dashMonth.slice(5, 7));
     const yr = parseInt(dashMonth.slice(0, 4));
-    const lastDay = new Date(yr, mo, 0).getDate();
-    return balanceAsOf(dashMonth + '-' + String(lastDay).padStart(2, '0'));
-  })() : (() => {
+    const lastDayStr = dashMonth + '-' + String(new Date(yr, mo, 0).getDate()).padStart(2, '0');
+    if (isDebt) {
+      let owed = state.startingBalance || 0;
+      for (const t of state.transactions) {
+        if (t.date <= lastDayStr) owed += t.type === 'expense' ? t.amount : -t.amount;
+      }
+      balance = Math.max(0, owed);
+    } else {
+      balance = balanceAsOf(lastDayStr);
+    }
+  } else {
     const { income: ai, expense: ae } = totals();
-    return (state.startingBalance || 0) + ai - ae;
-  })();
+    balance = isDebt
+      ? Math.max(0, (state.startingBalance || 0) + ae - ai)
+      : (state.startingBalance || 0) + ai - ae;
+  }
+
+  const debtTypeLbl = acct?.type === 'loan' ? '(Loan)' : '(Credit)';
+  const balTitle = acct?.type === 'loan' ? 'LOAN BALANCE' : isDebt ? 'BALANCE OWED' : 'BALANCE';
+  const balColor = isDebt ? 'var(--danger)' : (balance >= 0 ? 'var(--success)' : 'var(--danger)');
   const balSub   = isPastMonth
-    ? `end of ${new Date(parseInt(dashMonth.slice(0,4)), parseInt(dashMonth.slice(5,7)) - 1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
-    : (state.startingBalance ? 'starting + income − expenses' : 'income − expenses');
-  const balColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
-  const health   = calcHealthScore();
-  const acct = state.accounts.find(a => a.id === currentAccountId);
-  const isCredit = acct?.type === 'credit';
+    ? `end of ${new Date(parseInt(dashMonth.slice(0,4)), parseInt(dashMonth.slice(5,7)) - 1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}${isDebt ? ' · ' + debtTypeLbl : ''}`
+    : isDebt
+      ? `amount owed · ${debtTypeLbl}`
+      : (state.startingBalance ? 'starting + income − expenses' : 'income − expenses');
+  const health = calcHealthScore();
   const cardDefs = [
-    { title: isCredit ? 'BALANCE OWED' : 'BALANCE',  value: fmt(balance),  color: isCredit ? 'var(--danger)' : balColor, sub: balSub },
+    { title: balTitle, value: fmt(balance), color: balColor, sub: balSub },
     { title: 'INCOME',   value: fmt(income),   color: 'var(--success)', sub: 'total earned' },
     { title: 'EXPENSES', value: fmt(expense),  color: 'var(--danger)',  sub: 'total spent' },
     { title: 'HEALTH',   value: String(health.total), color: health.color, sub: `grade ${health.grade}` },
@@ -2694,14 +2717,16 @@ function renderAbout() {
 
 // ── tutorial ───────────────────────────────────────────────────────────────
 const TUTORIAL_SLIDES = [
-  { icon:'👋', title:"Welcome to SlawMinYaw's Budget DAWGs", body:"SlawMinYaw's Budget DAWGs is your personal budgeting companion. Track every dollar, plan your weeks, and stay on top of bills and goals — all in one place." },
-  { icon:'💰', title:'Setting Your Balance',        body:'Head to Settings → Account to enter your current account balance. This starting balance is added to your running total without counting as income.' },
-  { icon:'➕', title:'Adding Transactions',         body:'Tap the ➕ Add tab to log an income or expense. Pick a category, enter an amount, add a date and optional note, then hit Save.' },
-  { icon:'📊', title:'Dashboard & Charts',          body:'The Dashboard shows your balance, income, expenses, and a health score. Toggle between a bar chart and a pie chart to see this month\'s spending by category.' },
-  { icon:'📅', title:'Weekly Planner',              body:'The Weekly tab calculates exactly how much you can spend per week and per day until your next paycheck, after bills and an optional emergency buffer.' },
-  { icon:'💰', title:'Budget Limits',               body:'In the Budgets tab, set a monthly spending cap for any category. The dashboard and ledger will warn you when you\'re getting close or over.' },
-  { icon:'📑', title:'Bills & Goals',               body:'Track recurring bills so you never miss a due date, and set savings goals to see your progress grow over time.' },
-  { icon:'⚙️', title:'Personalizing the App',       body:'Visit Settings to change your app title, pick a font and capitalization style, choose a color theme, and reorder or hide nav tabs.' },
+  { icon:'👋', title:"Welcome to Budget DAWGs",         body:"Your all-in-one budgeting app. Track spending, plan weeks, manage bills, monitor debt, and keep multiple accounts — all in one place. Tap Next to take a quick tour." },
+  { icon:'🏦', title:'Multiple Accounts',               body:"When you have 2+ accounts, the app opens to a tile screen showing every account with its current balance. Tap a tile to enter it. Use the ⊞ button in the header to return to the account list at any time." },
+  { icon:'➕', title:'Adding Transactions',             body:'Tap ➕ Add to log income, an expense, or a transfer between accounts. Pick a category, enter an amount, and choose a date. The keyboard shows a ✓ Done key so you can close it without jumping to the next field.' },
+  { icon:'📊', title:'Dashboard & Month Navigator',    body:"The Dashboard shows your balance, income, and expenses for the selected month. Use the ‹ › arrows to browse past months — your balance card shows what you actually had on the last day of that month." },
+  { icon:'📋', title:'Ledger & Running Balance',        body:'The Ledger lists every transaction. Each row shows a running balance — what your account held right after that transaction, just like a bank statement. Tap ✏️ to edit a row inline, or swipe left to delete.' },
+  { icon:'🥧', title:'Charts & Category Drill-down',   body:"Tap any bar or pie slice on the dashboard chart to see every transaction in that category for the month. Toggle between Bar and Pie views with the button above the chart." },
+  { icon:'💳', title:'Debt: Credit Cards & Loans',      body:"Add accounts with type Credit or Loan in Settings → Accounts and set the starting balance to what you currently owe. The Debt tab shows each account's balance owed, a payoff progress bar, and full payment history." },
+  { icon:'📑', title:'Bills & Notifications',           body:'Add recurring bills in the Bills tab. The app badges the Bills tab and sends a notification when bills are due within 3 days. Marking a bill paid offers to auto-log it as an expense.' },
+  { icon:'📅', title:'Weekly Planner',                  body:'The Weekly tab calculates how much you can spend per week and per day until your next paycheck, after bills and an optional emergency buffer. Past weeks expand to show every transaction.' },
+  { icon:'⚙️', title:'Settings & Personalization',      body:"Change your app title, font, capitalization, and color theme in Settings. Hide tabs you don't use, move the nav bar to any side, set a PIN lock, and toggle which sections appear on your dashboard." },
 ];
 
 let tutorialSlide = 0;
