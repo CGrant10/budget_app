@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.9.6';
+const VERSION = '2.9.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,13 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.9.7', date: '2026-05-15', changes: [
+    'Font picker: all 14 fonts now appear correctly (group keys were mismatched)',
+    'Font picker preview now actually shows each font — CSS override removed',
+    'Capitalization: option 3 changed to lowercase, option 4 added: Small Caps (Aᴀ)',
+    'About page now shows your custom newicon.png',
+    'Gengar theme: About page shows gengar.png below the main icon',
+  ]},
   { version: '2.9.6', date: '2026-05-15', changes: [
     'New theme: Gengar 👻 — deep purple ghost vibes with shadow accents',
     'New theme: Jurassic Park 🦖 — amber/jungle green, holds onto your butts',
@@ -330,7 +337,13 @@ function applySettings() {
     logo.textContent = s.name || "SlawMinYaw's Budget DAWGs";
     logo.style.fontFamily = s.logoFont || '';
     logo.style.color = s.logoColor || '';
-    logo.style.textTransform = s.logoTransform || '';
+    if (s.logoTransform === 'small-caps') {
+      logo.style.textTransform = '';
+      logo.style.fontVariant = 'small-caps';
+    } else {
+      logo.style.textTransform = s.logoTransform || '';
+      logo.style.fontVariant = '';
+    }
     // When a custom color is chosen, remove the CSS opacity so it shows at full strength
     logo.style.opacity = s.logoColor ? '1' : '';
   }
@@ -1633,11 +1646,9 @@ function renderSettings() {
   ];
 
   const fontGroupDefs = [
-    { key:'grunge',  label:'Grunge / Anime' },
-    { key:'sans',    label:'Sans-serif' },
-    { key:'serif',   label:'Serif' },
+    { key:'anime',   label:'Anime / Cool' },
+    { key:'modern',  label:'Modern' },
     { key:'cursive', label:'Script / Cursive' },
-    { key:'mono',    label:'Mono' },
   ];
   const titlePreview = s.name || "SlawMinYaw's Budget DAWGs";
   const allFontsForPicker = [
@@ -1671,13 +1682,14 @@ function renderSettings() {
 
   const logoTransform = s.logoTransform || '';
   const caps = [
-    { label:'Aa  Normal',    value:'' },
-    { label:'AA  Upper',     value:'uppercase' },
-    { label:'Aa  Title',     value:'capitalize' },
+    { label:'Aa  Normal',     value:'',           style:'text-transform:none' },
+    { label:'AA  Uppercase',  value:'uppercase',  style:'text-transform:uppercase' },
+    { label:'aa  lowercase',  value:'lowercase',  style:'text-transform:lowercase' },
+    { label:'Aᴀ  Small Caps', value:'small-caps', style:'font-variant:small-caps' },
   ];
   const capChips = caps.map(c => `
     <button class="cap-chip${logoTransform === c.value ? ' active' : ''}" data-transform="${c.value}"
-      style="text-transform:${c.value||'none'}">${c.label}</button>`).join('');
+      style="${c.style}">${c.label}</button>`).join('');
 
   const customCatRows = customCats.length ? customCats.map((c, i) => `
     <div class="custom-cat-row">
@@ -1863,7 +1875,15 @@ function attachSettings() {
       s.logoTransform = btn.dataset.transform;
       saveSettings(s);
       const logo = document.querySelector('.logo');
-      if (logo) logo.style.textTransform = s.logoTransform || '';
+      if (logo) {
+        if (s.logoTransform === 'small-caps') {
+          logo.style.textTransform = '';
+          logo.style.fontVariant   = 'small-caps';
+        } else {
+          logo.style.textTransform = s.logoTransform || '';
+          logo.style.fontVariant   = '';
+        }
+      }
       document.querySelectorAll('.cap-chip').forEach(b => b.classList.toggle('active', b === btn));
     });
   });
@@ -1985,10 +2005,12 @@ const QUOTES = [
 ];
 
 function renderAbout() {
-  const quote    = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-  const built    = new Date().getFullYear();
-  const s        = loadSettings();
-  const userName = s.name || null;
+  const quote       = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  const built       = new Date().getFullYear();
+  const s           = loadSettings();
+  const userName    = s.name || null;
+  const activeTheme = s.theme || 'dark';
+  const isGengar    = activeTheme === 'gengar';
   // Only show changelog entries for the current major.minor (e.g. 2.8.x)
   const [major, minor] = VERSION.split('.');
   const verPrefix = `${major}.${minor}.`;
@@ -2007,8 +2029,9 @@ function renderAbout() {
     <div class="page">
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:24px 20px">
-        <img src="app-icon-about.png" alt="$MY Budgeting DAWGS"
-             style="width:90%;height:auto;display:block;margin:8px auto 14px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
+        <img src="newicon.png" alt="Budget DAWGs"
+             style="width:90%;height:auto;display:block;margin:8px auto ${isGengar ? '8px' : '14px'};filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
+        ${isGengar ? `<img src="gengar.png" alt="Gengar" style="width:70%;height:auto;display:block;margin:0 auto 14px;filter:drop-shadow(0 4px 12px rgba(155,95,199,0.5))">` : ''}
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">

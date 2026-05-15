@@ -953,10 +953,8 @@ body.light .alert-toast { background: #f0f0f8; }
 }
 .fp-trigger:hover { border-color: var(--accent); }
 .fp-trigger-preview {
-  font-family: 'Bangers', cursive;
   font-size: 1.05rem;
   color: var(--accent);
-  letter-spacing: .06em;
   flex: 1;
   overflow: hidden;
   white-space: nowrap;
