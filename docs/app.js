@@ -719,7 +719,6 @@ function attachDashboard() {
       attachDashboard();
     };
   }
-}
 
   // Starting balance (first-run card)
   const sbSave = document.getElementById('starting-bal-save');
