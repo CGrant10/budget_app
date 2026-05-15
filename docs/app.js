@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.2.0';
+const VERSION = '3.3.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,13 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.3.0', date: '2026-05-15', changes: [
+    'Month navigator on dashboard: browse spending data for any past month',
+    'Running balance in ledger: each row shows the account balance after that transaction',
+    'Chart tap: tap any bar or pie segment to see all transactions in that category',
+    'inputmode=decimal on all amount inputs for better mobile keyboard experience',
+    'Top spend insight now uses cleaner label with triangle indicator',
+  ]},
   { version: '3.2.0', date: '2026-05-15', changes: [
     'Health score rebuilt: savings rate (50%), balance buffer (25%), bills paid (25%) — no budget limits required',
     'Credit card accounts now subtract from net worth correctly',
@@ -656,6 +663,7 @@ function calcHealthScore() {
 
 // ── tabs ───────────────────────────────────────────────────────────────────
 let currentTab = 'dashboard';
+let dashMonth = new Date().toISOString().slice(0, 7);
 let selectedLedgerIdx = null;
 let ledgerFilter = '';
 let ledgerSort = 'date-desc';
@@ -686,6 +694,37 @@ function showTab(key) {
 // ── chart ──────────────────────────────────────────────────────────────────
 let spendingChart = null;
 
+function showCatModal(cat) {
+  const m = dashMonth;
+  const txns = state.transactions
+    .filter(t => t.type === 'expense' && t.category === cat && t.date.startsWith(m))
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const total = txns.reduce((s, t) => s + t.amount, 0);
+  const catColor = CAT_COLORS[cat] || 'var(--accent)';
+  const rowsHtml = txns.length
+    ? txns.map(t => `<div class="cat-modal-row"><span class="cat-modal-date">${t.date.slice(5)}</span><span class="cat-modal-desc">${t.description}</span><span class="cat-modal-amt">-${fmt(t.amount)}</span></div>`).join('')
+    : '<p style="color:var(--muted);font-size:.85rem;text-align:center;padding:12px">No transactions</p>';
+
+  let overlay = document.getElementById('cat-modal-overlay');
+  if (overlay) overlay.remove();
+  overlay = document.createElement('div');
+  overlay.id = 'cat-modal-overlay';
+  overlay.className = 'cat-modal-overlay';
+  overlay.innerHTML = `
+    <div class="cat-modal-card">
+      <div class="cat-modal-header">
+        <span class="cat-dot" style="background:${catColor}"></span>
+        <span class="cat-modal-title">${cat}</span>
+        <span class="cat-modal-total" style="color:var(--danger)">-${fmt(total)}</span>
+        <button class="cat-modal-close" id="cat-modal-close">✕</button>
+      </div>
+      <div class="cat-modal-rows">${rowsHtml}</div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('cat-modal-close')?.addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
 function getLastSixWeeks() {
   const weeks = [];
   for (let i = 0; i < 6; i++) {
@@ -707,8 +746,8 @@ function getLastSixWeeks() {
   return weeks;
 }
 
-function getMonthCatData() {
-  const m = new Date().toISOString().slice(0, 7);
+function getMonthCatData(monthStr) {
+  const m = monthStr || new Date().toISOString().slice(0, 7);
   const { bycat } = monthTotals(m);
   const entries = Object.entries(bycat).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
   return {
@@ -731,7 +770,7 @@ function attachDashboard() {
   const bgColor   = cs.getPropertyValue('--bg').trim()     || '#0f0f14';
 
   if (dashChartMode === 'bar') {
-    const { labels, data, colors } = getMonthCatData();
+    const { labels, data, colors } = getMonthCatData(dashMonth);
     if (!data.length) {
       const wrap = chartEl.closest('.chart-wrap');
       if (wrap) wrap.innerHTML = '<p class="empty-msg" style="padding:40px 0;text-align:center">No spending this month yet.</p>';
@@ -751,6 +790,11 @@ function attachDashboard() {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          onClick: (event, elements) => {
+            if (!elements.length) return;
+            const cat = labels[elements[0].index];
+            showCatModal(cat);
+          },
           plugins: {
             legend: { display: false },
             tooltip: {
@@ -765,7 +809,7 @@ function attachDashboard() {
       });
     }
   } else {
-    const { labels, data, colors } = getMonthCatData();
+    const { labels, data, colors } = getMonthCatData(dashMonth);
     if (!data.length) {
       const wrap = chartEl.closest('.chart-wrap');
       if (wrap) wrap.innerHTML = '<p class="empty-msg" style="padding:40px 0;text-align:center">No spending this month yet.</p>';
@@ -780,6 +824,11 @@ function attachDashboard() {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          onClick: (event, elements) => {
+            if (!elements.length) return;
+            const cat = labels[elements[0].index];
+            showCatModal(cat);
+          },
           plugins: {
             legend: {
               position: 'right',
@@ -813,6 +862,22 @@ function attachDashboard() {
       });
     }
   }
+
+  // Month navigator handlers
+  document.getElementById('dash-month-prev')?.addEventListener('click', () => {
+    const d = new Date(dashMonth + '-02');
+    d.setMonth(d.getMonth() - 1);
+    dashMonth = d.toISOString().slice(0, 7);
+    render();
+  });
+  document.getElementById('dash-month-next')?.addEventListener('click', () => {
+    const now = new Date().toISOString().slice(0, 7);
+    if (dashMonth >= now) return;
+    const d = new Date(dashMonth + '-02');
+    d.setMonth(d.getMonth() + 1);
+    dashMonth = d.toISOString().slice(0, 7);
+    render();
+  });
 
   // Use onclick to prevent duplicate handlers accumulating across re-renders
   const toggleBtn = document.getElementById('chart-toggle-btn');
@@ -929,11 +994,25 @@ function getNetWorth() {
   return { accounts: items, total };
 }
 
+// ── running balances ──────────────────────────────────────────────────────
+function calcRunningBalances() {
+  const sorted = state.transactions
+    .map((t, i) => ({ ...t, _i: i }))
+    .sort((a, b) => a.date.localeCompare(b.date) || a._i - b._i);
+  let running = state.startingBalance || 0;
+  const map = {};
+  for (const t of sorted) {
+    running += t.type === 'income' ? t.amount : -t.amount;
+    map[t._i] = running;
+  }
+  return map;
+}
+
 // ── spending insights ──────────────────────────────────────────────────────
-function getSpendingInsights() {
-  const now = new Date();
-  const thisM = now.toISOString().slice(0, 7);
-  const lastM = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
+function getSpendingInsights(monthStr) {
+  const refDate = monthStr ? new Date(monthStr + '-02') : new Date();
+  const thisM = monthStr || refDate.toISOString().slice(0, 7);
+  const lastM = new Date(refDate.getFullYear(), refDate.getMonth() - 1, 1).toISOString().slice(0, 7);
   const cur  = monthTotals(thisM);
   const prev = monthTotals(lastM);
   const insights = [];
@@ -956,11 +1035,11 @@ function getSpendingInsights() {
 
   // Biggest category this month
   const cats = Object.entries(cur.bycat).sort((a, b) => b[1] - a[1]);
-  if (cats.length > 0) insights.push(`🏆 Biggest category: ${cats[0][0]} at ${fmt(cats[0][1])}`);
+  if (cats.length > 0) insights.push(`🔺 Top spend: ${cats[0][0]} at ${fmt(cats[0][1])}`);
 
   // Monthly pace
-  const day = now.getDate();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const day = refDate.getDate();
+  const daysInMonth = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0).getDate();
   if (cur.expense > 0 && day < daysInMonth) {
     const pace = (cur.expense / day * daysInMonth).toFixed(2);
     insights.push(`📅 At this pace, you'll spend ${fmt(parseFloat(pace))} this month`);
@@ -998,8 +1077,9 @@ function renderDashboard() {
   const showBreakdown = ds.dashBreakdown !== false;
   const showNetWorth  = ds.dashNetWorth  !== false;
 
-  const { income, expense, bycat } = totals();
-  const balance  = (state.startingBalance || 0) + income - expense;
+  const { income: allIncome, expense: allExpense } = totals();
+  const { income, expense, bycat } = monthTotals(dashMonth);
+  const balance  = (state.startingBalance || 0) + allIncome - allExpense;
   const balColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
   const health   = calcHealthScore();
   const acct = state.accounts.find(a => a.id === currentAccountId);
@@ -1082,7 +1162,7 @@ function renderDashboard() {
   const chartTitle = 'This Month by Category';
   const toggleLabel = dashChartMode === 'bar' ? '🥧 Pie' : '📊 Bar';
 
-  const insights = getSpendingInsights();
+  const insights = getSpendingInsights(dashMonth);
   const insightsHtml = showInsights && insights.length ? `
     <h2 class="section-title">Insights</h2>
     <div class="insights-list">
@@ -1094,6 +1174,11 @@ function renderDashboard() {
       <h1 class="page-title">Dashboard</h1>
       <p class="page-sub">your financial snapshot</p>
       ${firstRunHtml}
+      <div class="dash-month-nav">
+        <button class="dash-month-btn" id="dash-month-prev">‹</button>
+        <span class="dash-month-label">${new Date(dashMonth + '-02').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+        <button class="dash-month-btn" id="dash-month-next" ${dashMonth >= new Date().toISOString().slice(0,7) ? 'disabled' : ''}>›</button>
+      </div>
       <div class="cards-grid">${cardsHtml}</div>
       ${netWorthHtml}
       ${upcomingHtml}
@@ -1125,7 +1210,7 @@ function renderBudgets() {
     return `
       <div class="form-row budget-row">
         <label class="form-label"><span class="cat-dot" style="background:${catColor}"></span>${cat}</label>
-        <input type="number" class="form-input" id="budget-${cat}" placeholder="no limit" value="${state.budgets[cat] || ''}">
+        <input type="number" class="form-input" id="budget-${cat}" placeholder="no limit" value="${state.budgets[cat] || ''}" inputmode="decimal">
         ${progressHtml}
       </div>`;
   }).join('');
@@ -1232,6 +1317,7 @@ function renderLedger() {
     return 0;
   });
 
+  const runBal = calcRunningBalances();
   const rowsHtml = rows.map(t => {
     const sign      = t.type === 'income' ? '+' : '-';
     const cls       = t.type === 'income' ? 'income' : 'expense';
@@ -1251,6 +1337,7 @@ function renderLedger() {
           </div>
           <div class="ledger-right">
             <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
+            <div class="ledger-running-bal">bal: ${fmt(runBal[t._i])}</div>
             <button class="ledger-edit-btn" data-idx="${t._i}" title="Edit">✏️</button>
             <button class="ledger-delete" data-idx="${t._i}">✕</button>
           </div>
@@ -1264,7 +1351,7 @@ function renderLedger() {
             <input type="date" class="form-input ie-date" value="${t.date}">
             <select class="form-input ie-cat">${catOptions}</select>
             <input type="text" class="form-input ie-desc" value="${t.description}" placeholder="Description">
-            <input type="number" class="form-input ie-amount" value="${t.amount}" step="0.01" min="0" placeholder="Amount">
+            <input type="number" class="form-input ie-amount" value="${t.amount}" step="0.01" min="0" placeholder="Amount" inputmode="decimal">
           </div>
           <div class="ie-btns">
             <button class="btn-sm ie-save" data-idx="${t._i}">Save</button>

@@ -1227,3 +1227,25 @@ body.light .alert-toast { background: #f0f0f8; }
 .custom-cat-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
 .custom-cat-row { display: flex; align-items: center; gap: 8px; }
 .custom-cat-name { flex: 1; font-size: .875rem; color: var(--text); }
+
+/* ── month navigator ── */
+.dash-month-nav { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:16px; }
+.dash-month-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; width:32px; height:32px; font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.dash-month-btn:disabled { opacity:.3; cursor:default; }
+.dash-month-label { font-size:.95rem; font-weight:600; color:var(--text); min-width:140px; text-align:center; }
+
+/* ── running balance in ledger ── */
+.ledger-running-bal { font-size:.68rem; color:var(--muted); margin-top:2px; text-align:right; }
+
+/* ── chart category modal ── */
+.cat-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:200; display:flex; align-items:flex-end; justify-content:center; }
+.cat-modal-card { background:var(--surface); border:1px solid var(--border); border-radius:16px 16px 0 0; width:100%; max-width:480px; padding:16px; max-height:70vh; display:flex; flex-direction:column; }
+.cat-modal-header { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.cat-modal-title { font-size:1rem; font-weight:700; color:var(--text); flex:1; }
+.cat-modal-total { font-size:.95rem; font-weight:600; }
+.cat-modal-close { background:none; border:none; color:var(--muted); font-size:1.1rem; cursor:pointer; padding:4px; margin-left:4px; }
+.cat-modal-rows { overflow-y:auto; flex:1; }
+.cat-modal-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); }
+.cat-modal-date { font-size:.78rem; color:var(--muted); min-width:40px; }
+.cat-modal-desc { flex:1; font-size:.85rem; color:var(--text); }
+.cat-modal-amt { font-size:.88rem; color:var(--danger); font-weight:600; }
