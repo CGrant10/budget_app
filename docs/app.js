@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.6.0';
+const VERSION = '2.6.1';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 const CAT_COLORS = {
@@ -134,7 +134,7 @@ const NAV_ITEMS = [
 function applySettings() {
   const s = loadSettings();
   const logo = document.querySelector('.logo');
-  if (logo) logo.textContent = s.name ? s.name + "'s Budget" : 'SlawMinYaw';
+  if (logo) logo.textContent = s.name || 'SlawMinYaw';
   applyNavPosition(s.navPosition || 'bottom');
   applyNavItems(s.hiddenTabs || []);
   applyTheme(s.theme || 'dark');
@@ -408,17 +408,17 @@ function attachDashboard() {
       data: {
         labels: weeks.map(w => w.label),
         datasets: [
-          { label: 'Income',   data: weeks.map(w => w.income),  backgroundColor: '#4ecb8d' },
-          { label: 'Expenses', data: weeks.map(w => w.expense), backgroundColor: '#f7936a' },
+          { label: 'Income',   data: weeks.map(w => w.income),  backgroundColor: '#4ecb8d', borderRadius: 4 },
+          { label: 'Expenses', data: weeks.map(w => w.expense), backgroundColor: '#f7936a', borderRadius: 4 },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#e8e6f0', font: { family: 'Courier New', size: 11 } } } },
+        plugins: { legend: { labels: { color: '#e8e6f0', font: { size: 12 } } } },
         scales: {
-          x: { ticks: { color: '#7a7890', font: { family: 'Courier New', size: 10 } }, grid: { color: '#2e2e40' } },
-          y: { ticks: { color: '#7a7890', font: { family: 'Courier New', size: 10 }, callback: v => '$' + v }, grid: { color: '#2e2e40' } },
+          x: { ticks: { color: '#b0aec8', font: { size: 11 } }, grid: { color: '#2e2e40' } },
+          y: { ticks: { color: '#b0aec8', font: { size: 11 }, callback: v => '$' + v }, grid: { color: '#2e2e40' } },
         },
       },
     });
@@ -427,41 +427,64 @@ function attachDashboard() {
     if (!data.length) {
       const wrap = chartEl.closest('.chart-wrap');
       if (wrap) wrap.innerHTML = '<p class="empty-msg" style="padding:40px 0;text-align:center">No spending this month yet.</p>';
-      return;
-    }
-    spendingChart = new Chart(chartEl, {
-      type: 'doughnut',
-      data: {
-        labels,
-        datasets: [{ data, backgroundColor: colors, borderColor: '#0f0f14', borderWidth: 2 }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'right',
-            labels: { color: '#e8e6f0', font: { family: 'Courier New', size: 10 }, boxWidth: 12, padding: 8 },
-          },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: $${Number(ctx.raw).toFixed(2)}` } },
+    } else {
+      const total = data.reduce((s, v) => s + v, 0);
+      spendingChart = new Chart(chartEl, {
+        type: 'pie',
+        data: {
+          labels,
+          datasets: [{ data, backgroundColor: colors, borderColor: '#1a1a24', borderWidth: 3 }],
         },
-      },
-    });
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#e8e6f0',
+                font: { size: 12 },
+                boxWidth: 14,
+                padding: 12,
+                generateLabels: (chart) => {
+                  const ds = chart.data.datasets[0];
+                  return chart.data.labels.map((lbl, i) => ({
+                    text: `${lbl}  ${fmt(ds.data[i])}  (${((ds.data[i]/total)*100).toFixed(0)}%)`,
+                    fillStyle: ds.backgroundColor[i],
+                    strokeStyle: ds.backgroundColor[i],
+                    lineWidth: 0,
+                    index: i,
+                  }));
+                },
+              },
+            },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}  (${((ctx.raw/total)*100).toFixed(1)}%)`,
+              },
+            },
+          },
+        },
+      });
+    }
   }
 
-  document.getElementById('chart-toggle-btn')?.addEventListener('click', () => {
-    dashChartMode = dashChartMode === 'bar' ? 'pie' : 'bar';
-    if (spendingChart) { spendingChart.destroy(); spendingChart = null; }
-    const wrap = document.querySelector('.chart-wrap');
-    if (wrap && !wrap.querySelector('canvas')) {
-      wrap.innerHTML = '<canvas id="spending-chart"></canvas>';
-    }
-    const btn = document.getElementById('chart-toggle-btn');
-    if (btn) btn.textContent = dashChartMode === 'bar' ? '🥧 Pie' : '📊 Bar';
-    const titleEl = document.querySelector('.chart-section-title');
-    if (titleEl) titleEl.textContent = dashChartMode === 'bar' ? 'Spending — Last 6 Weeks' : 'This Month by Category';
-    attachDashboard();
-  });
+  // Use onclick to prevent duplicate handlers accumulating across re-renders
+  const toggleBtn = document.getElementById('chart-toggle-btn');
+  if (toggleBtn) {
+    toggleBtn.onclick = () => {
+      dashChartMode = dashChartMode === 'bar' ? 'pie' : 'bar';
+      if (spendingChart) { spendingChart.destroy(); spendingChart = null; }
+      // Always rebuild a fresh canvas to avoid Chart.js state issues
+      const wrap = document.querySelector('.chart-wrap');
+      if (wrap) wrap.innerHTML = '<canvas id="spending-chart"></canvas>';
+      const btn = document.getElementById('chart-toggle-btn');
+      if (btn) btn.textContent = dashChartMode === 'bar' ? '🥧 Pie' : '📊 Bar';
+      const titleEl = document.querySelector('.chart-section-title');
+      if (titleEl) titleEl.textContent = dashChartMode === 'bar' ? 'Spending — Last 6 Weeks' : 'This Month by Category';
+      attachDashboard();
+    };
+  }
 }
 
 // ── milestones ─────────────────────────────────────────────────────────────
@@ -1226,8 +1249,8 @@ function renderSettings() {
       <div class="form-card">
         <h2 class="section-title" style="margin-bottom:8px">Personalize</h2>
         <div class="form-row">
-          <label class="form-label">Your name</label>
-          <input type="text" id="setting-name" class="form-input" value="${s.name || ''}" placeholder="e.g. Cole">
+          <label class="form-label">App title</label>
+          <input type="text" id="setting-name" class="form-input" value="${s.name || ''}" placeholder="e.g. Cole's Finances">
         </div>
         <div class="btn-row">
           <button id="settings-save" class="btn-primary">Save</button>
@@ -1370,15 +1393,13 @@ function renderAbout() {
   const quote    = QUOTES[Math.floor(Math.random() * QUOTES.length)];
   const built    = new Date().getFullYear();
   const s        = loadSettings();
-  const userName = s.name ? `${s.name}'s Budget` : null;
+  const userName = s.name || null;
   return `
     <div class="page">
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:28px 20px">
         <img src="icon-192.png" alt="$MY Budgeting DAWGS" style="width:96px;height:96px;border-radius:20px;margin-bottom:12px;object-fit:cover;box-shadow:0 4px 18px rgba(0,0,0,0.35)">
-        ${userName ? `<div style="font-size:1.5rem;font-weight:700;color:var(--accent)">${userName}</div><div style="font-size:.8rem;color:var(--muted);margin-bottom:4px">Powered by</div>` : ''}
-        <div style="font-size:${userName?'1.1rem':'1.5rem'};font-weight:700;color:var(--accent)">SlawMinYaw</div>
-        <div style="font-size:.85rem;color:var(--muted);margin-bottom:16px">money moves</div>
+        ${userName ? `<div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:2px">${userName}</div><div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">Powered by SlawMinYaw</div>` : `<div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:8px">SlawMinYaw</div>`}
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">

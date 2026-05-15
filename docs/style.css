@@ -22,7 +22,7 @@ html, body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: "Courier New", monospace;
+  font-family: 'Outfit', sans-serif;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
@@ -316,7 +316,7 @@ html, body {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 4px 8px;
-  font-family: 'Courier New', monospace;
+  font-family: 'Outfit', sans-serif;
   font-size: 11px;
   cursor: pointer;
   max-width: 120px;
