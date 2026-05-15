@@ -315,7 +315,10 @@ function runAnim(title, titleColor, frameFn, amount) {
 
   titleEl.textContent  = title;
   titleEl.style.color  = titleColor;
-  dismiss.textContent  = amount < 0 ? 'me money...' : (titleColor==='#f76a6a' ? 'rip' : "let's go");
+  overlay.querySelector('.anim-card').style.borderTopColor = titleColor;
+  const dismissLabels = { expense: ['rip 💸', 'ouch 🤕', 'there it goes...', 'my wallet...'], income: ["let's go 💰", 'cha-ching! 🤑', 'get money 💵', 'bag secured 🎒'] };
+  const pool = titleColor === '#f76a6a' ? dismissLabels.expense : dismissLabels.income;
+  dismiss.textContent  = pool[Math.floor(Math.random() * pool.length)];
   overlay.classList.remove('hidden');
 
   let f=0;

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.9.4';
+const VERSION = '2.9.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,8 +9,14 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.9.5', date: '2026-05-15', changes: [
+    'Font list overhauled: 14 curated fonts in Anime, Modern, and Cursive groups',
+    'App title drop shadow replaced glow — diagonal offset shadow, no bloom',
+    'Transaction animation popup redesigned: blurred backdrop, accent border, Bangers title, randomized dismiss labels',
+    'About page icon enlarged to 90%',
+  ]},
   { version: '2.9.4', date: '2026-05-15', changes: [
-    'App title now uses accent color with a neon glow — feels like part of the theme',
+    'App title now uses accent color with a diagonal drop shadow — feels like part of the theme',
     'Font picker replaced with live preview dropdown: hover any font to instantly see your title in it',
     'About page icon sized to 60% of its card',
   ]},
@@ -1586,33 +1592,23 @@ function renderSettings() {
     </button>`).join('');
 
   const fonts = [
-    // — Grunge / Anime —
-    { label:'Bangers',          value:'Bangers, cursive',                style:'font-family:"Bangers",cursive;letter-spacing:.08em',     group:'grunge' },
-    { label:'Russo One',        value:'Russo One, sans-serif',           style:'font-family:"Russo One",sans-serif',                     group:'grunge' },
-    { label:'Righteous',        value:'Righteous, cursive',              style:'font-family:"Righteous",cursive',                       group:'grunge' },
-    { label:'Exo 2',            value:'Exo 2, sans-serif',               style:'font-family:"Exo 2",sans-serif;font-weight:700',         group:'grunge' },
-    { label:'Permanent Marker', value:'Permanent Marker, cursive',       style:'font-family:"Permanent Marker",cursive',                group:'grunge' },
-    { label:'Boogaloo',         value:'Boogaloo, cursive',               style:'font-family:"Boogaloo",cursive',                        group:'grunge' },
-    // — Modern sans-serif —
-    { label:'Outfit',           value:'Outfit, sans-serif',              style:'font-family:"Outfit",sans-serif',                       group:'sans' },
-    { label:'Inter',            value:'Inter, sans-serif',               style:'font-family:"Inter",sans-serif',                        group:'sans' },
-    { label:'DM Sans',          value:'DM Sans, sans-serif',             style:'font-family:"DM Sans",sans-serif',                      group:'sans' },
-    { label:'Raleway',          value:'Raleway, sans-serif',             style:'font-family:"Raleway",sans-serif;font-weight:600',       group:'sans' },
-    { label:'Josefin Sans',     value:'Josefin Sans, sans-serif',        style:'font-family:"Josefin Sans",sans-serif;letter-spacing:.05em', group:'sans' },
-    { label:'Nunito',           value:'Nunito, sans-serif',              style:'font-family:"Nunito",sans-serif;font-weight:700',        group:'sans' },
-    { label:'Space Grotesk',    value:'Space Grotesk, sans-serif',       style:'font-family:"Space Grotesk",sans-serif',                group:'sans' },
-    // — Serif —
-    { label:'Playfair',         value:'Playfair Display, serif',         style:'font-family:"Playfair Display",serif',                  group:'serif' },
-    { label:'Cormorant',        value:'Cormorant Garamond, serif',       style:'font-family:"Cormorant Garamond",serif;font-weight:600', group:'serif' },
-    { label:'Georgia',          value:'Georgia, serif',                  style:'font-family:Georgia,serif',                             group:'serif' },
-    // — Script / Cursive —
-    { label:'Dancing Script',   value:'Dancing Script, cursive',         style:'font-family:"Dancing Script",cursive;font-weight:700',  group:'cursive' },
-    { label:'Pacifico',         value:'Pacifico, cursive',               style:'font-family:"Pacifico",cursive',                        group:'cursive' },
-    { label:'Satisfy',          value:'Satisfy, cursive',                style:'font-family:"Satisfy",cursive',                         group:'cursive' },
-    { label:'Great Vibes',      value:'Great Vibes, cursive',            style:'font-family:"Great Vibes",cursive',                     group:'cursive' },
-    { label:'Lobster',          value:'Lobster, cursive',                style:'font-family:"Lobster",cursive',                         group:'cursive' },
-    // — Mono —
-    { label:'Mono',             value:'monospace',                       style:'font-family:monospace',                                 group:'mono' },
+    // — Anime / Cool —
+    { label:'Bangers',           value:'Bangers, cursive',               style:'font-family:"Bangers",cursive;letter-spacing:.08em',        group:'anime' },
+    { label:'Russo One',         value:'Russo One, sans-serif',          style:'font-family:"Russo One",sans-serif',                        group:'anime' },
+    { label:'Orbitron',          value:'Orbitron, sans-serif',           style:'font-family:"Orbitron",sans-serif;font-weight:700',          group:'anime' },
+    { label:'Audiowide',         value:'Audiowide, sans-serif',          style:'font-family:"Audiowide",sans-serif',                        group:'anime' },
+    { label:'Chakra Petch',      value:'Chakra Petch, sans-serif',       style:'font-family:"Chakra Petch",sans-serif;font-weight:700',      group:'anime' },
+    // — Modern —
+    { label:'Poppins',           value:'Poppins, sans-serif',            style:'font-family:"Poppins",sans-serif;font-weight:600',           group:'modern' },
+    { label:'Montserrat',        value:'Montserrat, sans-serif',         style:'font-family:"Montserrat",sans-serif;font-weight:700',        group:'modern' },
+    { label:'Raleway',           value:'Raleway, sans-serif',            style:'font-family:"Raleway",sans-serif;font-weight:600',           group:'modern' },
+    { label:'Plus Jakarta Sans', value:'Plus Jakarta Sans, sans-serif',  style:'font-family:"Plus Jakarta Sans",sans-serif;font-weight:600', group:'modern' },
+    // — Cursive / Script —
+    { label:'Dancing Script',    value:'Dancing Script, cursive',        style:'font-family:"Dancing Script",cursive;font-weight:700',       group:'cursive' },
+    { label:'Great Vibes',       value:'Great Vibes, cursive',           style:'font-family:"Great Vibes",cursive',                         group:'cursive' },
+    { label:'Sacramento',        value:'Sacramento, cursive',            style:'font-family:"Sacramento",cursive;font-size:1.2em',           group:'cursive' },
+    { label:'Pacifico',          value:'Pacifico, cursive',              style:'font-family:"Pacifico",cursive',                            group:'cursive' },
+    { label:'Satisfy',           value:'Satisfy, cursive',               style:'font-family:"Satisfy",cursive',                             group:'cursive' },
   ];
 
   const fontGroupDefs = [
@@ -1991,7 +1987,7 @@ function renderAbout() {
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:24px 20px">
         <img src="app-icon-about.png" alt="$MY Budgeting DAWGS"
-             style="width:60%;height:auto;display:block;margin:8px auto 14px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
+             style="width:90%;height:auto;display:block;margin:8px auto 14px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
