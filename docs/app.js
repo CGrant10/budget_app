@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.5.5';
+const VERSION = '2.5.6';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 const CAT_COLORS = {
