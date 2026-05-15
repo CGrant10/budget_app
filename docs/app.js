@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.9.3';
+const VERSION = '2.9.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.9.4', date: '2026-05-15', changes: [
+    'App title now uses accent color with a neon glow — feels like part of the theme',
+    'Font picker replaced with live preview dropdown: hover any font to instantly see your title in it',
+    'About page icon sized to 60% of its card',
+  ]},
   { version: '2.9.3', date: '2026-05-15', changes: [
     'Nav tabs: tapping any tab now bursts a shower of $ and 💸 particles',
   ]},
@@ -1617,15 +1622,35 @@ function renderSettings() {
     { key:'cursive', label:'Script / Cursive' },
     { key:'mono',    label:'Mono' },
   ];
-  const fontOptGroups = fontGroupDefs.map(g => {
-    const opts = fonts.filter(f => f.group === g.key).map(f =>
-      `<option value="${f.value}"${logoFont === f.value ? ' selected' : ''}>${f.label}</option>`
-    ).join('');
-    return `<optgroup label="${g.label}">${opts}</optgroup>`;
+  const titlePreview = s.name || "SlawMinYaw's Budget DAWGs";
+  const allFontsForPicker = [
+    { label:'Default', value:'', style:'' },
+    ...fonts,
+  ];
+  const fontPickerOptions = fontGroupDefs.map(g => {
+    const items = fonts.filter(f => f.group === g.key).map(f => `
+      <div class="fp-option${logoFont === f.value ? ' active' : ''}" data-font="${f.value}" data-style="${f.style}">
+        <span class="fp-opt-name">${f.label}</span>
+        <span class="fp-opt-preview" style="${f.style}">${titlePreview}</span>
+      </div>`).join('');
+    return `<div class="fp-group-label">${g.label}</div>${items}`;
   }).join('');
-  const fontSelect = `<select id="logo-font-select" class="form-input font-select">${
-    `<option value=""${!logoFont ? ' selected' : ''}>Default (Outfit)</option>`
-  }${fontOptGroups}</select>`;
+  const currentFont    = allFontsForPicker.find(f => f.value === logoFont) || allFontsForPicker[0];
+  const fontSelect = `
+    <div class="fp-picker" id="fp-picker">
+      <div class="fp-trigger" id="fp-trigger">
+        <span class="fp-trigger-preview" style="${currentFont.style || ''}">${titlePreview}</span>
+        <span class="fp-trigger-label">${currentFont.label}</span>
+        <span class="fp-arrow">▾</span>
+      </div>
+      <div class="fp-panel hidden" id="fp-panel">
+        <div class="fp-option${!logoFont ? ' active' : ''}" data-font="" data-style="">
+          <span class="fp-opt-name">Default</span>
+          <span class="fp-opt-preview">${titlePreview}</span>
+        </div>
+        ${fontPickerOptions}
+      </div>
+    </div>`;
 
   const logoTransform = s.logoTransform || '';
   const caps = [
@@ -1772,17 +1797,47 @@ function attachSettings() {
     render();
   });
 
-  // Font dropdown — immediate apply + save
-  const fontSel = document.getElementById('logo-font-select');
-  if (fontSel) {
-    fontSel.addEventListener('change', () => {
-      const s = loadSettings();
-      s.logoFont = fontSel.value;
-      saveSettings(s);
-      const logo = document.querySelector('.logo');
-      if (logo) logo.style.fontFamily = s.logoFont || '';
+  // Custom font picker
+  const fpTrigger = document.getElementById('fp-trigger');
+  const fpPanel   = document.getElementById('fp-panel');
+  const logo      = document.querySelector('.logo');
+
+  fpTrigger?.addEventListener('click', () => {
+    fpPanel?.classList.toggle('hidden');
+  });
+
+  // Close panel when clicking outside
+  document.addEventListener('click', function fpOutside(e) {
+    if (!document.getElementById('fp-picker')?.contains(e.target)) {
+      fpPanel?.classList.add('hidden');
+      document.removeEventListener('click', fpOutside);
+    }
+  });
+
+  fpPanel?.querySelectorAll('.fp-option').forEach(opt => {
+    // Hover → live preview
+    opt.addEventListener('mouseenter', () => {
+      if (logo) logo.style.fontFamily = opt.dataset.font || '';
     });
-  }
+    opt.addEventListener('mouseleave', () => {
+      const saved = loadSettings().logoFont || '';
+      if (logo) logo.style.fontFamily = saved;
+    });
+    // Click → save
+    opt.addEventListener('click', () => {
+      const s = loadSettings();
+      s.logoFont = opt.dataset.font;
+      saveSettings(s);
+      if (logo) logo.style.fontFamily = s.logoFont || '';
+      fpPanel.classList.add('hidden');
+      fpPanel.querySelectorAll('.fp-option').forEach(o => o.classList.toggle('active', o === opt));
+      // Update trigger preview
+      const prev = document.querySelector('.fp-trigger-preview');
+      const lbl  = document.querySelector('.fp-trigger-label');
+      if (prev) { prev.style.cssText = opt.dataset.style || ''; prev.textContent = opt.querySelector('.fp-opt-preview').textContent; }
+      if (lbl)  lbl.textContent = opt.querySelector('.fp-opt-name').textContent;
+    });
+  });
 
   // Capitalization chips — immediate apply + save
   document.querySelectorAll('.cap-chip').forEach(btn => {
@@ -1936,7 +1991,7 @@ function renderAbout() {
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:24px 20px">
         <img src="app-icon-about.png" alt="$MY Budgeting DAWGS"
-             style="width:100%;height:auto;display:block;margin:0 auto 12px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
+             style="width:60%;height:auto;display:block;margin:8px auto 14px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
