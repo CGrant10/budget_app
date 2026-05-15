@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.3.0';
+const VERSION = '3.3.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.3.1', date: '2026-05-15', changes: [
+    'Monthly pace insight no longer shows on past months (refDate was day 2 of that month, making math explode)',
+    'All inputs now show a Done checkmark on mobile keyboard instead of Next (enterkeyhint=done)',
+  ]},
   { version: '3.3.0', date: '2026-05-15', changes: [
     'Month navigator on dashboard: browse spending data for any past month',
     'Running balance in ledger: each row shows the account balance after that transaction',
@@ -1037,12 +1041,16 @@ function getSpendingInsights(monthStr) {
   const cats = Object.entries(cur.bycat).sort((a, b) => b[1] - a[1]);
   if (cats.length > 0) insights.push(`🔺 Top spend: ${cats[0][0]} at ${fmt(cats[0][1])}`);
 
-  // Monthly pace
-  const day = refDate.getDate();
-  const daysInMonth = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0).getDate();
-  if (cur.expense > 0 && day < daysInMonth) {
-    const pace = (cur.expense / day * daysInMonth).toFixed(2);
-    insights.push(`📅 At this pace, you'll spend ${fmt(parseFloat(pace))} this month`);
+  // Monthly pace — only meaningful for the current month
+  const currentM = new Date().toISOString().slice(0, 7);
+  if (thisM === currentM) {
+    const now2 = new Date();
+    const day = now2.getDate();
+    const daysInMonth = new Date(now2.getFullYear(), now2.getMonth() + 1, 0).getDate();
+    if (cur.expense > 0 && day < daysInMonth) {
+      const pace = (cur.expense / day * daysInMonth).toFixed(2);
+      insights.push(`📅 At this pace, you'll spend ${fmt(parseFloat(pace))} this month`);
+    }
   }
 
   return insights;
@@ -1066,6 +1074,8 @@ function render() {
   }
   attachHandlers();
   updateBillBadge();
+  // Show "Done" checkmark on mobile keyboard for all text/number inputs
+  document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="date"])').forEach(el => el.setAttribute('enterkeyhint', 'done'));
 }
 
 // ── dashboard ──────────────────────────────────────────────────────────────
