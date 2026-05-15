@@ -905,9 +905,18 @@ body.light .alert-toast { background: #f0f0f8; }
 .theme-check { font-size: .85rem; color: var(--accent); font-weight: 700; }
 
 /* ── font chips ───────────────────────────────────────────────────────────── */
-.font-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.font-groups { display: flex; flex-direction: column; gap: 10px; }
+.font-group-label {
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.font-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
 .font-chip {
-  padding: 8px 14px;
+  padding: 8px 12px;
   text-align: center;
   border: 1px solid var(--border);
   border-radius: 20px;
@@ -916,8 +925,30 @@ body.light .alert-toast { background: #f0f0f8; }
   cursor: pointer;
   font-size: .9rem;
   transition: border-color .15s, background .15s, color .15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .font-chip.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── capitalization chips ─────────────────────────────────────────────────── */
+.cap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.cap-chip {
+  padding: 8px 10px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: .82rem;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.cap-chip.active {
   border-color: var(--accent);
   background: var(--accent);
   color: #fff;

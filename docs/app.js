@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.7.8';
+const VERSION = '2.7.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.7.9', date: '2026-05-15', changes: [
+    'About icon now has a subtle drop shadow for definition and clarity',
+    'Font picker expanded: added cursive/script options — Dancing Script, Pacifico, Satisfy, Great Vibes, Lobster',
+    'Added modern extras: Raleway, Josefin Sans, Cormorant Garamond',
+    'New capitalization option for the app title: Normal, UPPER, or Title Case',
+  ]},
   { version: '2.7.8', date: '2026-05-15', changes: [
     'Removed Moss (green) theme — conflicts with the logo color',
     'About page always shows in Dark or Light colors regardless of active theme',
@@ -249,6 +255,7 @@ function applySettings() {
     logo.textContent = s.name || 'SlawMinYaw';
     logo.style.fontFamily = s.logoFont || '';
     logo.style.color = s.logoColor || '';
+    logo.style.textTransform = s.logoTransform || '';
     // When a custom color is chosen, remove the CSS opacity so it shows at full strength
     logo.style.opacity = s.logoColor ? '1' : '';
   }
@@ -1489,18 +1496,50 @@ function renderSettings() {
     </button>`).join('');
 
   const fonts = [
-    { label:'Outfit',         value:'Outfit, sans-serif',          style:'font-family:"Outfit",sans-serif' },
-    { label:'Inter',          value:'Inter, sans-serif',           style:'font-family:"Inter",sans-serif' },
-    { label:'DM Sans',        value:'DM Sans, sans-serif',         style:'font-family:"DM Sans",sans-serif' },
-    { label:'Nunito',         value:'Nunito, sans-serif',          style:'font-family:"Nunito",sans-serif;font-weight:700' },
-    { label:'Space Grotesk',  value:'Space Grotesk, sans-serif',   style:'font-family:"Space Grotesk",sans-serif' },
-    { label:'Playfair',       value:'Playfair Display, serif',     style:'font-family:"Playfair Display",serif' },
-    { label:'Georgia',        value:'Georgia, serif',              style:'font-family:Georgia,serif' },
-    { label:'Mono',           value:'monospace',                   style:'font-family:monospace' },
+    // — Modern sans-serif —
+    { label:'Outfit',           value:'Outfit, sans-serif',              style:'font-family:"Outfit",sans-serif',                       group:'sans' },
+    { label:'Inter',            value:'Inter, sans-serif',               style:'font-family:"Inter",sans-serif',                        group:'sans' },
+    { label:'DM Sans',          value:'DM Sans, sans-serif',             style:'font-family:"DM Sans",sans-serif',                      group:'sans' },
+    { label:'Raleway',          value:'Raleway, sans-serif',             style:'font-family:"Raleway",sans-serif;font-weight:600',       group:'sans' },
+    { label:'Josefin Sans',     value:'Josefin Sans, sans-serif',        style:'font-family:"Josefin Sans",sans-serif;letter-spacing:.05em', group:'sans' },
+    { label:'Nunito',           value:'Nunito, sans-serif',              style:'font-family:"Nunito",sans-serif;font-weight:700',        group:'sans' },
+    { label:'Space Grotesk',    value:'Space Grotesk, sans-serif',       style:'font-family:"Space Grotesk",sans-serif',                group:'sans' },
+    // — Serif —
+    { label:'Playfair',         value:'Playfair Display, serif',         style:'font-family:"Playfair Display",serif',                  group:'serif' },
+    { label:'Cormorant',        value:'Cormorant Garamond, serif',       style:'font-family:"Cormorant Garamond",serif;font-weight:600', group:'serif' },
+    { label:'Georgia',          value:'Georgia, serif',                  style:'font-family:Georgia,serif',                             group:'serif' },
+    // — Script / Cursive —
+    { label:'Dancing Script',   value:'Dancing Script, cursive',         style:'font-family:"Dancing Script",cursive;font-weight:700',  group:'cursive' },
+    { label:'Pacifico',         value:'Pacifico, cursive',               style:'font-family:"Pacifico",cursive',                        group:'cursive' },
+    { label:'Satisfy',          value:'Satisfy, cursive',                style:'font-family:"Satisfy",cursive',                         group:'cursive' },
+    { label:'Great Vibes',      value:'Great Vibes, cursive',            style:'font-family:"Great Vibes",cursive',                     group:'cursive' },
+    { label:'Lobster',          value:'Lobster, cursive',                style:'font-family:"Lobster",cursive',                         group:'cursive' },
+    // — Mono —
+    { label:'Mono',             value:'monospace',                       style:'font-family:monospace',                                 group:'mono' },
   ];
-  const fontChips = fonts.map(f => `
-    <button class="font-chip${logoFont === f.value ? ' active' : ''}" data-font="${f.value}"
-      style="${f.style}">${f.label}</button>`).join('');
+
+  const fontGroups = [
+    { key:'sans',    label:'Sans-serif' },
+    { key:'serif',   label:'Serif' },
+    { key:'cursive', label:'Script / Cursive' },
+    { key:'mono',    label:'Mono' },
+  ];
+  const fontChips = fontGroups.map(g => {
+    const chips = fonts.filter(f => f.group === g.key).map(f => `
+      <button class="font-chip${logoFont === f.value ? ' active' : ''}" data-font="${f.value}"
+        style="${f.style}">${f.label}</button>`).join('');
+    return `<div class="font-group-label">${g.label}</div><div class="font-grid">${chips}</div>`;
+  }).join('');
+
+  const logoTransform = s.logoTransform || '';
+  const caps = [
+    { label:'Aa  Normal',    value:'' },
+    { label:'AA  Upper',     value:'uppercase' },
+    { label:'Aa  Title',     value:'capitalize' },
+  ];
+  const capChips = caps.map(c => `
+    <button class="cap-chip${logoTransform === c.value ? ' active' : ''}" data-transform="${c.value}"
+      style="text-transform:${c.value||'none'}">${c.label}</button>`).join('');
 
   const customCatRows = customCats.length ? customCats.map((c, i) => `
     <div class="custom-cat-row">
@@ -1520,7 +1559,11 @@ function renderSettings() {
         </div>
         <div class="form-row">
           <label class="form-label">Title font</label>
-          <div class="font-grid">${fontChips}</div>
+          <div class="font-groups">${fontChips}</div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Capitalization</label>
+          <div class="cap-grid">${capChips}</div>
         </div>
         <div class="form-row" style="align-items:center">
           <label class="form-label">Title color</label>
@@ -1622,6 +1665,18 @@ function attachSettings() {
       const logo = document.querySelector('.logo');
       if (logo) logo.style.fontFamily = s.logoFont;
       document.querySelectorAll('.font-chip').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  // Capitalization chips — immediate apply + save
+  document.querySelectorAll('.cap-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = loadSettings();
+      s.logoTransform = btn.dataset.transform;
+      saveSettings(s);
+      const logo = document.querySelector('.logo');
+      if (logo) logo.style.textTransform = s.logoTransform || '';
+      document.querySelectorAll('.cap-chip').forEach(b => b.classList.toggle('active', b === btn));
     });
   });
 
@@ -1762,7 +1817,7 @@ function renderAbout() {
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:24px 20px">
         <img src="app-icon-about.png" alt="$MY Budgeting DAWGS"
-             style="width:100%;max-width:340px;height:auto;display:block;margin:0 auto 20px">
+             style="width:100%;max-width:340px;height:auto;display:block;margin:0 auto 20px;filter:drop-shadow(0 4px 18px rgba(0,0,0,0.55)) drop-shadow(0 1px 4px rgba(0,0,0,0.35));image-rendering:-webkit-optimize-contrast">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
