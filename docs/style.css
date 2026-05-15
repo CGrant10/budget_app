@@ -617,6 +617,138 @@ html, body {
   cursor: pointer;
 }
 
+/* ── category dot ────────────────────────────────────────────────────────── */
+.cat-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* ── spending alert toast ─────────────────────────────────────────────────── */
+.alert-toast {
+  position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+  background: #1a1a24; border: 1px solid var(--warn); border-radius: 12px;
+  padding: 14px 20px; max-width: 320px; text-align: center;
+  color: var(--warn); font-size: 13px; z-index: 201;
+  animation: toastIn .3s ease; pointer-events: none;
+}
+
+/* ── chart header ─────────────────────────────────────────────────────────── */
+.chart-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 20px 0 8px;
+}
+
+/* ── btn-xs ───────────────────────────────────────────────────────────────── */
+.btn-xs {
+  background: var(--surface); color: var(--accent);
+  border: 1px solid var(--accent); border-radius: 6px;
+  padding: 5px 12px; font-family: "Courier New", monospace;
+  font-size: 11px; cursor: pointer; white-space: nowrap;
+}
+.btn-xs:active { opacity: .8; }
+
+/* ── bills ────────────────────────────────────────────────────────────────── */
+.bill-badge {
+  font-size: 9px; padding: 2px 7px; border-radius: 4px;
+  font-weight: bold; white-space: nowrap;
+}
+.bill-badge.due-today     { background: var(--warn);    color: #111; }
+.bill-badge.overdue       { background: var(--danger);  color: white; }
+.bill-badge.due-soon      { background: var(--accent2); color: #111; }
+.bill-badge.upcoming-soon { background: var(--accent2); color: #111; opacity: .75; }
+.bill-badge.upcoming      { background: var(--border);  color: var(--muted); }
+.bill-badge.paid          { background: var(--success); color: #111; }
+
+.bills-list { display: flex; flex-direction: column; gap: 6px; }
+.bill-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; background: var(--card); border-radius: 10px;
+}
+.bill-name { flex: 1; font-size: 13px; color: var(--text); }
+.bill-amt  { font-size: 13px; color: var(--accent2); font-weight: 600; }
+
+.bill-card {
+  background: var(--card); border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 8px;
+}
+.bill-card-main {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.bill-card-info  { flex: 1; }
+.bill-card-name  { font-size: 14px; color: var(--text); font-weight: 600; }
+.bill-card-meta  { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.bill-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.bill-card-amt   { font-size: 15px; color: var(--accent2); font-weight: bold; }
+.bill-card-actions { display: flex; gap: 8px; }
+
+/* ── goals ────────────────────────────────────────────────────────────────── */
+.goals-list { display: flex; flex-direction: column; }
+.goal-card {
+  background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 10px;
+}
+.goal-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+}
+.goal-name    { font-size: 15px; font-weight: 600; color: var(--text); }
+.goal-amounts { font-size: 14px; color: var(--text); margin-bottom: 2px; }
+.goal-of      { font-size: 12px; color: var(--muted); }
+.goal-pct     { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+.goal-add-row { display: flex; gap: 8px; align-items: center; }
+
+/* ── health card ──────────────────────────────────────────────────────────── */
+.health-card {
+  background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+  padding: 20px 16px 16px;
+}
+.health-header {
+  display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px;
+}
+.health-title       { font-size: 10px; color: var(--muted); letter-spacing: .08em; margin-bottom: 2px; }
+.health-sub         { font-size: 10px; color: var(--muted); }
+.health-score-block { text-align: center; }
+.health-score       { font-family: Georgia, serif; font-size: 36px; font-weight: bold; line-height: 1; }
+.health-grade       { font-size: 12px; font-weight: bold; margin-top: 2px; }
+.health-bars        { display: flex; flex-direction: column; gap: 10px; }
+.health-bar-row     { display: grid; grid-template-columns: 130px 1fr 50px; align-items: center; gap: 8px; }
+.health-bar-label   { font-size: 11px; color: var(--muted); }
+.health-bar-score   { font-size: 11px; color: var(--text); text-align: right; }
+
+/* ── accounts ─────────────────────────────────────────────────────────────── */
+.accounts-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
+.account-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.account-row:last-child { border-bottom: none; }
+.account-name { flex: 1; font-size: 13px; color: var(--text); }
+.account-type { font-size: 11px; color: var(--muted); }
+.acct-badge {
+  font-size: 9px; padding: 2px 7px; border-radius: 4px;
+  background: var(--accent); color: white; margin-left: 4px;
+}
+
+/* ── budget progress ──────────────────────────────────────────────────────── */
+.budget-row { gap: 4px; }
+.budget-progress-wrap { display: flex; align-items: center; gap: 8px; }
+.budget-spent-lbl { font-size: 10px; white-space: nowrap; }
+
+/* ── light theme ──────────────────────────────────────────────────────────── */
+body.light {
+  --bg:      #f4f4f9;
+  --surface: #ffffff;
+  --card:    #eaeaf2;
+  --text:    #1a1a2e;
+  --muted:   #6b6880;
+  --border:  #d0d0e0;
+}
+body.light .form-input { color: var(--text); background: var(--surface); }
+body.light .roast-toast,
+body.light .alert-toast { background: #f0f0f8; }
+
 /* ── desktop layout (≥ 700px) ───────────────────────────────────────────── */
 @media (min-width: 700px) {
 
