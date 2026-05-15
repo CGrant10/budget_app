@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.7.5';
+const VERSION = '2.7.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.7.6', date: '2026-05-15', changes: [
+    'Each theme now recolors category dots/bars/charts to match — everything shifts together',
+    'Theme selector redesigned: clean list with accent color dot and checkmark, no weird preview boxes',
+  ]},
   { version: '2.7.5', date: '2026-05-15', changes: [
     'About page: removed name text, icon fills the full card width',
     'Added spacing between the top card and What\'s New / Force Update cards',
@@ -65,21 +69,45 @@ const CHANGELOG = [
 ];
 
 const THEMES = {
-  // Dark — the default, neutral charcoal with soft lavender accent
-  dark:   { label:'Dark',   bg:'#13141f', surface:'#1c1d2c', surface2:'#252640', card:'#21223a', accent:'#8878c8', accent2:'#c87858', success:'#58b888', warn:'#c8a850', danger:'#c86060', text:'#d8d6e8', muted:'#7e7ca0', border:'#2e3050' },
-  // Light — warm off-white, soft and easy on the eyes
-  light:  { label:'Light',  bg:'#eeece8', surface:'#f8f6f2', surface2:'#e6e3dc', card:'#f0ede8', accent:'#6860b0', accent2:'#b87048', success:'#489870', warn:'#a88018', danger:'#b84848', text:'#1e1c2c', muted:'#6e6c88', border:'#d4d0c8', light:true },
-  // Dusk — deep purple, muted and moody
-  dusk:   { label:'Dusk',   bg:'#180f28', surface:'#231540', surface2:'#2e1a50', card:'#2a1845', accent:'#a06aba', accent2:'#c87060', success:'#60a880', warn:'#b89850', danger:'#c06060', text:'#e0ccf0', muted:'#906898', border:'#382055' },
-  // Denim — muted navy blue
-  denim:  { label:'Denim',  bg:'#0b1828', surface:'#102235', surface2:'#162d45', card:'#142840', accent:'#4880a8', accent2:'#c07848', success:'#50a080', warn:'#b89850', danger:'#c06060', text:'#c8ddf0', muted:'#508098', border:'#1c3455' },
-  // Moss — muted forest green
-  moss:   { label:'Moss',   bg:'#0a1510', surface:'#101e16', surface2:'#162820', card:'#121c16', accent:'#58986a', accent2:'#a0a848', success:'#58986a', warn:'#a09848', danger:'#b86060', text:'#c0e0c8', muted:'#508860', border:'#183020' },
-  // Ember — warm amber, earthy and calm
-  ember:  { label:'Ember',  bg:'#1a1008', surface:'#241808', surface2:'#302010', card:'#2c1a0c', accent:'#b87838', accent2:'#b85838', success:'#60a070', warn:'#c8a030', danger:'#c06050', text:'#f0d8b8', muted:'#a07040', border:'#3c2010' },
+  dark: {
+    label:'Dark', bg:'#13141f', surface:'#1c1d2c', surface2:'#252640', card:'#21223a',
+    accent:'#8878c8', accent2:'#c87858', success:'#58b888', warn:'#c8a850', danger:'#c86060',
+    text:'#d8d6e8', muted:'#7e7ca0', border:'#2e3050',
+    cats:{ Food:'#5abd88', Gas:'#e06868', Car:'#7878d0', Boat:'#50b8c0', Tools:'#d08858', Home:'#88b850', Entertainment:'#c060a8', Health:'#50a8c0', Other:'#8888a0' },
+  },
+  light: {
+    label:'Light', bg:'#eeece8', surface:'#f8f6f2', surface2:'#e6e3dc', card:'#f0ede8',
+    accent:'#6860b0', accent2:'#b87048', success:'#489870', warn:'#a88018', danger:'#b84848',
+    text:'#1e1c2c', muted:'#6e6c88', border:'#d4d0c8', light:true,
+    cats:{ Food:'#4a9a70', Gas:'#b85050', Car:'#5858b8', Boat:'#3888a0', Tools:'#b07030', Home:'#709840', Entertainment:'#a04898', Health:'#3890a8', Other:'#707088' },
+  },
+  dusk: {
+    label:'Dusk', bg:'#180f28', surface:'#231540', surface2:'#2e1a50', card:'#2a1845',
+    accent:'#a06aba', accent2:'#c87060', success:'#60a880', warn:'#b89850', danger:'#c06060',
+    text:'#e0ccf0', muted:'#906898', border:'#382055',
+    cats:{ Food:'#70b878', Gas:'#c06878', Car:'#8868c8', Boat:'#6090b8', Tools:'#c07868', Home:'#98a860', Entertainment:'#b058b0', Health:'#5890b0', Other:'#807890' },
+  },
+  denim: {
+    label:'Denim', bg:'#0b1828', surface:'#102235', surface2:'#162d45', card:'#142840',
+    accent:'#4880a8', accent2:'#c07848', success:'#50a080', warn:'#b89850', danger:'#c06060',
+    text:'#c8ddf0', muted:'#508098', border:'#1c3455',
+    cats:{ Food:'#58b080', Gas:'#c06868', Car:'#4870a8', Boat:'#40a0b8', Tools:'#c08850', Home:'#6898a0', Entertainment:'#7060a8', Health:'#38a8c0', Other:'#6080a0' },
+  },
+  moss: {
+    label:'Moss', bg:'#0a1510', surface:'#101e16', surface2:'#162820', card:'#121c16',
+    accent:'#58986a', accent2:'#a0a848', success:'#58986a', warn:'#a09848', danger:'#b86060',
+    text:'#c0e0c8', muted:'#508860', border:'#183020',
+    cats:{ Food:'#70c080', Gas:'#c07068', Car:'#5878a8', Boat:'#40a898', Tools:'#c09850', Home:'#88b858', Entertainment:'#9868a8', Health:'#48a898', Other:'#708878' },
+  },
+  ember: {
+    label:'Ember', bg:'#1a1008', surface:'#241808', surface2:'#302010', card:'#2c1a0c',
+    accent:'#b87838', accent2:'#b85838', success:'#60a070', warn:'#c8a030', danger:'#c06050',
+    text:'#f0d8b8', muted:'#a07040', border:'#3c2010',
+    cats:{ Food:'#80b868', Gas:'#d06050', Car:'#c08840', Boat:'#689888', Tools:'#d07840', Home:'#b0a858', Entertainment:'#b86878', Health:'#70a878', Other:'#a08868' },
+  },
 };
 
-const CAT_COLORS = {
+let CAT_COLORS = {
   Food:          '#4ecb8d',
   Snacks:        '#f7c96a',
   Gas:           '#f76a6a',
@@ -251,6 +279,8 @@ function applyTheme(theme) {
   root.style.setProperty('--muted',    t.muted);
   root.style.setProperty('--border',   t.border);
   document.body.classList.toggle('light', !!t.light);
+  // Update category colors to match theme
+  if (t.cats) Object.assign(CAT_COLORS, t.cats);
 }
 
 function _save() {
@@ -1436,10 +1466,11 @@ function renderSettings() {
       ${a.id === currentAccountId ? '<span class="acct-badge" style="font-size:9px">active</span>' : `<button class="btn-xs acct-switch-btn" data-id="${a.id}" style="background:var(--surface2)">Switch</button>`}
     </div>`).join('');
 
-  const themeChips = Object.entries(THEMES).map(([key, t]) => `
-    <button class="theme-chip${theme === key ? ' active' : ''}" data-theme="${key}"
-      style="background:linear-gradient(135deg,${t.bg} 50%,${t.accent} 50%)">
-      ${t.label}
+  const themeRows = Object.entries(THEMES).map(([key, t]) => `
+    <button class="theme-row${theme === key ? ' active' : ''}" data-theme="${key}">
+      <span class="theme-dot" style="background:${t.accent}"></span>
+      <span class="theme-row-name">${t.label}</span>
+      ${theme === key ? '<span class="theme-check">✓</span>' : ''}
     </button>`).join('');
 
   const fonts = [
@@ -1491,7 +1522,7 @@ function renderSettings() {
 
       <div class="form-card">
         <h2 class="section-title" style="margin-bottom:12px">Theme</h2>
-        <div class="theme-grid">${themeChips}</div>
+        <div class="theme-list">${themeRows}</div>
       </div>
 
       <div class="form-card">
@@ -1579,14 +1610,14 @@ function attachSettings() {
     });
   });
 
-  // Theme chips — immediate apply + save
-  document.querySelectorAll('.theme-chip').forEach(btn => {
+  // Theme rows — immediate apply + save
+  document.querySelectorAll('.theme-row').forEach(btn => {
     btn.addEventListener('click', () => {
       const s = loadSettings();
       s.theme = btn.dataset.theme;
       saveSettings(s);
       applyTheme(s.theme);
-      document.querySelectorAll('.theme-chip').forEach(b => b.classList.toggle('active', b === btn));
+      render(); // re-render settings so checkmark + active state update
     });
   });
 
