@@ -1303,3 +1303,24 @@ body.light .alert-toast { background: #f0f0f8; }
 .debt-txn-amt { font-size:.85rem; font-weight:600; white-space:nowrap; }
 .debt-txn-amt.success { color:var(--success); }
 .debt-txn-amt.danger  { color:var(--danger); }
+
+/* ── debt dashboard summary card ── */
+.debt-dash-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+.debt-dash-header { display:flex; align-items:center; justify-content:space-between; padding:16px 16px 12px; }
+.debt-dash-acct-name { font-size:1.1rem; font-weight:800; color:var(--text); margin-bottom:3px; }
+.debt-dash-acct-type { font-size:.75rem; color:var(--muted); }
+.debt-dash-owed { text-align:right; }
+.debt-dash-owed-amt { font-size:1.7rem; font-weight:800; line-height:1; }
+.debt-dash-owed-lbl { font-size:.68rem; font-weight:700; letter-spacing:.07em; color:var(--muted); text-transform:uppercase; margin-top:2px; }
+.debt-dash-section { font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:10px 16px 6px; border-top:1px solid var(--border); }
+.debt-dash-cats { padding:0 16px 4px; }
+.debt-dash-cat-row { display:flex; align-items:center; gap:6px; padding:5px 0; }
+.debt-dash-cat-name { font-size:.8rem; color:var(--text); min-width:80px; }
+.debt-dash-cat-amt { font-size:.8rem; color:var(--danger); font-weight:600; min-width:60px; text-align:right; }
+.debt-dash-txns { padding:0 16px 8px; }
+.debt-dash-txn { display:flex; align-items:center; gap:6px; padding:7px 0; border-bottom:1px solid var(--border); }
+.debt-dash-txn:last-child { border-bottom:none; }
+.debt-dash-txn-date { font-size:.72rem; color:var(--muted); min-width:36px; }
+.debt-dash-txn-type { font-size:.72rem; font-weight:700; min-width:56px; }
+.debt-dash-txn-desc { flex:1; font-size:.8rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.debt-dash-txn-amt { font-size:.85rem; font-weight:700; white-space:nowrap; }

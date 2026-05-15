@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.5.1';
+const VERSION = '3.5.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.5.2', date: '2026-05-15', changes: [
+    'Credit card dashboard: once balance is set, first-run box replaced with account name, balance owed, this-month spending by category, and recent transactions (payments in green, charges in red)',
+    'Loan dashboard: same card shows account name, balance owed, and payment history list',
+    'Set-balance prompt remains for debt accounts that have no balance entered yet',
+  ]},
   { version: '3.5.1', date: '2026-05-15', changes: [
     'Loan accounts now show balance owed in red (same as credit cards) — was incorrectly treated as a positive asset',
     'Dashboard balance card shows "LOAN BALANCE" / "BALANCE OWED" with "(Loan)" or "(Credit)" sub-label',
@@ -1367,17 +1372,93 @@ function renderDashboard() {
     { title: 'HEALTH',   value: String(health.total), color: health.color, sub: `grade ${health.grade}` },
   ];
 
-  const firstRunHtml = state.transactions.length === 0 ? `
-    <div class="form-card first-run-card" style="margin-bottom:16px;text-align:center;padding:20px">
-      <div style="font-size:1.5rem;margin-bottom:8px">👋</div>
-      <div style="font-weight:600;color:var(--text);margin-bottom:6px">Set your starting balance</div>
-      <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px">Enter what's currently in your account so your balance is accurate from day one.</p>
-      <div style="display:flex;gap:8px;justify-content:center;max-width:260px;margin:0 auto">
-        <input type="number" id="starting-bal-input" class="form-input" placeholder="e.g. 1500.00" step="0.01" inputmode="decimal" style="flex:1">
-        <button id="starting-bal-save" class="btn-primary" style="white-space:nowrap">Set Balance</button>
-      </div>
-      <span id="starting-bal-status" class="status-inline" style="display:block;margin-top:8px"></span>
-    </div>` : '';
+  // ── first-run / debt summary card ─────────────────────────────────────────
+  let firstRunHtml = '';
+  if (isDebt && !state.startingBalance) {
+    // Debt account but no balance set yet
+    const debtPrompt = acct?.type === 'loan' ? 'Enter your current loan balance so we can track what you owe.' : 'Enter the current balance you owe on this card.';
+    firstRunHtml = `
+      <div class="form-card first-run-card" style="margin-bottom:16px;text-align:center;padding:20px">
+        <div style="font-size:1.5rem;margin-bottom:8px">${acct?.type === 'loan' ? '🏦' : '💳'}</div>
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px">Set your starting balance</div>
+        <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px">${debtPrompt}</p>
+        <div style="display:flex;gap:8px;justify-content:center;max-width:260px;margin:0 auto">
+          <input type="number" id="starting-bal-input" class="form-input" placeholder="e.g. 4200.00" step="0.01" inputmode="decimal" style="flex:1">
+          <button id="starting-bal-save" class="btn-primary" style="white-space:nowrap">Set Balance</button>
+        </div>
+        <span id="starting-bal-status" class="status-inline" style="display:block;margin-top:8px"></span>
+      </div>`;
+  } else if (isDebt && state.startingBalance) {
+    // Rich debt summary card — replaces the first-run prompt once balance is set
+    const recentTxns = [...state.transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
+    const txnRowsHtml = recentTxns.length ? recentTxns.map(t => {
+      const isPayment = t.type === 'income';
+      const color     = isPayment ? 'var(--success)' : 'var(--danger)';
+      const sign      = isPayment ? '−' : '+';
+      const typeLabel = isPayment ? 'Payment' : (t.category || 'Charge');
+      return `
+        <div class="debt-dash-txn">
+          <span class="debt-dash-txn-date">${t.date.slice(5)}</span>
+          <span class="debt-dash-txn-type" style="color:${color}">${typeLabel}</span>
+          <span class="debt-dash-txn-desc">${t.description && t.description !== '—' ? t.description : ''}</span>
+          <span class="debt-dash-txn-amt" style="color:${color}">${sign}${fmt(t.amount)}</span>
+        </div>`;
+    }).join('') : '<p class="empty-msg" style="padding:8px 0">No transactions yet.</p>';
+
+    // Category breakdown (credit cards only — loans don't have purchase categories)
+    let catHtml = '';
+    if (acct?.type === 'credit') {
+      const { bycat: mCats } = monthTotals(dashMonth);
+      const catEntries = Object.entries(mCats).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      if (catEntries.length) {
+        const maxAmt = catEntries[0][1];
+        catHtml = `
+          <div class="debt-dash-section">This Month by Category</div>
+          <div class="debt-dash-cats">
+            ${catEntries.map(([cat, amt]) => {
+              const cc = CAT_COLORS[cat] || 'var(--accent)';
+              return `
+                <div class="debt-dash-cat-row">
+                  <span class="cat-dot" style="background:${cc}"></span>
+                  <span class="debt-dash-cat-name">${cat}</span>
+                  <div class="breakdown-bar-bg" style="flex:1;margin:0 8px"><div class="breakdown-bar-fill" style="width:${(amt/maxAmt*100).toFixed(1)}%;background:${cc}"></div></div>
+                  <span class="debt-dash-cat-amt">${fmt(amt)}</span>
+                </div>`;
+            }).join('')}
+          </div>`;
+      }
+    }
+
+    firstRunHtml = `
+      <div class="debt-dash-card" style="margin-bottom:16px">
+        <div class="debt-dash-header">
+          <div>
+            <div class="debt-dash-acct-name">${acct?.name || ''}</div>
+            <div class="debt-dash-acct-type">${acct?.type === 'loan' ? '🏦 Loan' : '💳 Credit Card'}</div>
+          </div>
+          <div class="debt-dash-owed">
+            <div class="debt-dash-owed-amt" style="color:var(--danger)">${fmt(balance)}</div>
+            <div class="debt-dash-owed-lbl">owed</div>
+          </div>
+        </div>
+        ${catHtml}
+        <div class="debt-dash-section">${acct?.type === 'loan' ? 'Payment History' : 'Recent Transactions'}</div>
+        <div class="debt-dash-txns">${txnRowsHtml}</div>
+      </div>`;
+  } else if (state.transactions.length === 0) {
+    // Regular account, no transactions yet
+    firstRunHtml = `
+      <div class="form-card first-run-card" style="margin-bottom:16px;text-align:center;padding:20px">
+        <div style="font-size:1.5rem;margin-bottom:8px">👋</div>
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px">Set your starting balance</div>
+        <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px">Enter what's currently in your account so your balance is accurate from day one.</p>
+        <div style="display:flex;gap:8px;justify-content:center;max-width:260px;margin:0 auto">
+          <input type="number" id="starting-bal-input" class="form-input" placeholder="e.g. 1500.00" step="0.01" inputmode="decimal" style="flex:1">
+          <button id="starting-bal-save" class="btn-primary" style="white-space:nowrap">Set Balance</button>
+        </div>
+        <span id="starting-bal-status" class="status-inline" style="display:block;margin-top:8px"></span>
+      </div>`;
+  }
   const cardsHtml = cardDefs.map(c => `
     <div class="card">
       <div class="card-title">${c.title}</div>
