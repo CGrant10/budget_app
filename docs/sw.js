@@ -1,4 +1,4 @@
-const CACHE = "slawminyaw-v20";
+const CACHE = "slawminyaw-v21";
 const ASSETS = [
   "./",
   "./index.html",
@@ -31,6 +31,11 @@ self.addEventListener("activate", e => {
 });
 
 self.addEventListener("fetch", e => {
+  // version.txt must never be cached — always live from network
+  if (e.request.url.includes('version.txt')) {
+    e.respondWith(fetch(e.request, { cache: 'no-cache' }));
+    return;
+  }
   // Always bypass browser HTTP cache, fall back to SW cache if offline
   const fresh = new Request(e.request, { cache: 'no-cache' });
   e.respondWith(

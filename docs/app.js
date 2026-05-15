@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.5.3';
+const VERSION = '2.5.4';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 const CAT_COLORS = {
@@ -1588,6 +1588,20 @@ function attachImport() {
   });
 }
 
+// ── version check ──────────────────────────────────────────────────────────
+let _reloading = false;
+async function checkForUpdate() {
+  if (_reloading) return;
+  try {
+    const res  = await fetch('./version.txt?_=' + Date.now(), { cache: 'no-cache' });
+    const live = (await res.text()).trim();
+    if (live && live !== VERSION) {
+      _reloading = true;
+      window.location.reload();
+    }
+  } catch(e) { /* offline — skip */ }
+}
+
 // ── init ───────────────────────────────────────────────────────────────────
 document.querySelectorAll('.nav-btn').forEach(btn =>
   btn.addEventListener('click', () => showTab(btn.dataset.tab)));
@@ -1598,13 +1612,18 @@ document.querySelectorAll('.nav-btn').forEach(btn =>
   initSoundsToggle();
   applySettings();
   render();
+
+  // Check for a new version every open and every time the app is foregrounded
+  checkForUpdate();
+  window.addEventListener('focus', checkForUpdate);
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
       reg.update();
       window.addEventListener('focus', () => reg.update());
     }).catch(() => {});
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      window.location.href = window.location.pathname + '?v=' + Date.now();
+      if (!_reloading) { _reloading = true; window.location.reload(); }
     });
   }
 })();
