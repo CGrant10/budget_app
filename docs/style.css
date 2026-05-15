@@ -98,7 +98,7 @@ html, body {
   padding-top: env(safe-area-inset-top, 0px);
 }
 .header-inner { display: flex; align-items: baseline; gap: 10px; justify-content: space-between; width: 100%; }
-.logo  { font-family: Georgia, serif; font-size: 18px; font-weight: bold; color: var(--text); letter-spacing: .02em; opacity: .88; }
+.logo  { font-family: Georgia, serif; font-size: 18px; font-weight: bold; color: var(--text); letter-spacing: .02em; opacity: .88; text-shadow: 0 1px 6px rgba(0,0,0,0.45), 0 0 2px rgba(0,0,0,0.25); }
 .tagline { font-size: 10px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
 
 /* ── main content ────────────────────────────────────────────────────────── */

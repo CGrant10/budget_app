@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.8.2';
+const VERSION = '2.8.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.8.3', date: '2026-05-15', changes: [
+    'App title now has a subtle drop shadow for depth',
+    'Emergency buffer card color changed to a soft sky teal — lighter and easier on the eyes',
+  ]},
   { version: '2.8.2', date: '2026-05-15', changes: [
     'Expense amounts are now red everywhere: dashboard, weekly, all transaction rows',
     'Weekly Per Week and Per Day budgets now use the warning (amber) color',
@@ -1104,7 +1108,7 @@ function calcWeekly() {
     ['SPENDABLE', fmt(available), 'var(--text)',    `after bills${bufPct?' + buffer':''}`],
     ['PER WEEK',  fmt(perWeek),   'var(--warn)',    `across ${weeks} week${weeks!==1?'s':''}`],
     ['PER DAY',   fmt(perDay),    'var(--warn)',    'daily limit'],
-    ...(bufPct ? [['BUFFER', fmt(buffer), 'var(--accent)', 'emergency fund']] : []),
+    ...(bufPct ? [['BUFFER', fmt(buffer), '#6ec8d8', 'emergency fund']] : []),
   ].map(([t,v,c,s]) => `<div class="card"><div class="card-title">${t}</div><div class="card-value" style="color:${c}">${v}</div><div class="card-sub">${s}</div></div>`).join('');
 
   const thisWeekTxns = state.transactions.filter(t=>t.date>=mondayStr).sort((a,b)=>b.date.localeCompare(a.date));
