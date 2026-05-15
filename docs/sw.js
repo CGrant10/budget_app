@@ -1,4 +1,4 @@
-const CACHE = "slawminyaw-v19";
+const CACHE = "slawminyaw-v20";
 const ASSETS = [
   "./",
   "./index.html",
@@ -7,7 +7,11 @@ const ASSETS = [
   "./animations.js",
   "./manifest.json",
   "./icon-192.png",
-  "./icon-512.png"
+  "./icon-192-maskable.png",
+  "./icon-512.png",
+  "./icon-512-maskable.png",
+  "./apple-touch-icon.png",
+  "./favicon.ico"
 ];
 
 self.addEventListener("install", e => {
