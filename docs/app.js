@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.9.0';
+const VERSION = '2.9.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.9.1', date: '2026-05-15', changes: [
+    "Default app name updated to SlawMinYaw's Budget DAWGs",
+  ]},
   { version: '2.9.0', date: '2026-05-15', changes: [
     'Starting balance: set your real account balance in Settings → Account (or on the first-run card)',
     'Balance cards now include your starting balance — no need to log it as income',
@@ -282,7 +285,7 @@ function applySettings() {
   const s = loadSettings();
   const logo = document.querySelector('.logo');
   if (logo) {
-    logo.textContent = s.name || 'SlawMinYaw';
+    logo.textContent = s.name || "SlawMinYaw's Budget DAWGs";
     logo.style.fontFamily = s.logoFont || '';
     logo.style.color = s.logoColor || '';
     logo.style.textTransform = s.logoTransform || '';
@@ -1934,13 +1937,13 @@ function renderAbout() {
         <button id="force-update-btn" class="btn-primary" style="width:100%">🔄 Force Update</button>
         <div id="force-update-status" class="form-status" style="margin-top:8px"></div>
       </div>
-      <p style="text-align:center;font-size:.75rem;color:var(--muted);margin-top:8px">© ${built} SlawMinYaw. All rights reserved.</p>
+      <p style="text-align:center;font-size:.75rem;color:var(--muted);margin-top:8px">© ${built} SlawMinYaw's Budget DAWGs. All rights reserved.</p>
     </div>`;
 }
 
 // ── tutorial ───────────────────────────────────────────────────────────────
 const TUTORIAL_SLIDES = [
-  { icon:'👋', title:'Welcome to SlawMinYaw',      body:'SlawMinYaw is your personal budgeting companion. Track every dollar, plan your weeks, and stay on top of bills and goals — all in one place.' },
+  { icon:'👋', title:"Welcome to SlawMinYaw's Budget DAWGs", body:"SlawMinYaw's Budget DAWGs is your personal budgeting companion. Track every dollar, plan your weeks, and stay on top of bills and goals — all in one place." },
   { icon:'💰', title:'Setting Your Balance',        body:'Head to Settings → Account to enter your current account balance. This starting balance is added to your running total without counting as income.' },
   { icon:'➕', title:'Adding Transactions',         body:'Tap the ➕ Add tab to log an income or expense. Pick a category, enter an amount, add a date and optional note, then hit Save.' },
   { icon:'📊', title:'Dashboard & Charts',          body:'The Dashboard shows your balance, income, expenses, and a health score. Toggle between a bar chart and a pie chart to see this month\'s spending by category.' },
