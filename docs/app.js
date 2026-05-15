@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.9.2';
+const VERSION = '2.9.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.9.3', date: '2026-05-15', changes: [
+    'Nav tabs: tapping any tab now bursts a shower of $ and 💸 particles',
+  ]},
   { version: '2.9.2', date: '2026-05-15', changes: [
     'App title now uses Bangers font by default — comic/anime style',
     'Nav labels switched to Bangers font; active icon gets a subtle glow + scale',
@@ -2321,9 +2324,36 @@ async function checkForUpdate() {
   } catch(e) { /* offline — skip */ }
 }
 
+// ── dollar burst ───────────────────────────────────────────────────────────
+function spawnDollarBurst(originEl) {
+  const rect    = originEl.getBoundingClientRect();
+  const cx      = rect.left + rect.width  / 2;
+  const cy      = rect.top  + rect.height / 2;
+  const symbols = ['$','$','$','💸','$','💵','$'];
+  const count   = 7;
+  for (let i = 0; i < count; i++) {
+    const el  = document.createElement('span');
+    el.className = 'dollar-particle';
+    el.textContent = symbols[i % symbols.length];
+    // Spread evenly + tiny jitter so they fan out
+    const angle = (i / count) * 360 + (Math.random() - 0.5) * 25;
+    const dist  = 32 + Math.random() * 36;
+    const dx    = Math.cos(angle * Math.PI / 180) * dist;
+    const dy    = Math.sin(angle * Math.PI / 180) * dist - 10;
+    const rot   = (Math.random() - 0.5) * 200;
+    const delay = Math.random() * 60;
+    el.style.cssText = `left:${cx}px;top:${cy}px;--dx:${dx}px;--dy:${dy}px;--rot:${rot}deg;animation-delay:${delay}ms`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
 // ── init ───────────────────────────────────────────────────────────────────
 document.querySelectorAll('.nav-btn').forEach(btn =>
-  btn.addEventListener('click', () => showTab(btn.dataset.tab)));
+  btn.addEventListener('click', () => {
+    spawnDollarBurst(btn);
+    showTab(btn.dataset.tab);
+  }));
 
 // Floating tutorial button
 document.getElementById('tut-float-btn')?.addEventListener('click', openTutorial);
