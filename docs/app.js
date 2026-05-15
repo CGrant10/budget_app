@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.3.2';
+const VERSION = '3.3.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.3.3', date: '2026-05-15', changes: [
+    'Dashboard balance now shows end-of-month balance when browsing past months, not current live balance',
+    'Balance sub-label updates to e.g. "end of Apr 2026" for past months',
+  ]},
   { version: '3.3.2', date: '2026-05-15', changes: [
     'Fixed UTC date parsing bug — new Date("YYYY-MM-01") rolls back to prior month in negative-offset timezones; all month date construction now uses local-time new Date(year, month, 1)',
   ]},
@@ -1083,6 +1087,16 @@ function render() {
   document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="date"])').forEach(el => el.setAttribute('enterkeyhint', 'done'));
 }
 
+// ── balance as of date ─────────────────────────────────────────────────────
+function balanceAsOf(dateStr) {
+  // Sum all transactions on or before dateStr
+  let bal = state.startingBalance || 0;
+  for (const t of state.transactions) {
+    if (t.date <= dateStr) bal += t.type === 'income' ? t.amount : -t.amount;
+  }
+  return bal;
+}
+
 // ── dashboard ──────────────────────────────────────────────────────────────
 function renderDashboard() {
   const ds = loadSettings();
@@ -1092,15 +1106,28 @@ function renderDashboard() {
   const showBreakdown = ds.dashBreakdown !== false;
   const showNetWorth  = ds.dashNetWorth  !== false;
 
-  const { income: allIncome, expense: allExpense } = totals();
   const { income, expense, bycat } = monthTotals(dashMonth);
-  const balance  = (state.startingBalance || 0) + allIncome - allExpense;
+  const currentM = new Date().toISOString().slice(0, 7);
+  const isPastMonth = dashMonth < currentM;
+  // For past months show balance at end of that month; for current show live balance
+  const balance = isPastMonth ? (() => {
+    const mo = parseInt(dashMonth.slice(5, 7));
+    const yr = parseInt(dashMonth.slice(0, 4));
+    const lastDay = new Date(yr, mo, 0).getDate();
+    return balanceAsOf(dashMonth + '-' + String(lastDay).padStart(2, '0'));
+  })() : (() => {
+    const { income: ai, expense: ae } = totals();
+    return (state.startingBalance || 0) + ai - ae;
+  })();
+  const balSub   = isPastMonth
+    ? `end of ${new Date(parseInt(dashMonth.slice(0,4)), parseInt(dashMonth.slice(5,7)) - 1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+    : (state.startingBalance ? 'starting + income − expenses' : 'income − expenses');
   const balColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
   const health   = calcHealthScore();
   const acct = state.accounts.find(a => a.id === currentAccountId);
   const isCredit = acct?.type === 'credit';
   const cardDefs = [
-    { title: isCredit ? 'BALANCE OWED' : 'BALANCE',  value: fmt(balance),  color: isCredit ? 'var(--danger)' : balColor,         sub: state.startingBalance ? 'starting + income − expenses' : 'income − expenses' },
+    { title: isCredit ? 'BALANCE OWED' : 'BALANCE',  value: fmt(balance),  color: isCredit ? 'var(--danger)' : balColor, sub: balSub },
     { title: 'INCOME',   value: fmt(income),   color: 'var(--success)', sub: 'total earned' },
     { title: 'EXPENSES', value: fmt(expense),  color: 'var(--danger)',  sub: 'total spent' },
     { title: 'HEALTH',   value: String(health.total), color: health.color, sub: `grade ${health.grade}` },
