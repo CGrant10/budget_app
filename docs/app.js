@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.3.1';
+const VERSION = '3.3.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.3.2', date: '2026-05-15', changes: [
+    'Fixed UTC date parsing bug — new Date("YYYY-MM-01") rolls back to prior month in negative-offset timezones; all month date construction now uses local-time new Date(year, month, 1)',
+  ]},
   { version: '3.3.1', date: '2026-05-15', changes: [
     'Monthly pace insight no longer shows on past months (refDate was day 2 of that month, making math explode)',
     'All inputs now show a Done checkmark on mobile keyboard instead of Next (enterkeyhint=done)',
@@ -869,17 +872,17 @@ function attachDashboard() {
 
   // Month navigator handlers
   document.getElementById('dash-month-prev')?.addEventListener('click', () => {
-    const d = new Date(dashMonth + '-02');
-    d.setMonth(d.getMonth() - 1);
-    dashMonth = d.toISOString().slice(0, 7);
+    const yr = parseInt(dashMonth.slice(0,4)), mo = parseInt(dashMonth.slice(5,7)) - 1;
+    const d = new Date(yr, mo - 1, 1);
+    dashMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0');
     render();
   });
   document.getElementById('dash-month-next')?.addEventListener('click', () => {
     const now = new Date().toISOString().slice(0, 7);
     if (dashMonth >= now) return;
-    const d = new Date(dashMonth + '-02');
-    d.setMonth(d.getMonth() + 1);
-    dashMonth = d.toISOString().slice(0, 7);
+    const yr = parseInt(dashMonth.slice(0,4)), mo = parseInt(dashMonth.slice(5,7)) - 1;
+    const d = new Date(yr, mo + 1, 1);
+    dashMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0');
     render();
   });
 
@@ -1014,7 +1017,9 @@ function calcRunningBalances() {
 
 // ── spending insights ──────────────────────────────────────────────────────
 function getSpendingInsights(monthStr) {
-  const refDate = monthStr ? new Date(monthStr + '-02') : new Date();
+  const refDate = monthStr
+    ? new Date(parseInt(monthStr.slice(0,4)), parseInt(monthStr.slice(5,7)) - 1, 1)
+    : new Date();
   const thisM = monthStr || refDate.toISOString().slice(0, 7);
   const lastM = new Date(refDate.getFullYear(), refDate.getMonth() - 1, 1).toISOString().slice(0, 7);
   const cur  = monthTotals(thisM);
@@ -1186,7 +1191,7 @@ function renderDashboard() {
       ${firstRunHtml}
       <div class="dash-month-nav">
         <button class="dash-month-btn" id="dash-month-prev">‹</button>
-        <span class="dash-month-label">${new Date(dashMonth + '-02').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+        <span class="dash-month-label">${new Date(parseInt(dashMonth.slice(0,4)), parseInt(dashMonth.slice(5,7)) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
         <button class="dash-month-btn" id="dash-month-next" ${dashMonth >= new Date().toISOString().slice(0,7) ? 'disabled' : ''}>›</button>
       </div>
       <div class="cards-grid">${cardsHtml}</div>
