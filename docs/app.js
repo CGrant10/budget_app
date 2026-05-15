@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.8.4';
+const VERSION = '2.8.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.8.5', date: '2026-05-15', changes: [
+    'Bar chart now shows spending by category (same data as pie chart, just a different view)',
+    'About page icon now fills the full card width',
+  ]},
   { version: '2.8.4', date: '2026-05-15', changes: [
     'About icon: removed pixel-art sharpening filter that was hurting logo quality, tightened drop-shadow',
     'About icon moved closer to the version number',
@@ -609,26 +613,39 @@ function attachDashboard() {
   const bgColor   = cs.getPropertyValue('--bg').trim()     || '#0f0f14';
 
   if (dashChartMode === 'bar') {
-    const weeks = getLastSixWeeks();
-    spendingChart = new Chart(chartEl, {
-      type: 'bar',
-      data: {
-        labels: weeks.map(w => w.label),
-        datasets: [
-          { label: 'Income',   data: weeks.map(w => w.income),  backgroundColor: '#4ecb8d', borderRadius: 4 },
-          { label: 'Expenses', data: weeks.map(w => w.expense), backgroundColor: '#f7936a', borderRadius: 4 },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: textColor, font: { size: 12 } } } },
-        scales: {
-          x: { ticks: { color: mutedColor, font: { size: 11 } }, grid: { color: gridColor } },
-          y: { ticks: { color: mutedColor, font: { size: 11 }, callback: v => '$' + v }, grid: { color: gridColor } },
+    const { labels, data, colors } = getMonthCatData();
+    if (!data.length) {
+      const wrap = chartEl.closest('.chart-wrap');
+      if (wrap) wrap.innerHTML = '<p class="empty-msg" style="padding:40px 0;text-align:center">No spending this month yet.</p>';
+    } else {
+      spendingChart = new Chart(chartEl, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Spent',
+            data,
+            backgroundColor: colors,
+            borderRadius: 5,
+            borderSkipped: false,
+          }],
         },
-      },
-    });
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: { label: ctx => ` ${fmt(ctx.raw)}` },
+            },
+          },
+          scales: {
+            x: { ticks: { color: mutedColor, font: { size: 11 } }, grid: { color: 'transparent' } },
+            y: { ticks: { color: mutedColor, font: { size: 11 }, callback: v => '$' + v }, grid: { color: gridColor } },
+          },
+        },
+      });
+    }
   } else {
     const { labels, data, colors } = getMonthCatData();
     if (!data.length) {
@@ -691,7 +708,7 @@ function attachDashboard() {
       const btn = document.getElementById('chart-toggle-btn');
       if (btn) btn.textContent = dashChartMode === 'bar' ? '🥧 Pie' : '📊 Bar';
       const titleEl = document.querySelector('.chart-section-title');
-      if (titleEl) titleEl.textContent = dashChartMode === 'bar' ? 'Spending — Last 6 Weeks' : 'This Month by Category';
+      if (titleEl) titleEl.textContent = 'This Month by Category';
       attachDashboard();
     };
   }
@@ -813,7 +830,7 @@ function renderDashboard() {
       </div>`;
   }).join('');
 
-  const chartTitle = dashChartMode === 'bar' ? 'Spending — Last 6 Weeks' : 'This Month by Category';
+  const chartTitle = 'This Month by Category';
   const toggleLabel = dashChartMode === 'bar' ? '🥧 Pie' : '📊 Bar';
 
   return `
@@ -1844,7 +1861,7 @@ function renderAbout() {
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:24px 20px">
         <img src="app-icon-about.png" alt="$MY Budgeting DAWGS"
-             style="width:100%;max-width:280px;height:auto;display:block;margin:12px auto 10px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
+             style="width:100%;height:auto;display:block;margin:0 auto 12px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
