@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.6.1';
+const VERSION = '2.6.2';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
 
 const CAT_COLORS = {
@@ -1398,8 +1398,8 @@ function renderAbout() {
     <div class="page">
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:28px 20px">
-        <img src="icon-192.png" alt="$MY Budgeting DAWGS" style="width:96px;height:96px;border-radius:20px;margin-bottom:12px;object-fit:cover;box-shadow:0 4px 18px rgba(0,0,0,0.35)">
-        ${userName ? `<div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:2px">${userName}</div><div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">Powered by SlawMinYaw</div>` : `<div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:8px">SlawMinYaw</div>`}
+        <img src="icon-192.png" alt="$MY Budgeting DAWGS" style="width:160px;height:160px;object-fit:contain;display:block;margin:0 auto 16px">
+        ${userName ? `<div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:16px">${userName}</div>` : ''}
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
