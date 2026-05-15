@@ -380,12 +380,301 @@ function showWeekWin() {
   runAnim('Week under budget! 🏆', '#4ecb8d', weekWinFrame, 0);
 }
 
+// ── Gengar draw ────────────────────────────────────────────────────────────
+function drawGengar(ctx, cx, gy, action) {
+  const Y = gy;
+  const PRP = '#7b3fb5', DRK = '#4a1878', LPRP = '#b060e8', RED = '#f03030', WHT = '#f8f0ff';
+
+  // spiky bottom hem
+  const spikes = 5, bx = cx - 26, bw = 52, by = Y - 14;
+  ctx.beginPath(); ctx.moveTo(bx, by);
+  for (let i = 0; i < spikes; i++) {
+    const x1 = bx + (i + 0.5) * (bw / spikes);
+    const x2 = bx + (i + 1)   * (bw / spikes);
+    ctx.lineTo(x1, Y + 4); ctx.lineTo(x2, by);
+  }
+  ctx.fillStyle = PRP; ctx.fill();
+
+  // body
+  oval(ctx, cx - 26, Y - 60, cx + 26, Y - 12, PRP, DRK, 2);
+
+  // ears / horn spikes on head
+  poly(ctx, [cx - 22, Y - 60, cx - 32, Y - 80, cx - 12, Y - 64], PRP, DRK, 1);
+  poly(ctx, [cx + 22, Y - 60, cx + 32, Y - 80, cx + 12, Y - 64], PRP, DRK, 1);
+
+  // eyes — red with white gleam
+  for (const ex of [-9, 9]) {
+    oval(ctx, cx + ex - 7, Y - 72, cx + ex + 7, Y - 58, RED, '#800', 1);
+    oval(ctx, cx + ex - 3, Y - 69, cx + ex + 1, Y - 65, WHT, null);
+  }
+
+  // mouth / grin
+  if (action === 'scare') {
+    ctx.beginPath();
+    ctx.arc(cx, Y - 42, 13, 0, Math.PI);
+    ctx.fillStyle = '#200830'; ctx.fill();
+    ctx.strokeStyle = DRK; ctx.lineWidth = 1.5; ctx.stroke();
+    // fangs
+    poly(ctx, [cx - 10, Y - 42, cx - 6, Y - 34, cx - 2, Y - 42], WHT, null);
+    poly(ctx, [cx + 2,  Y - 42, cx + 6, Y - 34, cx + 10, Y - 42], WHT, null);
+  } else {
+    // normal grin
+    arc(ctx, cx - 12, Y - 52, cx + 12, Y - 36, 10, 160, DRK, 2);
+    poly(ctx, [cx - 8, Y - 44, cx - 4, Y - 38, cx, Y - 44], WHT, null);
+    poly(ctx, [cx,     Y - 44, cx + 4, Y - 38, cx + 8, Y - 44], WHT, null);
+  }
+
+  // stubby arms
+  if (action === 'grab' || action === 'reach') {
+    oval(ctx, cx - 46, Y - 48, cx - 24, Y - 34, PRP, DRK, 2);
+    oval(ctx, cx + 24, Y - 48, cx + 46, Y - 34, PRP, DRK, 2);
+  } else {
+    oval(ctx, cx - 40, Y - 42, cx - 20, Y - 30, PRP, DRK, 2);
+    oval(ctx, cx + 20, Y - 42, cx + 40, Y - 30, PRP, DRK, 2);
+  }
+
+  // ghost shadow glow
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  oval(ctx, cx - 22, Y - 8, cx + 22, Y, LPRP, null);
+  ctx.restore();
+}
+
+// ── T-Rex draw ─────────────────────────────────────────────────────────────
+function drawTRex(ctx, cx, gy, action) {
+  const Y = gy;
+  const GRN = '#3a6e28', DGRN = '#224416', SKIN = '#4e8a38', EYE = '#f0d840';
+
+  // tail
+  poly(ctx, [cx + 22, Y - 38, cx + 60, Y - 20, cx + 58, Y - 12, cx + 22, Y - 28], GRN, DGRN, 1);
+
+  // body
+  oval(ctx, cx - 18, Y - 52, cx + 28, Y - 18, GRN, DGRN, 2);
+
+  // upper leg + foot
+  rect(ctx, cx - 6, Y - 22, cx + 6, Y - 6, DGRN, null);
+  oval(ctx, cx - 12, Y - 8, cx + 10, Y, GRN, DGRN, 1);
+
+  // tiny arms
+  if (action === 'roar') {
+    line(ctx, cx - 18, Y - 44, cx - 30, Y - 52, SKIN, 4, 'round');
+    line(ctx, cx - 30, Y - 52, cx - 28, Y - 44, SKIN, 3, 'round');
+  } else {
+    line(ctx, cx - 18, Y - 44, cx - 28, Y - 46, SKIN, 4, 'round');
+    line(ctx, cx - 28, Y - 46, cx - 26, Y - 40, SKIN, 3, 'round');
+  }
+
+  // neck + head
+  poly(ctx, [cx - 14, Y - 50, cx - 10, Y - 72, cx + 8, Y - 72, cx + 10, Y - 50], GRN, DGRN, 1);
+
+  // head (big snout)
+  oval(ctx, cx - 18, Y - 90, cx + 24, Y - 60, GRN, DGRN, 2);
+
+  // eye
+  oval(ctx, cx - 6, Y - 88, cx + 4, Y - 80, EYE, '#806000', 1);
+  oval(ctx, cx - 3, Y - 86, cx + 1, Y - 82, '#111', null);
+
+  // jaw
+  if (action === 'roar' || action === 'chomp') {
+    // open jaw
+    poly(ctx, [cx - 18, Y - 66, cx + 24, Y - 66, cx + 24, Y - 56, cx - 18, Y - 56], DGRN, DGRN, 1);
+    poly(ctx, [cx - 16, Y - 66, cx + 22, Y - 66, cx + 20, Y - 58, cx - 16, Y - 58], '#c04040', null);
+    // teeth
+    for (let i = 0; i < 5; i++) {
+      const tx = cx - 14 + i * 9;
+      poly(ctx, [tx, Y - 66, tx + 4, Y - 72, tx + 8, Y - 66], '#f0f0d8', null);
+      poly(ctx, [tx, Y - 58, tx + 4, Y - 52, tx + 8, Y - 58], '#f0f0d8', null);
+    }
+  } else {
+    // closed mouth line
+    line(ctx, cx - 16, Y - 62, cx + 22, Y - 62, DGRN, 2);
+    for (let i = 0; i < 4; i++) {
+      poly(ctx, [cx - 12 + i * 10, Y - 62, cx - 8 + i * 10, Y - 68, cx - 4 + i * 10, Y - 62], '#f0f0d8', null);
+    }
+  }
+
+  // JP stripes
+  for (let i = 0; i < 3; i++) {
+    line(ctx, cx - 6 + i * 6, Y - 50, cx - 4 + i * 6, Y - 30, DGRN, 2);
+  }
+}
+
+// ── Gengar animations ──────────────────────────────────────────────────────
+function gengarExpenseFrame(ctx, W, GY, f) {
+  ctx.clearRect(0, 0, W, GY + 10);
+  ctx.strokeStyle = '#2e2840'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, GY); ctx.lineTo(W, GY); ctx.stroke();
+
+  const bob = Math.sin(f * 0.2) * 5; // ghost floating
+
+  if (f <= 20) {
+    drawGengar(ctx, W / 2, GY - 10 + bob, 'normal');
+    txt(ctx, W / 2, GY - 100, 'ooOOoo...', '#9b5fc7', 13);
+  } else if (f <= 45) {
+    const p = (f - 21) / 24;
+    drawGengar(ctx, W / 2, GY - 10 + bob, 'reach');
+    if (p > 0.4) txt(ctx, W / 2, GY - 100, 'YOUR WALLET... MINE! 👻', '#c45f9b', 14, true);
+    // coins flying toward Gengar
+    for (const [i, [dy, sz]] of [[0,[0,10]],[1,[-12,8]],[2,[10,7]]].entries()) {
+      const t2 = Math.min(p * 1.5 - i * 0.2, 1);
+      if (t2 > 0) {
+        const fx = Math.round(60 + (W / 2 - 20 - 60) * t2);
+        const fy = Math.round(GY - 36 + dy - 20 * t2);
+        oval(ctx, fx - sz/2, fy - sz/2, fx + sz/2, fy + sz/2, '#f5c842', '#c8a820', 1);
+        txt(ctx, fx, fy, '$', '#8B6914', 9, true);
+      }
+    }
+  } else if (f <= 70) {
+    drawGengar(ctx, W / 2, GY - 10 + bob, 'scare');
+    txt(ctx, W / 2, GY - 100, 'CONSUMED! 💸', '#f76a6a', 15, true);
+    // purple sparkles
+    for (let i = 0; i < 6; i++) {
+      const a = i / 6 * Math.PI * 2 + f * 0.1;
+      const r = 30 + Math.sin(f * 0.3 + i) * 8;
+      oval(ctx, W/2 + Math.cos(a)*r - 4, GY - 38 + Math.sin(a)*r - 4,
+               W/2 + Math.cos(a)*r + 4, GY - 38 + Math.sin(a)*r + 4, '#b060e8', null);
+    }
+  } else {
+    drawGengar(ctx, W / 2, GY - 10 + bob, 'normal');
+    txt(ctx, W / 2, GY - 100, 'rip your money...', '#9080b8', 13);
+  }
+}
+
+function gengarIncomeFrame(ctx, W, GY, f) {
+  ctx.clearRect(0, 0, W, GY + 10);
+  ctx.strokeStyle = '#2e2840'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, GY); ctx.lineTo(W, GY); ctx.stroke();
+
+  const bob = Math.sin(f * 0.22) * 6;
+
+  if (f <= 25) {
+    drawGengar(ctx, W / 2, GY - 10 + bob, 'normal');
+    txt(ctx, W / 2, GY - 100, 'something incoming...', '#9b5fc7', 12);
+  } else if (f <= 55) {
+    const p = (f - 26) / 29;
+    drawGengar(ctx, W / 2, GY - 10 + bob, 'reach');
+    txt(ctx, W / 2, GY - 100, p > 0.5 ? 'YOINK! 💜' : 'ooh ooh ooh...', '#9b5fc7', 14, true);
+    for (const [i, [dy, sz]] of [[0,[0,11]],[1,[-10,9]],[2,[8,8]]].entries()) {
+      const t2 = Math.min(p * 1.5 - i * 0.3, 1);
+      if (t2 > 0) {
+        const fx = Math.round(W - 40 - (W - 40 - (W/2 - 10)) * t2);
+        const fy = Math.round(GY - 20 + dy - 25 * t2);
+        oval(ctx, fx-sz/2, fy-sz/2, fx+sz/2, fy+sz/2, '#f5c842', '#c8a820', 1);
+        txt(ctx, fx, fy, '$', '#8B6914', 10, true);
+      }
+    }
+  } else {
+    drawGengar(ctx, W / 2, GY - 10 + bob, 'scare');
+    txt(ctx, W / 2, GY - 100, 'GHOST GOT PAID! 💜', '#9b5fc7', 15, true);
+    // celebration sparkles
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2 + f * 0.08;
+      const r = 36 + Math.sin(f * 0.25 + i) * 10;
+      const c = i % 2 === 0 ? '#9b5fc7' : '#c45f9b';
+      oval(ctx, W/2+Math.cos(a)*r-3, GY-40+Math.sin(a)*r-3,
+               W/2+Math.cos(a)*r+3, GY-40+Math.sin(a)*r+3, c, null);
+    }
+  }
+}
+
+// ── T-Rex animations ───────────────────────────────────────────────────────
+function trexExpenseFrame(ctx, W, GY, f) {
+  ctx.clearRect(0, 0, W, GY + 10);
+  // JP amber ground line
+  ctx.strokeStyle = '#3a2e10'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, GY); ctx.lineTo(W, GY); ctx.stroke();
+
+  if (f <= 20) {
+    drawTRex(ctx, W / 2 - 10, GY, 'normal');
+    txt(ctx, W / 2, 18, '...objects in mirror...', '#c8a020', 12);
+  } else if (f <= 44) {
+    const p = (f - 21) / 23;
+    drawTRex(ctx, W / 2 - 10, GY, 'roar');
+    txt(ctx, W / 2, 18, p > 0.5 ? 'ROAAARRR!! 🦖' : 'hold onto your wallet!', '#c84030', 14, true);
+    // coins flying in
+    for (const [i, [dy, sz]] of [[0,[0,10]],[1,[-10,8]],[2,[8,7]]].entries()) {
+      const t2 = Math.min(p * 1.6 - i * 0.25, 1);
+      if (t2 > 0) {
+        const fx = Math.round(W - 30 - (W - 30 - (W/2 + 10)) * t2);
+        const fy = Math.round(GY - 30 + dy - 25 * t2);
+        oval(ctx, fx-sz/2, fy-sz/2, fx+sz/2, fy+sz/2, '#f5c842', '#c8a820', 1);
+        txt(ctx, fx, fy, '$', '#8B6914', 9, true);
+      }
+    }
+  } else if (f <= 70) {
+    drawTRex(ctx, W / 2 - 10, GY, 'chomp');
+    txt(ctx, W / 2, 18, 'LIFE, uh... FINDS A WAY 💸', '#c84030', 13, true);
+    // impact lines
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      const r1 = 15, r2 = 28;
+      line(ctx, W/2+Math.cos(a)*r1, GY-70+Math.sin(a)*r1,
+               W/2+Math.cos(a)*r2, GY-70+Math.sin(a)*r2, '#c8a020', 2);
+    }
+  } else {
+    drawTRex(ctx, W / 2 - 10, GY, 'normal');
+    txt(ctx, W / 2, 18, 'wallet... gone...', '#7a9460', 13);
+  }
+}
+
+function trexIncomeFrame(ctx, W, GY, f) {
+  ctx.clearRect(0, 0, W, GY + 10);
+  ctx.strokeStyle = '#3a2e10'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, GY); ctx.lineTo(W, GY); ctx.stroke();
+
+  if (f <= 22) {
+    drawTRex(ctx, W / 2 - 10, GY, 'normal');
+    txt(ctx, W / 2, 18, 'clever girl...', '#c8a020', 13);
+  } else if (f <= 50) {
+    const p = (f - 23) / 27;
+    drawTRex(ctx, W / 2 - 10, GY, 'roar');
+    txt(ctx, W / 2, 18, p > 0.5 ? 'PAYDAY!! 🦖💰' : 'ohhh yes yes yes...', '#c8a020', 14, true);
+    for (const [i, [dy, sz]] of [[0,[0,11]],[1,[-12,9]],[2,[9,8]]].entries()) {
+      const t2 = Math.min(p * 1.5 - i * 0.3, 1);
+      if (t2 > 0) {
+        const fx = Math.round(30 + (W/2 - 15 - 30) * t2);
+        const fy = Math.round(GY - 30 + dy - 28 * t2);
+        oval(ctx, fx-sz/2, fy-sz/2, fx+sz/2, fy+sz/2, '#f5c842', '#c8a820', 1);
+        txt(ctx, fx, fy, '$', '#8B6914', 10, true);
+      }
+    }
+  } else {
+    drawTRex(ctx, W / 2 - 10, GY, 'roar');
+    txt(ctx, W / 2, 18, 'FEED THE REX! 🌿', '#5aaa40', 15, true);
+    // amber sparkle burst
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2 + f * 0.07;
+      const r = 34 + Math.sin(f * 0.2 + i) * 8;
+      const c = i % 2 === 0 ? '#c8a020' : '#5aaa40';
+      oval(ctx, W/2+Math.cos(a)*r-3, GY-55+Math.sin(a)*r-3,
+               W/2+Math.cos(a)*r+3, GY-55+Math.sin(a)*r+3, c, null);
+    }
+  }
+}
+
+// ── theme helper ────────────────────────────────────────────────────────────
+function _activeTheme() {
+
 function showRobbery(amount) {
-  runAnim(`SpongeBob stole $${amount.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`,
-          '#f76a6a', robberyFrame, amount);
+  const fmt = amount.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const theme = _activeTheme();
+  if (theme === 'gengar') {
+    runAnim(`Gengar ate your $${fmt} 👻`, '#c45f9b', gengarExpenseFrame, amount);
+  } else if (theme === 'jurassicpark') {
+    runAnim(`T-Rex chomped $${fmt} 🦖`, '#c84030', trexExpenseFrame, amount);
+  } else {
+    runAnim(`SpongeBob stole $${fmt}`, '#f76a6a', robberyFrame, amount);
+  }
 }
 
 function showPayday(amount) {
-  runAnim(`payday!  +$${amount.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`,
-          '#4ecb8d', paydayFrame, amount);
+  const fmt = amount.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const theme = _activeTheme();
+  if (theme === 'gengar') {
+    runAnim(`Gengar found $${fmt}! 💜`, '#9b5fc7', gengarIncomeFrame, amount);
+  } else if (theme === 'jurassicpark') {
+    runAnim(`Payday! +$${fmt} 🌿`, '#c8a020', trexIncomeFrame, amount);
+  } else {
+    runAnim(`payday!  +$${fmt}`, '#4ecb8d', paydayFrame, amount);
+  }
 }

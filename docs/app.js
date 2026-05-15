@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.9.5';
+const VERSION = '2.9.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,13 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.9.6', date: '2026-05-15', changes: [
+    'New theme: Gengar 👻 — deep purple ghost vibes with shadow accents',
+    'New theme: Jurassic Park 🦖 — amber/jungle green, holds onto your butts',
+    'Gengar theme: transaction animations replaced with Gengar canvas art',
+    'Jurassic Park theme: transaction animations replaced with T-Rex canvas art',
+    'Nav burst particles now match your theme (👻💜🔮 or 🦖🌿🦕)',
+  ]},
   { version: '2.9.5', date: '2026-05-15', changes: [
     'Font list overhauled: 14 curated fonts in Anime, Modern, and Cursive groups',
     'App title drop shadow replaced glow — diagonal offset shadow, no bloom',
@@ -171,6 +178,20 @@ const THEMES = {
     ..._D,
     accent:'#c07830', accent2:'#c05030', success:'#52a872', warn:'#c0a038', danger:'#c05050',
     cats:{ Food:'#78a858', Gas:'#c85040', Car:'#b07830', Boat:'#509880', Tools:'#c86830', Home:'#a89840', Entertainment:'#b06070', Health:'#609878', Other:'#988060' },
+  },
+  gengar: {
+    label:'Gengar 👻',
+    bg:'#0f0d16', surface:'#191626', surface2:'#221e30', card:'#1c1928',
+    text:'#e2dcf0', muted:'#9080b8', border:'#302850',
+    accent:'#9b5fc7', accent2:'#c45f9b', success:'#52a872', warn:'#c0a038', danger:'#c05070',
+    cats:{ Food:'#7a5ec8', Gas:'#c45070', Car:'#5050b8', Boat:'#6060d8', Tools:'#b860a0', Home:'#7840b0', Entertainment:'#a040c8', Health:'#6870c8', Other:'#806898' },
+  },
+  jurassicpark: {
+    label:'Jurassic Park 🦖',
+    bg:'#0c1009', surface:'#131a0d', surface2:'#1a2312', card:'#161e0f',
+    text:'#dce8cc', muted:'#7a9460', border:'#253018',
+    accent:'#c8a020', accent2:'#c84820', success:'#5aaa40', warn:'#c8a020', danger:'#c84030',
+    cats:{ Food:'#5aaa40', Gas:'#c84030', Car:'#c8a020', Boat:'#409870', Tools:'#c86020', Home:'#80a830', Entertainment:'#a07020', Health:'#50a860', Other:'#788858' },
   },
 };
 
@@ -2380,7 +2401,12 @@ function spawnDollarBurst(originEl) {
   const rect    = originEl.getBoundingClientRect();
   const cx      = rect.left + rect.width  / 2;
   const cy      = rect.top  + rect.height / 2;
-  const symbols = ['$','$','$','💸','$','💵','$'];
+  const theme   = (loadSettings().theme) || 'dark';
+  const symbols = theme === 'gengar'
+    ? ['👻','💜','👻','🔮','💜','👻','🔮']
+    : theme === 'jurassicpark'
+    ? ['🦖','🌿','🦖','🦕','🌿','🦖','🦕']
+    : ['$','$','$','💸','$','💵','$'];
   const count   = 7;
   for (let i = 0; i < count; i++) {
     const el  = document.createElement('span');
