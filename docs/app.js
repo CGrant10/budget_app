@@ -1,7 +1,31 @@
 'use strict';
 
-const VERSION = '2.6.3';
+const VERSION = '2.6.4';
 const CATEGORIES = ['Food','Snacks','Gas','Car','Boat','Tools','Home','Transport','Housing','Entertainment','Health','Shopping','Income','Other'];
+
+const CHANGELOG = [
+  { version: '2.6.4', date: '2026-05-15', changes: [
+    'About page now shows transparent brand icon blended into the background',
+    'Added this changelog — updates will now show what changed',
+  ]},
+  { version: '2.6.3', date: '2026-05-14', changes: [
+    'Pie chart text now readable in dark mode',
+    'Pie chart moved left, legend moved right',
+    'Reduced pie chart border thickness',
+    'Health score rebuilt: Savings Rate, Budget Control, Bills, Goals',
+  ]},
+  { version: '2.6.2', date: '2026-05-13', changes: [
+    'Multi-account budgeting — add and switch between accounts from the header',
+    'Accounts can be renamed or deleted',
+    'Each account has fully isolated transactions, budgets, and bills',
+  ]},
+  { version: '2.6.1', date: '2026-05-12', changes: [
+    'Fixed chart freeze when switching between bar and pie',
+    'Switched to Outfit font throughout',
+    'Personalized name no longer appends extra text',
+    'Removed "money moves" tagline',
+  ]},
+];
 
 const CAT_COLORS = {
   Food:          '#4ecb8d',
@@ -1425,17 +1449,33 @@ function renderAbout() {
   const built    = new Date().getFullYear();
   const s        = loadSettings();
   const userName = s.name || null;
+  const changelogHtml = CHANGELOG.map(entry => `
+    <div style="margin-bottom:18px">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
+        <span style="font-size:.95rem;font-weight:700;color:var(--accent)">v${entry.version}</span>
+        <span style="font-size:.72rem;color:var(--muted)">${entry.date}</span>
+      </div>
+      <ul style="margin:0;padding-left:16px;list-style:disc">
+        ${entry.changes.map(c => `<li style="font-size:.82rem;color:var(--text);line-height:1.55;margin-bottom:3px">${c}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('');
   return `
     <div class="page">
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:28px 20px">
-        <img src="icon-192.png" alt="$MY Budgeting DAWGS" style="width:160px;height:160px;object-fit:contain;display:block;margin:0 auto 16px">
+        <img src="app-icon-about.png" alt="$MY Budgeting DAWGS"
+             style="width:220px;height:auto;display:block;margin:0 auto 8px;mix-blend-mode:screen;opacity:.92">
         ${userName ? `<div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:16px">${userName}</div>` : ''}
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Quote of the Day</div>
         <p style="font-size:.9rem;color:var(--text);line-height:1.6;font-style:italic;margin:0">"${quote}"</p>
+      </div>
+      <div class="form-card">
+        <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">What's New</div>
+        ${changelogHtml}
       </div>
       <div class="form-card" style="text-align:center">
         <p class="code-hint" style="margin-bottom:12px">If the app feels out of date, tap below to clear the cache and reload the latest version.</p>
