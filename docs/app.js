@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.7.1';
+const VERSION = '2.7.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.7.2', date: '2026-05-15', changes: [
+    'All 6 themes redesigned with softer, muted modern palettes',
+    'Themes renamed: Slate, Pebble, Dusk, Denim, Moss, Ink',
+    'About page icon now shows original grey background with rounded corners',
+  ]},
   { version: '2.7.1', date: '2026-05-15', changes: [
     'Chart text, legend, and grid lines now adapt to any theme (fixes light mode readability)',
     'About page icon shown as-is — no more blend mode or opacity alteration',
@@ -45,12 +50,18 @@ const CHANGELOG = [
 ];
 
 const THEMES = {
-  dark:     { label:'Dark',     bg:'#0f0f14', surface:'#1a1a24', surface2:'#252535', card:'#22222f', accent:'#7c6af7', accent2:'#f7936a', success:'#4ecb8d', warn:'#f7c96a', danger:'#f76a6a', text:'#e8e6f0', muted:'#b0aec8', border:'#2e2e40' },
-  light:    { label:'Light',    bg:'#f4f4f9', surface:'#ffffff',  surface2:'#eaeaf2', card:'#eaeaf2', accent:'#7c6af7', accent2:'#f7936a', success:'#2ea870', warn:'#d4a017', danger:'#d94f4f', text:'#1a1a2e', muted:'#4a4860', border:'#d0d0e0', light:true },
-  ocean:    { label:'Ocean',    bg:'#071525', surface:'#0d1e35',  surface2:'#132640', card:'#112241', accent:'#38b2f4', accent2:'#f7936a', success:'#4ecb8d', warn:'#f7c96a', danger:'#f76a6a', text:'#d0e8f8', muted:'#7dadc4', border:'#1a3050' },
-  sunset:   { label:'Sunset',   bg:'#1a0e1e', surface:'#241228',  surface2:'#301638', card:'#2c1630', accent:'#f76ab5', accent2:'#f7936a', success:'#4ecb8d', warn:'#f7c96a', danger:'#f76a6a', text:'#f0e0ec', muted:'#c090b0', border:'#3c1a40' },
-  forest:   { label:'Forest',   bg:'#08110c', surface:'#0f1c14',  surface2:'#162418', card:'#142018', accent:'#4ecb8d', accent2:'#f7c96a', success:'#4ecb8d', warn:'#f7c96a', danger:'#f76a6a', text:'#d0ecd8', muted:'#7ab890', border:'#1a3020' },
-  midnight: { label:'Midnight', bg:'#060612', surface:'#0d0d20',  surface2:'#141428', card:'#14142a', accent:'#a78bfa', accent2:'#60a5fa', success:'#34d399', warn:'#fbbf24', danger:'#f87171', text:'#e2e8f0', muted:'#94a3b8', border:'#1e1e3a' },
+  // Slate — soft charcoal with lavender tint (default dark)
+  slate:  { label:'Slate',  bg:'#13141f', surface:'#1c1e2e', surface2:'#252840', card:'#20223a', accent:'#9d94f0', accent2:'#f0936a', success:'#68c99a', warn:'#e8c46a', danger:'#e07070', text:'#e2e0f0', muted:'#8e8cb0', border:'#2e3050' },
+  // Pebble — warm off-white light mode
+  pebble: { label:'Pebble', bg:'#edebe6', surface:'#f7f5f1', surface2:'#e6e3dc', card:'#efece6', accent:'#7068cc', accent2:'#c87848', success:'#4aaa78', warn:'#b89020', danger:'#c85050', text:'#1e1c2c', muted:'#6e6c88', border:'#d4d0c8', light:true },
+  // Dusk — muted mauve / dusty rose
+  dusk:   { label:'Dusk',   bg:'#151018', surface:'#1e1624', surface2:'#281e30', card:'#221a2c', accent:'#c490cc', accent2:'#e8a060', success:'#70b888', warn:'#d4b060', danger:'#d87070', text:'#ecdaf0', muted:'#9878a8', border:'#362040' },
+  // Denim — dusty steel blue
+  denim:  { label:'Denim',  bg:'#0e1420', surface:'#141d2e', surface2:'#1a2438', card:'#162030', accent:'#6a9ec8', accent2:'#e8a060', success:'#60b890', warn:'#d4b060', danger:'#d87070', text:'#ccd8e8', muted:'#6888a0', border:'#1e2c40' },
+  // Moss — warm sage green
+  moss:   { label:'Moss',   bg:'#0c1210', surface:'#141a14', surface2:'#1c2418', card:'#18201a', accent:'#78b880', accent2:'#d4b060', success:'#78b880', warn:'#d4b060', danger:'#d87070', text:'#cce0cc', muted:'#6a8870', border:'#202e22' },
+  // Ink — deep soft violet
+  ink:    { label:'Ink',    bg:'#0d0d16', surface:'#131222', surface2:'#191828', card:'#171626', accent:'#9888d0', accent2:'#88b4e0', success:'#60c090', warn:'#d0b860', danger:'#d87070', text:'#dcdaf0', muted:'#8884a8', border:'#1e1c30' },
 };
 
 const CAT_COLORS = {
@@ -191,7 +202,7 @@ function applySettings() {
   }
   applyNavPosition(s.navPosition || 'bottom');
   applyNavItems(s.hiddenTabs || []);
-  applyTheme(s.theme || 'dark');
+  applyTheme(s.theme || 'slate');
 }
 
 function applyNavPosition(pos) {
@@ -208,7 +219,7 @@ function applyNavItems(hiddenTabs) {
 }
 
 function applyTheme(theme) {
-  const t = THEMES[theme] || THEMES.dark;
+  const t = THEMES[theme] || THEMES.slate;
   const root = document.documentElement;
   root.style.setProperty('--bg',       t.bg);
   root.style.setProperty('--surface',  t.surface);
@@ -1379,7 +1390,7 @@ function renderSettings() {
   const s          = loadSettings();
   const navPos     = s.navPosition || 'bottom';
   const hiddenTabs = s.hiddenTabs || [];
-  const theme      = s.theme || 'dark';
+  const theme      = s.theme || 'slate';
   const logoFont   = s.logoFont || '';
   const logoColor  = s.logoColor || '';
   const customCats = s.customCategories || [];
@@ -1684,7 +1695,7 @@ function renderAbout() {
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:28px 20px">
         <img src="app-icon-about.png" alt="$MY Budgeting DAWGS"
-             style="width:220px;height:auto;display:block;margin:0 auto 8px">
+             style="width:220px;height:auto;display:block;margin:0 auto 16px;border-radius:16px">
         ${userName ? `<div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:16px">${userName}</div>` : ''}
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
