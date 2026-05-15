@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.4.0';
+const VERSION = '3.5.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.5.0', date: '2026-05-15', changes: [
+    'Account picker: opening the app with multiple accounts now shows a tile grid — tap one to enter its dashboard',
+    'Each tile shows account type icon, name, and current balance (or amount owed for credit/loan)',
+    'Header gets a ⊞ button to return to the account picker at any time',
+    'Single-account users see no change — picker is skipped',
+  ]},
   { version: '3.4.0', date: '2026-05-15', changes: [
     'New Debt tab (💳): dedicated dashboard for credit cards and loans',
     'Shows total owed, per-account balance, payoff progress bar, payment history, and charges',
@@ -683,6 +689,7 @@ function calcHealthScore() {
 let currentTab = 'dashboard';
 let dashMonth = new Date().toISOString().slice(0, 7);
 let debtSubTab = 'credit'; // 'credit' | 'loan'
+let showingAccountPicker = false;
 let selectedLedgerIdx = null;
 let ledgerFilter = '';
 let ledgerSort = 'date-desc';
@@ -1219,10 +1226,59 @@ function attachDebt() {
   });
 }
 
+// ── account picker ─────────────────────────────────────────────────────────
+function renderAccountPicker() {
+  const tiles = state.accounts.map(acct => {
+    const d       = JSON.parse(localStorage.getItem(accountDataKey(acct.id)) || '{}');
+    const txns    = d.transactions || [];
+    const startBal = parseFloat(d.startingBalance) || 0;
+    let inc = 0, exp = 0;
+    for (const t of txns) { if (t.type === 'income') inc += t.amount; else exp += t.amount; }
+    const isDebt   = acct.type === 'credit' || acct.type === 'loan';
+    const balance  = isDebt ? Math.max(0, startBal + exp - inc) : startBal + inc - exp;
+    const balColor = isDebt ? 'var(--danger)' : (balance >= 0 ? 'var(--success)' : 'var(--danger)');
+    const balLabel = isDebt ? `Owes ${fmt(balance)}` : fmt(balance);
+    const icon = { checking:'🏦', savings:'💰', credit:'💳', loan:'📋', cash:'💵' }[acct.type] || '🏦';
+    const typeLbl  = acct.type.charAt(0).toUpperCase() + acct.type.slice(1);
+    return `
+      <div class="acct-tile" data-id="${acct.id}">
+        <div class="acct-tile-icon">${icon}</div>
+        <div class="acct-tile-name">${acct.name}</div>
+        <div class="acct-tile-type">${typeLbl}</div>
+        <div class="acct-tile-bal" style="color:${balColor}">${balLabel}</div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="page acct-picker-page">
+      <h1 class="page-title">Accounts</h1>
+      <p class="page-sub">tap an account to open it</p>
+      <div class="acct-tiles-grid">${tiles}</div>
+    </div>`;
+}
+
 // ── render ─────────────────────────────────────────────────────────────────
 function render() {
   if (spendingChart) { spendingChart.destroy(); spendingChart = null; }
   const main = document.getElementById('main-content');
+  const appEl = document.getElementById('app');
+
+  if (showingAccountPicker) {
+    appEl?.classList.add('picker-mode');
+    main.innerHTML = renderAccountPicker();
+    document.querySelectorAll('.acct-tile').forEach(tile => {
+      tile.addEventListener('click', async () => {
+        await api.switchAccount(tile.dataset.id);
+        showingAccountPicker = false;
+        appEl?.classList.remove('picker-mode');
+        render();
+      });
+    });
+    document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="date"])').forEach(el => el.setAttribute('enterkeyhint', 'done'));
+    return;
+  }
+
+  appEl?.classList.remove('picker-mode');
   switch (currentTab) {
     case 'dashboard': main.innerHTML = renderDashboard(); break;
     case 'add':       main.innerHTML = renderAdd();       break;
@@ -3040,9 +3096,28 @@ function attachImport() {
 function updateAccountSwitcher() {
   const sel = document.getElementById('account-switcher');
   if (!sel) return;
+  if (state.accounts.length <= 1) {
+    sel.style.display = 'none';
+    document.getElementById('acct-home-btn')?.remove();
+    return;
+  }
+  sel.style.display = '';
   sel.innerHTML = state.accounts.map(a =>
     `<option value="${a.id}"${a.id === currentAccountId ? ' selected' : ''}>${a.name}</option>`
   ).join('');
+  // Inject home/picker button once
+  if (!document.getElementById('acct-home-btn')) {
+    const btn = document.createElement('button');
+    btn.id        = 'acct-home-btn';
+    btn.className = 'acct-home-btn';
+    btn.title     = 'All Accounts';
+    btn.textContent = '⊞';
+    sel.insertAdjacentElement('beforebegin', btn);
+    btn.addEventListener('click', () => {
+      showingAccountPicker = true;
+      render();
+    });
+  }
 }
 
 // ── version check ──────────────────────────────────────────────────────────
@@ -3160,6 +3235,7 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
     document.getElementById('account-switcher')?.addEventListener('change', async e => {
       await api.switchAccount(e.target.value);
     });
+    if (state.accounts.length > 1) showingAccountPicker = true;
     render();
     updateBillBadge();
     checkBillNotifications();
