@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.7.3';
+const VERSION = '2.7.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.7.4', date: '2026-05-15', changes: [
+    'Themes renamed back to Dark / Light as primary, with Dusk / Denim / Moss / Ember as extras',
+    'All accent colors softened and desaturated across every theme',
+    'App title now uses the text color at slight opacity — clean and modern, not a bright accent',
+    'Custom logo color overrides the opacity so it shows at full strength',
+  ]},
   { version: '2.7.3', date: '2026-05-15', changes: [
     'About icon now uses correct transparency — shows clean logo on any background',
     'Themes completely redesigned with real color: Slate, Pebble, Dusk (purple), Denim (navy), Moss (green), Ember (warm amber)',
@@ -55,18 +61,18 @@ const CHANGELOG = [
 ];
 
 const THEMES = {
-  // Slate — neutral charcoal, soft lavender accent (default dark)
-  slate:  { label:'Slate',  bg:'#13141f', surface:'#1c1d2c', surface2:'#252640', card:'#21223a', accent:'#9d94f0', accent2:'#f0936a', success:'#68c99a', warn:'#e8c46a', danger:'#e07070', text:'#e2e0f0', muted:'#8e8cb0', border:'#30324e' },
-  // Pebble — warm cream light mode
-  pebble: { label:'Pebble', bg:'#edebe6', surface:'#f7f5f1', surface2:'#e6e3dc', card:'#efece6', accent:'#7068cc', accent2:'#c87848', success:'#4aaa78', warn:'#b89020', danger:'#c85050', text:'#1e1c2c', muted:'#6e6c88', border:'#d4d0c8', light:true },
-  // Dusk — deep jewel purple
-  dusk:   { label:'Dusk',   bg:'#180f28', surface:'#231540', surface2:'#301a52', card:'#2c1a48', accent:'#c080e0', accent2:'#e88060', success:'#70c888', warn:'#d4b060', danger:'#d87070', text:'#f0d8ff', muted:'#a878c8', border:'#3e2060' },
-  // Denim — real navy blue
-  denim:  { label:'Denim',  bg:'#091828', surface:'#102238', surface2:'#163048', card:'#142840', accent:'#4a90d0', accent2:'#e89060', success:'#60c898', warn:'#d4b060', danger:'#d87070', text:'#d0e8ff', muted:'#6090b8', border:'#1e3858' },
-  // Moss — rich forest green
-  moss:   { label:'Moss',   bg:'#081610', surface:'#0e2018', surface2:'#142a20', card:'#122018', accent:'#60b870', accent2:'#c8d060', success:'#60b870', warn:'#c8c060', danger:'#d87070', text:'#c8f0cc', muted:'#60987a', border:'#183824' },
-  // Ember — warm amber / burnt sienna
-  ember:  { label:'Ember',  bg:'#1c1008', surface:'#281808', surface2:'#362010', card:'#301810', accent:'#e09040', accent2:'#e06040', success:'#70b888', warn:'#e0c040', danger:'#d87060', text:'#ffe8cc', muted:'#b07848', border:'#402818' },
+  // Dark — the default, neutral charcoal with soft lavender accent
+  dark:   { label:'Dark',   bg:'#13141f', surface:'#1c1d2c', surface2:'#252640', card:'#21223a', accent:'#8878c8', accent2:'#c87858', success:'#58b888', warn:'#c8a850', danger:'#c86060', text:'#d8d6e8', muted:'#7e7ca0', border:'#2e3050' },
+  // Light — warm off-white, soft and easy on the eyes
+  light:  { label:'Light',  bg:'#eeece8', surface:'#f8f6f2', surface2:'#e6e3dc', card:'#f0ede8', accent:'#6860b0', accent2:'#b87048', success:'#489870', warn:'#a88018', danger:'#b84848', text:'#1e1c2c', muted:'#6e6c88', border:'#d4d0c8', light:true },
+  // Dusk — deep purple, muted and moody
+  dusk:   { label:'Dusk',   bg:'#180f28', surface:'#231540', surface2:'#2e1a50', card:'#2a1845', accent:'#a06aba', accent2:'#c87060', success:'#60a880', warn:'#b89850', danger:'#c06060', text:'#e0ccf0', muted:'#906898', border:'#382055' },
+  // Denim — muted navy blue
+  denim:  { label:'Denim',  bg:'#0b1828', surface:'#102235', surface2:'#162d45', card:'#142840', accent:'#4880a8', accent2:'#c07848', success:'#50a080', warn:'#b89850', danger:'#c06060', text:'#c8ddf0', muted:'#508098', border:'#1c3455' },
+  // Moss — muted forest green
+  moss:   { label:'Moss',   bg:'#0a1510', surface:'#101e16', surface2:'#162820', card:'#121c16', accent:'#58986a', accent2:'#a0a848', success:'#58986a', warn:'#a09848', danger:'#b86060', text:'#c0e0c8', muted:'#508860', border:'#183020' },
+  // Ember — warm amber, earthy and calm
+  ember:  { label:'Ember',  bg:'#1a1008', surface:'#241808', surface2:'#302010', card:'#2c1a0c', accent:'#b87838', accent2:'#b85838', success:'#60a070', warn:'#c8a030', danger:'#c06050', text:'#f0d8b8', muted:'#a07040', border:'#3c2010' },
 };
 
 const CAT_COLORS = {
@@ -204,10 +210,12 @@ function applySettings() {
     logo.textContent = s.name || 'SlawMinYaw';
     logo.style.fontFamily = s.logoFont || '';
     logo.style.color = s.logoColor || '';
+    // When a custom color is chosen, remove the CSS opacity so it shows at full strength
+    logo.style.opacity = s.logoColor ? '1' : '';
   }
   applyNavPosition(s.navPosition || 'bottom');
   applyNavItems(s.hiddenTabs || []);
-  applyTheme(s.theme || 'slate');
+  applyTheme(s.theme || 'dark');
 }
 
 function applyNavPosition(pos) {
@@ -224,7 +232,7 @@ function applyNavItems(hiddenTabs) {
 }
 
 function applyTheme(theme) {
-  const t = THEMES[theme] || THEMES.slate || THEMES[Object.keys(THEMES)[0]];
+  const t = THEMES[theme] || THEMES.dark || THEMES[Object.keys(THEMES)[0]];
   const root = document.documentElement;
   root.style.setProperty('--bg',       t.bg);
   root.style.setProperty('--surface',  t.surface);
@@ -1395,7 +1403,7 @@ function renderSettings() {
   const s          = loadSettings();
   const navPos     = s.navPosition || 'bottom';
   const hiddenTabs = s.hiddenTabs || [];
-  const theme      = s.theme || 'slate';
+  const theme      = s.theme || 'dark';
   const logoFont   = s.logoFont || '';
   const logoColor  = s.logoColor || '';
   const customCats = s.customCategories || [];
