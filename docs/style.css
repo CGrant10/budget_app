@@ -106,8 +106,11 @@ html, body {
   color: var(--accent);
   letter-spacing: .1em;
   opacity: 1;
-  text-shadow: 2px 3px 0 rgba(0,0,0,0.55), 4px 6px 10px rgba(0,0,0,0.3);
+  text-shadow: 2px 3px 6px rgba(0,0,0,0.4), 4px 6px 14px rgba(0,0,0,0.2);
   transition: color .3s;
+}
+body.light .logo {
+  text-shadow: 1px 2px 5px rgba(0,0,0,0.15), 3px 4px 10px rgba(0,0,0,0.08);
 }
 .tagline { font-size: 10px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
 
@@ -1032,7 +1035,7 @@ body.light .alert-toast { background: #f0f0f8; }
   position: fixed;
   inset: 0;
   background: url('gengar.png') center / 70% no-repeat;
-  opacity: 0.05;
+  opacity: 0.12;
   pointer-events: none;
   z-index: -1;
 }

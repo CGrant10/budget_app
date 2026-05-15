@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.9.8';
+const VERSION = '2.9.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,13 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.9.9', date: '2026-05-15', changes: [
+    'App title shadow softened with blur — no more hard edge, light mode looks much cleaner',
+    'Light mode theme dot now shows white circle with border instead of purple',
+    'Dusk theme removed',
+    'Gengar background ghost is more visible (opacity raised)',
+    'Jurassic Park theme: removed green tint from backgrounds, neutral dark grey base with amber/green accents only',
+  ]},
   { version: '2.9.8', date: '2026-05-15', changes: [
     'Transaction animations fixed — syntax error in animations.js was silently killing all of them',
     'Font picker previews now work correctly — double-quote HTML escape bug resolved',
@@ -177,12 +184,6 @@ const THEMES = {
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true,
     cats:{ Food:'#3e8a60', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
   },
-  dusk: {
-    label:'Dusk',
-    ..._D,
-    accent:'#a060c8', accent2:'#c06880', success:'#52a872', warn:'#c0a038', danger:'#c05050',
-    cats:{ Food:'#52a872', Gas:'#c06878', Car:'#9060c8', Boat:'#6080b8', Tools:'#c07060', Home:'#88a050', Entertainment:'#a850b8', Health:'#5880b0', Other:'#887898' },
-  },
   denim: {
     label:'Denim',
     ..._D,
@@ -203,8 +204,7 @@ const THEMES = {
   },
   jurassicpark: {
     label:'Jurassic Park 🦖',
-    bg:'#0c1009', surface:'#131a0d', surface2:'#1a2312', card:'#161e0f',
-    text:'#dce8cc', muted:'#7a9460', border:'#253018',
+    ..._D,
     accent:'#c8a020', accent2:'#c84820', success:'#5aaa40', warn:'#c8a020', danger:'#c84030',
     cats:{ Food:'#5aaa40', Gas:'#c84030', Car:'#c8a020', Boat:'#409870', Tools:'#c86020', Home:'#80a830', Entertainment:'#a07020', Health:'#50a860', Other:'#788858' },
   },
@@ -1639,7 +1639,7 @@ function renderSettings() {
 
   const themeRows = Object.entries(THEMES).map(([key, t]) => `
     <button class="theme-row${theme === key ? ' active' : ''}" data-theme="${key}">
-      <span class="theme-dot" style="background:${t.accent}"></span>
+      <span class="theme-dot" style="${key === 'light' ? 'background:#ffffff;border:1.5px solid #bbb' : 'background:' + t.accent}"></span>
       <span class="theme-row-name">${t.label}</span>
       ${theme === key ? '<span class="theme-check">✓</span>' : ''}
     </button>`).join('');
