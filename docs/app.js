@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '2.7.4';
+const VERSION = '2.7.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '2.7.5', date: '2026-05-15', changes: [
+    'About page: removed name text, icon fills the full card width',
+    'Added spacing between the top card and What\'s New / Force Update cards',
+  ]},
   { version: '2.7.4', date: '2026-05-15', changes: [
     'Themes renamed back to Dark / Light as primary, with Dusk / Denim / Moss / Ember as extras',
     'All accent colors softened and desaturated across every theme',
@@ -1710,21 +1714,20 @@ function renderAbout() {
   return `
     <div class="page">
       <h1 class="page-title">About</h1>
-      <div class="form-card" style="text-align:center;padding:28px 20px">
+      <div class="form-card" style="text-align:center;padding:24px 20px">
         <img src="app-icon-about.png" alt="$MY Budgeting DAWGS"
-             style="width:260px;height:auto;display:block;margin:0 auto 16px">
-        ${userName ? `<div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:16px">${userName}</div>` : ''}
+             style="width:100%;max-width:340px;height:auto;display:block;margin:0 auto 20px">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Quote of the Day</div>
         <p style="font-size:.9rem;color:var(--text);line-height:1.6;font-style:italic;margin:0">"${quote}"</p>
       </div>
-      <div class="form-card">
+      <div class="form-card" style="margin-top:20px">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">What's New</div>
         ${changelogHtml}
       </div>
-      <div class="form-card" style="text-align:center">
+      <div class="form-card" style="text-align:center;margin-top:20px">
         <p class="code-hint" style="margin-bottom:12px">If the app feels out of date, tap below to clear the cache and reload the latest version.</p>
         <button id="force-update-btn" class="btn-primary" style="width:100%">🔄 Force Update</button>
         <div id="force-update-status" class="form-status" style="margin-top:8px"></div>
