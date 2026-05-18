@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.7.6';
+const VERSION = '3.7.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -3177,6 +3177,10 @@ function attachAdd() {
     document.getElementById('add-desc').value   = '';
     document.getElementById('add-recurring').checked = false;
     playSound(t.type);
+    if (localStorage.getItem('sounds') !== 'off') {
+      if (t.type === 'expense') showRobbery(t.amount);
+      else if (t.type === 'income') showPayday(t.amount);
+    }
     if (t.type === 'expense') { checkRoast(t.category); checkSpendingAlert(t.category); }
     checkMilestones(prevBal, newBal);
     checkWeekMilestone();
