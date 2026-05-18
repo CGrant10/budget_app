@@ -652,6 +652,191 @@ function trexIncomeFrame(ctx, W, GY, f) {
   }
 }
 
+// ── draw Budget DAWG (Doberman) ────────────────────────────────────────────
+function drawDawg(ctx, cx, gy, action, f) {
+  const Y   = gy;
+  const BLK = '#1c1c28', TAN = '#c8874a', RUST = '#7a4020',
+        ACC = '#7c6af7', AMB = '#e8b830';
+
+  const lx = action === 'run1' ? -7 : action === 'run2' ? 7 : 0;
+
+  // cropped tail nub — wags on happy/wag
+  const wagY = (action === 'happy' || action === 'wag')
+    ? Y - ((f % 8 < 4) ? 50 : 42)
+    : Y - 46;
+  line(ctx, cx + 20, Y - 36, cx + 28, wagY, TAN, 5, 'round');
+
+  // back legs
+  line(ctx, cx + 10, Y - 20, cx + 10 - lx, Y, TAN, 8, 'round');
+  line(ctx, cx + 16, Y - 20, cx + 16 + lx, Y, TAN, 8, 'round');
+
+  // body (sleek black)
+  oval(ctx, cx - 24, Y - 48, cx + 24, Y - 14, BLK, '#111', 2);
+
+  // tan chest / throat marking
+  oval(ctx, cx - 18, Y - 44, cx - 2, Y - 18, TAN, null);
+
+  // front legs
+  line(ctx, cx - 16, Y - 20, cx - 16 + lx, Y, TAN, 8, 'round');
+  line(ctx, cx -  8, Y - 20, cx -  8 - lx, Y, TAN, 8, 'round');
+
+  // neck
+  poly(ctx, [cx-10, Y-46, cx-7, Y-62, cx+9, Y-62, cx+12, Y-46], BLK, '#111', 1);
+
+  // head
+  oval(ctx, cx - 16, Y - 84, cx + 16, Y - 58, BLK, '#111', 2);
+
+  // ears (tall, pointed — doberman crop)
+  poly(ctx, [cx-14, Y-80, cx-20, Y-100, cx- 6, Y-80], BLK, '#2a2a3a', 1);
+  poly(ctx, [cx+ 6, Y-80, cx+20, Y-100, cx+14, Y-80], BLK, '#2a2a3a', 1);
+
+  // tan eyebrow dots (classic doberman marking)
+  oval(ctx, cx-13, Y-84, cx- 7, Y-78, TAN, null);
+  oval(ctx, cx+ 7, Y-84, cx+13, Y-78, TAN, null);
+
+  // muzzle
+  oval(ctx, cx - 9, Y - 76, cx + 9, Y - 60, TAN, RUST, 1);
+
+  // eyes (amber)
+  oval(ctx, cx-14, Y-82, cx- 6, Y-75, AMB, '#9a7010', 1);
+  oval(ctx, cx+ 6, Y-82, cx+14, Y-75, AMB, '#9a7010', 1);
+  oval(ctx, cx-12, Y-80, cx- 8, Y-77, BLK, null);
+  oval(ctx, cx+ 8, Y-80, cx+12, Y-77, BLK, null);
+  oval(ctx, cx-12, Y-80, cx-11, Y-79, 'white', null);
+  oval(ctx, cx+ 8, Y-80, cx+ 9, Y-79, 'white', null);
+
+  // nose
+  oval(ctx, cx - 3, Y - 70, cx + 3, Y - 65, BLK, null);
+  oval(ctx, cx - 2, Y - 69, cx,     Y - 67, '#3a3a3a', null);
+
+  // mouth / expression
+  if (action === 'happy' || action === 'wag') {
+    arc(ctx, cx-7, Y-67, cx+7, Y-59, 200, 140, RUST, 2);
+    oval(ctx, cx-2, Y-63, cx+3, Y-55, '#e05070', null); // tongue
+  } else if (action === 'sad') {
+    arc(ctx, cx-7, Y-61, cx+7, Y-54, 20, 140, RUST, 2);
+  } else {
+    line(ctx, cx-4, Y-63, cx+4, Y-63, RUST, 1.5);
+  }
+
+  // collar (app accent purple)
+  rect(ctx, cx-14, Y-60, cx+14, Y-55, ACC, '#5040b0', 2);
+  // collar tag with $ — nod to the brand
+  oval(ctx, cx-3, Y-58, cx+3, Y-50, '#f7c96a', '#c8a820', 1);
+  txt(ctx, cx, Y-54, '$', '#8B6914', 7, true);
+}
+
+// ── Dawg expense: "money slipped the leash" ────────────────────────────────
+function dawgExpenseFrame(ctx, W, GY, f) {
+  ctx.clearRect(0, 0, W, GY + 10);
+  ctx.strokeStyle = '#2e2840'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, GY); ctx.lineTo(W, GY); ctx.stroke();
+
+  const dogX = 220;
+
+  if (f <= 18) {
+    // Dog standing proudly, coin on leash to the left
+    drawDawg(ctx, dogX, GY, 'stand', f);
+    line(ctx, dogX - 14, GY - 57, 100, GY - 36, '#7c6af7', 2);
+    oval(ctx, 76, GY - 48, 106, GY - 18, '#f5c842', '#c8a820', 2);
+    txt(ctx, 91, GY - 33, '$', '#8B6914', 14, true);
+    txt(ctx, W / 2 - 10, 18, 'money on a leash...', '#9080b8', 12);
+
+  } else if (f <= 38) {
+    // Coin strains toward escape — leash goes taut
+    const p  = (f - 19) / 19;
+    const cx = Math.round(91 - 68 * p);
+    drawDawg(ctx, dogX, GY, 'stand', f);
+    ctx.save();
+    ctx.setLineDash([5, 3]);
+    ctx.strokeStyle = '#7c6af7'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(dogX - 14, GY - 57); ctx.lineTo(cx + 12, GY - 33); ctx.stroke();
+    ctx.restore();
+    oval(ctx, cx - 14, GY - 47, cx + 14, GY - 19, '#f5c842', '#c8a820', 2);
+    txt(ctx, cx, GY - 33, '$', '#8B6914', 14, true);
+    txt(ctx, W / 2, 18, p > 0.55 ? 'HEY! COME BACK—' : 'wait... no...', '#f76a6a', 13, p > 0.55);
+
+  } else if (f <= 58) {
+    // Leash snaps — coin bolts off left edge
+    const p   = (f - 39) / 19;
+    const cx  = Math.round(23 - 110 * p);
+    drawDawg(ctx, dogX, GY, 'sad', f);
+    line(ctx, dogX - 14, GY - 57, dogX - 42, GY - 44, '#9080b8', 2); // limp leash
+    if (cx > -26) {
+      oval(ctx, cx - 13, GY - 45, cx + 13, GY - 19, '#f5c842', '#c8a820', 2);
+      txt(ctx, cx, GY - 32, '$', '#8B6914', 14, true);
+      for (let i = 1; i <= 3; i++)
+        line(ctx, cx + 15, GY - 44 + i * 8, cx + 32, GY - 44 + i * 8, '#f5c842', 1);
+    }
+    txt(ctx, dogX - 10, 18, 'NOOO— 💸', '#f76a6a', 14, true);
+
+  } else {
+    // Sad dog, limp leash, teardrop
+    drawDawg(ctx, dogX, GY, 'sad', f);
+    line(ctx, dogX - 14, GY - 57, dogX - 44, GY - 42, '#9080b8', 2);
+    txt(ctx, dogX - 10, 18, 'money slipped the leash...', '#7a7890', 12);
+    const ty = Math.min(GY - 76 + (f - 59) * 4, GY - 62);
+    oval(ctx, dogX + 6, ty - 5, dogX + 11, ty + 5, '#6090e8', null);
+  }
+}
+
+// ── Dawg income: "fetch the bag" ───────────────────────────────────────────
+function dawgIncomeFrame(ctx, W, GY, f) {
+  ctx.clearRect(0, 0, W, GY + 10);
+  ctx.strokeStyle = '#2e2840'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, GY); ctx.lineTo(W, GY); ctx.stroke();
+
+  const coinsX = 272;
+
+  if (f <= 18) {
+    // Coins arc down onto the right side
+    drawDawg(ctx, 80, GY, 'stand', f);
+    const p = f / 18;
+    for (let i = 0; i < 3; i++) {
+      const t = Math.max(0, Math.min((p - i * 0.22) / 0.56, 1));
+      if (t > 0) {
+        const cx = coinsX + i * 16;
+        const cy = Math.round(-12 + (GY - 46) * t - Math.sin(t * Math.PI) * 30);
+        oval(ctx, cx-11, cy-11, cx+11, cy+11, '#f5c842', '#c8a820', 1);
+        txt(ctx, cx, cy, '$', '#8B6914', 11, true);
+      }
+    }
+    txt(ctx, 170, 18, 'PAYDAY!! 🐾', '#4ecb8d', 14, true);
+
+  } else if (f <= 44) {
+    // Dog runs right toward coins
+    const p    = (f - 19) / 25;
+    const dogX = Math.round(80 + (coinsX - 80) * p);
+    drawDawg(ctx, dogX, GY, f % 6 < 3 ? 'run1' : 'run2', f);
+    for (let i = 0; i < 3; i++) {
+      oval(ctx, coinsX+i*16-11, GY-57, coinsX+i*16+11, GY-35, '#f5c842', '#c8a820', 1);
+      txt(ctx, coinsX + i*16, GY-46, '$', '#8B6914', 11, true);
+    }
+    txt(ctx, 160, 18, 'FETCH!! 🐾', '#4ecb8d', 14, true);
+
+  } else if (f <= 62) {
+    // Dog snatching the coins — happy at right
+    drawDawg(ctx, coinsX - 8, GY, 'happy', f);
+    txt(ctx, W / 2, 18, 'GOT THE BAG!! 💰', '#4ecb8d', 14, true);
+
+  } else {
+    // Celebrating center with coins at feet + sparkles
+    drawDawg(ctx, W / 2, GY, 'wag', f);
+    for (let i = 0; i < 3; i++) {
+      oval(ctx, W/2-40+i*36, GY-20, W/2-16+i*36, GY, '#f5c842', '#c8a820', 1);
+      txt(ctx, W/2-28+i*36, GY-10, '$', '#8B6914', 10, true);
+    }
+    txt(ctx, W / 2, 18, 'BAG SECURED! 💰', '#4ecb8d', 15, true);
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2 + f * 0.1;
+      const r = 30 + Math.sin(f * 0.3 + i) * 7;
+      const c = i % 2 === 0 ? '#4ecb8d' : '#f7c96a';
+      oval(ctx, W/2+Math.cos(a)*r-3, GY-52+Math.sin(a)*r-3,
+               W/2+Math.cos(a)*r+3, GY-52+Math.sin(a)*r+3, c, null);
+    }
+  }
+}
+
 // ── theme helper ────────────────────────────────────────────────────────────
 function _activeTheme() {
   try { return JSON.parse(localStorage.getItem('slawminyaw_settings') || '{}').theme || 'dark'; } catch(e) { return 'dark'; }
@@ -665,7 +850,7 @@ function showRobbery(amount) {
   } else if (theme === 'jurassicpark') {
     runAnim(`T-Rex chomped $${fmt} 🦖`, '#c84030', trexExpenseFrame, amount);
   } else {
-    runAnim(`SpongeBob stole $${fmt}`, '#f76a6a', robberyFrame, amount);
+    runAnim(`$${fmt} slipped the leash 💸`, '#f76a6a', dawgExpenseFrame, amount);
   }
 }
 
@@ -677,6 +862,6 @@ function showPayday(amount) {
   } else if (theme === 'jurassicpark') {
     runAnim(`Payday! +$${fmt} 🌿`, '#c8a020', trexIncomeFrame, amount);
   } else {
-    runAnim(`payday!  +$${fmt}`, '#4ecb8d', paydayFrame, amount);
+    runAnim(`+$${fmt} — fetched the bag! 🐾`, '#4ecb8d', dawgIncomeFrame, amount);
   }
 }
