@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.7.0';
+const VERSION = '3.7.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.7.1', date: '2026-05-18', changes: [
+    'Logo re-measured after document.fonts.ready — prevents the brief overflow flash when a custom font (Bangers, Press Start 2P, etc.) finishes loading after applySettings fires',
+  ]},
   { version: '3.7.0', date: '2026-05-18', changes: [
     'Dashboard scroll fixed — animation class (anim-zoom-in has overflow:hidden) was never removed after playing, blocking scroll on first load; animationend listener now strips it immediately',
     'Header logo always shows fully — replaced max-width:55% with flex:1 so logo takes exactly the space left after the right controls; .header-right wrapper is flex-shrink:0 so it is never squished',
@@ -3499,6 +3502,9 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
     await processRecurring();
     initSoundsToggle();
     applySettings();
+    // Re-fit logo once custom fonts finish loading — applySettings fires before
+    // web fonts are ready, so the first measurement uses the fallback font width.
+    document.fonts.ready.then(fitLogo);
     updateAccountSwitcher();
     document.getElementById('account-switcher')?.addEventListener('change', async e => {
       await api.switchAccount(e.target.value);
