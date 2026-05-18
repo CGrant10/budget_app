@@ -130,13 +130,12 @@ body::before {
 /* Right-side controls group — never squished, always visible */
 .header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .logo  {
-  font-family: 'Bangers', cursive;
-  font-size: 24px;
-  font-weight: 400;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 800;
   color: var(--accent);
-  letter-spacing: .1em;
+  letter-spacing: -.01em;
   opacity: 1;
-  text-shadow: 2px 3px 6px rgba(0,0,0,0.4), 4px 6px 14px rgba(0,0,0,0.2);
   transition: color .3s;
   /* flex:1 means logo gets ALL remaining space after .header-right — never more, never less */
   flex: 1 1 0;
@@ -1021,7 +1020,7 @@ body.light .section-title::before {
     width: 100%;
   }
   .header-right { flex-direction: column; align-items: flex-start; gap: 4px; }
-  .logo   { font-size: 22px; flex: 0 0 auto; }
+  .logo   { font-size: 17px; flex: 0 0 auto; }
   .tagline { font-size: 10px; }
 
   /* sounds button repositioned to bottom of header block */
@@ -1543,18 +1542,6 @@ body.light .section-title::before {
   100% { opacity: 0; transform: scale(1.04); }
 }
 
-/* soft ambient glow behind the dog */
-.splash-glow {
-  position: absolute;
-  width: 360px;
-  height: 360px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(91,141,232,.1) 0%, transparent 68%);
-  top: 50%; left: 50%;
-  transform: translate(-50%, -52%);
-  pointer-events: none;
-}
-
 /* inner content stack */
 .splash-inner {
   display: flex;
@@ -1570,69 +1557,9 @@ body.light .section-title::before {
   height: 250px;
   opacity: 0;
   animation: splashDogIn .55s cubic-bezier(.22,1,.36,1) .08s both;
-  position: relative;       /* fire is absolutely positioned inside */
+  filter: drop-shadow(0 10px 32px rgba(0,0,0,.6));
 }
-/* Dog photo sits above the fire in paint order (DOM order: fire first, img last) */
-.splash-dob-img {
-  width: 100%; height: 100%; display: block; object-fit: contain;
-  position: relative; z-index: 1;
-  filter: drop-shadow(0 10px 28px rgba(0,0,0,.65)) drop-shadow(0 0 36px rgba(91,141,232,.12));
-}
-
-/* ── fire at the dog's feet ── */
-.splash-fire {
-  position: absolute;
-  bottom: -18px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 200px;
-  height: 150px;
-  pointer-events: none;
-}
-/* large blurred base glow — the ambient firelight on the ground */
-.splash-fire-base {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 230px;
-  height: 55px;
-  background: radial-gradient(ellipse at 50% 100%,
-    rgba(255,90,0,.45)  0%,
-    rgba(255,50,0,.18) 50%,
-    transparent        80%
-  );
-  filter: blur(16px);
-  border-radius: 50%;
-}
-/* individual flame tongues */
-.sf {
-  position: absolute;
-  bottom: 0;
-  left: var(--l);
-  width: var(--w);
-  height: var(--h);
-  border-radius: 50% 50% 22% 22% / 65% 65% 35% 35%;
-  background: radial-gradient(ellipse 55% 85% at 50% 100%,
-    rgba(255,255,200,.98)  0%,
-    rgba(255,200,0,.85)   16%,
-    rgba(255,100,0,.75)   40%,
-    rgba(220,30,0,.55)    66%,
-    transparent           100%
-  );
-  filter: blur(var(--blur));
-  opacity: 0;
-  transform-origin: bottom center;
-  animation: flameDance var(--dur) ease-in-out var(--del) infinite;
-}
-@keyframes flameDance {
-  0%   { opacity: 0;   transform: scaleX(1)    scaleY(0.12) translateY(6px); }
-  12%  { opacity: .88; }
-  35%  { transform: scaleX(.9)  scaleY(.62)  translateY(-9px)  rotate(calc(var(--sway) * .4)); }
-  65%  { transform: scaleX(.75) scaleY(.94)  translateY(-22px) rotate(var(--sway)); opacity: .72; }
-  85%  { transform: scaleX(.6)  scaleY(1.04) translateY(-32px) rotate(calc(var(--sway) * -.6)); opacity: .38; }
-  100% { opacity: 0;   transform: scaleX(.4)  scaleY(.78)  translateY(-44px) rotate(0deg); }
-}
+.splash-dob-img { width: 100%; height: 100%; display: block; object-fit: contain; }
 @keyframes splashDogIn {
   from { opacity: 0; transform: translateY(14px) scale(.9); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -1660,11 +1587,7 @@ body.light .section-title::before {
   font-size: 3.2rem;
   letter-spacing: .1em;
   color: var(--text);
-  /* warm fire glow on the title to tie into the flames below */
-  text-shadow:
-    0 0 20px rgba(255,120,0,.55),
-    0 0 50px rgba(255,60,0,.25),
-    0 0 90px rgba(255,30,0,.12);
+  text-shadow: 0 2px 20px rgba(0,0,0,.45);
   opacity: 0;
   line-height: 1;
   animation: splashFadeUp .4s ease .62s both;

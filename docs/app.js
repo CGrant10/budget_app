@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.7.2';
+const VERSION = '3.7.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.7.3', date: '2026-05-18', changes: [
+    'Splash cleaned up — fire and ambient glow removed; clean minimal dark screen with dog, text, and progress bar only',
+    'App title font locked to Plus Jakarta Sans 800 — consistent with the rest of the app; custom font picker no longer overrides it',
+    'App title cut-off on side nav fixed — nav position change now calls fitLogo() so the logo remeasures against the new header width immediately',
+  ]},
   { version: '3.7.2', date: '2026-05-18', changes: [
     'Splash background flash fixed — inline script before first paint reads saved theme and applies --bg + body.light before the browser renders anything; light theme no longer shows a dark splash',
   ]},
@@ -508,7 +513,7 @@ function applySettings() {
   const logo = document.querySelector('.logo');
   if (logo) {
     logo.textContent = s.name || "SlawMinYaw's Budget DAWGs";
-    logo.style.fontFamily = s.logoFont || '';
+    // Font is locked to Plus Jakarta Sans (CSS) — custom logoFont no longer applied
     logo.style.color = s.logoColor || '';
     if (s.logoTransform === 'small-caps') {
       logo.style.textTransform = '';
@@ -2777,6 +2782,7 @@ function attachSettings() {
       s.navPosition = btn.dataset.pos;
       saveSettings(s);
       applyNavPosition(btn.dataset.pos);
+      fitLogo(); // header width changes with nav position — remeasure immediately
       document.querySelectorAll('.nav-pos-btn').forEach(b => b.classList.toggle('active', b === btn));
     });
   });
