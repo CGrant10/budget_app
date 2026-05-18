@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.7.1';
+const VERSION = '3.7.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.7.2', date: '2026-05-18', changes: [
+    'Splash background flash fixed — inline script before first paint reads saved theme and applies --bg + body.light before the browser renders anything; light theme no longer shows a dark splash',
+  ]},
   { version: '3.7.1', date: '2026-05-18', changes: [
     'Logo re-measured after document.fonts.ready — prevents the brief overflow flash when a custom font (Bangers, Press Start 2P, etc.) finishes loading after applySettings fires',
   ]},

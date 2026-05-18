@@ -18,6 +18,11 @@
   <title>SlawMinYaw's Budget DAWGs</title>
 </head>
 <body>
+  <!-- Anti-flash: runs before first paint — stamps the saved theme's bg so the
+       splash background matches the app instead of always showing dark.
+       Only 'light' needs special handling; all other themes are dark variants. -->
+  <script>!function(){try{var s=JSON.parse(localStorage.getItem('slawminyaw_settings')||'{}');if(s.theme==='light'){var r=document.documentElement.style;r.setProperty('--bg','#f3f3f3');r.setProperty('--text','#181820');r.setProperty('--muted','#606070');document.body.classList.add('light');}}catch(e){}}();</script>
+
   <!-- Splash screen — visible by default, dismissed by JS after animation -->
   <div id="splash-screen" class="splash-screen">
     <div class="splash-glow"></div>
