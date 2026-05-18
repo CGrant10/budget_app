@@ -652,187 +652,406 @@ function trexIncomeFrame(ctx, W, GY, f) {
   }
 }
 
+// ── spinning coin ──────────────────────────────────────────────────────────
+function drawCoin(ctx, cx, cy, r, spin) {
+  const scx = Math.abs(Math.cos(spin * Math.PI));
+  if (scx < 0.06) {
+    ctx.strokeStyle = '#b08020'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r); ctx.stroke();
+    return;
+  }
+  const g = ctx.createLinearGradient(cx - r * scx, cy, cx + r * scx, cy);
+  g.addColorStop(0,   '#b08010');
+  g.addColorStop(0.3, '#f5e060');
+  g.addColorStop(0.6, '#f5c842');
+  g.addColorStop(1,   '#b08010');
+  ctx.beginPath(); ctx.ellipse(cx, cy, r * scx, r, 0, 0, Math.PI * 2);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = '#9a7010'; ctx.lineWidth = 1.5; ctx.stroke();
+  if (scx > 0.3) {
+    ctx.fillStyle = '#7a5010';
+    ctx.font = `bold ${Math.max(8, Math.round(r * scx))}px "Plus Jakarta Sans",sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('$', cx, cy + 1);
+  }
+}
+
+// ── pop text (Plus Jakarta Sans, shadowed) ──────────────────────────────────
+function popTxt(ctx, x, y, text, color, size, bold) {
+  ctx.fillStyle = color;
+  ctx.font = `${bold ? 700 : 500} ${size || 12}px "Plus Jakarta Sans",sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 7;
+  ctx.fillText(text, x, y);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+}
+
 // ── draw Budget DAWG (Doberman) ────────────────────────────────────────────
 function drawDawg(ctx, cx, gy, action, f) {
-  const Y   = gy;
-  const BLK = '#1c1c28', TAN = '#c8874a', RUST = '#7a4020',
-        ACC = '#7c6af7', AMB = '#e8b830';
+  const Y     = gy;
+  const lx    = action === 'run1' ? -9 : action === 'run2' ? 9 : 0;
+  const happy = action === 'happy' || action === 'wag';
+  const sad   = action === 'sad';
 
-  const lx = action === 'run1' ? -7 : action === 'run2' ? 7 : 0;
+  // ── palette ──
+  const FUR  = '#181824', FURMID = '#22223c', FURHI = '#2e2e52';
+  const TAN  = '#d4915a', TANHI  = '#f0b070', TAND  = '#8a5028';
+  const COL  = '#7c6af7', COLD   = '#4a3ab0';
+  const AMB  = '#f0c030', AMBD   = '#a07010';
+  const RUST = '#7a3820', PINK   = '#e05070';
+  const NOSE = '#0a0a18';
 
-  // cropped tail nub — wags on happy/wag
-  const wagY = (action === 'happy' || action === 'wag')
-    ? Y - ((f % 8 < 4) ? 50 : 42)
-    : Y - 46;
-  line(ctx, cx + 20, Y - 36, cx + 28, wagY, TAN, 5, 'round');
-
-  // back legs
-  line(ctx, cx + 10, Y - 20, cx + 10 - lx, Y, TAN, 8, 'round');
-  line(ctx, cx + 16, Y - 20, cx + 16 + lx, Y, TAN, 8, 'round');
-
-  // body (sleek black)
-  oval(ctx, cx - 24, Y - 48, cx + 24, Y - 14, BLK, '#111', 2);
-
-  // tan chest / throat marking
-  oval(ctx, cx - 18, Y - 44, cx - 2, Y - 18, TAN, null);
-
-  // front legs
-  line(ctx, cx - 16, Y - 20, cx - 16 + lx, Y, TAN, 8, 'round');
-  line(ctx, cx -  8, Y - 20, cx -  8 - lx, Y, TAN, 8, 'round');
-
-  // neck
-  poly(ctx, [cx-10, Y-46, cx-7, Y-62, cx+9, Y-62, cx+12, Y-46], BLK, '#111', 1);
-
-  // head
-  oval(ctx, cx - 16, Y - 84, cx + 16, Y - 58, BLK, '#111', 2);
-
-  // ears (tall, pointed — doberman crop)
-  poly(ctx, [cx-14, Y-80, cx-20, Y-100, cx- 6, Y-80], BLK, '#2a2a3a', 1);
-  poly(ctx, [cx+ 6, Y-80, cx+20, Y-100, cx+14, Y-80], BLK, '#2a2a3a', 1);
-
-  // tan eyebrow dots (classic doberman marking)
-  oval(ctx, cx-13, Y-84, cx- 7, Y-78, TAN, null);
-  oval(ctx, cx+ 7, Y-84, cx+13, Y-78, TAN, null);
-
-  // muzzle
-  oval(ctx, cx - 9, Y - 76, cx + 9, Y - 60, TAN, RUST, 1);
-
-  // eyes (amber)
-  oval(ctx, cx-14, Y-82, cx- 6, Y-75, AMB, '#9a7010', 1);
-  oval(ctx, cx+ 6, Y-82, cx+14, Y-75, AMB, '#9a7010', 1);
-  oval(ctx, cx-12, Y-80, cx- 8, Y-77, BLK, null);
-  oval(ctx, cx+ 8, Y-80, cx+12, Y-77, BLK, null);
-  oval(ctx, cx-12, Y-80, cx-11, Y-79, 'white', null);
-  oval(ctx, cx+ 8, Y-80, cx+ 9, Y-79, 'white', null);
-
-  // nose
-  oval(ctx, cx - 3, Y - 70, cx + 3, Y - 65, BLK, null);
-  oval(ctx, cx - 2, Y - 69, cx,     Y - 67, '#3a3a3a', null);
-
-  // mouth / expression
-  if (action === 'happy' || action === 'wag') {
-    arc(ctx, cx-7, Y-67, cx+7, Y-59, 200, 140, RUST, 2);
-    oval(ctx, cx-2, Y-63, cx+3, Y-55, '#e05070', null); // tongue
-  } else if (action === 'sad') {
-    arc(ctx, cx-7, Y-61, cx+7, Y-54, 20, 140, RUST, 2);
-  } else {
-    line(ctx, cx-4, Y-63, cx+4, Y-63, RUST, 1.5);
+  function lg(x1, y1, x2, y2, ...stops) {
+    const g = ctx.createLinearGradient(x1, y1, x2, y2);
+    stops.forEach(([t, c]) => g.addColorStop(t, c)); return g;
+  }
+  function rg(x, y, r, ...stops) {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    stops.forEach(([t, c]) => g.addColorStop(t, c)); return g;
   }
 
-  // collar (app accent purple)
-  rect(ctx, cx-14, Y-60, cx+14, Y-55, ACC, '#5040b0', 2);
-  // collar tag with $ — nod to the brand
-  oval(ctx, cx-3, Y-58, cx+3, Y-50, '#f7c96a', '#c8a820', 1);
-  txt(ctx, cx, Y-54, '$', '#8B6914', 7, true);
+  ctx.save();
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
+  // ── tail (smooth bezier, wags) ──
+  const wagY = happy ? (f % 8 < 4 ? Y - 56 : Y - 44) : Y - 50;
+  ctx.strokeStyle = TAN;  ctx.lineWidth = 8;
+  ctx.beginPath(); ctx.moveTo(cx + 22, Y - 36);
+  ctx.quadraticCurveTo(cx + 32, Y - 46, cx + 28, wagY); ctx.stroke();
+  ctx.strokeStyle = TANHI; ctx.lineWidth = 3.5;
+  ctx.beginPath(); ctx.moveTo(cx + 22, Y - 36);
+  ctx.quadraticCurveTo(cx + 31, Y - 45, cx + 27, wagY + 3); ctx.stroke();
+
+  // ── back legs + paws ──
+  for (const [ox, run] of [[cx + 8, -lx / 2], [cx + 16, lx / 2]]) {
+    ctx.fillStyle = lg(ox, Y - 22, ox, Y, [0, TAN], [0.65, TAND], [1, '#4a2010']);
+    ctx.beginPath();
+    ctx.moveTo(ox + run - 5, Y - 22); ctx.lineTo(ox + run + 5, Y - 22);
+    ctx.lineTo(ox + run + 4, Y - 1);  ctx.lineTo(ox + run - 4, Y - 1);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = TAND; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = rg(ox + run, Y, 6, [0, '#c07840'], [1, '#3a1808']);
+    ctx.beginPath(); ctx.ellipse(ox + run, Y, 7, 3.5, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.strokeStyle = TAND; ctx.lineWidth = 0.8; ctx.stroke();
+  }
+
+  // ── body (bezier-shaped, gradient) ──
+  ctx.beginPath();
+  ctx.moveTo(cx - 18, Y - 14);
+  ctx.bezierCurveTo(cx - 28, Y - 22, cx - 28, Y - 46, cx - 12, Y - 54);
+  ctx.bezierCurveTo(cx - 2,  Y - 58, cx + 10, Y - 58, cx + 20, Y - 50);
+  ctx.bezierCurveTo(cx + 28, Y - 42, cx + 28, Y - 24, cx + 22, Y - 14);
+  ctx.bezierCurveTo(cx + 12, Y - 10, cx - 10, Y - 10, cx - 18, Y - 14);
+  ctx.fillStyle = lg(cx - 28, Y - 54, cx + 28, Y - 10,
+    [0, NOSE], [0.2, FUR], [0.55, FURMID], [0.8, FURHI], [1, FUR]);
+  ctx.fill(); ctx.strokeStyle = NOSE; ctx.lineWidth = 1.8; ctx.stroke();
+  // sheen
+  ctx.save(); ctx.globalAlpha = 0.12;
+  ctx.beginPath(); ctx.ellipse(cx + 4, Y - 40, 13, 6, -0.35, 0, Math.PI * 2);
+  ctx.fillStyle = 'white'; ctx.fill(); ctx.restore();
+
+  // ── tan chest marking ──
+  ctx.beginPath(); ctx.ellipse(cx - 11, Y - 33, 7, 14, -0.15, 0, Math.PI * 2);
+  ctx.fillStyle = lg(cx - 18, Y - 47, cx - 4, Y - 19, [0, TANHI], [0.5, TAN], [1, TAND]);
+  ctx.fill(); ctx.strokeStyle = TAND; ctx.lineWidth = 0.8; ctx.stroke();
+
+  // ── front legs + paws ──
+  for (const [ox, run] of [[cx - 18, lx], [cx - 8, -lx]]) {
+    ctx.fillStyle = lg(ox, Y - 22, ox, Y, [0, TAN], [0.65, TAND], [1, '#4a2010']);
+    ctx.beginPath();
+    ctx.moveTo(ox + run - 5, Y - 22); ctx.lineTo(ox + run + 5, Y - 22);
+    ctx.lineTo(ox + run + 4, Y - 1);  ctx.lineTo(ox + run - 4, Y - 1);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = TAND; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = rg(ox + run, Y, 6, [0, '#c07840'], [1, '#3a1808']);
+    ctx.beginPath(); ctx.ellipse(ox + run, Y, 7, 3.5, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.strokeStyle = TAND; ctx.lineWidth = 0.8; ctx.stroke();
+  }
+
+  // ── neck ──
+  ctx.beginPath();
+  ctx.moveTo(cx - 11, Y - 46);
+  ctx.bezierCurveTo(cx - 14, Y - 58, cx - 8, Y - 66, cx - 5, Y - 66);
+  ctx.lineTo(cx + 9, Y - 66);
+  ctx.bezierCurveTo(cx + 15, Y - 66, cx + 16, Y - 58, cx + 13, Y - 46);
+  ctx.fillStyle = lg(cx - 11, Y - 46, cx + 13, Y - 66, [0, FUR], [0.5, FURMID], [1, FUR]);
+  ctx.fill(); ctx.strokeStyle = NOSE; ctx.lineWidth = 1.2; ctx.stroke();
+
+  // ── head ──
+  ctx.beginPath(); ctx.ellipse(cx, Y - 73, 17, 15, 0, 0, Math.PI * 2);
+  ctx.fillStyle = lg(cx - 17, Y - 88, cx + 17, Y - 58,
+    [0, NOSE], [0.25, FUR], [0.6, FURHI], [1, FUR]);
+  ctx.fill(); ctx.strokeStyle = NOSE; ctx.lineWidth = 1.8; ctx.stroke();
+  ctx.save(); ctx.globalAlpha = 0.1;
+  ctx.beginPath(); ctx.ellipse(cx - 2, Y - 80, 9, 4, -0.3, 0, Math.PI * 2);
+  ctx.fillStyle = 'white'; ctx.fill(); ctx.restore();
+
+  // ── ears (tall cropped doberman) ──
+  // left
+  ctx.beginPath();
+  ctx.moveTo(cx - 7,  Y - 81);
+  ctx.quadraticCurveTo(cx - 11, Y - 96, cx - 14, Y - 106);
+  ctx.quadraticCurveTo(cx - 20, Y - 95, cx - 18, Y - 80);
+  ctx.closePath();
+  ctx.fillStyle = lg(cx - 14, Y - 106, cx - 13, Y - 80, [0, '#0a0a18'], [1, FUR]);
+  ctx.fill(); ctx.strokeStyle = NOSE; ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx - 9,  Y - 82);
+  ctx.quadraticCurveTo(cx - 13, Y - 95, cx - 14, Y - 102);
+  ctx.quadraticCurveTo(cx - 18, Y - 93, cx - 16, Y - 81);
+  ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill();
+  // right
+  ctx.beginPath();
+  ctx.moveTo(cx + 7,  Y - 81);
+  ctx.quadraticCurveTo(cx + 11, Y - 96, cx + 14, Y - 106);
+  ctx.quadraticCurveTo(cx + 20, Y - 95, cx + 18, Y - 80);
+  ctx.closePath();
+  ctx.fillStyle = lg(cx + 14, Y - 106, cx + 13, Y - 80, [0, '#0a0a18'], [1, FUR]);
+  ctx.fill(); ctx.strokeStyle = NOSE; ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx + 9,  Y - 82);
+  ctx.quadraticCurveTo(cx + 13, Y - 95, cx + 14, Y - 102);
+  ctx.quadraticCurveTo(cx + 18, Y - 93, cx + 16, Y - 81);
+  ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill();
+
+  // ── tan brow dots (doberman markings) ──
+  for (const [ex, ey] of [[-10, Y - 83], [10, Y - 83]]) {
+    ctx.beginPath(); ctx.ellipse(cx + ex, ey, 5.5, 4, -0.1 * Math.sign(ex), 0, Math.PI * 2);
+    ctx.fillStyle = rg(cx + ex - 1, ey - 1, 5, [0, TANHI], [1, TAN]); ctx.fill();
+  }
+
+  // ── muzzle ──
+  ctx.beginPath(); ctx.ellipse(cx, Y - 68, 10, 9, 0, 0, Math.PI * 2);
+  ctx.fillStyle = lg(cx - 10, Y - 77, cx + 10, Y - 59, [0, TANHI], [0.4, TAN], [1, TAND]);
+  ctx.fill(); ctx.strokeStyle = TAND; ctx.lineWidth = 1.2; ctx.stroke();
+
+  // ── eyes ──
+  for (const ex of [-9, 9]) {
+    ctx.beginPath(); ctx.ellipse(cx + ex, Y - 76, 7, 6, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#100810'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + ex, Y - 76, 5.5, 5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = rg(cx + ex - 1, Y - 78, 5.5, [0, '#ffe060'], [0.5, AMB], [1, AMBD]);
+    ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + ex, Y - 76, 2.5, 3.2, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#06060e'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + ex - 2, Y - 78, 1.6, 1.2, -0.4, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + ex + 1.5, Y - 74, 0.8, 0.8, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + ex, Y - 76, 5.5, 5, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = NOSE; ctx.lineWidth = 1; ctx.stroke();
+  }
+  // expression brows
+  ctx.strokeStyle = 'rgba(80,70,110,0.75)'; ctx.lineWidth = 2;
+  if (sad) {
+    ctx.beginPath(); ctx.moveTo(cx - 14, Y - 84); ctx.lineTo(cx - 6, Y - 80); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 6,  Y - 80); ctx.lineTo(cx + 14, Y - 84); ctx.stroke();
+  } else if (happy) {
+    ctx.beginPath(); ctx.moveTo(cx - 14, Y - 85); ctx.lineTo(cx - 6,  Y - 82); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 6,  Y - 82); ctx.lineTo(cx + 14, Y - 85); ctx.stroke();
+  }
+
+  // ── nose ──
+  ctx.beginPath(); ctx.ellipse(cx, Y - 69, 4.5, 3.5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = rg(cx - 1, Y - 70, 4.5, [0, '#2a2a3c'], [1, NOSE]); ctx.fill();
+  ctx.strokeStyle = '#04040e'; ctx.lineWidth = 0.8; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(cx - 1.5, Y - 70.5, 1.8, 1.2, -0.3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fill();
+
+  // ── mouth ──
+  ctx.strokeStyle = RUST; ctx.lineWidth = 1.8;
+  if (happy) {
+    ctx.beginPath(); ctx.moveTo(cx - 7, Y - 63);
+    ctx.quadraticCurveTo(cx, Y - 57, cx + 7, Y - 63); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - 4, Y - 63);
+    ctx.bezierCurveTo(cx - 6, Y - 56, cx + 6, Y - 56, cx + 4, Y - 63);
+    ctx.fillStyle = PINK; ctx.fill();
+    ctx.strokeStyle = '#c02858'; ctx.lineWidth = 0.7; ctx.stroke();
+  } else if (sad) {
+    ctx.beginPath(); ctx.moveTo(cx - 7, Y - 62);
+    ctx.quadraticCurveTo(cx, Y - 67, cx + 7, Y - 62); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.moveTo(cx - 5, Y - 63);
+    ctx.quadraticCurveTo(cx, Y - 64, cx + 5, Y - 63); ctx.stroke();
+  }
+
+  // ── collar ──
+  ctx.beginPath();
+  ctx.moveTo(cx - 15, Y - 62); ctx.lineTo(cx + 15, Y - 62);
+  ctx.lineTo(cx + 14, Y - 55); ctx.lineTo(cx - 14, Y - 55); ctx.closePath();
+  ctx.fillStyle = lg(cx - 15, Y - 62, cx + 15, Y - 55,
+    [0, COLD], [0.3, COL], [0.65, '#a090ff'], [1, COLD]);
+  ctx.fill(); ctx.strokeStyle = COLD; ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.fillRect(cx - 13, Y - 62, 26, 2);  // subtle shine
+  ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(cx - 13, Y - 62, 26, 2);
+
+  // ── collar tag ──
+  ctx.beginPath(); ctx.ellipse(cx, Y - 53, 4.5, 5.5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = rg(cx - 1, Y - 55, 5.5, [0, '#ffe090'], [1, '#b08020']);
+  ctx.fill(); ctx.strokeStyle = '#9a7010'; ctx.lineWidth = 0.8; ctx.stroke();
+  ctx.fillStyle = '#5a4008';
+  ctx.font = 'bold 8px "Plus Jakarta Sans",sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('$', cx, Y - 53);
+
+  ctx.restore();
 }
 
 // ── Dawg expense: "money slipped the leash" ────────────────────────────────
 function dawgExpenseFrame(ctx, W, GY, f) {
   ctx.clearRect(0, 0, W, GY + 10);
-  ctx.strokeStyle = '#2e2840'; ctx.lineWidth = 1;
+  // ground
+  const gnd = ctx.createLinearGradient(0, GY, 0, GY + 10);
+  gnd.addColorStop(0, '#38304e'); gnd.addColorStop(1, '#1a1828');
+  ctx.fillStyle = gnd; ctx.fillRect(0, GY, W, 10);
+  ctx.strokeStyle = '#3a3060'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(0, GY); ctx.lineTo(W, GY); ctx.stroke();
 
-  const dogX = 220;
+  const dogX = 218;
 
   if (f <= 18) {
-    // Dog standing proudly, coin on leash to the left
     drawDawg(ctx, dogX, GY, 'stand', f);
-    line(ctx, dogX - 14, GY - 57, 100, GY - 36, '#7c6af7', 2);
-    oval(ctx, 76, GY - 48, 106, GY - 18, '#f5c842', '#c8a820', 2);
-    txt(ctx, 91, GY - 33, '$', '#8B6914', 14, true);
-    txt(ctx, W / 2 - 10, 18, 'money on a leash...', '#9080b8', 12);
+    ctx.save(); ctx.strokeStyle = '#7c6af7'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(dogX - 15, GY - 57);
+    ctx.quadraticCurveTo(dogX - 60, GY - 50, 98, GY - 36); ctx.stroke(); ctx.restore();
+    drawCoin(ctx, 90, GY - 33, 14, f * 0.08);
+    popTxt(ctx, W / 2, 16, 'money on a leash...', '#9080c0', 12);
 
-  } else if (f <= 38) {
-    // Coin strains toward escape — leash goes taut
-    const p  = (f - 19) / 19;
-    const cx = Math.round(91 - 68 * p);
+  } else if (f <= 40) {
+    const p    = (f - 19) / 21;
+    const coinX = Math.round(90 - 74 * p);
     drawDawg(ctx, dogX, GY, 'stand', f);
     ctx.save();
-    ctx.setLineDash([5, 3]);
-    ctx.strokeStyle = '#7c6af7'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(dogX - 14, GY - 57); ctx.lineTo(cx + 12, GY - 33); ctx.stroke();
-    ctx.restore();
-    oval(ctx, cx - 14, GY - 47, cx + 14, GY - 19, '#f5c842', '#c8a820', 2);
-    txt(ctx, cx, GY - 33, '$', '#8B6914', 14, true);
-    txt(ctx, W / 2, 18, p > 0.55 ? 'HEY! COME BACK—' : 'wait... no...', '#f76a6a', 13, p > 0.55);
+    ctx.setLineDash([6, 3]); ctx.strokeStyle = '#a080ff'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(dogX - 15, GY - 57);
+    const midX = (dogX - 15 + coinX) / 2;
+    const midY = GY - 52 + Math.sin(f * 0.9) * 3;
+    ctx.quadraticCurveTo(midX, midY, coinX + 12, GY - 33); ctx.stroke(); ctx.restore();
+    drawCoin(ctx, coinX, GY - 33, 14, f * 0.13);
+    popTxt(ctx, W / 2, 16, p > 0.6 ? 'HEY! COME BACK—' : 'wait... no...', '#f76a6a', 13, p > 0.6);
 
   } else if (f <= 58) {
-    // Leash snaps — coin bolts off left edge
-    const p   = (f - 39) / 19;
-    const cx  = Math.round(23 - 110 * p);
+    const p     = (f - 41) / 17;
+    const coinX = Math.round(22 - 125 * p);
     drawDawg(ctx, dogX, GY, 'sad', f);
-    line(ctx, dogX - 14, GY - 57, dogX - 42, GY - 44, '#9080b8', 2); // limp leash
-    if (cx > -26) {
-      oval(ctx, cx - 13, GY - 45, cx + 13, GY - 19, '#f5c842', '#c8a820', 2);
-      txt(ctx, cx, GY - 32, '$', '#8B6914', 14, true);
-      for (let i = 1; i <= 3; i++)
-        line(ctx, cx + 15, GY - 44 + i * 8, cx + 32, GY - 44 + i * 8, '#f5c842', 1);
+    ctx.save(); ctx.strokeStyle = '#7060a0'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(dogX - 15, GY - 57);
+    ctx.quadraticCurveTo(dogX - 38, GY - 44, dogX - 46, GY - 38); ctx.stroke(); ctx.restore();
+    if (p < 0.22) {
+      ctx.save(); ctx.globalAlpha = 1 - p / 0.22;
+      ctx.font = '18px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('✂', dogX - 48, GY - 47); ctx.restore();
     }
-    txt(ctx, dogX - 10, 18, 'NOOO— 💸', '#f76a6a', 14, true);
+    if (coinX > -32) {
+      drawCoin(ctx, coinX, GY - 34, 14, f * 0.26);
+      ctx.save(); ctx.globalAlpha = 0.55;
+      for (let i = 1; i <= 4; i++) {
+        ctx.strokeStyle = `hsl(48,90%,${55 + i * 5}%)`;
+        ctx.lineWidth = 2.2 - i * 0.35; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(coinX + 17 + i * 7, GY - 38);
+        ctx.lineTo(coinX + 17 + i * 7, GY - 28); ctx.stroke();
+      }
+      ctx.restore();
+    }
+    popTxt(ctx, dogX - 8, 16, 'NOOO— 💸', '#f76a6a', 14, true);
 
   } else {
-    // Sad dog, limp leash, teardrop
     drawDawg(ctx, dogX, GY, 'sad', f);
-    line(ctx, dogX - 14, GY - 57, dogX - 44, GY - 42, '#9080b8', 2);
-    txt(ctx, dogX - 10, 18, 'money slipped the leash...', '#7a7890', 12);
-    const ty = Math.min(GY - 76 + (f - 59) * 4, GY - 62);
-    oval(ctx, dogX + 6, ty - 5, dogX + 11, ty + 5, '#6090e8', null);
+    ctx.save(); ctx.strokeStyle = '#5a4a90'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(dogX - 15, GY - 57);
+    ctx.quadraticCurveTo(dogX - 40, GY - 44, dogX - 48, GY - 40); ctx.stroke(); ctx.restore();
+    popTxt(ctx, dogX - 8, 16, 'money slipped the leash...', '#7060a0', 12);
+    const td = Math.min((f - 59) * 5, 28);
+    ctx.save();
+    ctx.fillStyle = rg ? ctx.createRadialGradient(dogX + 8, GY - 78 + td, 0, dogX + 8, GY - 76 + td, 5) : '#6090e8';
+    if (ctx.fillStyle.addColorStop) {
+      ctx.fillStyle.addColorStop(0, '#90c0ff'); ctx.fillStyle.addColorStop(1, '#4060c8');
+    }
+    ctx.beginPath(); ctx.moveTo(dogX + 8, GY - 78 + td);
+    ctx.bezierCurveTo(dogX + 12, GY - 75 + td, dogX + 12, GY - 68 + td, dogX + 8, GY - 66 + td);
+    ctx.bezierCurveTo(dogX + 4,  GY - 68 + td, dogX + 4,  GY - 75 + td, dogX + 8, GY - 78 + td);
+    ctx.fillStyle = '#5880e0'; ctx.fill(); ctx.restore();
   }
 }
 
 // ── Dawg income: "fetch the bag" ───────────────────────────────────────────
 function dawgIncomeFrame(ctx, W, GY, f) {
   ctx.clearRect(0, 0, W, GY + 10);
-  ctx.strokeStyle = '#2e2840'; ctx.lineWidth = 1;
+  const gnd = ctx.createLinearGradient(0, GY, 0, GY + 10);
+  gnd.addColorStop(0, '#203040'); gnd.addColorStop(1, '#101820');
+  ctx.fillStyle = gnd; ctx.fillRect(0, GY, W, 10);
+  ctx.strokeStyle = '#2a4060'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(0, GY); ctx.lineTo(W, GY); ctx.stroke();
 
-  const coinsX = 272;
+  const coinsX = 264;
 
-  if (f <= 18) {
-    // Coins arc down onto the right side
+  if (f <= 20) {
     drawDawg(ctx, 80, GY, 'stand', f);
-    const p = f / 18;
+    const p = f / 20;
     for (let i = 0; i < 3; i++) {
-      const t = Math.max(0, Math.min((p - i * 0.22) / 0.56, 1));
+      const t = Math.max(0, Math.min((p - i * 0.24) / 0.52, 1));
       if (t > 0) {
-        const cx = coinsX + i * 16;
-        const cy = Math.round(-12 + (GY - 46) * t - Math.sin(t * Math.PI) * 30);
-        oval(ctx, cx-11, cy-11, cx+11, cy+11, '#f5c842', '#c8a820', 1);
-        txt(ctx, cx, cy, '$', '#8B6914', 11, true);
+        const ex = coinsX + i * 20;
+        const ey = Math.round(-14 + (GY - 50) * t - Math.sin(t * Math.PI) * 36);
+        ctx.save(); ctx.globalAlpha = t * 0.28;
+        ctx.beginPath(); ctx.ellipse(ex, GY, 9, 3.5, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
+        drawCoin(ctx, ex, ey, 13, f * 0.1 + i * 0.65);
       }
     }
-    txt(ctx, 170, 18, 'PAYDAY!! 🐾', '#4ecb8d', 14, true);
+    popTxt(ctx, 172, 16, 'PAYDAY!! 🐾', '#4ecb8d', 14, true);
 
-  } else if (f <= 44) {
-    // Dog runs right toward coins
-    const p    = (f - 19) / 25;
+  } else if (f <= 46) {
+    const p    = (f - 21) / 25;
     const dogX = Math.round(80 + (coinsX - 80) * p);
     drawDawg(ctx, dogX, GY, f % 6 < 3 ? 'run1' : 'run2', f);
-    for (let i = 0; i < 3; i++) {
-      oval(ctx, coinsX+i*16-11, GY-57, coinsX+i*16+11, GY-35, '#f5c842', '#c8a820', 1);
-      txt(ctx, coinsX + i*16, GY-46, '$', '#8B6914', 11, true);
+    // dust puff
+    if (f % 6 === 0 || f % 6 === 3) {
+      ctx.save(); ctx.globalAlpha = 0.35;
+      ctx.beginPath(); ctx.ellipse(dogX - 12, GY, 9, 4.5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#b0a0d0'; ctx.fill(); ctx.restore();
     }
-    txt(ctx, 160, 18, 'FETCH!! 🐾', '#4ecb8d', 14, true);
+    for (let i = 0; i < 3; i++) {
+      const ex = coinsX + i * 20;
+      ctx.save(); ctx.globalAlpha = 0.28;
+      ctx.beginPath(); ctx.ellipse(ex, GY, 9, 3.5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
+      drawCoin(ctx, ex, GY - 50, 13, f * 0.08 + i * 0.5);
+    }
+    popTxt(ctx, 162, 16, 'FETCH!! 🐾', '#4ecb8d', 14, true);
 
-  } else if (f <= 62) {
-    // Dog snatching the coins — happy at right
-    drawDawg(ctx, coinsX - 8, GY, 'happy', f);
-    txt(ctx, W / 2, 18, 'GOT THE BAG!! 💰', '#4ecb8d', 14, true);
+  } else if (f <= 64) {
+    const p = (f - 47) / 17;
+    drawDawg(ctx, coinsX - 6, GY, 'happy', f);
+    for (let i = 0; i < 3; i++) {
+      const t = Math.min(Math.max(p * 1.4 - i * 0.32, 0), 1);
+      if (t < 1) {
+        const ex = Math.round((coinsX + i * 20) * (1 - t) + (coinsX - 22) * t);
+        const ey = Math.round((GY - 50) - 22 * Math.sin(t * Math.PI));
+        drawCoin(ctx, ex, ey, 13 * (1 - t * 0.5), (f + i) * 0.14);
+      }
+    }
+    popTxt(ctx, W / 2, 16, 'GOT THE BAG!! 💰', '#4ecb8d', 14, true);
 
   } else {
-    // Celebrating center with coins at feet + sparkles
     drawDawg(ctx, W / 2, GY, 'wag', f);
     for (let i = 0; i < 3; i++) {
-      oval(ctx, W/2-40+i*36, GY-20, W/2-16+i*36, GY, '#f5c842', '#c8a820', 1);
-      txt(ctx, W/2-28+i*36, GY-10, '$', '#8B6914', 10, true);
+      const cx = W / 2 - 38 + i * 38;
+      ctx.save(); ctx.globalAlpha = 0.3;
+      ctx.beginPath(); ctx.ellipse(cx, GY, 9, 3.5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
+      drawCoin(ctx, cx, GY - 12, 11, i * 0.7);
     }
-    txt(ctx, W / 2, 18, 'BAG SECURED! 💰', '#4ecb8d', 15, true);
-    for (let i = 0; i < 8; i++) {
-      const a = i / 8 * Math.PI * 2 + f * 0.1;
-      const r = 30 + Math.sin(f * 0.3 + i) * 7;
-      const c = i % 2 === 0 ? '#4ecb8d' : '#f7c96a';
-      oval(ctx, W/2+Math.cos(a)*r-3, GY-52+Math.sin(a)*r-3,
-               W/2+Math.cos(a)*r+3, GY-52+Math.sin(a)*r+3, c, null);
+    popTxt(ctx, W / 2, 16, 'BAG SECURED! 💰', '#4ecb8d', 15, true);
+    for (let i = 0; i < 10; i++) {
+      const a = i / 10 * Math.PI * 2 + f * 0.1;
+      const r = 28 + Math.sin(f * 0.28 + i) * 9;
+      const alpha = 0.55 + Math.sin(f * 0.3 + i) * 0.3;
+      const c = i % 3 === 0 ? '#4ecb8d' : i % 3 === 1 ? '#f7c96a' : '#a080ff';
+      ctx.save(); ctx.globalAlpha = alpha;
+      ctx.beginPath(); ctx.arc(W / 2 + Math.cos(a) * r, GY - 55 + Math.sin(a) * r,
+        2.5 + Math.sin(f * 0.3 + i), 0, Math.PI * 2);
+      ctx.fillStyle = c; ctx.fill(); ctx.restore();
     }
   }
 }

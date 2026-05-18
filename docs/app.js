@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.8.0';
+const VERSION = '3.8.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
