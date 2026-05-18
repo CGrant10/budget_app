@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.6.6';
+const VERSION = '3.6.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.6.7', date: '2026-05-18', changes: [
+    'Header title always stays one line — white-space:nowrap + fitLogo() shrinks font-size automatically when a wide font (e.g. Press Start 2P) is selected',
+    'Nav-left / nav-right header fix — header content was rendering over the sidebar column; now offset by sidebar width so logo, switcher, and sounds button stay in the actual content area',
+  ]},
   { version: '3.6.6', date: '2026-05-18', changes: [
     'Lens flare upgraded — replaced quick streak with a proper 1.6s two-layer flare: large diffuse blue-white corona (heavily blurred) + tighter bright core slightly ahead, both drift slowly across the base of "Budget DAWGs"',
   ]},
@@ -498,6 +502,29 @@ function applySettings() {
   applyNavPosition(s.navPosition || 'bottom');
   applyNavItems(s.hiddenTabs || []);
   applyTheme(s.theme || 'dark');
+  fitLogo();
+}
+
+// Shrink the header logo font-size until it fits on one line.
+// Called whenever the font, name, or transform changes.
+function fitLogo() {
+  const logo = document.querySelector('.logo');
+  if (!logo) return;
+  logo.style.fontSize = '';          // reset to CSS default (24px) first
+  requestAnimationFrame(() => {
+    const inner = logo.closest('.header-inner');
+    if (!inner) return;
+    // Total width consumed by every sibling + their flex gaps (10px each)
+    const siblings = [...inner.children].filter(el => el !== logo);
+    const used = siblings.reduce((w, el) => w + el.offsetWidth + 10, 0);
+    const avail = inner.offsetWidth - used - 4;
+    if (logo.scrollWidth <= avail) return;           // already fits
+    let px = parseFloat(getComputedStyle(logo).fontSize);
+    while (logo.scrollWidth > avail && px > 10) {
+      px -= 0.5;
+      logo.style.fontSize = px + 'px';
+    }
+  });
 }
 
 function applyNavPosition(pos) {
@@ -2681,6 +2708,7 @@ function attachSettings() {
       s.logoFont = opt.dataset.font;
       saveSettings(s);
       if (logo) logo.style.fontFamily = s.logoFont || '';
+      fitLogo();
       fpPanel.classList.add('hidden');
       fpPanel.querySelectorAll('.fp-option').forEach(o => o.classList.toggle('active', o === opt));
       // Update trigger preview
@@ -2706,6 +2734,7 @@ function attachSettings() {
           logo.style.textTransform = s.logoTransform || '';
           logo.style.fontVariant   = '';
         }
+        fitLogo();
       }
       document.querySelectorAll('.cap-chip').forEach(b => b.classList.toggle('active', b === btn));
     });

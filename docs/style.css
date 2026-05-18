@@ -109,7 +109,9 @@ body::before {
   padding-top: var(--header-h);
 }
 #app.nav-left  .nav-btn, #app.nav-right .nav-btn { flex: 0 0 auto; padding: 14px 0; width: 100%; }
-#app.nav-left  .header .header-inner, #app.nav-right .header .header-inner { padding: 0 16px; }
+/* Offset header content so it doesn't overlap the sidebar column */
+#app.nav-left  .header .header-inner { padding: 0 20px 0 calc(var(--nav-h) + 18px); }
+#app.nav-right .header .header-inner { padding: 0 calc(var(--nav-h) + 18px) 0 20px; }
 
 /* ── header ──────────────────────────────────────────────────────────────── */
 .header {
@@ -134,6 +136,10 @@ body::before {
   opacity: 1;
   text-shadow: 2px 3px 6px rgba(0,0,0,0.4), 4px 6px 14px rgba(0,0,0,0.2);
   transition: color .3s;
+  /* always one line — JS shrinks font-size if the chosen font is too wide */
+  white-space: nowrap;
+  min-width: 0;
+  flex-shrink: 1;
 }
 body.light .logo {
   text-shadow: 1px 2px 5px rgba(0,0,0,0.15), 3px 4px 10px rgba(0,0,0,0.08);
