@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.5.6';
+const VERSION = '3.5.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.5.7', date: '2026-05-18', changes: [
+    'Splash screen: animated intro on every app open — dog bounces in, title slams in, dollar coins shoot outward, fades out before app loads',
+    'Account transitions: tap tile to zoom into dashboard, tap ⊞ to zoom back out to picker',
+  ]},
   { version: '3.5.6', date: '2026-05-18', changes: [
     'Pinch-to-zoom disabled — viewport locked to prevent accidental scaling on iOS and Android',
     'iPhone header fix — header height now grows to include the notch / Dynamic Island safe-area inset so content no longer gets squished',
@@ -1288,14 +1292,29 @@ function renderAccountPicker() {
     </div>`;
 }
 
+// ── splash screen ──────────────────────────────────────────────────────────
+function runSplash() {
+  return new Promise(resolve => {
+    const el = document.getElementById('splash-screen');
+    if (!el) return resolve();
+    // Dismiss after 1.9s → fade-out takes .45s → remove and resolve
+    setTimeout(() => {
+      el.classList.add('dismiss');
+      setTimeout(() => { el.remove(); resolve(); }, 450);
+    }, 1900);
+  });
+}
+
 // ── render ─────────────────────────────────────────────────────────────────
 function _applyPageTransition(main) {
   // Remove any existing animation classes so re-triggering works
-  main.classList.remove('anim-slide-right', 'anim-slide-left', 'anim-fade-up');
+  main.classList.remove('anim-slide-right', 'anim-slide-left', 'anim-fade-up', 'anim-zoom-in', 'anim-zoom-out');
   // Force reflow so removing + re-adding the class restarts the animation
   void main.offsetWidth;
-  if (_pageTransition === 'slide-right')      main.classList.add('anim-slide-right');
+  if      (_pageTransition === 'slide-right') main.classList.add('anim-slide-right');
   else if (_pageTransition === 'slide-left')  main.classList.add('anim-slide-left');
+  else if (_pageTransition === 'zoom-in')     main.classList.add('anim-zoom-in');
+  else if (_pageTransition === 'zoom-out')    main.classList.add('anim-zoom-out');
   else                                        main.classList.add('anim-fade-up');
   // Reset to default after each render
   _pageTransition = 'fade';
@@ -1312,7 +1331,7 @@ function render() {
     _applyPageTransition(main);
     document.querySelectorAll('.acct-tile').forEach(tile => {
       tile.addEventListener('click', async () => {
-        _pageTransition = 'slide-right';
+        _pageTransition = 'zoom-in';
         await api.switchAccount(tile.dataset.id);
         showingAccountPicker = false;
         appEl?.classList.remove('picker-mode');
@@ -3256,7 +3275,7 @@ function updateAccountSwitcher() {
     btn.textContent = '⊞';
     sel.insertAdjacentElement('beforebegin', btn);
     btn.addEventListener('click', () => {
-      _pageTransition = 'slide-left';
+      _pageTransition = 'zoom-out';
       showingAccountPicker = true;
       render();
     });
@@ -3369,6 +3388,7 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
 });
 
 (async () => {
+  await runSplash();
   showPinLock(async () => {
     await api.load();
     await processRecurring();
