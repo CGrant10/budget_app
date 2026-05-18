@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.6.2';
+const VERSION = '3.6.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,14 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.6.3', date: '2026-05-18', changes: [
+    'Removed all blue tints from glass surfaces — cards, hero balance card, and nav pill are now clear neutral glass',
+    'All glow effects changed to white/clear — nav active icon, inner highlights throughout',
+    'Glossy top-shine reflection added to every card surface via ::after overlay',
+    'Ambient screen top-light via body::before radial gradient — gives the whole UI a "lit from above" feel',
+    'Stronger inner edge highlights on all cards — top edge bright white, bottom edge deep shadow',
+    'Button shadows changed from blue glow to neutral depth with bright white inner highlight',
+  ]},
   { version: '3.6.2', date: '2026-05-18', changes: [
     'Font upgraded to Plus Jakarta Sans — the standard for premium fintech products (Stripe, Notion, Linear)',
     'Light mode header gradient removed — clean solid white surface now',

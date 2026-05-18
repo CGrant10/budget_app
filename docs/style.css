@@ -15,10 +15,12 @@
   --radius-card: 18px;
   --radius-btn: 11px;
   --radius-input: 11px;
-  --shadow-card: 0 4px 24px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.07);
+  --shadow-card: 0 4px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.16), inset 0 -1px 0 rgba(0,0,0,.18);
   --accent-gradient: linear-gradient(135deg, #5b8de8 0%, #7b6cf6 100%);
-  --glass-bg: linear-gradient(145deg, rgba(255,255,255,.055) 0%, rgba(255,255,255,.018) 100%);
-  --glass-border: rgba(255,255,255,.09);
+  /* Clear top-lit glass — brighter at top like light catching the surface */
+  --glass-bg: linear-gradient(170deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.028) 45%, rgba(255,255,255,.008) 100%);
+  --glass-border: rgba(255,255,255,.12);
+  --glass-shine: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(0,0,0,.2);
 
   --header-h: 56px;
   --nav-h: 58px;
@@ -35,6 +37,16 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
+/* Ambient top-light — subtle studio glow from above on every screen */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse 90% 45% at 50% -8%, rgba(255,255,255,.055) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+#app, #splash-screen { position: relative; z-index: 1; }
 
 /* ── app shell — nav position ─────────────────────────────────────────────── */
 #app {
@@ -174,6 +186,46 @@ body.light .logo {
   gap: 12px;
   margin-bottom: 16px;
 }
+/* Shared gloss mixin — applied to all card-like surfaces */
+.card,
+.form-card,
+.week-tracker,
+.goal-card,
+.health-card,
+.net-worth-card,
+.insight-item,
+.bill-card,
+.bill-item,
+.debt-acct-card,
+.debt-dash-card,
+.debt-summary-card,
+.acct-tile {
+  position: relative;
+  overflow: hidden;
+}
+/* Glossy top-shine reflection */
+.card::after,
+.form-card::after,
+.week-tracker::after,
+.goal-card::after,
+.health-card::after,
+.net-worth-card::after,
+.insight-item::after,
+.bill-card::after,
+.bill-item::after,
+.debt-acct-card::after,
+.debt-dash-card::after,
+.debt-summary-card::after,
+.acct-tile::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 46%;
+  background: linear-gradient(180deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,0) 100%);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
 .card {
   background: var(--glass-bg);
   border-radius: 18px;
@@ -184,10 +236,10 @@ body.light .logo {
 /* ── Hero balance card — full width, commanding ── */
 .cards-grid .card:first-child {
   grid-column: 1 / -1;
-  padding: 26px 22px 22px;
-  background: linear-gradient(135deg, rgba(91,141,232,.18) 0%, rgba(123,108,246,.12) 60%, rgba(255,255,255,.03) 100%);
-  border-color: rgba(91,141,232,.25);
-  box-shadow: 0 6px 32px rgba(91,141,232,.2), inset 0 1px 0 rgba(255,255,255,.1);
+  padding: 28px 24px 22px;
+  background: linear-gradient(170deg, rgba(255,255,255,.11) 0%, rgba(255,255,255,.04) 45%, rgba(255,255,255,.01) 100%);
+  border-color: rgba(255,255,255,.16);
+  box-shadow: 0 8px 40px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.22), inset 0 -1px 0 rgba(0,0,0,.22);
 }
 .cards-grid .card:first-child .card-value {
   font-size: 40px;
@@ -294,9 +346,9 @@ body.light .logo {
   letter-spacing: .01em;
   cursor: pointer;
   transition: box-shadow .2s, transform .1s, opacity .15s;
-  box-shadow: 0 4px 18px rgba(91,141,232,.4), inset 0 1px 0 rgba(255,255,255,.2);
+  box-shadow: 0 4px 20px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.28), inset 0 -1px 0 rgba(0,0,0,.2);
 }
-.btn-primary:hover { box-shadow: 0 6px 24px rgba(91,141,232,.5), inset 0 1px 0 rgba(255,255,255,.2); }
+.btn-primary:hover { box-shadow: 0 6px 28px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.32), inset 0 -1px 0 rgba(0,0,0,.22); }
 .btn-primary:active { transform: scale(.97); opacity: .9; }
 
 .btn-secondary {
@@ -657,8 +709,8 @@ body.light .logo {
   border-radius: 12px;
   margin: 4px 2px;
 }
-.nav-btn.active { color: var(--accent); background: linear-gradient(180deg, rgba(91,141,232,.16) 0%, rgba(123,108,246,.1) 100%); border-radius: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
-.nav-btn.active .nav-icon { filter: drop-shadow(0 0 4px var(--accent)); transform: scale(1.12); }
+.nav-btn.active { color: var(--accent); background: linear-gradient(180deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.04) 100%); border-radius: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1px 0 rgba(0,0,0,.12); }
+.nav-btn.active .nav-icon { filter: drop-shadow(0 0 5px rgba(255,255,255,.5)); transform: scale(1.12); }
 .nav-btn:active { opacity: .7; }
 .nav-icon  { font-size: 18px; line-height: 1; transition: transform .15s, filter .15s; }
 .nav-label {
@@ -909,9 +961,9 @@ body.light .pw-week-row {
   box-shadow: 0 2px 16px rgba(0,0,0,.07), 0 0 0 1px rgba(0,0,0,.03);
 }
 body.light .cards-grid .card:first-child {
-  background: linear-gradient(135deg, rgba(91,141,232,.12) 0%, rgba(123,108,246,.07) 100%);
-  border-color: rgba(91,141,232,.2);
-  box-shadow: 0 4px 24px rgba(91,141,232,.12), 0 0 0 1px rgba(91,141,232,.08);
+  background: linear-gradient(170deg, rgba(255,255,255,1) 0%, rgba(245,246,250,1) 100%);
+  border-color: rgba(0,0,0,.1);
+  box-shadow: 0 4px 24px rgba(0,0,0,.1), inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(0,0,0,.06);
 }
 body.light .header {
   background: #ffffff;
@@ -922,7 +974,8 @@ body.light .bottom-nav {
   border-top: 1px solid rgba(0,0,0,.1);
 }
 body.light .nav-btn.active {
-  background: linear-gradient(180deg, rgba(91,141,232,.12) 0%, rgba(91,141,232,.06) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,.06) 0%, rgba(0,0,0,.02) 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8), inset 0 -1px 0 rgba(0,0,0,.06);
 }
 body.light .section-title::before {
   background: var(--accent-gradient);
@@ -985,7 +1038,8 @@ body.light .section-title::before {
   }
   .nav-btn.active {
     border-left-color: var(--accent);
-    background: rgba(124,106,247,.08);
+    background: linear-gradient(90deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.03) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
   }
   .nav-btn:hover:not(.active) { background: rgba(255,255,255,.03); }
   .nav-icon  { font-size: 17px; }
