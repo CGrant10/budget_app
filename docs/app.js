@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.7.3';
+const VERSION = '3.7.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -2951,6 +2951,14 @@ function renderAbout() {
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Quote of the Day</div>
         <p style="font-size:.9rem;color:var(--text);line-height:1.6;font-style:italic;margin:0">"${quote}"</p>
+      </div>
+      <div class="form-card" style="padding:0;overflow:hidden;margin-top:20px">
+        <img src="doberman.png" alt="Budget DAWGs mascot"
+             style="width:100%;height:auto;display:block;object-fit:cover">
+        <div style="padding:14px 16px;text-align:center">
+          <div style="font-size:.82rem;font-weight:700;color:var(--accent);letter-spacing:.06em;text-transform:uppercase">Money on a leash.</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:4px">SlawMinYaw's Budget DAWGs</div>
+        </div>
       </div>
       <div class="form-card" style="margin-top:20px">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">What's New</div>
