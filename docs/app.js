@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.8.1';
+const VERSION = '3.8.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,20 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.8.2', date: '2026-05-18', changes: [
+    'What\'s New fix — 3.8.x changelog entries were missing, section now populates correctly',
+  ]},
+  { version: '3.8.1', date: '2026-05-18', changes: [
+    'Doberman animations fully rebuilt — bezier-curve body silhouette, multi-stop linear and radial gradients on fur, chest, paws, eyes, collar, and tag',
+    'Eyes now have 4 layers: dark socket, radial gradient amber iris, pupil, and two gleam dots',
+    'Spinning coin — rotates using a cosine-scaled ellipse with a 4-stop specular gradient',
+    'Animation text upgraded to Plus Jakarta Sans with drop shadow',
+    'Expense: leash vibrates when taut, coin leaves speed trails on escape, teardrop is a bezier shape',
+    'Income: dog kicks up dust puffs while running, coins cast ground shadows, 10-particle sparkle burst at end',
+  ]},
+  { version: '3.8.0', date: '2026-05-18', changes: [
+    'Changelog backfilled — What\'s New now shows all updates from 3.7.4 onward',
+  ]},
   { version: '3.7.9', date: '2026-05-18', changes: [
     'About page: doberman displayed full-width — other icon removed',
   ]},
