@@ -1,4 +1,4 @@
-const CACHE = "slawminyaw-v75";
+const CACHE = "slawminyaw-v76";
 const ASSETS = [
   "./",
   "./index.html",
@@ -11,7 +11,8 @@ const ASSETS = [
   "./icon-512.png",
   "./icon-512-maskable.png",
   "./apple-touch-icon.png",
-  "./favicon.ico"
+  "./favicon.ico",
+  "./doberman.png"
 ];
 
 self.addEventListener("install", e => {

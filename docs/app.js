@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.5.8';
+const VERSION = '3.5.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.5.9', date: '2026-05-18', changes: [
+    'Splash screen doberman updated to custom photo — SMY collar, dollar tag, black background blends seamlessly',
+  ]},
   { version: '3.5.8', date: '2026-05-18', changes: [
     'Splash: dog replaced with a mean SVG doberman — black coat, rust/tan markings, angry V brows, snarl with fangs',
     'Fixed zoom transition: account tile tap now correctly zooms into the dashboard (was calling render() twice, second call reset animation to fade)',
