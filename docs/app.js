@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.6.5';
+const VERSION = '3.6.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.6.6', date: '2026-05-18', changes: [
+    'Lens flare upgraded — replaced quick streak with a proper 1.6s two-layer flare: large diffuse blue-white corona (heavily blurred) + tighter bright core slightly ahead, both drift slowly across the base of "Budget DAWGs"',
+  ]},
   { version: '3.6.5', date: '2026-05-18', changes: [
     'Splash screen fix — was rendering in top half of screen due to CSS specificity bug (#splash-screen position:relative was overriding position:fixed)',
     'Lens-flare shine added — a soft white light brushes left→right along the base of "Budget DAWGs" after the text appears',
