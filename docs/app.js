@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.7.9';
+const VERSION = '3.8.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,29 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.7.9', date: '2026-05-18', changes: [
+    'About page: doberman displayed full-width — other icon removed',
+  ]},
+  { version: '3.7.8', date: '2026-05-18', changes: [
+    'Brand-new Doberman transaction animations — canvas-drawn Doberman replaces SpongeBob as the default character',
+    'Expense animation: "Money slipped the leash" — coin strains on a purple leash, leash snaps, coin bolts off screen, dog sits sad with teardrop',
+    'Income animation: "Fetch the bag" — coins arc in, Doberman sprints to fetch them, returns celebrating with sparkles and wagging tail',
+    'Gengar and Jurassic Park theme animations unchanged',
+  ]},
+  { version: '3.7.7', date: '2026-05-18', changes: [
+    'Transaction animations restored — expense triggers the robbery animation, income triggers the payday animation; gated by the sounds toggle',
+  ]},
+  { version: '3.7.6', date: '2026-05-18', changes: [
+    'About page: doberman and app icon displayed side-by-side in the top card',
+  ]},
+  { version: '3.7.5', date: '2026-05-18', changes: [
+    'Nav bar icons replaced with inline SVG — all 11 tabs now use outline SVG icons that fill solid with the accent color when selected',
+    'Interior icon details (grid lines, text rows, i-symbol) use a knockout effect in the active/filled state',
+    'About page: doberman mascot card added with "Money on a leash." tagline',
+  ]},
+  { version: '3.7.4', date: '2026-05-18', changes: [
+    'Nav bar SVG icons introduced — outline when inactive, filled accent when active (initial implementation)',
+  ]},
   { version: '3.7.3', date: '2026-05-18', changes: [
     'Splash cleaned up — fire and ambient glow removed; clean minimal dark screen with dog, text, and progress bar only',
     'App title font locked to Plus Jakarta Sans 800 — consistent with the rest of the app; custom font picker no longer overrides it',
