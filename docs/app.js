@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.6.4';
+const VERSION = '3.6.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.6.5', date: '2026-05-18', changes: [
+    'Splash screen fix — was rendering in top half of screen due to CSS specificity bug (#splash-screen position:relative was overriding position:fixed)',
+    'Lens-flare shine added — a soft white light brushes left→right along the base of "Budget DAWGs" after the text appears',
+  ]},
   { version: '3.6.4', date: '2026-05-18', changes: [
     'Splash screen redesigned — clean minimal layout: dog slides in smoothly, brand text in design-system colors, slim accent gradient progress bar replaces dollar coin chaos',
     'Account picker redesigned — premium vertical list replaces 2-col emoji grid; each account gets a colored type stripe, large balance right-aligned, chevron; rows slide in staggered from left',
