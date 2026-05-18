@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.5.2';
+const VERSION = '3.5.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.5.3', date: '2026-05-15', changes: [
+    'Net worth: loan accounts now subtract from net worth (same as credit) — was incorrectly added as a positive asset',
+    'Net worth rows now show "(Loan)" or "(Credit)" label and "Owes: $X" in red for all debt accounts',
+  ]},
   { version: '3.5.2', date: '2026-05-15', changes: [
     'Credit card dashboard: once balance is set, first-run box replaced with account name, balance owed, this-month spending by category, and recent transactions (payments in green, charges in red)',
     'Loan dashboard: same card shows account name, balance owed, and payment history list',
@@ -1019,9 +1023,9 @@ function getNetWorth() {
       if (t.type === 'income') income += t.amount;
       else expense += t.amount;
     }
-    const isCredit = a.type === 'credit';
-    // For credit: startingBal is existing debt; expenses increase debt, income (payments) reduce it
-    const balance = isCredit
+    const isDebt = a.type === 'credit' || a.type === 'loan';
+    // For credit/loan: startingBal is existing debt; expenses increase debt, income (payments) reduce it
+    const balance = isDebt
       ? -(startingBal + expense - income)   // net worth contribution is negative
       : startingBal + income - expense;
     return { name: a.name, balance, type: a.type };
@@ -1472,15 +1476,19 @@ function renderDashboard() {
       <div class="net-worth-total-label">Net Worth</div>
       <div class="net-worth-total-value" style="color:${nw.total >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(nw.total)}</div>
       <div class="net-worth-rows">
-        ${nw.accounts.map(a => a.type === 'credit' ? `
+        ${nw.accounts.map(a => {
+          const isDebt = a.type === 'credit' || a.type === 'loan';
+          const typeLabel = a.type === 'loan' ? '(Loan)' : a.type === 'credit' ? '(Credit)' : '';
+          return isDebt ? `
           <div class="net-worth-row">
-            <span class="net-worth-acct">${a.name} <span style="font-size:10px;color:var(--muted)">(Credit)</span></span>
+            <span class="net-worth-acct">${a.name}${typeLabel ? ` <span style="font-size:10px;color:var(--muted)">${typeLabel}</span>` : ''}</span>
             <span class="net-worth-bal" style="color:var(--danger)">Owes: ${fmt(-a.balance)}</span>
           </div>` : `
           <div class="net-worth-row">
             <span class="net-worth-acct">${a.name}</span>
             <span class="net-worth-bal" style="color:${a.balance >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(a.balance)}</span>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>
     </div>` : '';
 
