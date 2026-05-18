@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.6.9';
+const VERSION = '3.7.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.7.0', date: '2026-05-18', changes: [
+    'Dashboard scroll fixed — animation class (anim-zoom-in has overflow:hidden) was never removed after playing, blocking scroll on first load; animationend listener now strips it immediately',
+    'Header logo always shows fully — replaced max-width:55% with flex:1 so logo takes exactly the space left after the right controls; .header-right wrapper is flex-shrink:0 so it is never squished',
+    'fitLogo() simplified — with flex:1, scrollWidth > offsetWidth is the only check needed; works correctly on all nav positions',
+  ]},
   { version: '3.6.9', date: '2026-05-18', changes: [
     'Header logo hard-capped to left 55% of header — can never grow into the account switcher or sounds button regardless of font or text length',
     'Account switcher and sounds button are flex-shrink:0 so they are never squished or hidden',
@@ -515,20 +520,16 @@ function applySettings() {
   fitLogo();
 }
 
-// Shrink the header logo font-size until it fits within its max-width (55% of header).
-// Using a fixed percentage keeps the measurement stable regardless of sibling layout.
+// Shrink header logo font-size until the text fits on one line within the flex space.
+// With flex:1 on .logo, offsetWidth IS the available space — no sibling math needed.
 function fitLogo() {
   const logo = document.querySelector('.logo');
   if (!logo) return;
-  logo.style.fontSize = '';   // reset to CSS default (24px) before measuring
+  logo.style.fontSize = '';   // reset to CSS default before measuring
   requestAnimationFrame(() => {
-    const inner = logo.closest('.header-inner');
-    if (!inner) return;
-    // Mirror the CSS max-width: 55% — logo must stay in the left half
-    const maxW = Math.floor(inner.offsetWidth * 0.55) - 2;
-    if (logo.scrollWidth <= maxW) return;   // already fits, done
+    if (logo.scrollWidth <= logo.offsetWidth) return;  // already fits
     let px = parseFloat(getComputedStyle(logo).fontSize);
-    while (logo.scrollWidth > maxW && px > 10) {
+    while (logo.scrollWidth > logo.offsetWidth && px > 10) {
       px -= 0.5;
       logo.style.fontSize = px + 'px';
     }
@@ -1405,9 +1406,11 @@ function runSplash() {
 }
 
 // ── render ─────────────────────────────────────────────────────────────────
+const ANIM_CLASSES = ['anim-slide-right','anim-slide-left','anim-fade-up','anim-zoom-in','anim-zoom-out'];
+
 function _applyPageTransition(main) {
   // Remove any existing animation classes so re-triggering works
-  main.classList.remove('anim-slide-right', 'anim-slide-left', 'anim-fade-up', 'anim-zoom-in', 'anim-zoom-out');
+  main.classList.remove(...ANIM_CLASSES);
   // Force reflow so removing + re-adding the class restarts the animation
   void main.offsetWidth;
   if      (_pageTransition === 'slide-right') main.classList.add('anim-slide-right');
@@ -1417,6 +1420,9 @@ function _applyPageTransition(main) {
   else                                        main.classList.add('anim-fade-up');
   // Reset to default after each render
   _pageTransition = 'fade';
+  // *** Critical: strip the class once the animation ends so overflow:hidden
+  // from anim-zoom-in/out never persists and blocks scrolling ***
+  main.addEventListener('animationend', () => main.classList.remove(...ANIM_CLASSES), { once: true });
 }
 
 function render() {
