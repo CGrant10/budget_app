@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.5.9';
+const VERSION = '3.6.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,16 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.6.0', date: '2026-05-18', changes: [
+    'Full UI redesign — premium design system overhaul',
+    'Typography: all Georgia and Courier New replaced with Outfit; page titles 26px/800 weight; card values 22px/800 weight; section labels now uppercase tracking style',
+    'Colors: accent upgraded to #5b8de8 (vibrant blue); iOS-quality success/danger/warn colors; richer darker backgrounds with proper surface layering',
+    'Cards: 16px radius, subtle white border, drop shadow — every card in the app',
+    'Buttons: gradient primary, 10px radius, Outfit 600 weight, scale-press feedback',
+    'Inputs: 10px radius, Outfit font, glowing focus ring',
+    'Nav bar: frosted glass backdrop-blur, active state gets soft blue pill background',
+    'Toggle switches: larger (48×26px) and more premium feeling',
+  ]},
   { version: '3.5.9', date: '2026-05-18', changes: [
     'Splash screen doberman updated to custom photo — SMY collar, dollar tag, black background blends seamlessly',
   ]},
