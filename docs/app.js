@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.6.0';
+const VERSION = '3.6.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.6.1', date: '2026-05-18', changes: [
+    'Splash doberman updated to transparent-background PNG — no more black square, shadow now hugs the dog outline',
+  ]},
   { version: '3.6.0', date: '2026-05-18', changes: [
     'Full UI redesign — premium design system overhaul',
     'Typography: all Georgia and Courier New replaced with Outfit; page titles 26px/800 weight; card values 22px/800 weight; section labels now uppercase tracking style',
