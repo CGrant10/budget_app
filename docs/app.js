@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.6.8';
+const VERSION = '3.6.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.6.9', date: '2026-05-18', changes: [
+    'Header logo hard-capped to left 55% of header — can never grow into the account switcher or sounds button regardless of font or text length',
+    'Account switcher and sounds button are flex-shrink:0 so they are never squished or hidden',
+    'fitLogo() now measures against the 55% cap directly instead of computing sibling widths (more reliable)',
+  ]},
   { version: '3.6.8', date: '2026-05-18', changes: [
     'Splash: lens flare removed',
     'Splash: CSS fire added at the doberman\'s feet — 7 animated flame tongues (teardrop shapes, fire gradient, blurred) rise from behind the dog with staggered timing; large ambient base glow underneath',
@@ -510,22 +515,20 @@ function applySettings() {
   fitLogo();
 }
 
-// Shrink the header logo font-size until it fits on one line.
-// Called whenever the font, name, or transform changes.
+// Shrink the header logo font-size until it fits within its max-width (55% of header).
+// Using a fixed percentage keeps the measurement stable regardless of sibling layout.
 function fitLogo() {
   const logo = document.querySelector('.logo');
   if (!logo) return;
-  logo.style.fontSize = '';          // reset to CSS default (24px) first
+  logo.style.fontSize = '';   // reset to CSS default (24px) before measuring
   requestAnimationFrame(() => {
     const inner = logo.closest('.header-inner');
     if (!inner) return;
-    // Total width consumed by every sibling + their flex gaps (10px each)
-    const siblings = [...inner.children].filter(el => el !== logo);
-    const used = siblings.reduce((w, el) => w + el.offsetWidth + 10, 0);
-    const avail = inner.offsetWidth - used - 4;
-    if (logo.scrollWidth <= avail) return;           // already fits
+    // Mirror the CSS max-width: 55% — logo must stay in the left half
+    const maxW = Math.floor(inner.offsetWidth * 0.55) - 2;
+    if (logo.scrollWidth <= maxW) return;   // already fits, done
     let px = parseFloat(getComputedStyle(logo).fontSize);
-    while (logo.scrollWidth > avail && px > 10) {
+    while (logo.scrollWidth > maxW && px > 10) {
       px -= 0.5;
       logo.style.fontSize = px + 'px';
     }

@@ -126,7 +126,7 @@ body::before {
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: 10px;
 }
-.header-inner { display: flex; align-items: baseline; gap: 10px; justify-content: space-between; width: 100%; }
+.header-inner { display: flex; align-items: center; gap: 10px; justify-content: flex-start; width: 100%; }
 .logo  {
   font-family: 'Bangers', cursive;
   font-size: 24px;
@@ -136,10 +136,12 @@ body::before {
   opacity: 1;
   text-shadow: 2px 3px 6px rgba(0,0,0,0.4), 4px 6px 14px rgba(0,0,0,0.2);
   transition: color .3s;
-  /* always one line — JS shrinks font-size if the chosen font is too wide */
-  white-space: nowrap;
+  /* hard cap: logo never eats past the left 55% — icons always have room */
+  flex: 0 1 auto;
+  max-width: 55%;
   min-width: 0;
-  flex-shrink: 1;
+  white-space: nowrap;
+  overflow: hidden;
 }
 body.light .logo {
   text-shadow: 1px 2px 5px rgba(0,0,0,0.15), 3px 4px 10px rgba(0,0,0,0.08);
@@ -455,12 +457,13 @@ body.light .logo {
   font-size: 12px;
   cursor: pointer;
   max-width: 120px;
-  margin-left: auto;
+  margin-left: auto;  /* push the right-side controls to the far right */
+  flex-shrink: 0;     /* never let flex squish the account switcher */
 }
 .acct-switcher:focus { outline: none; border-color: var(--accent); }
 
 /* ── sounds button ───────────────────────────────────────────────────────── */
-.sounds-btn { background:none; border:none; font-size:18px; cursor:pointer; opacity:.7; transition:opacity .15s; margin-left:4px; }
+.sounds-btn { background:none; border:none; font-size:18px; cursor:pointer; opacity:.7; transition:opacity .15s; margin-left:4px; flex-shrink:0; }
 .sounds-btn:active { opacity:1; }
 
 /* ── ledger ──────────────────────────────────────────────────────────────── */
