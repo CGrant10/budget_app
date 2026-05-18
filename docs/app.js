@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.6.3';
+const VERSION = '3.6.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.6.4', date: '2026-05-18', changes: [
+    'Splash screen redesigned — clean minimal layout: dog slides in smoothly, brand text in design-system colors, slim accent gradient progress bar replaces dollar coin chaos',
+    'Account picker redesigned — premium vertical list replaces 2-col emoji grid; each account gets a colored type stripe, large balance right-aligned, chevron; rows slide in staggered from left',
+  ]},
   { version: '3.6.3', date: '2026-05-18', changes: [
     'Removed all blue tints from glass surfaces — cards, hero balance card, and nav pill are now clear neutral glass',
     'All glow effects changed to white/clear — nav active icon, inner highlights throughout',
@@ -1305,9 +1309,10 @@ function attachDebt() {
 
 // ── account picker ─────────────────────────────────────────────────────────
 function renderAccountPicker() {
-  const tiles = state.accounts.map(acct => {
-    const d       = JSON.parse(localStorage.getItem(accountDataKey(acct.id)) || '{}');
-    const txns    = d.transactions || [];
+  const TYPE_COLORS = { checking:'#5b8de8', savings:'#32d74b', credit:'#ff453a', loan:'#ffd60a', cash:'#52d68a' };
+  const rows = state.accounts.map(acct => {
+    const d        = JSON.parse(localStorage.getItem(accountDataKey(acct.id)) || '{}');
+    const txns     = d.transactions || [];
     const startBal = parseFloat(d.startingBalance) || 0;
     let inc = 0, exp = 0;
     for (const t of txns) { if (t.type === 'income') inc += t.amount; else exp += t.amount; }
@@ -1315,22 +1320,32 @@ function renderAccountPicker() {
     const balance  = isDebt ? Math.max(0, startBal + exp - inc) : startBal + inc - exp;
     const balColor = isDebt ? 'var(--danger)' : (balance >= 0 ? 'var(--success)' : 'var(--danger)');
     const balLabel = isDebt ? `Owes ${fmt(balance)}` : fmt(balance);
-    const icon = { checking:'🏦', savings:'💰', credit:'💳', loan:'📋', cash:'💵' }[acct.type] || '🏦';
+    const icon     = { checking:'🏦', savings:'💰', credit:'💳', loan:'📋', cash:'💵' }[acct.type] || '🏦';
     const typeLbl  = acct.type.charAt(0).toUpperCase() + acct.type.slice(1);
+    const stripe   = TYPE_COLORS[acct.type] || 'var(--accent)';
     return `
-      <div class="acct-tile" data-id="${acct.id}">
-        <div class="acct-tile-icon">${icon}</div>
-        <div class="acct-tile-name">${acct.name}</div>
-        <div class="acct-tile-type">${typeLbl}</div>
-        <div class="acct-tile-bal" style="color:${balColor}">${balLabel}</div>
+      <div class="acct-row" data-id="${acct.id}">
+        <div class="acct-row-stripe" style="background:${stripe}"></div>
+        <div class="acct-row-icon">${icon}</div>
+        <div class="acct-row-info">
+          <div class="acct-row-name">${acct.name}</div>
+          <div class="acct-row-type">${typeLbl}</div>
+        </div>
+        <div class="acct-row-right">
+          <div class="acct-row-bal" style="color:${balColor}">${balLabel}</div>
+        </div>
+        <div class="acct-row-chevron">›</div>
       </div>`;
   }).join('');
 
+  const count = state.accounts.length;
   return `
     <div class="page acct-picker-page">
-      <h1 class="page-title">Accounts</h1>
-      <p class="page-sub">tap an account to open it</p>
-      <div class="acct-tiles-grid">${tiles}</div>
+      <div class="acct-picker-header">
+        <div class="acct-picker-title">My Accounts</div>
+        <div class="acct-picker-sub">${count} account${count !== 1 ? 's' : ''} · tap to open</div>
+      </div>
+      <div class="acct-list">${rows}</div>
     </div>`;
 }
 
@@ -1371,7 +1386,7 @@ function render() {
     appEl?.classList.add('picker-mode');
     main.innerHTML = renderAccountPicker();
     _applyPageTransition(main);
-    document.querySelectorAll('.acct-tile').forEach(tile => {
+    document.querySelectorAll('.acct-row').forEach(tile => {
       tile.addEventListener('click', async () => {
         _pageTransition = 'zoom-in';
         showingAccountPicker = false;        // set BEFORE switchAccount so its render() sees correct state
