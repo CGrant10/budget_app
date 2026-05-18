@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.5.4';
+const VERSION = '3.5.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,16 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.5.6', date: '2026-05-18', changes: [
+    'Pinch-to-zoom disabled — viewport locked to prevent accidental scaling on iOS and Android',
+    'iPhone header fix — header height now grows to include the notch / Dynamic Island safe-area inset so content no longer gets squished',
+  ]},
+  { version: '3.5.5', date: '2026-05-18', changes: [
+    'Page transitions: tap an account tile to slide into its dashboard (slides in from right)',
+    'Tap ⊞ to return to account picker — content slides out to the left',
+    'Nav tab switches use a smooth fade-up animation',
+    'Account picker tiles stagger in with a cascading entrance animation',
+  ]},
   { version: '3.5.4', date: '2026-05-15', changes: [
     'Weekly breakdown no longer resets when a new week starts — one continuous list from earliest week with data through to paydate',
     'Current week is highlighted with an accent border and THIS WEEK badge; past weeks are slightly dimmed',
@@ -709,6 +719,7 @@ let currentTab = 'dashboard';
 let dashMonth = new Date().toISOString().slice(0, 7);
 let debtSubTab = 'credit'; // 'credit' | 'loan'
 let showingAccountPicker = false;
+let _pageTransition = 'fade'; // 'fade' | 'slide-left' | 'slide-right'
 let selectedLedgerIdx = null;
 let ledgerFilter = '';
 let ledgerSort = 'date-desc';
@@ -730,6 +741,7 @@ function showTab(key) {
   } else if (currentTab === 'about') {
     applyTheme(activeTheme);
   }
+  _pageTransition = 'fade';
   currentTab = key;
   document.querySelectorAll('.nav-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.tab === key));
@@ -1277,6 +1289,18 @@ function renderAccountPicker() {
 }
 
 // ── render ─────────────────────────────────────────────────────────────────
+function _applyPageTransition(main) {
+  // Remove any existing animation classes so re-triggering works
+  main.classList.remove('anim-slide-right', 'anim-slide-left', 'anim-fade-up');
+  // Force reflow so removing + re-adding the class restarts the animation
+  void main.offsetWidth;
+  if (_pageTransition === 'slide-right')      main.classList.add('anim-slide-right');
+  else if (_pageTransition === 'slide-left')  main.classList.add('anim-slide-left');
+  else                                        main.classList.add('anim-fade-up');
+  // Reset to default after each render
+  _pageTransition = 'fade';
+}
+
 function render() {
   if (spendingChart) { spendingChart.destroy(); spendingChart = null; }
   const main = document.getElementById('main-content');
@@ -1285,8 +1309,10 @@ function render() {
   if (showingAccountPicker) {
     appEl?.classList.add('picker-mode');
     main.innerHTML = renderAccountPicker();
+    _applyPageTransition(main);
     document.querySelectorAll('.acct-tile').forEach(tile => {
       tile.addEventListener('click', async () => {
+        _pageTransition = 'slide-right';
         await api.switchAccount(tile.dataset.id);
         showingAccountPicker = false;
         appEl?.classList.remove('picker-mode');
@@ -1311,6 +1337,7 @@ function render() {
     case 'settings':  main.innerHTML = renderSettings();  break;
     case 'about':     main.innerHTML = renderAbout();     break;
   }
+  _applyPageTransition(main);
   attachHandlers();
   updateBillBadge();
   // Show "Done" checkmark on mobile keyboard for all text/number inputs
@@ -3229,6 +3256,7 @@ function updateAccountSwitcher() {
     btn.textContent = '⊞';
     sel.insertAdjacentElement('beforebegin', btn);
     btn.addEventListener('click', () => {
+      _pageTransition = 'slide-left';
       showingAccountPicker = true;
       render();
     });

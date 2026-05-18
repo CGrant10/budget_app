@@ -49,7 +49,7 @@ html, body {
   position: sticky;
   top: 0;
 }
-#app.nav-top .header { order: -1; padding-top: 0; }
+#app.nav-top .header { order: -1; padding-top: 0; height: var(--header-h); align-items: center; padding-bottom: 0; }
 
 /* nav-bottom (default): header on top, main in middle, nav on bottom */
 #app.nav-bottom { flex-direction: column; }
@@ -58,10 +58,13 @@ html, body {
 #app.nav-left, #app.nav-right { flex-direction: row; }
 #app.nav-left  .header, #app.nav-right .header {
   position: fixed; top: 0; left: 0; right: 0; z-index: 10;
-  height: var(--header-h);
+  height: calc(var(--header-h) + env(safe-area-inset-top, 0px));
+  align-items: flex-end;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: 10px;
 }
 #app.nav-left  #main-content, #app.nav-right #main-content {
-  margin-top: var(--header-h);
+  margin-top: calc(var(--header-h) + env(safe-area-inset-top, 0px));
   flex: 1;
   min-width: 0;
 }
@@ -90,14 +93,16 @@ html, body {
 /* ── header ──────────────────────────────────────────────────────────────── */
 .header {
   flex-shrink: 0;
-  height: var(--header-h);
+  /* Grow to include the iOS status-bar / notch / Dynamic Island inset */
+  height: calc(var(--header-h) + env(safe-area-inset-top, 0px));
   background: var(--surface);
   border-bottom: 2px solid var(--accent);
   border-bottom: 1px solid var(--border);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   padding: 0 20px;
   padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: 10px;
 }
 .header-inner { display: flex; align-items: baseline; gap: 10px; justify-content: space-between; width: 100%; }
 .logo  {
@@ -1327,3 +1332,43 @@ body.light .alert-toast { background: #f0f0f8; }
 .debt-dash-txn-type { font-size:.72rem; font-weight:700; min-width:56px; }
 .debt-dash-txn-desc { flex:1; font-size:.8rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .debt-dash-txn-amt { font-size:.85rem; font-weight:700; white-space:nowrap; }
+
+/* ── page transition animations ── */
+@keyframes pageSlideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pageSlideInLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pageFadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#main-content.anim-slide-right {
+  animation: pageSlideInRight .22s cubic-bezier(.25,.8,.35,1) both;
+}
+#main-content.anim-slide-left {
+  animation: pageSlideInLeft .22s cubic-bezier(.25,.8,.35,1) both;
+}
+#main-content.anim-fade-up {
+  animation: pageFadeUp .18s cubic-bezier(.25,.8,.35,1) both;
+}
+
+/* ── staggered account tile entrance ── */
+@keyframes tileEntrance {
+  from { opacity: 0; transform: translateY(16px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.acct-tile {
+  animation: tileEntrance .28s cubic-bezier(.25,.8,.35,1) both;
+}
+.acct-tile:nth-child(1) { animation-delay: .00s; }
+.acct-tile:nth-child(2) { animation-delay: .05s; }
+.acct-tile:nth-child(3) { animation-delay: .10s; }
+.acct-tile:nth-child(4) { animation-delay: .15s; }
+.acct-tile:nth-child(5) { animation-delay: .20s; }
+.acct-tile:nth-child(6) { animation-delay: .25s; }
+.acct-tile:nth-child(n+7) { animation-delay: .30s; }
