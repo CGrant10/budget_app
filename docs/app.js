@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.7.8';
+const VERSION = '3.7.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -2944,12 +2944,8 @@ function renderAbout() {
     <div class="page">
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:24px 20px">
-        <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:14px">
-          <img src="doberman.png" alt="Budget DAWGs mascot"
-               style="width:72px;height:auto;display:block;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5))">
-          <img src="newicon.png" alt="Budget DAWGs"
-               style="flex:1;max-width:220px;height:auto;display:block;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 1px 3px rgba(0,0,0,0.3))">
-        </div>
+        <img src="doberman.png" alt="Budget DAWGs"
+             style="width:100%;height:auto;display:block;margin:0 auto 16px;filter:drop-shadow(0 4px 24px rgba(0,0,0,0.7))">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
