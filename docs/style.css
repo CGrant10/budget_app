@@ -1567,9 +1567,69 @@ body.light .section-title::before {
   height: 250px;
   opacity: 0;
   animation: splashDogIn .55s cubic-bezier(.22,1,.36,1) .08s both;
+  position: relative;       /* fire is absolutely positioned inside */
+}
+/* Dog photo sits above the fire in paint order (DOM order: fire first, img last) */
+.splash-dob-img {
+  width: 100%; height: 100%; display: block; object-fit: contain;
+  position: relative; z-index: 1;
   filter: drop-shadow(0 10px 28px rgba(0,0,0,.65)) drop-shadow(0 0 36px rgba(91,141,232,.12));
 }
-.splash-dob-img { width: 100%; height: 100%; display: block; object-fit: contain; }
+
+/* ── fire at the dog's feet ── */
+.splash-fire {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 150px;
+  pointer-events: none;
+}
+/* large blurred base glow — the ambient firelight on the ground */
+.splash-fire-base {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 230px;
+  height: 55px;
+  background: radial-gradient(ellipse at 50% 100%,
+    rgba(255,90,0,.45)  0%,
+    rgba(255,50,0,.18) 50%,
+    transparent        80%
+  );
+  filter: blur(16px);
+  border-radius: 50%;
+}
+/* individual flame tongues */
+.sf {
+  position: absolute;
+  bottom: 0;
+  left: var(--l);
+  width: var(--w);
+  height: var(--h);
+  border-radius: 50% 50% 22% 22% / 65% 65% 35% 35%;
+  background: radial-gradient(ellipse 55% 85% at 50% 100%,
+    rgba(255,255,200,.98)  0%,
+    rgba(255,200,0,.85)   16%,
+    rgba(255,100,0,.75)   40%,
+    rgba(220,30,0,.55)    66%,
+    transparent           100%
+  );
+  filter: blur(var(--blur));
+  opacity: 0;
+  transform-origin: bottom center;
+  animation: flameDance var(--dur) ease-in-out var(--del) infinite;
+}
+@keyframes flameDance {
+  0%   { opacity: 0;   transform: scaleX(1)    scaleY(0.12) translateY(6px); }
+  12%  { opacity: .88; }
+  35%  { transform: scaleX(.9)  scaleY(.62)  translateY(-9px)  rotate(calc(var(--sway) * .4)); }
+  65%  { transform: scaleX(.75) scaleY(.94)  translateY(-22px) rotate(var(--sway)); opacity: .72; }
+  85%  { transform: scaleX(.6)  scaleY(1.04) translateY(-32px) rotate(calc(var(--sway) * -.6)); opacity: .38; }
+  100% { opacity: 0;   transform: scaleX(.4)  scaleY(.78)  translateY(-44px) rotate(0deg); }
+}
 @keyframes splashDogIn {
   from { opacity: 0; transform: translateY(14px) scale(.9); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -1597,66 +1657,14 @@ body.light .section-title::before {
   font-size: 3.2rem;
   letter-spacing: .1em;
   color: var(--text);
-  text-shadow: 0 0 48px rgba(91,141,232,.35);
+  /* warm fire glow on the title to tie into the flames below */
+  text-shadow:
+    0 0 20px rgba(255,120,0,.55),
+    0 0 50px rgba(255,60,0,.25),
+    0 0 90px rgba(255,30,0,.12);
   opacity: 0;
   line-height: 1;
   animation: splashFadeUp .4s ease .62s both;
-  position: relative;
-  display: inline-block;
-  /* no overflow:hidden — let the flare glow bleed naturally beyond letter edges */
-}
-/* ── Lens flare — large soft corona + tight bright core drift left→right ── */
-
-/* Outer corona: wide diffuse oval, blue-white tint, heavily blurred */
-.splash-brand::after {
-  content: '';
-  position: absolute;
-  bottom: -12px;
-  left: -110%;
-  width: 95%;
-  height: 52px;
-  background: radial-gradient(ellipse 50% 50% at 50% 68%,
-    rgba(255,255,255,.95)  0%,
-    rgba(210,228,255,.55) 28%,
-    rgba(180,210,255,.18) 58%,
-    transparent           100%
-  );
-  filter: blur(10px);
-  opacity: 0;
-  animation: splashFlareOuter 1.6s cubic-bezier(.22,0,.4,1) 1.15s both;
-  pointer-events: none;
-  z-index: 2;
-}
-/* Inner core: smaller, brighter, slightly ahead of the corona */
-.splash-brand::before {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: -90%;
-  width: 34%;
-  height: 22px;
-  background: radial-gradient(ellipse at 50% 60%,
-    rgba(255,255,255,1)   0%,
-    rgba(230,240,255,.6) 35%,
-    transparent           75%
-  );
-  filter: blur(4px);
-  opacity: 0;
-  animation: splashFlareCore 1.6s cubic-bezier(.22,0,.4,1) 1.15s both;
-  pointer-events: none;
-  z-index: 3;
-}
-@keyframes splashFlareOuter {
-  0%   { left: -110%; opacity: 0; }
-  7%   { opacity: .75; }
-  75%  { opacity: .6; }
-  100% { left: 125%; opacity: 0; }
-}
-@keyframes splashFlareCore {
-  0%   { left:  -90%; opacity: 0; }
-  7%   { opacity: 1; }
-  75%  { opacity: .85; }
-  100% { left:  145%; opacity: 0; }
 }
 .splash-tagline {
   font-size: .62rem;

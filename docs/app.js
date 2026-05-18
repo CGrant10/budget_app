@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.6.7';
+const VERSION = '3.6.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.6.8', date: '2026-05-18', changes: [
+    'Splash: lens flare removed',
+    'Splash: CSS fire added at the doberman\'s feet — 7 animated flame tongues (teardrop shapes, fire gradient, blurred) rise from behind the dog with staggered timing; large ambient base glow underneath',
+    'Splash brand text now glows with a warm orange/red fire color to match the flames',
+  ]},
   { version: '3.6.7', date: '2026-05-18', changes: [
     'Header title always stays one line — white-space:nowrap + fitLogo() shrinks font-size automatically when a wide font (e.g. Press Start 2P) is selected',
     'Nav-left / nav-right header fix — header content was rendering over the sidebar column; now offset by sidebar width so logo, switcher, and sounds button stay in the actual content area',
