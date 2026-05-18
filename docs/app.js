@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.5.7';
+const VERSION = '3.5.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.5.8', date: '2026-05-18', changes: [
+    'Splash: dog replaced with a mean SVG doberman — black coat, rust/tan markings, angry V brows, snarl with fangs',
+    'Fixed zoom transition: account tile tap now correctly zooms into the dashboard (was calling render() twice, second call reset animation to fade)',
+    'Zoom-out back to picker now clips overflow during animation to prevent edge bleed',
+    'Tagline updated to "Money on a leash."',
+  ]},
   { version: '3.5.7', date: '2026-05-18', changes: [
     'Splash screen: animated intro on every app open — dog bounces in, title slams in, dollar coins shoot outward, fades out before app loads',
     'Account transitions: tap tile to zoom into dashboard, tap ⊞ to zoom back out to picker',
@@ -1332,10 +1338,8 @@ function render() {
     document.querySelectorAll('.acct-tile').forEach(tile => {
       tile.addEventListener('click', async () => {
         _pageTransition = 'zoom-in';
-        await api.switchAccount(tile.dataset.id);
-        showingAccountPicker = false;
-        appEl?.classList.remove('picker-mode');
-        render();
+        showingAccountPicker = false;        // set BEFORE switchAccount so its render() sees correct state
+        await api.switchAccount(tile.dataset.id); // internally calls render() — no extra call needed
       });
     });
     document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="date"])').forEach(el => el.setAttribute('enterkeyhint', 'done'));
