@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.5.3';
+const VERSION = '3.5.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.5.4', date: '2026-05-15', changes: [
+    'Weekly breakdown no longer resets when a new week starts — one continuous list from earliest week with data through to paydate',
+    'Current week is highlighted with an accent border and THIS WEEK badge; past weeks are slightly dimmed',
+    'Removed the separate "Past Weeks" section — everything is in one stable ordered list',
+  ]},
   { version: '3.5.3', date: '2026-05-15', changes: [
     'Net worth: loan accounts now subtract from net worth (same as credit) — was incorrectly added as a positive asset',
     'Net worth rows now show "(Loan)" or "(Credit)" label and "Owes: $X" in red for all debt accounts',
@@ -1856,49 +1861,46 @@ function calcWeekly() {
     ? thisWeekTxns.map(t=>`<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`).join('')
     : '<p class="pw-empty">No transactions yet this week.</p>';
 
-  const monLabel     = monday.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  const paydate      = paydateStr ? new Date(paydateStr+'T00:00:00') : new Date(now.getTime()+(days-1)*86400000);
-  const daysFromMon  = Math.max(1, Math.round((paydate - monday) / 86400000) + 1);
-  const weeksDisplay = Math.ceil(daysFromMon / 7);
+  const monLabel = monday.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const paydate  = paydateStr ? new Date(paydateStr+'T00:00:00') : new Date(now.getTime()+(days-1)*86400000);
 
-  const weekRows = Array.from({length: weeksDisplay}, (_, w) => {
-    const sd = new Date(monday); sd.setDate(monday.getDate() + w*7);
-    const ed = new Date(monday); ed.setDate(monday.getDate() + (w+1)*7 - 1);
+  // ── Unified week list: find the earliest Monday that has data (up to 12 weeks back)
+  // then build one continuous list through to paydate — no weeks ever shift or disappear.
+  let startMonday = new Date(monday);
+  for (let i = 12; i >= 1; i--) {
+    const m  = new Date(monday); m.setDate(monday.getDate() - i*7);
+    const mS = m.toISOString().split('T')[0];
+    const mE = new Date(m); mE.setDate(m.getDate() + 6);
+    const mES = mE.toISOString().split('T')[0];
+    if (state.transactions.some(t => t.date >= mS && t.date <= mES)) { startMonday = m; break; }
+  }
+
+  const totalDaysSpan = Math.round((paydate - startMonday) / 86400000) + 1;
+  const totalWeeks    = Math.max(1, Math.ceil(totalDaysSpan / 7));
+
+  const txnRow = t => `<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`;
+
+  const allWeekRows = Array.from({length: totalWeeks}, (_, w) => {
+    const sd = new Date(startMonday); sd.setDate(startMonday.getDate() + w*7);
+    const ed = new Date(startMonday); ed.setDate(startMonday.getDate() + (w+1)*7 - 1);
     if (ed > paydate) ed.setTime(paydate.getTime());
-    const wkS = sd.toISOString().split('T')[0];
-    const wkE = ed.toISOString().split('T')[0];
+    const sdS = sd.toISOString().split('T')[0];
+    const edS = ed.toISOString().split('T')[0];
+    const isCurrent = sdS <= mondayStr && mondayStr <= edS;
+    const isPast    = ed < now;
     const lbl = `${sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
-    const wkTxns = state.transactions.filter(t=>t.date>=wkS&&t.date<=wkE);
+    const wkTxns = state.transactions.filter(t=>t.date>=sdS&&t.date<=edS);
     const wkExp  = wkTxns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
     const wkInc  = wkTxns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
     const wkNet  = Math.max(0, wkExp - wkInc);
     const wkPct  = perWeek > 0 ? Math.min(wkNet/perWeek*100,100) : 0;
     const wkColor = wkPct>=100?'var(--danger)':wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
     const txnHtml = wkTxns.length
-      ? wkTxns.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`).join('')
+      ? wkTxns.sort((a,b)=>b.date.localeCompare(a.date)).map(txnRow).join('')
       : '<p class="pw-empty">No transactions.</p>';
-    return `<div class="wkb-row"><div class="wkb-header"><span class="week-label">Wk ${w+1}</span><span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(perWeek)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`;
+    const badge = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
+    return `<div class="wkb-row${isCurrent?' wkb-current':isPast?' wkb-past':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(perWeek)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`;
   }).join('');
-
-  const pastWeeksHtml = (() => {
-    const rows = [];
-    for (let i = 0; i < 8; i++) {
-      const wkStart = new Date(monday); wkStart.setDate(monday.getDate() - (i+1)*7);
-      const wkEnd   = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
-      const wkS = wkStart.toISOString().slice(0, 10);
-      const wkE = wkEnd.toISOString().slice(0, 10);
-      const weekTxns = state.transactions.filter(t=>t.date>=wkS&&t.date<=wkE);
-      if (!weekTxns.length && i >= 4) continue;
-      const spent  = weekTxns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-      const earned = weekTxns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-      const lbl = `${wkStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${wkEnd.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
-      const txnHtml = weekTxns.length
-        ? weekTxns.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`).join('')
-        : '<p class="pw-empty">No transactions this week.</p>';
-      rows.push(`<div class="pw-week-row"><div class="pw-week-header"><span class="pw-week-dates">${lbl}</span><span class="pw-week-spent" style="color:${spent?'var(--danger)':'var(--muted)'}">spent ${fmt(spent)}</span>${earned?`<span class="pw-week-earned">income ${fmt(earned)}</span>`:''}<span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
-    }
-    return rows.join('');
-  })();
 
   const el = document.getElementById('wk-results');
   if (!el) return;
@@ -1924,8 +1926,7 @@ function calcWeekly() {
       </div>
     </div>
     <h2 class="section-title">Week-by-week breakdown</h2>
-    <div class="wkb-rows">${weekRows}</div>
-    ${pastWeeksHtml?`<h2 class="section-title" style="margin-top:20px">Past Weeks</h2><div class="pw-weeks">${pastWeeksHtml}</div>`:''}`;
+    <div class="wkb-rows">${allWeekRows}</div>`;
 
   el.querySelector('.wt-txns-toggle')?.addEventListener('click', function() {
     const body = this.nextElementSibling;

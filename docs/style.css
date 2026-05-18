@@ -504,6 +504,9 @@ body.light .logo {
 
 .wkb-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
 .wkb-row { background: var(--card); border-radius: 10px; overflow: hidden; }
+.wkb-row.wkb-current { border: 1.5px solid var(--accent); }
+.wkb-row.wkb-past { opacity: .75; }
+.wkb-current-badge { font-size: .65rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: var(--accent); color: #fff; border-radius: 4px; padding: 1px 6px; margin-right: 4px; white-space: nowrap; }
 .wkb-header {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 14px; cursor: pointer; user-select: none;
