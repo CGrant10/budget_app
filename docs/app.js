@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.6.1';
+const VERSION = '3.6.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,18 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.6.2', date: '2026-05-18', changes: [
+    'Font upgraded to Plus Jakarta Sans — the standard for premium fintech products (Stripe, Notion, Linear)',
+    'Light mode header gradient removed — clean solid white surface now',
+    'Balance card redesigned as a full-width hero — 40px number with gradient blue/purple glow background',
+    'All cards now use true glassmorphism — layered gradient bg, inner top highlight, deep shadow',
+    'Section titles get a gradient accent left-bar marker',
+    'Primary button upgraded to accent gradient with blue glow shadow',
+    'All progress/breakdown bars now fill with the accent gradient',
+    'Nav active pill uses gradient highlight',
+    'Light mode: white card surfaces with soft shadows throughout',
+    'Net worth total upgraded to 2rem/800 weight commanding number',
+  ]},
   { version: '3.6.1', date: '2026-05-18', changes: [
     'Splash doberman updated to transparent-background PNG — no more black square, shadow now hugs the dog outline',
   ]},

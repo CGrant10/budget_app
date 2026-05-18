@@ -12,10 +12,13 @@
   --border:  rgba(255,255,255,.07);
   --surface2: #222223;
 
-  --radius-card: 16px;
-  --radius-btn: 10px;
-  --radius-input: 10px;
-  --shadow-card: 0 2px 10px rgba(0,0,0,.35);
+  --radius-card: 18px;
+  --radius-btn: 11px;
+  --radius-input: 11px;
+  --shadow-card: 0 4px 24px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.07);
+  --accent-gradient: linear-gradient(135deg, #5b8de8 0%, #7b6cf6 100%);
+  --glass-bg: linear-gradient(145deg, rgba(255,255,255,.055) 0%, rgba(255,255,255,.018) 100%);
+  --glass-border: rgba(255,255,255,.09);
 
   --header-h: 56px;
   --nav-h: 58px;
@@ -28,7 +31,7 @@ html, body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
@@ -100,8 +103,8 @@ html, body {
   flex-shrink: 0;
   /* Grow to include the iOS status-bar / notch / Dynamic Island inset */
   height: calc(var(--header-h) + env(safe-area-inset-top, 0px));
-  background: linear-gradient(180deg, var(--surface) 0%, rgba(26,26,27,.98) 100%);
-  border-bottom: 1px solid rgba(255,255,255,.07);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: flex-end;
   padding: 0 20px;
@@ -134,7 +137,7 @@ body.light .logo {
 .page { padding: 20px 16px 24px; }
 
 .page-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -.3px;
@@ -144,13 +147,24 @@ body.light .logo {
 .page-sub { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
 
 .section-title {
-  font-family: 'Outfit', sans-serif;
-  font-size: 11px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: .1em;
+  letter-spacing: .14em;
   text-transform: uppercase;
   color: var(--muted);
-  margin: 20px 0 10px;
+  margin: 22px 0 10px;
+  padding-left: 11px;
+  position: relative;
+}
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 13px;
+  background: var(--accent-gradient);
+  border-radius: 2px;
 }
 
 /* ── cards grid ──────────────────────────────────────────────────────────── */
@@ -161,14 +175,37 @@ body.light .logo {
   margin-bottom: 16px;
 }
 .card {
-  background: var(--card);
-  border-radius: 16px;
-  padding: 16px 16px 14px;
-  border: 1px solid rgba(255,255,255,.06);
-  box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  background: var(--glass-bg);
+  border-radius: 18px;
+  padding: 18px 18px 16px;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card);
 }
-.card-title { font-size: 10px; color: var(--muted); letter-spacing: .1em; font-weight: 700; margin-bottom: 4px; }
-.card-value { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -.3px; margin-bottom: 2px; }
+/* ── Hero balance card — full width, commanding ── */
+.cards-grid .card:first-child {
+  grid-column: 1 / -1;
+  padding: 26px 22px 22px;
+  background: linear-gradient(135deg, rgba(91,141,232,.18) 0%, rgba(123,108,246,.12) 60%, rgba(255,255,255,.03) 100%);
+  border-color: rgba(91,141,232,.25);
+  box-shadow: 0 6px 32px rgba(91,141,232,.2), inset 0 1px 0 rgba(255,255,255,.1);
+}
+.cards-grid .card:first-child .card-value {
+  font-size: 40px;
+  letter-spacing: -1.5px;
+  line-height: 1.05;
+  margin-bottom: 4px;
+}
+.cards-grid .card:first-child .card-title {
+  font-size: 11px;
+  letter-spacing: .14em;
+  margin-bottom: 6px;
+}
+.cards-grid .card:first-child .card-sub {
+  font-size: 12px;
+  margin-top: 2px;
+}
+.card-title { font-size: 10px; color: var(--muted); letter-spacing: .12em; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+.card-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 2px; }
 .card-sub   { font-size: 11px; color: var(--muted); }
 
 /* ── spending breakdown ───────────────────────────────────────────────────── */
@@ -189,17 +226,19 @@ body.light .logo {
 .breakdown-bar-bg.small { height: 6px; }
 .breakdown-bar-fill {
   height: 100%;
-  background: var(--accent);
+  background: var(--accent-gradient);
   border-radius: 4px;
-  transition: width .3s ease;
+  transition: width .4s cubic-bezier(.25,.8,.25,1);
 }
 .breakdown-amt { font-size: 12px; color: var(--accent2); text-align: right; }
 
 /* ── form card ───────────────────────────────────────────────────────────── */
 .form-card {
-  background: var(--card);
-  border-radius: 16px;
-  padding: 20px 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card);
+  border-radius: 18px;
+  padding: 22px 18px;
   margin-bottom: 14px;
   display: flex;
   flex-direction: column;
@@ -213,7 +252,7 @@ body.light .logo {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 11px 14px;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 15px;
   outline: none;
   width: 100%;
@@ -244,19 +283,20 @@ body.light .logo {
 .btn-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000));
+  background: var(--accent-gradient);
   color: white;
   border: none;
-  border-radius: 10px;
-  padding: 12px 22px;
-  font-family: 'Outfit', sans-serif;
+  border-radius: 11px;
+  padding: 13px 24px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: .01em;
   cursor: pointer;
-  transition: opacity .15s, transform .1s;
-  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  transition: box-shadow .2s, transform .1s, opacity .15s;
+  box-shadow: 0 4px 18px rgba(91,141,232,.4), inset 0 1px 0 rgba(255,255,255,.2);
 }
+.btn-primary:hover { box-shadow: 0 6px 24px rgba(91,141,232,.5), inset 0 1px 0 rgba(255,255,255,.2); }
 .btn-primary:active { transform: scale(.97); opacity: .9; }
 
 .btn-secondary {
@@ -265,7 +305,7 @@ body.light .logo {
   border: 1px solid var(--success);
   border-radius: 10px;
   padding: 12px 20px;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -278,7 +318,7 @@ body.light .logo {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -333,7 +373,7 @@ body.light .logo {
   border: none;
   border-radius: 8px;
   padding: 8px 14px;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -352,7 +392,7 @@ body.light .logo {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 4px 8px;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
   cursor: pointer;
   max-width: 120px;
@@ -411,7 +451,7 @@ body.light .logo {
   color: white;
   border: none;
   font-size: 13px;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
   cursor: pointer;
   transform: translateX(76px);
@@ -479,7 +519,7 @@ body.light .logo {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 14px;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13px;
   cursor: pointer;
 }
@@ -488,9 +528,11 @@ body.light .logo {
 /* ── weekly ──────────────────────────────────────────────────────────────── */
 #wk-results { margin-top: 16px; }
 .week-tracker {
-  background: var(--card);
-  border-radius: 16px;
-  padding: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card);
+  border-radius: 18px;
+  padding: 18px;
   margin: 12px 0 12px;
 }
 .wt-header {
@@ -504,7 +546,7 @@ body.light .logo {
 .wt-dates  { font-size: 12px; color: var(--muted); }
 .wt-pct    { font-size: 12px; margin-left: auto; }
 .wt-amounts { display: flex; align-items: baseline; gap: 4px; margin-bottom: 10px; }
-.wt-spent  { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -.3px; }
+.wt-spent  { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -.3px; }
 .wt-of     { font-size: 13px; color: var(--muted); }
 .progress-bar-bg {
   height: 6px;
@@ -512,7 +554,7 @@ body.light .logo {
   border-radius: 4px;
   overflow: hidden;
 }
-.progress-bar-fill { height: 100%; border-radius: 4px; transition: width .3s ease; }
+.progress-bar-fill { height: 100%; border-radius: 4px; background: var(--accent-gradient); transition: width .4s cubic-bezier(.25,.8,.25,1); }
 .wt-income { font-size: 11px; color: var(--success); margin-left: auto; }
 .wt-offset { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
 .wt-txns-section { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
@@ -615,12 +657,12 @@ body.light .logo {
   border-radius: 12px;
   margin: 4px 2px;
 }
-.nav-btn.active { color: var(--accent); background: rgba(91,141,232,.12); border-radius: 10px; }
+.nav-btn.active { color: var(--accent); background: linear-gradient(180deg, rgba(91,141,232,.16) 0%, rgba(123,108,246,.1) 100%); border-radius: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
 .nav-btn.active .nav-icon { filter: drop-shadow(0 0 4px var(--accent)); transform: scale(1.12); }
 .nav-btn:active { opacity: .7; }
 .nav-icon  { font-size: 18px; line-height: 1; transition: transform .15s, filter .15s; }
 .nav-label {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
   font-size: 9px;
   letter-spacing: .05em;
@@ -739,7 +781,7 @@ body.light .logo {
 .btn-xs {
   background: var(--surface); color: var(--accent);
   border: 1px solid var(--accent); border-radius: 6px;
-  padding: 5px 12px; font-family: 'Outfit', sans-serif;
+  padding: 5px 12px; font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11px; cursor: pointer; white-space: nowrap;
 }
 .btn-xs:active { opacity: .8; }
@@ -759,14 +801,21 @@ body.light .logo {
 .bills-list { display: flex; flex-direction: column; gap: 6px; }
 .bill-item {
   display: flex; align-items: center; gap: 8px;
-  padding: 10px 14px; background: var(--card); border-radius: 10px;
+  padding: 12px 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
 }
 .bill-name { flex: 1; font-size: 13px; color: var(--text); }
 .bill-amt  { font-size: 13px; color: var(--accent2); font-weight: 600; }
 
 .bill-card {
-  background: var(--card); border-radius: 12px;
-  padding: 14px 16px; margin-bottom: 8px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 2px 12px rgba(0,0,0,.3);
+  border-radius: 16px;
+  padding: 16px 18px; margin-bottom: 10px;
 }
 .bill-card-main {
   display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
@@ -781,7 +830,10 @@ body.light .logo {
 /* ── goals ────────────────────────────────────────────────────────────────── */
 .goals-list { display: flex; flex-direction: column; }
 .goal-card {
-  background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 10px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 2px 12px rgba(0,0,0,.3);
+  border-radius: 16px; padding: 18px; margin-bottom: 10px;
 }
 .goal-header {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
@@ -794,8 +846,11 @@ body.light .logo {
 
 /* ── health card ──────────────────────────────────────────────────────────── */
 .health-card {
-  background: var(--card); border-radius: 12px; border: 1px solid var(--border);
-  padding: 20px 16px 16px;
+  background: var(--glass-bg);
+  border-radius: 18px;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card);
+  padding: 22px 18px 18px;
 }
 .health-header {
   display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px;
@@ -803,7 +858,7 @@ body.light .logo {
 .health-title       { font-size: 12px; color: var(--muted); letter-spacing: .08em; margin-bottom: 2px; }
 .health-sub         { font-size: 12px; color: var(--muted); }
 .health-score-block { text-align: center; }
-.health-score       { font-family: 'Outfit', sans-serif; font-size: 36px; font-weight: 800; letter-spacing: -.5px; line-height: 1; }
+.health-score       { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 36px; font-weight: 800; letter-spacing: -.5px; line-height: 1; }
 .health-grade       { font-size: 12px; font-weight: bold; margin-top: 2px; }
 .health-bars        { display: flex; flex-direction: column; gap: 10px; }
 .health-bar-row     { display: grid; grid-template-columns: 130px 1fr 50px; align-items: center; gap: 8px; }
@@ -833,6 +888,45 @@ body.light .logo {
 body.light .form-input { color: var(--text); background: var(--surface); }
 body.light .roast-toast,
 body.light .alert-toast { background: #f0f0f8; }
+
+/* Light mode: white glass cards instead of dark glass */
+body.light .card,
+body.light .form-card,
+body.light .bill-card,
+body.light .bill-item,
+body.light .goal-card,
+body.light .health-card,
+body.light .debt-summary-card,
+body.light .debt-acct-card,
+body.light .debt-dash-card,
+body.light .acct-tile,
+body.light .week-tracker,
+body.light .ledger-row-inner,
+body.light .wkb-row,
+body.light .pw-week-row {
+  background: #ffffff;
+  border-color: rgba(0,0,0,.07);
+  box-shadow: 0 2px 16px rgba(0,0,0,.07), 0 0 0 1px rgba(0,0,0,.03);
+}
+body.light .cards-grid .card:first-child {
+  background: linear-gradient(135deg, rgba(91,141,232,.12) 0%, rgba(123,108,246,.07) 100%);
+  border-color: rgba(91,141,232,.2);
+  box-shadow: 0 4px 24px rgba(91,141,232,.12), 0 0 0 1px rgba(91,141,232,.08);
+}
+body.light .header {
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0,0,0,.1);
+}
+body.light .bottom-nav {
+  background: rgba(255,255,255,.94);
+  border-top: 1px solid rgba(0,0,0,.1);
+}
+body.light .nav-btn.active {
+  background: linear-gradient(180deg, rgba(91,141,232,.12) 0%, rgba(91,141,232,.06) 100%);
+}
+body.light .section-title::before {
+  background: var(--accent-gradient);
+}
 
 /* ── desktop layout (≥ 700px) ───────────────────────────────────────────── */
 @media (min-width: 700px) {
@@ -960,7 +1054,7 @@ body.light .alert-toast { background: #f0f0f8; }
   border-radius: 10px;
   background: transparent;
   cursor: pointer;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   text-align: left;
   width: 100%;
   transition: background .15s, border-color .15s;
@@ -1089,14 +1183,15 @@ body.light .alert-toast { background: #f0f0f8; }
 
 /* ── net worth ────────────────────────────────────────────────────────────── */
 .net-worth-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px 18px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card);
+  border-radius: 18px;
+  padding: 20px 20px;
   margin-bottom: 16px;
 }
-.net-worth-total-label { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-.net-worth-total-value { font-size: 1.6rem; font-weight: 700; margin-bottom: 12px; }
+.net-worth-total-label { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+.net-worth-total-value { font-size: 2rem; font-weight: 800; letter-spacing: -.5px; margin-bottom: 12px; }
 .net-worth-rows { display: flex; flex-direction: column; gap: 6px; }
 .net-worth-row { display: flex; justify-content: space-between; align-items: center; font-size: .85rem; }
 .net-worth-acct { color: var(--muted); }
@@ -1105,12 +1200,14 @@ body.light .alert-toast { background: #f0f0f8; }
 /* ── insights ─────────────────────────────────────────────────────────────── */
 .insights-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
 .insight-item {
-  background: var(--card);
-  border-radius: 10px;
-  padding: 11px 14px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 13px 16px;
   font-size: .85rem;
   color: var(--text);
-  line-height: 1.4;
+  line-height: 1.5;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
 }
 
 /* ── pin lock ─────────────────────────────────────────────────────────────── */
@@ -1243,7 +1340,7 @@ body.light .alert-toast { background: #f0f0f8; }
   font-size: .75rem;
   font-weight: 500;
   white-space: nowrap;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   transition: all .15s;
 }
 .type-pill.active {
@@ -1283,7 +1380,7 @@ body.light .alert-toast { background: #f0f0f8; }
 #app.picker-mode .bottom-nav   { display:none !important; }
 #app.picker-mode .acct-switcher { display:none !important; }
 .acct-tiles-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding-bottom:24px; }
-.acct-tile { background:var(--surface); border:1.5px solid var(--border); border-radius:20px; padding:22px 14px 18px; cursor:pointer; text-align:center; transition:transform .12s, border-color .12s, box-shadow .12s; }
+.acct-tile { background:var(--glass-bg); border:1.5px solid var(--glass-border); border-radius:20px; padding:24px 14px 20px; cursor:pointer; text-align:center; transition:transform .15s, border-color .15s, box-shadow .15s; box-shadow:0 4px 20px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.07); }
 .acct-tile:active { transform:scale(.96); }
 @media (hover:hover) { .acct-tile:hover { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); } }
 .acct-tile-icon { font-size:2.2rem; margin-bottom:10px; line-height:1; }
@@ -1293,17 +1390,17 @@ body.light .alert-toast { background: #f0f0f8; }
 .acct-home-btn  { background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:4px 9px; font-size:1rem; cursor:pointer; line-height:1; }
 
 /* ── debt tab ── */
-.debt-summary-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px 20px; margin-bottom:16px; text-align:center; }
+.debt-summary-card { background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:18px; padding:22px 20px; margin-bottom:16px; text-align:center; box-shadow:var(--shadow-card); }
 .debt-summary-label { font-size:.7rem; font-weight:700; letter-spacing:.08em; color:var(--muted); margin-bottom:4px; }
 .debt-summary-value { font-size:2rem; font-weight:800; line-height:1.1; margin-bottom:4px; }
 .debt-summary-sub { font-size:.78rem; color:var(--muted); }
 
 .debt-subnav { display:flex; gap:8px; margin-bottom:16px; }
-.debt-pill { flex:1; padding:9px 0; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:.82rem; font-weight:600; cursor:pointer; transition:all .15s; font-family:'Outfit', sans-serif; }
+.debt-pill { flex:1; padding:9px 0; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:.82rem; font-weight:600; cursor:pointer; transition:all .15s; font-family:'Plus Jakarta Sans', sans-serif; }
 .debt-pill.active { background:var(--accent); border-color:var(--accent); color:#fff; }
 
 .debt-acct-list { display:flex; flex-direction:column; gap:12px; }
-.debt-acct-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+.debt-acct-card { background:var(--glass-bg); border:1px solid var(--glass-border); box-shadow:var(--shadow-card); border-radius:18px; overflow:hidden; }
 .debt-acct-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px 8px; }
 .debt-acct-name { font-size:1rem; font-weight:700; color:var(--text); }
 .debt-acct-type { font-size:.72rem; color:var(--muted); }
@@ -1334,7 +1431,7 @@ body.light .alert-toast { background: #f0f0f8; }
 .debt-txn-amt.danger  { color:var(--danger); }
 
 /* ── debt dashboard summary card ── */
-.debt-dash-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+.debt-dash-card { background:var(--glass-bg); border:1px solid var(--glass-border); box-shadow:var(--shadow-card); border-radius:18px; overflow:hidden; }
 .debt-dash-header { display:flex; align-items:center; justify-content:space-between; padding:16px 16px 12px; }
 .debt-dash-acct-name { font-size:1.1rem; font-weight:800; color:var(--text); margin-bottom:3px; }
 .debt-dash-acct-type { font-size:.75rem; color:var(--muted); }
@@ -1433,7 +1530,7 @@ body.light .alert-toast { background: #f0f0f8; }
   100% { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 .splash-name {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: .78rem;
   font-weight: 500;
   color: #888890;
