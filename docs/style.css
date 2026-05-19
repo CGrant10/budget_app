@@ -1678,6 +1678,7 @@ body.light .section-title::before {
 .dawg-balance-label { font-size:.68rem; font-weight:700; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; }
 .dawg-balance-amt { font-size:2.3rem; font-weight:800; line-height:1.1; margin:4px 0 2px; }
 .dawg-balance-delta { font-size:.8rem; font-weight:600; margin-bottom:12px; }
+.dawg-balance-due { font-size:.75rem; font-weight:600; margin-bottom:4px; }
 .dawg-sparkline-wrap { height:80px; margin-bottom:10px; }
 .dawg-time-btns { display:flex; gap:4px; }
 .dawg-tbtn {
@@ -1759,11 +1760,21 @@ body.light .section-title::before {
   position:fixed; bottom:0; left:0; right:0;
   height:calc(var(--nav-h) + var(--safe-bottom));
   padding-bottom:var(--safe-bottom);
-  background:var(--surface); border-top:1px solid var(--border);
+  background:var(--surface);
   align-items:center; justify-content:space-around;
   z-index:200; backdrop-filter:blur(14px);
+  overflow:visible;
 }
 #app.dawg-mode #dawg-bottom-nav { display:flex; }
+/* Segmented top border with circular gap for the doberman button */
+#dawg-bottom-nav::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(to right,
+    var(--border) calc(50% - 34px),
+    transparent calc(50% - 34px),
+    transparent calc(50% + 34px),
+    var(--border) calc(50% + 34px));
+}
 
 .dawg-nav-btn {
   flex:1; display:flex; flex-direction:column; align-items:center;
@@ -1777,27 +1788,24 @@ body.light .section-title::before {
 .dawg-nav-btn.dawg-nav-active .dawg-nav-icon svg { fill:currentColor; stroke:none; }
 .dawg-nav-lbl { font-size:.67rem; font-weight:600; letter-spacing:.02em; }
 
-/* Center doberman button */
+/* Center doberman button — rises out of nav with arc cutout */
 .dawg-nav-center-btn {
-  flex:0 0 62px !important; width:62px !important; height:62px;
-  background:transparent !important; border-radius:50% !important;
+  flex:0 0 60px !important; width:60px !important; height:60px;
+  background:var(--surface) !important; border-radius:50% !important;
   border:1.5px solid var(--accent) !important;
-  color:var(--text) !important; padding:0; margin-bottom:4px;
-  box-shadow:none;
+  color:var(--text) !important; padding:0; margin:0;
+  box-shadow:0 -3px 12px rgba(0,0,0,.25);
   justify-content:center; align-items:center; overflow:hidden; gap:0;
-  transition:background .15s, box-shadow .15s;
+  transform:translateY(-15px);
+  position:relative; z-index:1;
+  transition:background .15s;
 }
-.dawg-nav-center-btn:active {
-  background:rgba(57,255,20,.12) !important;
-  box-shadow:0 0 0 4px rgba(57,255,20,.15) !important;
-}
-body.light .dawg-nav-center-btn:active {
-  background:rgba(34,170,34,.12) !important;
-  box-shadow:0 0 0 4px rgba(34,170,34,.15) !important;
-}
+.dawg-nav-center-btn:active { background:rgba(57,255,20,.12) !important; }
+body.light .dawg-nav-center-btn:active { background:rgba(34,170,34,.12) !important; }
+body.light #dawg-bottom-nav { background:rgba(255,255,255,.92); }
 .dawg-nav-dob {
-  width:50px; height:50px; object-fit:contain; object-position:center;
-  filter:drop-shadow(0 1px 4px rgba(0,0,0,.5));
+  width:52px; height:52px; object-fit:contain; object-position:center;
+  filter:drop-shadow(0 1px 4px rgba(0,0,0,.4));
   display:block; flex-shrink:0;
 }
 
@@ -1957,7 +1965,6 @@ body.light .dawg-bell-btn:active { background:rgba(0,0,0,.12); }
 body.light .dawg-acct-pill { background:rgba(0,0,0,.06); border-color:rgba(0,0,0,.12); }
 body.light .dawg-acct-pill:active { background:rgba(0,0,0,.12); }
 body.light .dawg-ham-bar { background:var(--text); }
-body.light #dawg-bottom-nav { background:rgba(255,255,255,.92); }
 body.light .dawg-hero { background:linear-gradient(180deg,#f0f0f0 0%,var(--bg) 100%); }
 body.light .dawg-hero-tagline { color:#111; text-shadow:none; }
 body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }

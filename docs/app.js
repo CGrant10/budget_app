@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.2.9';
+const VERSION = '4.3.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -983,6 +983,30 @@ async function processRecurring() {
       state.transactions[i] = { ...t, recur_month: currentMonth };
     }
   }
+  // Monthly interest for credit/loan accounts (current account only)
+  const acct = state.accounts.find(a => a.id === currentAccountId);
+  if (acct && (acct.type === 'credit' || acct.type === 'loan') &&
+      parseFloat(acct.interest_rate || 0) > 0 &&
+      acct.last_interest_month !== currentMonth) {
+    const ai  = state.transactions.reduce((s,t) => t.type==='income'  ? s+t.amount : s, 0);
+    const ae  = state.transactions.reduce((s,t) => t.type==='expense' ? s+t.amount : s, 0);
+    const bal = Math.max(0, (state.startingBalance || 0) + ae - ai);
+    if (bal > 0) {
+      const monthlyInterest = parseFloat((bal * parseFloat(acct.interest_rate) / 100 / 12).toFixed(2));
+      if (monthlyInterest >= 0.01) {
+        const interestId = `_interest_${currentMonth}_${acct.id}`;
+        if (!state.transactions.find(t => t.id === interestId)) {
+          state.transactions.push({
+            id: interestId, type:'expense', amount: monthlyInterest,
+            category:'Interest', description:`Interest charge (${acct.interest_rate}% APR)`,
+            date: currentMonth + '-01', _auto: true,
+          });
+        }
+      }
+    }
+    acct.last_interest_month = currentMonth;
+    _saveAccounts();
+  }
   _save();
 }
 
@@ -1925,17 +1949,48 @@ function balanceAsOf(dateStr) {
 // ── DAWG dashboard layout ──────────────────────────────────────────────────
 function renderDashboardDawg() {
   const { income, expense } = totals();
-  const balance = (state.startingBalance || 0) + income - expense;
+  const _curAcctD = state.accounts.find(a => a.id === currentAccountId);
+  const _isDebt   = _curAcctD?.type === 'credit' || _curAcctD?.type === 'loan';
+  // Debt: balance = amount owed (startBal + expenses − payments)
+  const balance   = _isDebt
+    ? Math.max(0, (state.startingBalance || 0) + expense - income)
+    : (state.startingBalance || 0) + income - expense;
+  // Debt balance color: red when high, transitions to green when paid down
+  let balColor = 'var(--text)';
+  if (_isDebt) {
+    const _limit = parseFloat(_curAcctD.credit_limit || 0);
+    const _pct   = _limit > 0 ? Math.min(balance / _limit, 1) : (balance > 0 ? 1 : 0);
+    const _hue   = Math.round(120 * (1 - _pct));
+    balColor     = `hsl(${_hue},70%,${document.body.classList.contains('light')?'35%':'55%'})`;
+  }
+  // Payment due date for debt accounts
+  let paymentDueStr = '';
+  if (_isDebt && _curAcctD.payment_due_day) {
+    const _day = parseInt(_curAcctD.payment_due_day);
+    const _now = new Date(); _now.setHours(0,0,0,0);
+    let _due = new Date(_now.getFullYear(), _now.getMonth(), _day);
+    if (_due <= _now) _due = new Date(_now.getFullYear(), _now.getMonth()+1, _day);
+    const _daysUntil = Math.round((_due - _now) / 86400000);
+    paymentDueStr = _daysUntil === 0
+      ? '⚠️ Payment due today!'
+      : _daysUntil <= 3
+        ? `⚠️ Payment due in ${_daysUntil} day${_daysUntil===1?'':'s'}`
+        : `Payment due ${_due.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+  }
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const { income: mInc, expense: mExp, bycat } = monthTotals(thisMonth);
-  const monthDelta = mInc - mExp;
-  const deltaColor = monthDelta >= 0 ? 'var(--success)' : 'var(--danger)';
-  const deltaArrow = monthDelta >= 0 ? '▲' : '▼';
+  const monthDelta = _isDebt ? (income - expense) : (mInc - mExp); // debt: payments made this month
+  const deltaColor = _isDebt
+    ? (monthDelta > 0 ? 'var(--success)' : 'var(--muted)')
+    : (monthDelta >= 0 ? 'var(--success)' : 'var(--danger)');
+  const deltaArrow = monthDelta > 0 ? '▲' : '▼';
   const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
   const balLast = balanceAsOf(lastMonthEnd);
   const deltaPct = balLast !== 0 ? Math.abs(monthDelta / Math.abs(balLast) * 100) : 0;
-  const deltaStr = `${deltaArrow} ${fmt(Math.abs(monthDelta))} (${deltaPct.toFixed(1)}%) this month`;
+  const deltaStr = _isDebt
+    ? (monthDelta > 0 ? `▼ ${fmt(monthDelta)} paid this month` : 'No payments this month')
+    : `${deltaArrow} ${fmt(Math.abs(monthDelta))} (${deltaPct.toFixed(1)}%) this month`;
 
   // Budget overview — prefer weekly planner per-week budget; fall back to monthly budget total
   const _wp         = state.weekly_plan;
@@ -1986,7 +2041,9 @@ function renderDashboardDawg() {
 
   const todayStr = today();
   const yesterdayStr = new Date(Date.now()-86400000).toISOString().split('T')[0];
-  const recentTxns = [...state.transactions].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  const recentTxns = [...state.transactions]
+    .filter(t => _isDebt ? t.type === 'income' : true)
+    .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
   const txnHtml = recentTxns.length ? recentTxns.map(t => {
     const isInc  = t.type === 'income';
     const color  = isInc ? 'var(--success)' : 'var(--danger)';
@@ -2032,8 +2089,9 @@ function renderDashboardDawg() {
     </div>
 
     <div class="dawg-balance-card">
-      <div class="dawg-balance-label">TOTAL BALANCE</div>
-      <div class="dawg-balance-amt" style="color:var(--text)">${fmt(balance)}</div>
+      <div class="dawg-balance-label">${_isDebt ? (_curAcctD?.type==='loan' ? 'LOAN BALANCE' : 'BALANCE OWED') : 'TOTAL BALANCE'}</div>
+      <div class="dawg-balance-amt" style="color:${balColor}">${fmt(balance)}</div>
+      ${paymentDueStr ? `<div class="dawg-balance-due" style="color:${parseInt(_curAcctD?.payment_due_day)>0&&Math.round((new Date(new Date().getFullYear(),new Date().getMonth(),parseInt(_curAcctD.payment_due_day))-new Date())/86400000)<=3?'var(--warn)':'var(--muted)'}">${paymentDueStr}</div>` : ''}
       <div class="dawg-balance-delta" style="color:${deltaColor}">${deltaStr}</div>
       <div class="dawg-sparkline-wrap"><canvas id="dawg-sparkline"></canvas></div>
       <div class="dawg-time-btns">
@@ -3157,15 +3215,37 @@ function renderSettings() {
       <span class="tab-toggle-switch"></span>
     </label>`).join('');
 
-  const accountRows = state.accounts.map((a) => `
-    <div class="account-row" style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-      <input type="text" class="form-input acct-name-input" value="${a.name}" data-id="${a.id}"
-        style="flex:1;padding:6px 10px;font-size:12px${a.id === currentAccountId ? ';border-color:var(--accent)' : ''}">
-      <span class="account-type" style="font-size:10px;white-space:nowrap">${a.type}</span>
-      <button class="btn-xs acct-rename-btn" data-id="${a.id}" title="Rename">✓</button>
-      ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">✕</button>` : ''}
-      ${a.id === currentAccountId ? '<span class="acct-badge" style="font-size:9px">active</span>' : `<button class="btn-xs acct-switch-btn" data-id="${a.id}" style="background:var(--surface2)">Switch</button>`}
-    </div>`).join('');
+  const accountRows = state.accounts.map((a) => {
+    const isDebtAcct = a.type === 'credit' || a.type === 'loan';
+    const debtFields = isDebtAcct ? `
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;padding-left:2px">
+        <input type="number" class="form-input acct-interest-input" data-id="${a.id}"
+          value="${a.interest_rate || ''}" placeholder="APR %" step="0.01" min="0" max="100"
+          inputmode="decimal"
+          style="width:88px;padding:5px 8px;font-size:11px" title="Annual interest rate %">
+        <input type="number" class="form-input acct-due-day-input" data-id="${a.id}"
+          value="${a.payment_due_day || ''}" placeholder="Due day" min="1" max="28"
+          inputmode="numeric"
+          style="width:78px;padding:5px 8px;font-size:11px" title="Payment due day of month">
+        <input type="number" class="form-input acct-limit-input" data-id="${a.id}"
+          value="${a.credit_limit || ''}" placeholder="Credit limit" min="0" step="100"
+          inputmode="decimal"
+          style="width:108px;padding:5px 8px;font-size:11px" title="Credit/loan limit">
+        <button class="btn-xs acct-debt-save-btn" data-id="${a.id}">Save</button>
+      </div>` : '';
+    return `
+    <div class="account-row" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="text" class="form-input acct-name-input" value="${a.name}" data-id="${a.id}"
+          style="flex:1;padding:6px 10px;font-size:12px${a.id === currentAccountId ? ';border-color:var(--accent)' : ''}">
+        <span class="account-type" style="font-size:10px;white-space:nowrap">${a.type}</span>
+        <button class="btn-xs acct-rename-btn" data-id="${a.id}" title="Rename">✓</button>
+        ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">✕</button>` : ''}
+        ${a.id === currentAccountId ? '<span class="acct-badge" style="font-size:9px">active</span>' : `<button class="btn-xs acct-switch-btn" data-id="${a.id}" style="background:var(--surface2)">Switch</button>`}
+      </div>
+      ${debtFields}
+    </div>`;
+  }).join('');
 
   const themeRows = Object.entries(THEMES).map(([key, t]) => `
     <button class="theme-row${theme === key ? ' active' : ''}" data-theme="${key}">
@@ -3408,6 +3488,23 @@ function attachSettings() {
   document.querySelectorAll('.acct-switch-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       await api.switchAccount(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll('.acct-debt-save-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id   = btn.dataset.id;
+      const acct = state.accounts.find(a => a.id === id);
+      if (!acct) return;
+      const row = btn.closest('div').parentElement;
+      const rate  = row.querySelector(`.acct-interest-input[data-id="${id}"]`)?.value.trim();
+      const day   = row.querySelector(`.acct-due-day-input[data-id="${id}"]`)?.value.trim();
+      const limit = row.querySelector(`.acct-limit-input[data-id="${id}"]`)?.value.trim();
+      if (rate  !== undefined) acct.interest_rate    = rate  ? parseFloat(rate)  : undefined;
+      if (day   !== undefined) acct.payment_due_day  = day   ? parseInt(day)     : undefined;
+      if (limit !== undefined) acct.credit_limit     = limit ? parseFloat(limit) : undefined;
+      await api.saveAccounts(state.accounts);
+      showStatus('acct-status', '✓ Account details saved.', 'success');
     });
   });
 
@@ -4264,14 +4361,15 @@ document.querySelectorAll('.dawg-nav-btn[data-tab]').forEach(btn =>
     spawnDollarBurst(btn);
     showTab(btn.dataset.tab);
   }));
-document.getElementById('dawg-nav-accts')?.addEventListener('click', toggleDawgAcctDropdown);
+document.getElementById('dawg-nav-accts')?.addEventListener('click', () => showTab('dashboard'));
 // DAWG drawer close + item listeners (permanent HTML elements)
 document.getElementById('dawg-drawer-close')?.addEventListener('click', closeDawgDrawer);
 document.getElementById('dawg-drawer-overlay')?.addEventListener('click', closeDawgDrawer);
 document.querySelectorAll('.dawg-drawer-item').forEach(btn =>
   btn.addEventListener('click', () => {
     closeDawgDrawer();
-    showTab(btn.dataset.tab);
+    if (btn.dataset.tab === '__accounts__') { showingAccountPicker = true; render(); }
+    else showTab(btn.dataset.tab);
   }));
 
 // Floating tutorial button
@@ -4323,7 +4421,7 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
         let visible;
         if (isDawg) {
           // In DAWG mode only swipe between the 5 nav bar tabs
-          visible = ['dashboard', 'add', 'ledger', 'settings'];
+          visible = ['add', 'ledger', 'weekly', 'settings'];
         } else {
           const hidden = _settings.hiddenTabs || [];
           visible = NAV_ITEMS.map(n => n.key).filter(k => !hidden.includes(k));
