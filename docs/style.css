@@ -1878,11 +1878,10 @@ body.light .dawg-nav-center-btn:active {
 }
 .dawg-bell-btn:active { background:rgba(255,255,255,.18); }
 .dawg-bell-badge {
-  position:absolute; top:4px; right:4px;
-  min-width:16px; height:16px; border-radius:8px;
-  background:var(--danger); color:#fff; font-size:.58rem; font-weight:700;
-  display:flex; align-items:center; justify-content:center;
-  padding:0 3px; line-height:1; pointer-events:none; border:1.5px solid var(--surface);
+  position:absolute; top:6px; right:6px;
+  width:8px; height:8px; border-radius:50%;
+  background:var(--danger);
+  pointer-events:none; border:1.5px solid var(--surface);
 }
 .dawg-bell-badge.hidden { display:none; }
 

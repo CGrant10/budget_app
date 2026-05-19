@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.2.8';
+const VERSION = '4.2.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -2022,7 +2022,7 @@ function renderDashboardDawg() {
         </button>
         <button class="dawg-bell-btn" id="dawg-bell" aria-label="Notifications">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span class="dawg-bell-badge hidden" id="dawg-bell-badge">0</span>
+          <span class="dawg-bell-badge hidden" id="dawg-bell-badge"></span>
         </button>
       </div>
       <div class="dawg-hero-inner">
@@ -3673,16 +3673,23 @@ function getDawgNotifications() {
 function updateDawgBellBadge() {
   const badge = document.getElementById('dawg-bell-badge');
   if (!badge) return;
-  const count = getDawgNotifications().filter(n => n.type !== 'update').length;
-  if (count > 0) { badge.textContent = count; badge.classList.remove('hidden'); }
-  else { badge.classList.add('hidden'); }
+  const hasAlerts = getDawgNotifications().some(n => n.type !== 'update');
+  badge.classList.toggle('hidden', !hasAlerts);
 }
-function toggleDawgAcctDropdown() {
+function toggleDawgAcctDropdown(fromHero = false) {
   const panel = document.getElementById('dawg-acct-dropdown');
   if (!panel) return;
   if (!panel.classList.contains('hidden')) {
     panel.classList.add('hidden');
     return;
+  }
+  // Position: below hero pill (top) or above nav bar (bottom)
+  if (fromHero) {
+    panel.style.bottom = 'auto';
+    panel.style.top    = '68px';
+  } else {
+    panel.style.top    = 'auto';
+    panel.style.bottom = 'calc(var(--nav-h) + var(--safe-bottom) + 12px)';
   }
   const acctIcons = { checking:'🏦', savings:'💰', credit:'💳', loan:'📋', investment:'📈', other:'💼' };
   const rows = (state.accounts || []).map(a => {
@@ -3705,8 +3712,11 @@ function toggleDawgAcctDropdown() {
   });
   setTimeout(() => {
     const close = e => {
-      const navBtn = document.getElementById('dawg-nav-accts');
-      if (!panel.contains(e.target) && e.target !== navBtn && !navBtn?.contains(e.target)) {
+      const navBtn   = document.getElementById('dawg-nav-accts');
+      const pillBtn  = document.getElementById('dawg-acct-switch');
+      if (!panel.contains(e.target) &&
+          e.target !== navBtn  && !navBtn?.contains(e.target) &&
+          e.target !== pillBtn && !pillBtn?.contains(e.target)) {
         panel.classList.add('hidden');
         document.removeEventListener('click', close);
       }
@@ -3740,11 +3750,8 @@ function toggleDawgBell() {
 }
 
 function attachDashboardDawg() {
-  // Account switcher — shows picker overlay (only clickable if multi-account)
-  const _pillBtn = document.getElementById('dawg-acct-switch');
-  if (_pillBtn && state.accounts && state.accounts.length > 1) {
-    _pillBtn.addEventListener('click', () => { showingAccountPicker = true; render(); });
-  }
+  // Account pill — always tappable; opens inline dropdown (positioned below the pill)
+  document.getElementById('dawg-acct-switch')?.addEventListener('click', () => toggleDawgAcctDropdown(true));
 
   document.getElementById('dawg-goto-budgets')?.addEventListener('click', () => showTab('budgets'));
   document.getElementById('dawg-goto-ledger')?.addEventListener('click',  () => showTab('ledger'));
@@ -4311,9 +4318,17 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
         const dx = e.changedTouches[0].clientX - tx0;
         const dy = Math.abs(e.changedTouches[0].clientY - ty0);
         if (Math.abs(dx) < 55 || dy > 45) return;
-        const hidden  = loadSettings().hiddenTabs || [];
-        const visible = NAV_ITEMS.map(n => n.key).filter(k => !hidden.includes(k));
-        const idx     = visible.indexOf(currentTab);
+        const _settings = loadSettings();
+        const isDawg    = THEMES[(_settings.theme)||'dark']?.dawg;
+        let visible;
+        if (isDawg) {
+          // In DAWG mode only swipe between the 5 nav bar tabs
+          visible = ['dashboard', 'add', 'ledger', 'settings'];
+        } else {
+          const hidden = _settings.hiddenTabs || [];
+          visible = NAV_ITEMS.map(n => n.key).filter(k => !hidden.includes(k));
+        }
+        const idx = visible.indexOf(currentTab);
         if (dx < 0 && idx < visible.length - 1) showTab(visible[idx + 1]);
         else if (dx > 0 && idx > 0)              showTab(visible[idx - 1]);
       }, { passive: true });
