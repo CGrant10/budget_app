@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.9.8';
+const VERSION = '3.9.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.9.9', date: '2026-05-19', changes: [
+    'Insight card: replaced complex paw SVG with 3 clean solid-black bear claws — no toe pads, no shine lines, no blue tint',
+    'Buttons/bars: dark mode gradient is now deep forest grey → brand green (#2d3830 → #4ecb8d) for the gray/green look',
+  ]},
   { version: '3.9.8', date: '2026-05-19', changes: [
     'Dark mode accent updated to brand green (#4ecb8d) — matches the doberman collar and logo green used in animations',
     'Insights card: SVG viewBox extended so the full paw pad is no longer clipped; black claws now visible against the green gradient card',
@@ -422,6 +426,7 @@ const THEMES = {
     label:'Dark',
     ..._D,
     accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050',
+    grad:'linear-gradient(135deg, #2d3830 0%, #4ecb8d 100%)',
     cats:{ Food:'#4ecb8d', Gas:'#c05858', Car:'#6888a8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#8890a8', Health:'#4090a8', Other:'#787880' },
   },
   light: {
@@ -455,7 +460,7 @@ const THEMES = {
     accent:'#c8a020', accent2:'#c84820', success:'#5aaa40', warn:'#c8a020', danger:'#c84030',
     cats:{ Food:'#5aaa40', Gas:'#c84030', Car:'#c8a020', Boat:'#409870', Tools:'#c86020', Home:'#80a830', Entertainment:'#a07020', Health:'#50a860', Other:'#788858' },
   },
-  auto: { label:'✨ Auto (System)', ..._D, accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050' },
+  auto: { label:'✨ Auto (System)', ..._D, accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050', grad:'linear-gradient(135deg, #2d3830 0%, #4ecb8d 100%)' },
 };
 
 let CAT_COLORS = {
@@ -696,7 +701,7 @@ function applyTheme(theme) {
   root.style.setProperty('--card',     t.card);
   root.style.setProperty('--accent',   t.accent);
   root.style.setProperty('--accent2',  t.accent2);
-  root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${t.accent} 0%, ${t.accent2} 100%)`);
+  root.style.setProperty('--accent-gradient', t.grad || `linear-gradient(135deg, ${t.accent} 0%, ${t.accent2} 100%)`);
   root.style.setProperty('--success',  t.success);
   root.style.setProperty('--warn',     t.warn);
   root.style.setProperty('--danger',   t.danger);
@@ -1947,24 +1952,10 @@ function renderDashboard() {
     <div class="insight-card" id="insight-rotator" data-insights='${safeInsights}'>
       <div class="insight-card-inner">
         <span class="insight-card-icon">
-          <svg class="scary-paw" viewBox="0 0 44 54" xmlns="http://www.w3.org/2000/svg">
-            <!-- Claws — curved hooks tapering to sharp points -->
-            <path d="M8,25 C6,19 3,12 5,4 C6,2 9,2 10,5 C11,13 12,20 12,25Z" fill="#0c0c18"/>
-            <path d="M16,22 C15,16 14,8 16,2 C17,0 20,0 20,3 C21,10 21,17 21,22Z" fill="#0c0c18"/>
-            <path d="M24,22 C24,16 24,9 26,2 C27,0 30,0 29,3 C29,10 29,17 28,22Z" fill="#0c0c18"/>
-            <path d="M33,25 C33,20 34,13 36,5 C37,2 40,2 40,5 C40,12 38,19 36,25Z" fill="#0c0c18"/>
-            <!-- Toe pads -->
-            <ellipse cx="10" cy="29" rx="6" ry="5.5" fill="#0c0c18"/>
-            <ellipse cx="18.5" cy="26" rx="6" ry="5.5" fill="#0c0c18"/>
-            <ellipse cx="26.5" cy="26" rx="6" ry="5.5" fill="#0c0c18"/>
-            <ellipse cx="35" cy="29" rx="6" ry="5.5" fill="#0c0c18"/>
-            <!-- Main pad -->
-            <path d="M5,38 C3,48 8,53 22,53 C36,53 41,48 39,38 C37,30 30,29 22,31 C14,29 7,30 5,38Z" fill="#0c0c18"/>
-            <!-- Claw shine lines -->
-            <path d="M9,6 C9,10 9.5,15 9.5,19" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-            <path d="M18,4 C18,8 18.5,13 18.5,17" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-            <path d="M27,4 C27,8 27,13 27,17" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-            <path d="M37,6 C36.5,10 36,15 35.5,19" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+          <svg class="scary-paw" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7,0 C3,0 0,8 1,18 C3,29 6,38 9,44 C10,38 13,29 13,18 C14,8 11,0 7,0Z" fill="#0a0a0a"/>
+            <path d="M22,0 C18,0 15,8 16,18 C18,29 21,38 24,44 C25,38 28,29 28,18 C29,8 26,0 22,0Z" fill="#0a0a0a"/>
+            <path d="M37,0 C33,0 30,8 31,18 C33,29 36,38 39,44 C40,38 43,29 43,18 C44,8 41,0 37,0Z" fill="#0a0a0a"/>
           </svg>
         </span>
         <span class="insight-card-text" id="insight-text">${insights[0]}</span>
