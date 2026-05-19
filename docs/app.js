@@ -2192,7 +2192,7 @@ function renderDashboardDawg() {
 function renderDashboard() {
   return renderDashboardDawg();
   // Legacy non-DAWG dashboard kept below for reference only
-  if (false) {}
+  if (false) {
   const ds = loadSettings();
   const showBills     = ds.dashBills     !== false;
   const showInsights  = ds.dashInsights  !== false;
@@ -2462,7 +2462,7 @@ function renderDashboard() {
       <div class="chart-wrap"><canvas id="spending-chart"></canvas></div>` : ''}
       ${!isDebt && showBreakdown && Object.keys(bycat).length ? `<h2 class="section-title">Spending by Category</h2><div class="breakdown">${breakdownHtml}</div>` : ''}
     </div>`;
-}
+}}
 
 // ── budgets ────────────────────────────────────────────────────────────────
 function renderBudgets() {
