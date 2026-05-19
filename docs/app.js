@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.2.1';
+const VERSION = '4.2.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.2.2', date: '2026-05-19', changes: [
+    'DAWG hero: $MY / budgeting DAWGS logo added to top-left; account switcher sits top-right in the same bar',
+  ]},
   { version: '4.2.1', date: '2026-05-19', changes: [
     'DAWG Light: all accent colors now use CSS variables — neon green no longer bleeds through on the light theme',
     'DAWG Light: balance amount, hero tagline, and text elements use dark colors; only bars, percentages, and action labels use the theme accent',
@@ -1997,7 +2000,13 @@ function renderDashboardDawg() {
   return `<div class="dawg-page">
     <div class="dawg-hero">
       <div class="dawg-hero-glow"></div>
-      ${multiAcct ? `<button class="dawg-acct-btn" id="dawg-acct-switch" title="Switch account">⊞</button>` : ''}
+      <div class="dawg-hero-topbar">
+        <div class="dawg-logo">
+          <span class="dawg-logo-smy">$MY</span>
+          <span class="dawg-logo-sub">budgeting DAWGS</span>
+        </div>
+        ${multiAcct ? `<button class="dawg-acct-btn" id="dawg-acct-switch" title="Switch account">⊞</button>` : ''}
+      </div>
       <div class="dawg-hero-inner">
         <div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin">LOCK IN.</em></div>
         <img src="./doberman.png" class="dawg-hero-dob" alt="">

@@ -1751,11 +1751,19 @@ body.light .section-title::before {
 #app.dawg-mode .header { display:none !important; }
 
 /* Account switcher button — top-right corner of hero */
+.dawg-hero-topbar {
+  position:relative; z-index:2;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 14px 0;
+}
+.dawg-logo { display:flex; flex-direction:column; line-height:1.15; }
+.dawg-logo-smy { font-size:1.5rem; font-weight:900; color:var(--accent); letter-spacing:-.02em; }
+.dawg-logo-sub { font-size:.62rem; color:var(--muted); font-style:italic; letter-spacing:.03em; }
+
 .dawg-acct-btn {
-  position:absolute; top:12px; right:14px; z-index:2;
-  background:rgba(0,0,0,.45); border:1px solid var(--border);
+  background:rgba(0,0,0,.4); border:1px solid var(--border);
   color:var(--accent); font-size:1.1rem; line-height:1;
-  width:34px; height:34px; border-radius:8px;
+  width:34px; height:34px; border-radius:8px; flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
   cursor:pointer; backdrop-filter:blur(4px);
 }
