@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.3.2';
+const VERSION = '4.3.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,26 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.3.3', date: '2026-05-19', changes: [
+    'Persistent top bar — hamburger, account switcher, and notification bell now stay visible on every page, not just the dashboard',
+    'What\'s New popup — a one-time modal shows the latest changes after each update; dismissed with "Got it" and never shown again for that version',
+    'Splash screen fix — added a reload guard so the app no longer gets stuck in an infinite refresh loop when the service worker cache is stale',
+  ]},
+  { version: '4.3.1', date: '2026-05-19', changes: [
+    'All themes now use the DAWG layout — hamburger, account pill, and bottom nav bar are universal',
+    'View Budget button on the dashboard now navigates to the Weekly Planner',
+    'Dashboard tiles are customizable — toggle Budget Overview, Spending Breakdown, Goals, and Recent Transactions in Settings',
+    'Credit and loan accounts: budget overview hidden; loan accounts: spending breakdown hidden; both get a dedicated Payment Due tile',
+    'Debt account sparkline: red when balance is high, yellow at mid-range, green when paid down to under 25%',
+    'Accounts overview styled to match the DAWG hero layout',
+  ]},
+  { version: '4.3.0', date: '2026-05-19', changes: [
+    'Integrated arc nav bar — the doberman center button is part of the nav bar with a matching cutout',
+    'Credit and loan account support — APR, payment due day, and credit limit fields in account settings',
+    'Monthly interest auto-charge — interest is automatically posted as a transaction each month',
+    'Balance color — debt account balances shift from green to red as they grow relative to the limit',
+    'Payment-only transaction filter — credit and loan accounts show only payment transactions',
+  ]},
   { version: '4.2.3', date: '2026-05-19', changes: [
     'DAWG hero: $MY budgeting DAWGS logo image (newicon.png) replaces the text lockup; shown in a frosted white pill on dark, transparent on light',
   ]},
@@ -4326,10 +4346,83 @@ async function checkForUpdate() {
     const res  = await fetch('./version.txt?_=' + Date.now(), { cache: 'no-cache' });
     const live = (await res.text()).trim();
     if (live && live !== VERSION) {
+      // Guard against infinite reload loop: only reload once per session.
+      // If we already tried a reload and the version still doesn't match,
+      // the SW cache is stale — skip silently rather than looping forever.
+      if (sessionStorage.getItem('slawminyaw_reloaded') === live) return;
+      sessionStorage.setItem('slawminyaw_reloaded', live);
       _reloading = true;
       window.location.reload();
     }
   } catch(e) { /* offline — skip */ }
+}
+
+// ── what's new popup ──────────────────────────────────────────────────────
+function maybeShowWhatsNew() {
+  const seenKey = 'slawminyaw_seen_version';
+  if (localStorage.getItem(seenKey) === VERSION) return; // already seen this version
+  const entry = CHANGELOG.find(c => c.version === VERSION);
+  if (!entry || !entry.changes.length) {
+    localStorage.setItem(seenKey, VERSION);
+    return;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'whats-new-overlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:10000;
+    background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;padding:20px;
+  `;
+  overlay.innerHTML = `
+    <div id="whats-new-card" style="
+      background:var(--surface);border:1px solid var(--border);border-radius:22px;
+      padding:24px 22px 20px;max-width:420px;width:100%;
+      box-shadow:0 8px 48px rgba(0,0,0,.7);
+      max-height:80dvh;display:flex;flex-direction:column;overflow:hidden;
+    ">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-shrink:0">
+        <img src="./doberman.png" style="width:44px;height:44px;object-fit:contain;flex-shrink:0" alt="">
+        <div>
+          <div style="font-size:.65rem;font-weight:800;letter-spacing:.12em;color:var(--muted);text-transform:uppercase">What's New</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--text)">Budget DAWGs v${VERSION}</div>
+        </div>
+      </div>
+      <ul style="
+        list-style:none;padding:0;margin:0;
+        overflow-y:auto;flex:1;
+        display:flex;flex-direction:column;gap:8px;
+        padding-right:4px;
+      ">
+        ${entry.changes.map(c => `
+          <li style="
+            display:flex;gap:10px;align-items:flex-start;
+            background:var(--surface2);border-radius:12px;padding:10px 12px;
+          ">
+            <span style="color:var(--accent);font-size:.9rem;flex-shrink:0;margin-top:1px">✦</span>
+            <span style="font-size:.84rem;color:var(--text);line-height:1.45">${c}</span>
+          </li>`).join('')}
+      </ul>
+      <button id="whats-new-ok" style="
+        margin-top:18px;width:100%;padding:14px;flex-shrink:0;
+        background:var(--accent);color:#000;
+        border:none;border-radius:13px;
+        font-family:var(--font-body);font-size:.9rem;font-weight:800;
+        cursor:pointer;letter-spacing:.04em;
+        transition:opacity .15s;
+      ">Got it 🐕</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const dismiss = () => {
+    localStorage.setItem(seenKey, VERSION);
+    overlay.style.transition = 'opacity .25s';
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.remove(), 260);
+  };
+  document.getElementById('whats-new-ok')?.addEventListener('click', dismiss);
+  overlay.addEventListener('click', e => { if (e.target === overlay) dismiss(); });
 }
 
 // ── dollar burst ───────────────────────────────────────────────────────────
@@ -4462,6 +4555,7 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
     render();
     updateBillBadge();
     checkBillNotifications();
+    maybeShowWhatsNew();
 
     // ── swipe between tabs ────────────────────────────────────────────────
     (function attachSwipeTabs() {
