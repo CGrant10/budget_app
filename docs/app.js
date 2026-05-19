@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.1.0';
+const VERSION = '4.1.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,8 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
-  { version: '4.1.0', date: '2026-05-19', changes: [
-    'Text Size setting added — Small (14px) / Medium (16px) / Large (18px) scales all text and spacing throughout the app',
+  { version: '4.1.1', date: '2026-05-19', changes: [
+    'Text Size setting removed',
+    'Tutorial rewritten — covers all current tabs including Goals, Budgets, Debt calculator, and terminal themes',
+    'Bar chart corners sharpened — borderRadius reduced from 5px to 2px for a cleaner look',
+    'Category colors follow the active theme — chart and breakdown rebuild with theme-matched colors on every dashboard visit',
   ]},
   { version: '4.0.9', date: '2026-05-19', changes: [
     'Terminal themes now use their authentic fonts: VS Code → Consolas/Menlo, PowerShell → Cascadia Code (loaded from CDN), CMD → Lucida Console',
@@ -694,16 +697,10 @@ function applySettings() {
   applyNavItems(s.hiddenTabs || []);
   applyTheme(s.theme || 'dark');
   applyFontStyle(s.fontStyle || 'default');
-  applyTextSize(s.textSize || 'medium');
 }
 
 // No-op: brand lockup uses a fixed image + short label — font shrinking no longer needed.
 function fitLogo() {}
-
-function applyTextSize(size) {
-  const map = { small: '14px', medium: '16px', large: '18px' };
-  document.documentElement.style.fontSize = map[size] || '16px';
-}
 
 function applyFontStyle(style) {
   const map = {
@@ -1171,7 +1168,7 @@ function attachDashboard() {
             label: 'Spent',
             data,
             backgroundColor: colors,
-            borderRadius: 5,
+            borderRadius: 2,
             borderSkipped: false,
           }],
         },
@@ -2802,19 +2799,12 @@ function renderSettings() {
   const theme      = s.theme || 'dark';
   const customCats = s.customCategories || [];
   const fontStyle  = s.fontStyle || 'default';
-  const textSize   = s.textSize  || 'medium';
 
   const fontBtns = [
     { key:'default',  label:'Default',  sub:'Plus Jakarta Sans' },
     { key:'system',   label:'System',   sub:'iOS / Segoe UI' },
     { key:'terminal', label:'Terminal', sub:'Consolas / Menlo' },
   ].map(f => `<button class="nav-pos-btn${fontStyle === f.key ? ' active' : ''}" data-font-style="${f.key}" style="line-height:1.3"><span style="display:block">${f.label}</span><span style="font-size:.65rem;opacity:.55;font-weight:400;font-family:'Plus Jakarta Sans',sans-serif">${f.sub}</span></button>`).join('');
-
-  const sizeBtns = [
-    { key:'small',  label:'Small',  sub:'14px' },
-    { key:'medium', label:'Medium', sub:'16px' },
-    { key:'large',  label:'Large',  sub:'18px' },
-  ].map(t => `<button class="nav-pos-btn${textSize === t.key ? ' active' : ''}" data-text-size="${t.key}" style="line-height:1.3"><span style="display:block">${t.label}</span><span style="font-size:.65rem;opacity:.55;font-weight:400;font-family:'Plus Jakarta Sans',sans-serif">${t.sub}</span></button>`).join('');
 
   const navOpts = ['bottom','top','left','right'].map(p =>
     `<button class="nav-pos-btn${navPos === p ? ' active' : ''}" data-pos="${p}">${p.charAt(0).toUpperCase() + p.slice(1)}</button>`
@@ -2880,12 +2870,6 @@ function renderSettings() {
         <h2 class="section-title" style="margin-bottom:8px">Font</h2>
         <p class="code-hint" style="margin-bottom:12px">Changes text style throughout the entire app.</p>
         <div class="nav-pos-grid">${fontBtns}</div>
-      </div>
-
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Text Size</h2>
-        <p class="code-hint" style="margin-bottom:12px">Scale all text and spacing up or down.</p>
-        <div class="nav-pos-grid">${sizeBtns}</div>
       </div>
 
       <div class="form-card">
@@ -2997,16 +2981,6 @@ function attachSettings() {
     });
   });
 
-  // Text size switcher
-  document.querySelectorAll('[data-text-size]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const s = loadSettings();
-      s.textSize = btn.dataset.textSize;
-      saveSettings(s);
-      applyTextSize(s.textSize);
-      render();
-    });
-  });
 
   // Theme rows — immediate apply + save
   document.querySelectorAll('.theme-row').forEach(btn => {
@@ -3213,16 +3187,17 @@ function renderAbout() {
 
 // ── tutorial ───────────────────────────────────────────────────────────────
 const TUTORIAL_SLIDES = [
-  { icon:'👋', title:"Welcome to Budget DAWGs",         body:"Your all-in-one budgeting app. Track spending, plan weeks, manage bills, monitor debt, and keep multiple accounts — all in one place. Tap Next to take a quick tour." },
-  { icon:'🏦', title:'Multiple Accounts',               body:"When you have 2+ accounts, the app opens to a tile screen showing every account with its current balance. Tap a tile to enter it. Use the ⊞ button in the header to return to the account list at any time." },
-  { icon:'➕', title:'Adding Transactions',             body:'Tap ➕ Add to log income, an expense, or a transfer between accounts. Pick a category, enter an amount, and choose a date. The keyboard shows a ✓ Done key so you can close it without jumping to the next field.' },
-  { icon:'📊', title:'Dashboard & Month Navigator',    body:"The Dashboard shows your balance, income, and expenses for the selected month. Use the ‹ › arrows to browse past months — your balance card shows what you actually had on the last day of that month." },
-  { icon:'📋', title:'Ledger & Running Balance',        body:'The Ledger lists every transaction. Each row shows a running balance — what your account held right after that transaction, just like a bank statement. Tap ✏️ to edit a row inline, or swipe left to delete.' },
-  { icon:'🥧', title:'Charts & Category Drill-down',   body:"Tap any bar or pie slice on the dashboard chart to see every transaction in that category for the month. Toggle between Bar and Pie views with the button above the chart." },
-  { icon:'💳', title:'Debt: Credit Cards & Loans',      body:"Add accounts with type Credit or Loan in Settings → Accounts and set the starting balance to what you currently owe. The Debt tab shows each account's balance owed, a payoff progress bar, and full payment history." },
-  { icon:'📑', title:'Bills & Notifications',           body:'Add recurring bills in the Bills tab. The app badges the Bills tab and sends a notification when bills are due within 3 days. Marking a bill paid offers to auto-log it as an expense.' },
-  { icon:'📅', title:'Weekly Planner',                  body:'The Weekly tab calculates how much you can spend per week and per day until your next paycheck, after bills and an optional emergency buffer. Past weeks expand to show every transaction.' },
-  { icon:'⚙️', title:'Settings',                        body:"Choose a color theme, move the nav bar to any side, show or hide tabs, set a PIN lock, and customize which sections appear on your dashboard." },
+  { icon:'👋', title:'Welcome to Budget DAWGs',        body:'Your all-in-one budgeting companion. Track spending, plan your weeks, manage bills, crush debt, hit savings goals, and run multiple accounts — all offline, all yours. Tap Next for a quick tour.' },
+  { icon:'🏦', title:'Multiple Accounts',              body:'The app opens to a tile screen when you have 2+ accounts, showing each one with its current balance. Tap a tile to enter it. Tap the ⊞ button in the header to return to the account list at any time.' },
+  { icon:'➕', title:'Adding Transactions',            body:'Tap Add to log income, an expense, or a transfer between accounts. Pick a category, enter an amount, and choose a date. Hit ✓ Done on the keyboard to confirm without jumping to the next field.' },
+  { icon:'📊', title:'Dashboard',                     body:'See your balance, income, and expenses for any month. Use the ‹ › arrows to browse history — the balance card shows exactly what you had on the last day of that month. Swipe left or right anywhere to change tabs.' },
+  { icon:'📋', title:'Ledger',                        body:'Every transaction listed with a running balance — just like a bank statement. Tap ✏️ to edit inline, or swipe left to delete. Use the filter and sort controls at the top to narrow things down.' },
+  { icon:'🥧', title:'Charts & Spending Breakdown',   body:'Toggle between a bar chart and pie chart on the Dashboard. Tap any bar or slice to see every transaction in that category for the month. The breakdown below the chart shows budget progress per category.' },
+  { icon:'🎯', title:'Goals & Budgets',               body:'Goals tracks savings targets with a progress bar — contribute any amount anytime. Budgets sets a monthly spending limit per category; the breakdown turns amber or red when you are close to or over the limit.' },
+  { icon:'📑', title:'Bills',                         body:'Add recurring bills and the app tracks what is due, what is coming up, and what is overdue. Bills due within 3 days get a badge on the nav. Marking a bill paid can auto-log it as an expense.' },
+  { icon:'📅', title:'Weekly Planner',                body:'Enter your next paycheck date and the app calculates a safe daily and weekly spend budget after bills and an optional emergency buffer. Past weeks expand to show every transaction in that period.' },
+  { icon:'💳', title:'Debt Tracker',                  body:'Add credit cards or loans under Settings → Accounts and set the starting balance to what you owe. The Debt tab shows balance, payoff progress, and a Snowball vs Avalanche calculator if you enter a monthly payment budget.' },
+  { icon:'⚙️', title:'Settings & Themes',             body:'Choose from 10+ themes — including VS Code, PowerShell, and CMD which each apply their authentic monospace font automatically. Move the nav bar to any side, hide tabs you do not use, set a PIN lock, and tune your dashboard cards.' },
 ];
 
 let tutorialSlide = 0;
