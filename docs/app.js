@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.0.9';
+const VERSION = '4.1.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.1.0', date: '2026-05-19', changes: [
+    'Text Size setting added — Small (14px) / Medium (16px) / Large (18px) scales all text and spacing throughout the app',
+  ]},
   { version: '4.0.9', date: '2026-05-19', changes: [
     'Terminal themes now use their authentic fonts: VS Code → Consolas/Menlo, PowerShell → Cascadia Code (loaded from CDN), CMD → Lucida Console',
   ]},
@@ -691,10 +694,16 @@ function applySettings() {
   applyNavItems(s.hiddenTabs || []);
   applyTheme(s.theme || 'dark');
   applyFontStyle(s.fontStyle || 'default');
+  applyTextSize(s.textSize || 'medium');
 }
 
 // No-op: brand lockup uses a fixed image + short label — font shrinking no longer needed.
 function fitLogo() {}
+
+function applyTextSize(size) {
+  const map = { small: '14px', medium: '16px', large: '18px' };
+  document.documentElement.style.fontSize = map[size] || '16px';
+}
 
 function applyFontStyle(style) {
   const map = {
@@ -2793,12 +2802,19 @@ function renderSettings() {
   const theme      = s.theme || 'dark';
   const customCats = s.customCategories || [];
   const fontStyle  = s.fontStyle || 'default';
+  const textSize   = s.textSize  || 'medium';
 
   const fontBtns = [
     { key:'default',  label:'Default',  sub:'Plus Jakarta Sans' },
     { key:'system',   label:'System',   sub:'iOS / Segoe UI' },
     { key:'terminal', label:'Terminal', sub:'Consolas / Menlo' },
   ].map(f => `<button class="nav-pos-btn${fontStyle === f.key ? ' active' : ''}" data-font-style="${f.key}" style="line-height:1.3"><span style="display:block">${f.label}</span><span style="font-size:.65rem;opacity:.55;font-weight:400;font-family:'Plus Jakarta Sans',sans-serif">${f.sub}</span></button>`).join('');
+
+  const sizeBtns = [
+    { key:'small',  label:'Small',  sub:'14px' },
+    { key:'medium', label:'Medium', sub:'16px' },
+    { key:'large',  label:'Large',  sub:'18px' },
+  ].map(t => `<button class="nav-pos-btn${textSize === t.key ? ' active' : ''}" data-text-size="${t.key}" style="line-height:1.3"><span style="display:block">${t.label}</span><span style="font-size:.65rem;opacity:.55;font-weight:400;font-family:'Plus Jakarta Sans',sans-serif">${t.sub}</span></button>`).join('');
 
   const navOpts = ['bottom','top','left','right'].map(p =>
     `<button class="nav-pos-btn${navPos === p ? ' active' : ''}" data-pos="${p}">${p.charAt(0).toUpperCase() + p.slice(1)}</button>`
@@ -2864,6 +2880,12 @@ function renderSettings() {
         <h2 class="section-title" style="margin-bottom:8px">Font</h2>
         <p class="code-hint" style="margin-bottom:12px">Changes text style throughout the entire app.</p>
         <div class="nav-pos-grid">${fontBtns}</div>
+      </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Text Size</h2>
+        <p class="code-hint" style="margin-bottom:12px">Scale all text and spacing up or down.</p>
+        <div class="nav-pos-grid">${sizeBtns}</div>
       </div>
 
       <div class="form-card">
@@ -2971,6 +2993,17 @@ function attachSettings() {
       s.fontStyle = btn.dataset.fontStyle;
       saveSettings(s);
       applyFontStyle(s.fontStyle);
+      render();
+    });
+  });
+
+  // Text size switcher
+  document.querySelectorAll('[data-text-size]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = loadSettings();
+      s.textSize = btn.dataset.textSize;
+      saveSettings(s);
+      applyTextSize(s.textSize);
       render();
     });
   });
