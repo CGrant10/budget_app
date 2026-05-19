@@ -1756,9 +1756,12 @@ body.light .section-title::before {
   display:flex; align-items:center; justify-content:space-between;
   padding:14px 14px 0;
 }
-.dawg-logo { display:flex; flex-direction:column; line-height:1.15; }
-.dawg-logo-smy { font-size:1.5rem; font-weight:900; color:var(--accent); letter-spacing:-.02em; }
-.dawg-logo-sub { font-size:.62rem; color:var(--muted); font-style:italic; letter-spacing:.03em; }
+.dawg-logo-img {
+  height:42px; width:auto; object-fit:contain;
+  background:rgba(255,255,255,.9);
+  border-radius:10px; padding:3px 10px;
+}
+body.light .dawg-logo-img { background:transparent; padding:0; border-radius:0; }
 
 .dawg-acct-btn {
   background:rgba(0,0,0,.4); border:1px solid var(--border);

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.2.2';
+const VERSION = '4.2.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.2.3', date: '2026-05-19', changes: [
+    'DAWG hero: $MY budgeting DAWGS logo image (newicon.png) replaces the text lockup; shown in a frosted white pill on dark, transparent on light',
+  ]},
   { version: '4.2.2', date: '2026-05-19', changes: [
     'DAWG hero: $MY / budgeting DAWGS logo added to top-left; account switcher sits top-right in the same bar',
   ]},
@@ -2001,10 +2004,7 @@ function renderDashboardDawg() {
     <div class="dawg-hero">
       <div class="dawg-hero-glow"></div>
       <div class="dawg-hero-topbar">
-        <div class="dawg-logo">
-          <span class="dawg-logo-smy">$MY</span>
-          <span class="dawg-logo-sub">budgeting DAWGS</span>
-        </div>
+        <img src="./newicon.png" class="dawg-logo-img" alt="$MY budgeting DAWGS">
         ${multiAcct ? `<button class="dawg-acct-btn" id="dawg-acct-switch" title="Switch account">⊞</button>` : ''}
       </div>
       <div class="dawg-hero-inner">
