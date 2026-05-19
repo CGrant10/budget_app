@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.0.2';
+const VERSION = '4.0.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.0.3', date: '2026-05-19', changes: [
+    'OLED Black theme — true #000000 background, pixels are literally off on OLED screens',
+    'Splash screen cleaned up — "SlawMinYaw\'s" subtitle removed, page title updated to "Budget DAWGs"',
+    'Tutorial Settings tip updated — no longer mentions the removed personalization options',
+    'Empty states — Ledger, Bills, and Goals now show the doberman with a friendly prompt instead of blank space',
+  ]},
   { version: '4.0.2', date: '2026-05-19', changes: [
     'Status bar color now matches the app background — updates live when theme changes',
   ]},
@@ -442,6 +448,14 @@ const THEMES = {
     grad:'linear-gradient(135deg, #2d3830 0%, #4ecb8d 100%)',
     cats:{ Food:'#4ecb8d', Gas:'#c05858', Car:'#6888a8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#8890a8', Health:'#4090a8', Other:'#787880' },
   },
+  oled: {
+    label:'OLED Black',
+    bg:'#000000', surface:'#0a0a0a', surface2:'#101010', card:'#0c0c0c',
+    text:'#e2e2e4', muted:'#888890', border:'#1c1c1c',
+    accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050',
+    grad:'linear-gradient(135deg, #000a04 0%, #4ecb8d 100%)',
+    cats:{ Food:'#4ecb8d', Gas:'#c05858', Car:'#6888a8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#8890a8', Health:'#4090a8', Other:'#787880' },
+  },
   light: {
     label:'Light',
     bg:'#f3f3f3', surface:'#ffffff', surface2:'#e8e8e8', card:'#efefef',
@@ -493,6 +507,15 @@ let CAT_COLORS = {
   Income:        '#4ecb8d',
   Other:         '#9896a4',
 };
+
+// ── empty state ────────────────────────────────────────────────────────────
+function emptyState(title, hint = '') {
+  return `<div class="empty-state">
+    <img src="./doberman.png" class="empty-dob" alt="">
+    <div class="empty-title">${title}</div>
+    ${hint ? `<div class="empty-hint">${hint}</div>` : ''}
+  </div>`;
+}
 
 // ── haptic feedback ────────────────────────────────────────────────────────
 function haptic(pattern = [10]) {
@@ -2168,7 +2191,9 @@ function renderLedger() {
         </div>
       </div>
       <div class="ledger-list">
-        ${rowsHtml || '<p class="empty-msg">No matching transactions.</p>'}
+        ${rowsHtml || (state.transactions.length === 0
+          ? emptyState('No transactions yet', 'Tap Add to log your first one')
+          : '<p style="padding:24px 0;text-align:center;color:var(--muted);font-size:.85rem">No matching transactions</p>')}
       </div>
     </div>`;
 }
@@ -2380,7 +2405,7 @@ function renderBills() {
           <button class="btn-xs bill-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-idx="${i}">Delete</button>
         </div>
       </div>`;
-  }).join('') : '<p class="empty-msg">No bills added yet.</p>';
+  }).join('') : emptyState('No bills yet', 'Add a recurring bill below to start tracking');
 
   const totalMonthly = state.bills.reduce((s, b) => s + b.amount, 0);
   const totalUnpaid  = state.bills.filter(b => b.paidMonth !== m).reduce((s, b) => s + b.amount, 0);
@@ -2548,7 +2573,7 @@ function renderGoals() {
           <button class="btn-sm goal-add-btn" data-idx="${i}">Add</button>
         </div>
       </div>`;
-  }).join('') : '<p class="empty-msg">No savings goals yet.</p>';
+  }).join('') : emptyState('No savings goals yet', 'Add a goal below to start tracking');
 
   return `
     <div class="page">
@@ -3068,7 +3093,7 @@ const TUTORIAL_SLIDES = [
   { icon:'💳', title:'Debt: Credit Cards & Loans',      body:"Add accounts with type Credit or Loan in Settings → Accounts and set the starting balance to what you currently owe. The Debt tab shows each account's balance owed, a payoff progress bar, and full payment history." },
   { icon:'📑', title:'Bills & Notifications',           body:'Add recurring bills in the Bills tab. The app badges the Bills tab and sends a notification when bills are due within 3 days. Marking a bill paid offers to auto-log it as an expense.' },
   { icon:'📅', title:'Weekly Planner',                  body:'The Weekly tab calculates how much you can spend per week and per day until your next paycheck, after bills and an optional emergency buffer. Past weeks expand to show every transaction.' },
-  { icon:'⚙️', title:'Settings & Personalization',      body:"Change your app title, font, capitalization, and color theme in Settings. Hide tabs you don't use, move the nav bar to any side, set a PIN lock, and toggle which sections appear on your dashboard." },
+  { icon:'⚙️', title:'Settings',                        body:"Choose a color theme, move the nav bar to any side, show or hide tabs, set a PIN lock, and customize which sections appear on your dashboard." },
 ];
 
 let tutorialSlide = 0;
