@@ -25,6 +25,8 @@
   --header-h: 56px;
   --nav-h: 58px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --font-body: 'Plus Jakarta Sans', sans-serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -33,7 +35,7 @@ html, body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
@@ -243,7 +245,7 @@ body::before {
 .page { padding: 20px 16px 24px; }
 
 .page-title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -.3px;
@@ -253,7 +255,7 @@ body::before {
 .page-sub { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
 
 .section-title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .14em;
@@ -351,7 +353,7 @@ body::before {
   margin-top: 2px;
 }
 .card-title { font-size: 10px; color: var(--muted); letter-spacing: .12em; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
-.card-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 2px; }
+.card-value { font-family: var(--font-body); font-size: 24px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 2px; }
 .card-sub   { font-size: 11px; color: var(--muted); }
 .card-delta { font-size: 10px; font-weight: 600; margin-top: 3px; letter-spacing: .01em; }
 
@@ -399,7 +401,7 @@ body::before {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 11px 14px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 15px;
   outline: none;
   width: 100%;
@@ -435,7 +437,7 @@ body::before {
   border: none;
   border-radius: 11px;
   padding: 13px 24px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   font-weight: 700;
   letter-spacing: .01em;
@@ -452,7 +454,7 @@ body::before {
   border: 1px solid var(--success);
   border-radius: 10px;
   padding: 12px 20px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -465,7 +467,7 @@ body::before {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -520,7 +522,7 @@ body::before {
   border: none;
   border-radius: 8px;
   padding: 8px 14px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -539,7 +541,7 @@ body::before {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 4px 8px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 12px;
   cursor: pointer;
   max-width: 120px;
@@ -597,7 +599,7 @@ body::before {
   color: white;
   border: none;
   font-size: 13px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   font-weight: 700;
   cursor: pointer;
   transform: translateX(76px);
@@ -665,7 +667,7 @@ body::before {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 14px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   cursor: pointer;
 }
@@ -697,7 +699,7 @@ body::before {
 .wt-dates  { font-size: 12px; color: var(--muted); }
 .wt-pct    { font-size: 12px; margin-left: auto; }
 .wt-amounts { display: flex; align-items: baseline; gap: 4px; margin-bottom: 10px; }
-.wt-spent  { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -.3px; }
+.wt-spent  { font-family: var(--font-body); font-size: 22px; font-weight: 800; letter-spacing: -.3px; }
 .wt-of     { font-size: 13px; color: var(--muted); }
 .progress-bar-bg {
   height: 6px;
@@ -826,7 +828,7 @@ body::before {
 .nav-btn[data-tab="goals"].active .nav-icon svg .dart { display: inline; }
 .nav-btn[data-tab="goals"].active .nav-icon svg .dart-tip { fill: currentColor; stroke: none; }
 .nav-label {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: 9px;
   letter-spacing: .05em;
@@ -945,7 +947,7 @@ body::before {
 .btn-xs {
   background: var(--surface); color: var(--accent);
   border: 1px solid var(--accent); border-radius: 6px;
-  padding: 5px 12px; font-family: 'Plus Jakarta Sans', sans-serif;
+  padding: 5px 12px; font-family: var(--font-body);
   font-size: 11px; cursor: pointer; white-space: nowrap;
 }
 .btn-xs:active { opacity: .8; }
@@ -1022,7 +1024,7 @@ body::before {
 .health-title       { font-size: 12px; color: var(--muted); letter-spacing: .08em; margin-bottom: 2px; }
 .health-sub         { font-size: 12px; color: var(--muted); }
 .health-score-block { text-align: center; }
-.health-score       { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 36px; font-weight: 800; letter-spacing: -.5px; line-height: 1; }
+.health-score       { font-family: var(--font-body); font-size: 36px; font-weight: 800; letter-spacing: -.5px; line-height: 1; }
 .health-grade       { font-size: 12px; font-weight: bold; margin-top: 2px; }
 .health-bars        { display: flex; flex-direction: column; gap: 10px; }
 .health-bar-row     { display: grid; grid-template-columns: 130px 1fr 50px; align-items: center; gap: 8px; }
@@ -1221,7 +1223,7 @@ body.light .section-title::before {
   border-radius: 10px;
   background: transparent;
   cursor: pointer;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   text-align: left;
   width: 100%;
   transition: background .15s, border-color .15s;
@@ -1507,7 +1509,7 @@ body.light .section-title::before {
   font-size: .75rem;
   font-weight: 500;
   white-space: nowrap;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   transition: all .15s;
 }
 .type-pill.active {
@@ -1574,7 +1576,7 @@ body.light .section-title::before {
 .debt-summary-sub { font-size:.78rem; color:var(--muted); }
 
 .debt-subnav { display:flex; gap:8px; margin-bottom:16px; }
-.debt-pill { flex:1; padding:9px 0; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:.82rem; font-weight:600; cursor:pointer; transition:all .15s; font-family:'Plus Jakarta Sans', sans-serif; }
+.debt-pill { flex:1; padding:9px 0; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:.82rem; font-weight:600; cursor:pointer; transition:all .15s; font-family:var(--font-body); }
 .debt-pill.active { background:var(--accent); border-color:var(--accent); color:#fff; }
 
 .debt-acct-list { display:flex; flex-direction:column; gap:12px; }

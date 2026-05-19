@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.0.3';
+const VERSION = '4.0.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.0.4', date: '2026-05-19', changes: [
+    'Three new themes: VS Code Dark+, PowerShell (navy/cyan), CMD (black/amber with classic CGA palette)',
+    'Font switcher in Settings — Default (Plus Jakarta Sans), System (native OS font), Terminal (Consolas/Menlo monospace)',
+  ]},
   { version: '4.0.3', date: '2026-05-19', changes: [
     'OLED Black theme — true #000000 background, pixels are literally off on OLED screens',
     'Splash screen cleaned up — "SlawMinYaw\'s" subtitle removed, page title updated to "Budget DAWGs"',
@@ -456,6 +460,30 @@ const THEMES = {
     grad:'linear-gradient(135deg, #000a04 0%, #4ecb8d 100%)',
     cats:{ Food:'#4ecb8d', Gas:'#c05858', Car:'#6888a8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#8890a8', Health:'#4090a8', Other:'#787880' },
   },
+  vscode: {
+    label:'VS Code',
+    bg:'#1e1e1e', surface:'#252526', surface2:'#2d2d2d', card:'#252526',
+    text:'#d4d4d4', muted:'#6a9955', border:'#3e3e42',
+    accent:'#569cd6', accent2:'#4ec9b0', success:'#4ec9b0', warn:'#ce9178', danger:'#f44747',
+    grad:'linear-gradient(135deg, #1a3a5c 0%, #569cd6 100%)',
+    cats:{ Food:'#4ec9b0', Gas:'#f44747', Car:'#569cd6', Boat:'#9cdcfe', Tools:'#ce9178', Home:'#b5cea8', Entertainment:'#c586c0', Health:'#4fc1ff', Other:'#858585' },
+  },
+  powershell: {
+    label:'PowerShell',
+    bg:'#012456', surface:'#063070', surface2:'#0a3a80', card:'#073268',
+    text:'#eeedf0', muted:'#8ab8d0', border:'#1255a0',
+    accent:'#26c6da', accent2:'#f1e05a', success:'#4caf50', warn:'#f1e05a', danger:'#ef5350',
+    grad:'linear-gradient(135deg, #012456 0%, #26c6da 100%)',
+    cats:{ Food:'#26c6da', Gas:'#ef5350', Car:'#42a5f5', Boat:'#29b6f6', Tools:'#ffa726', Home:'#66bb6a', Entertainment:'#ab47bc', Health:'#26c6da', Other:'#8ab8d0' },
+  },
+  cmd: {
+    label:'CMD',
+    bg:'#0c0c0c', surface:'#1a1a1a', surface2:'#242424', card:'#141414',
+    text:'#c0c0c0', muted:'#707070', border:'#2a2a2a',
+    accent:'#ffaa00', accent2:'#ff6600', success:'#55ff55', warn:'#ffaa00', danger:'#ff5555',
+    grad:'linear-gradient(135deg, #1a0f00 0%, #ffaa00 100%)',
+    cats:{ Food:'#55ff55', Gas:'#ff5555', Car:'#5555ff', Boat:'#55ffff', Tools:'#ffaa55', Home:'#aaff55', Entertainment:'#ff55ff', Health:'#55aaff', Other:'#aaaaaa' },
+  },
   light: {
     label:'Light',
     bg:'#f3f3f3', surface:'#ffffff', surface2:'#e8e8e8', card:'#efefef',
@@ -639,10 +667,20 @@ function applySettings() {
   applyNavPosition(s.navPosition || 'bottom');
   applyNavItems(s.hiddenTabs || []);
   applyTheme(s.theme || 'dark');
+  applyFontStyle(s.fontStyle || 'default');
 }
 
 // No-op: brand lockup uses a fixed image + short label — font shrinking no longer needed.
 function fitLogo() {}
+
+function applyFontStyle(style) {
+  const map = {
+    default:  "'Plus Jakarta Sans', sans-serif",
+    system:   "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    terminal: "'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace",
+  };
+  document.documentElement.style.setProperty('--font-body', map[style] || map.default);
+}
 
 function applyNavPosition(pos) {
   const app = document.getElementById('app');
@@ -2720,6 +2758,13 @@ function renderSettings() {
   const hiddenTabs = s.hiddenTabs || [];
   const theme      = s.theme || 'dark';
   const customCats = s.customCategories || [];
+  const fontStyle  = s.fontStyle || 'default';
+
+  const fontBtns = [
+    { key:'default',  label:'Default',  sub:'Plus Jakarta Sans' },
+    { key:'system',   label:'System',   sub:'iOS / Segoe UI' },
+    { key:'terminal', label:'Terminal', sub:'Consolas / Menlo' },
+  ].map(f => `<button class="nav-pos-btn${fontStyle === f.key ? ' active' : ''}" data-font-style="${f.key}" style="line-height:1.3"><span style="display:block">${f.label}</span><span style="font-size:.65rem;opacity:.55;font-weight:400;font-family:'Plus Jakarta Sans',sans-serif">${f.sub}</span></button>`).join('');
 
   const navOpts = ['bottom','top','left','right'].map(p =>
     `<button class="nav-pos-btn${navPos === p ? ' active' : ''}" data-pos="${p}">${p.charAt(0).toUpperCase() + p.slice(1)}</button>`
@@ -2779,6 +2824,12 @@ function renderSettings() {
       <div class="form-card">
         <h2 class="section-title" style="margin-bottom:12px">Theme</h2>
         <div class="theme-list">${themeRows}</div>
+      </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Font</h2>
+        <p class="code-hint" style="margin-bottom:12px">Changes text style throughout the entire app.</p>
+        <div class="nav-pos-grid">${fontBtns}</div>
       </div>
 
       <div class="form-card">
@@ -2877,6 +2928,17 @@ function attachSettings() {
     state.startingBalance = isNaN(val) ? 0 : val;
     _save();
     showStatus('starting-bal-settings-status', '✓ Saved', 'success', 2000);
+  });
+
+  // Font style switcher
+  document.querySelectorAll('[data-font-style]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = loadSettings();
+      s.fontStyle = btn.dataset.fontStyle;
+      saveSettings(s);
+      applyFontStyle(s.fontStyle);
+      render();
+    });
   });
 
   // Theme rows — immediate apply + save
