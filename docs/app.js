@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.0.7';
+const VERSION = '4.0.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.0.8', date: '2026-05-19', changes: [
+    'CMD theme: muted text brightened (#005f00 → #2d9a2d) — secondary text is now readable on the black background',
+    'Font now reverts to Default when switching back to any non-terminal theme (Dark, OLED, Light, Denim, Ember, etc.)',
+  ]},
   { version: '4.0.7', date: '2026-05-19', changes: [
     'manifest.json: fixed purple theme_color (#7c6af7 → #111112) and background_color — eliminates the purple status bar line and purple flash on first open',
   ]},
@@ -454,7 +458,7 @@ const CHANGELOG = [
 ];
 
 // Shared neutral dark base — pure grey, no color cast
-const _D = { bg:'#111112', surface:'#1a1a1b', surface2:'#242425', card:'#1e1e1f', text:'#e2e2e4', muted:'#888890', border:'#28282a' };
+const _D = { bg:'#111112', surface:'#1a1a1b', surface2:'#242425', card:'#1e1e1f', text:'#e2e2e4', muted:'#888890', border:'#28282a', font:'default' };
 
 const THEMES = {
   dark: {
@@ -470,6 +474,7 @@ const THEMES = {
     text:'#e2e2e4', muted:'#888890', border:'#1c1c1c',
     accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050',
     grad:'linear-gradient(135deg, #000a04 0%, #4ecb8d 100%)',
+    font:'default',
     cats:{ Food:'#4ecb8d', Gas:'#c05858', Car:'#6888a8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#8890a8', Health:'#4090a8', Other:'#787880' },
   },
   vscode: {
@@ -493,7 +498,7 @@ const THEMES = {
   cmd: {
     label:'CMD',
     bg:'#0c0c0c', surface:'#0f1a0f', surface2:'#162416', card:'#111a11',
-    text:'#00c300', muted:'#005f00', border:'#1a3a1a',
+    text:'#00c300', muted:'#2d9a2d', border:'#1e4a1e',
     accent:'#00c300', accent2:'#00ff41', success:'#00ff41', warn:'#ffff00', danger:'#ff3333',
     grad:'linear-gradient(135deg, #000000 0%, #003300 60%, #00c300 100%)',
     font:'terminal',
@@ -504,7 +509,7 @@ const THEMES = {
     bg:'#f3f3f3', surface:'#ffffff', surface2:'#e8e8e8', card:'#efefef',
     accent:'#4ecb8d', accent2:'#a06838', success:'#2ea870', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #1a4030 0%, #4ecb8d 100%)',
-    text:'#181820', muted:'#606070', border:'#d5d5d5', light:true,
+    text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
     cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
   },
   denim: {
