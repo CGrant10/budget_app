@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.9.3';
+const VERSION = '3.9.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.9.4', date: '2026-05-19', changes: [
+    'Side-nav revamp — header is fully hidden in left/right nav mode; sidebar owns the full column top to bottom with no conflicts',
+    'Sidebar brand mark — 🐾 icon at the top of the sidebar in side-nav mode',
+    'Sidebar footer — account switcher and sounds toggle move to the bottom of the sidebar in side-nav mode, return to the header when switching back to bottom/top nav',
+  ]},
   { version: '3.9.3', date: '2026-05-19', changes: [
     'Nav sidebar — solid background replaces frosted glass in side-nav mode; header clipped to its own column so title can no longer visually bleed into the sidebar',
   ]},
@@ -613,6 +618,41 @@ function applyNavPosition(pos) {
   const app = document.getElementById('app');
   app.classList.remove('nav-top', 'nav-bottom', 'nav-left', 'nav-right');
   app.classList.add('nav-' + pos);
+
+  const isSide = pos === 'left' || pos === 'right';
+  const nav        = document.querySelector('.bottom-nav');
+  const headerRight = document.querySelector('.header-right');
+  const acctSwitcher = document.getElementById('account-switcher');
+  const soundsBtn    = document.getElementById('sounds-toggle');
+
+  if (isSide && nav) {
+    // Inject brand mark if not already there
+    if (!nav.querySelector('.nav-side-brand')) {
+      const brand = document.createElement('div');
+      brand.className = 'nav-side-brand';
+      brand.textContent = '🐾';
+      nav.insertBefore(brand, nav.firstChild);
+    }
+    // Inject footer + move controls into it if not already there
+    if (!nav.querySelector('.nav-side-footer')) {
+      const footer = document.createElement('div');
+      footer.className = 'nav-side-footer';
+      if (acctSwitcher) footer.appendChild(acctSwitcher);
+      if (soundsBtn)    footer.appendChild(soundsBtn);
+      nav.appendChild(footer);
+    }
+  } else {
+    // Remove sidebar chrome and restore controls to header
+    nav?.querySelector('.nav-side-brand')?.remove();
+    const footer = nav?.querySelector('.nav-side-footer');
+    if (footer) {
+      if (headerRight) {
+        if (acctSwitcher) headerRight.insertBefore(acctSwitcher, headerRight.firstChild);
+        if (soundsBtn)    headerRight.appendChild(soundsBtn);
+      }
+      footer.remove();
+    }
+  }
 }
 
 function applyNavItems(hiddenTabs) {

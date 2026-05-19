@@ -76,67 +76,104 @@ body::before {
 #app.nav-bottom { flex-direction: column; }
 
 /* nav-left / nav-right: row layout, nav is a vertical sidebar */
+/* ── side nav (left / right): header is hidden; sidebar owns the full column ─ */
 #app.nav-left, #app.nav-right { flex-direction: row; }
-#app.nav-left  .header {
-  position: fixed; top: 0; left: var(--nav-h); right: 0; z-index: 10;
-  height: calc(var(--header-h) + env(safe-area-inset-top, 0px));
-  align-items: flex-end;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: 10px;
-  overflow: hidden;
-}
-#app.nav-right .header {
-  position: fixed; top: 0; left: 0; right: var(--nav-h); z-index: 10;
-  height: calc(var(--header-h) + env(safe-area-inset-top, 0px));
-  align-items: flex-end;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: 10px;
-  overflow: hidden;
-}
-#app.nav-left  #main-content, #app.nav-right #main-content {
-  margin-top: calc(var(--header-h) + env(safe-area-inset-top, 0px));
+
+/* Header completely hidden — sidebar replaces it */
+#app.nav-left  .header,
+#app.nav-right .header { display: none !important; }
+
+/* Main content fills remaining space; no top offset needed (no visible header) */
+#app.nav-left  #main-content,
+#app.nav-right #main-content {
+  margin-top: env(safe-area-inset-top, 0px);
   flex: 1;
   min-width: 0;
 }
-/* Sidebar is position:fixed so it spans the full screen height — top to bottom,
-   behind and below the fixed header. Items start below the header via padding-top. */
+
+/* Sidebar: full-height fixed column, solid background, no blur */
 #app.nav-left  .bottom-nav {
   position: fixed;
   top: 0; bottom: 0; left: 0;
   order: -1;
   flex-direction: column;
   width: var(--nav-h);
+  height: 100dvh;
   border-top: none;
   border-right: 1px solid var(--border);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  padding-top: max(env(safe-area-inset-top, 0px), 12px);
-  z-index: 11;
-  /* Solid — no transparency so header can't bleed through */
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  z-index: 20;
   background: var(--surface);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  overflow: hidden;
 }
 #app.nav-right .bottom-nav {
   position: fixed;
   top: 0; bottom: 0; right: 0;
   flex-direction: column;
   width: var(--nav-h);
+  height: 100dvh;
   border-top: none;
   border-left: 1px solid var(--border);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  padding-top: max(env(safe-area-inset-top, 0px), 12px);
-  z-index: 11;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  z-index: 20;
   background: var(--surface);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  overflow: hidden;
 }
-/* Main content needs a margin to clear the fixed sidebar */
+
+/* Main content: offset by sidebar width */
 #app.nav-left  #main-content { margin-left: var(--nav-h); }
 #app.nav-right #main-content { margin-right: var(--nav-h); }
-#app.nav-left  .nav-btn, #app.nav-right .nav-btn { flex: 0 0 auto; padding: 14px 0; width: 100%; }
-/* Header inner padding — sidebar no longer overlaps header so just standard padding */
-#app.nav-left  .header .header-inner { padding: 0 20px; }
-#app.nav-right .header .header-inner { padding: 0 20px; }
+
+#app.nav-left  .nav-btn,
+#app.nav-right .nav-btn { flex: 0 0 auto; padding: 12px 0; width: 100%; }
+
+/* ── sidebar brand mark (top) ──────────────────────────────────────────────── */
+.nav-side-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 0 10px;
+  font-size: 1.5rem;
+  line-height: 1;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+  flex-shrink: 0;
+}
+
+/* ── sidebar footer (account + sounds, bottom) ─────────────────────────────── */
+.nav-side-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0 4px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.nav-side-footer .acct-switcher {
+  width: calc(var(--nav-h) - 12px);
+  font-size: 9px;
+  padding: 4px 2px;
+  text-align: center;
+  text-align-last: center;
+  border-radius: 6px;
+}
+.nav-side-footer .sounds-btn {
+  font-size: 1.1rem;
+  padding: 4px 8px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background .15s;
+}
+.nav-side-footer .sounds-btn:hover { background: var(--surface2); }
 
 /* ── header ──────────────────────────────────────────────────────────────── */
 .header {
