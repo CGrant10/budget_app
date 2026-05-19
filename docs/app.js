@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.1.5';
+const VERSION = '4.1.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.1.6', date: '2026-05-19', changes: [
+    'Debt dashboard: fixed + button not navigating — event listener now wired before the chart early-return guard so it works on debt accounts that have no chart',
+  ]},
   { version: '4.1.5', date: '2026-05-19', changes: [
     'Weekly planner: past weeks now show spent vs budget (e.g. $300 / $320) with a frozen mini progress bar — adjusting the buffer slider or other settings never changes past week budget figures',
     'Debt dashboard: small + button added to Payment History header — tapping it jumps straight to the Add tab to log a transaction',
@@ -1162,6 +1165,26 @@ function getMonthCatData(monthStr) {
 }
 
 function attachDashboard() {
+  // Debt dashboard quick-add — must be wired before any early-return guards
+  const debtQuickAdd = document.getElementById('debt-dash-quick-add');
+  if (debtQuickAdd) {
+    debtQuickAdd.addEventListener('click', () => showTab('add'));
+  }
+
+  // Starting balance (first-run card) — also before early-return
+  const sbSave = document.getElementById('starting-bal-save');
+  if (sbSave) {
+    sbSave.addEventListener('click', async () => {
+      const val = parseFloat(document.getElementById('starting-bal-input')?.value);
+      if (isNaN(val)) return;
+      state.startingBalance = val;
+      _save();
+      const st = document.getElementById('starting-bal-status');
+      if (st) { st.textContent = '✓ Balance set!'; }
+      setTimeout(() => render(), 800);
+    });
+  }
+
   const chartEl = document.getElementById('spending-chart');
   if (!chartEl) return;
   if (spendingChart) { spendingChart.destroy(); spendingChart = null; }
@@ -1298,26 +1321,6 @@ function attachDashboard() {
       if (titleEl) titleEl.textContent = 'This Month by Category';
       attachDashboard();
     };
-  }
-
-  // Debt dashboard quick-add button
-  const debtQuickAdd = document.getElementById('debt-dash-quick-add');
-  if (debtQuickAdd) {
-    debtQuickAdd.addEventListener('click', () => showTab('add'));
-  }
-
-  // Starting balance (first-run card)
-  const sbSave = document.getElementById('starting-bal-save');
-  if (sbSave) {
-    sbSave.addEventListener('click', async () => {
-      const val = parseFloat(document.getElementById('starting-bal-input')?.value);
-      if (isNaN(val)) return;
-      state.startingBalance = val;
-      _save();
-      const st = document.getElementById('starting-bal-status');
-      if (st) { st.textContent = '✓ Balance set!'; }
-      setTimeout(() => render(), 800);
-    });
   }
 
   // Rotating insights card
