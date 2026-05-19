@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.9.4';
+const VERSION = '3.9.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.9.5', date: '2026-05-19', changes: [
+    'Side-nav footer: accounts ⊞ button now appears correctly in the sidebar footer (was staying in the hidden header)',
+    'Side-nav footer: removed cramped dropdown — use the ⊞ button to open the account picker and switch accounts from there',
+    'Side-nav brand mark: doberman image replaces the paw emoji at the top of the sidebar',
+    'Account picker: doberman image added to the "My Accounts" header alongside the title',
+  ]},
   { version: '3.9.4', date: '2026-05-19', changes: [
     'Side-nav revamp — header is fully hidden in left/right nav mode; sidebar owns the full column top to bottom with no conflicts',
     'Sidebar brand mark — 🐾 icon at the top of the sidebar in side-nav mode',
@@ -619,36 +625,41 @@ function applyNavPosition(pos) {
   app.classList.remove('nav-top', 'nav-bottom', 'nav-left', 'nav-right');
   app.classList.add('nav-' + pos);
 
-  const isSide = pos === 'left' || pos === 'right';
-  const nav        = document.querySelector('.bottom-nav');
+  const isSide      = pos === 'left' || pos === 'right';
+  const nav         = document.querySelector('.bottom-nav');
   const headerRight = document.querySelector('.header-right');
-  const acctSwitcher = document.getElementById('account-switcher');
-  const soundsBtn    = document.getElementById('sounds-toggle');
+  const soundsBtn   = document.getElementById('sounds-toggle');
+  const homeBtn     = document.getElementById('acct-home-btn');
 
   if (isSide && nav) {
-    // Inject brand mark if not already there
+    // Brand mark — doberman image
     if (!nav.querySelector('.nav-side-brand')) {
       const brand = document.createElement('div');
       brand.className = 'nav-side-brand';
-      brand.textContent = '🐾';
+      const img = document.createElement('img');
+      img.src = './doberman.png';
+      img.alt = 'Budget DAWGs';
+      img.className = 'nav-side-dob';
+      brand.appendChild(img);
       nav.insertBefore(brand, nav.firstChild);
     }
-    // Inject footer + move controls into it if not already there
+    // Footer — accounts (home) button + sounds
     if (!nav.querySelector('.nav-side-footer')) {
       const footer = document.createElement('div');
       footer.className = 'nav-side-footer';
-      if (acctSwitcher) footer.appendChild(acctSwitcher);
-      if (soundsBtn)    footer.appendChild(soundsBtn);
+      if (homeBtn)   footer.appendChild(homeBtn);
+      if (soundsBtn) footer.appendChild(soundsBtn);
       nav.appendChild(footer);
     }
   } else {
-    // Remove sidebar chrome and restore controls to header
+    // Remove sidebar chrome
     nav?.querySelector('.nav-side-brand')?.remove();
     const footer = nav?.querySelector('.nav-side-footer');
     if (footer) {
+      // Restore sounds + home btn to header-right
       if (headerRight) {
-        if (acctSwitcher) headerRight.insertBefore(acctSwitcher, headerRight.firstChild);
-        if (soundsBtn)    headerRight.appendChild(soundsBtn);
+        if (homeBtn)   headerRight.insertBefore(homeBtn, headerRight.firstChild);
+        if (soundsBtn) headerRight.appendChild(soundsBtn);
       }
       footer.remove();
     }
@@ -1600,8 +1611,11 @@ function renderAccountPicker() {
   return `
     <div class="page acct-picker-page">
       <div class="acct-picker-header">
-        <div class="acct-picker-title">My Accounts</div>
-        <div class="acct-picker-sub">${count} account${count !== 1 ? 's' : ''} · tap to open</div>
+        <img src="./doberman.png" alt="Budget DAWGs" class="acct-picker-dob">
+        <div>
+          <div class="acct-picker-title">My Accounts</div>
+          <div class="acct-picker-sub">${count} account${count !== 1 ? 's' : ''} · tap to open</div>
+        </div>
       </div>
       <div class="acct-list">${rows}</div>
     </div>`;
