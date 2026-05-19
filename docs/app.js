@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.0.6';
+const VERSION = '4.0.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.0.7', date: '2026-05-19', changes: [
+    'manifest.json: fixed purple theme_color (#7c6af7 → #111112) and background_color — eliminates the purple status bar line and purple flash on first open',
+  ]},
   { version: '4.0.6', date: '2026-05-19', changes: [
     'Account picker: header/title bar is hidden while on the My Accounts screen — only appears once an account is selected',
   ]},
