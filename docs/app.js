@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.0.5';
+const VERSION = '4.0.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.0.6', date: '2026-05-19', changes: [
+    'Account picker: header/title bar is hidden while on the My Accounts screen — only appears once an account is selected',
+  ]},
   { version: '4.0.5', date: '2026-05-19', changes: [
     'CMD theme updated to classic black/green — true terminal green (#00c300) text and accent on pure black background',
     'VS Code, PowerShell, and CMD themes now auto-apply monospace font when selected — font follows the theme',
