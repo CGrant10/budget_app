@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.3.0';
+const VERSION = '4.3.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -866,8 +866,8 @@ function applyTheme(theme) {
     _fs.fontStyle = t.font;
     saveSettings(_fs);
   }
-  // DAWG mode — hide the top header bar (hero replaces it)
-  document.getElementById('app')?.classList.toggle('dawg-mode', !!t.dawg);
+  // All themes now use the DAWG layout — always enable dawg-mode
+  document.getElementById('app')?.classList.add('dawg-mode');
   // Gengar ghost background overlay — lives inside #app so it's above body's solid bg
   let gOverlay = document.getElementById('gengar-bg-overlay');
   if (theme === 'gengar') {
@@ -1160,8 +1160,8 @@ function showTab(key) {
   if (key === 'about') {
     const isLight = !!(THEMES[activeTheme] || THEMES.dark).light;
     applyTheme(isLight ? 'light' : 'dark');
-    // About uses base dark/light, but still keep dawg-mode if user's theme is a DAWG variant
-    if (THEMES[activeTheme]?.dawg) document.getElementById('app')?.classList.add('dawg-mode');
+    // Always keep dawg-mode (universal layout)
+    document.getElementById('app')?.classList.add('dawg-mode');
   } else if (currentTab === 'about') {
     applyTheme(activeTheme);
   }
@@ -1817,12 +1817,15 @@ function renderAccountPicker() {
 
   const count = state.accounts.length;
   return `
-    <div class="page acct-picker-page">
-      <div class="acct-picker-header">
-        <img src="./doberman.png" alt="Budget DAWGs" class="acct-picker-dob">
-        <div>
-          <div class="acct-picker-title">My Accounts</div>
-          <div class="acct-picker-sub">${count} account${count !== 1 ? 's' : ''} · tap to open</div>
+    <div class="dawg-page acct-picker-page">
+      <div class="dawg-hero acct-picker-hero">
+        <div class="dawg-hero-glow"></div>
+        <div class="dawg-hero-topbar" style="justify-content:flex-start;gap:12px">
+          <img src="./doberman.png" class="dawg-hero-dob" style="width:70px;flex-shrink:0" alt="">
+          <div>
+            <div class="acct-picker-title">My Accounts</div>
+            <div class="acct-picker-sub">${count} account${count !== 1 ? 's' : ''} · tap to open</div>
+          </div>
         </div>
       </div>
       <div class="acct-list">${rows}</div>
@@ -2006,6 +2009,11 @@ function renderDashboardDawg() {
   const budgetPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
   const budgetColor = budgetPct >= 100 ? 'var(--danger)' : budgetPct >= 80 ? 'var(--warn)' : 'var(--accent)';
   const budgetLbl   = weekBudget ? 'weekly' : 'monthly';
+  const _ds          = loadSettings();
+  const _showBudget  = _ds.dawgBudget       !== false;
+  const _showBreakdown= _ds.dawgBreakdown   !== false;
+  const _showGoals   = _ds.dawgGoals        !== false;
+  const _showTxns    = _ds.dawgTransactions !== false;
 
   const totalMExp  = Object.values(bycat).reduce((s,v)=>s+v, 0);
   const catEntries = Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,6);
@@ -2104,7 +2112,7 @@ function renderDashboardDawg() {
       </div>
     </div>
 
-    <div class="dawg-mid-row">
+    ${_showBudget && !_isDebt ? `<div class="dawg-mid-row">
       <div class="dawg-overview-card">
         <div class="dawg-card-title">BUDGET OVERVIEW</div>
         <div class="dawg-donut-wrap">
@@ -2120,14 +2128,30 @@ function renderDashboardDawg() {
         </div>
         <button class="dawg-view-btn" id="dawg-goto-budgets">VIEW BUDGET ›</button>
       </div>
-      <div class="dawg-breakdown-card">
+      ${_showBreakdown ? `<div class="dawg-breakdown-card">
+        <div class="dawg-card-title">SPENDING BREAKDOWN</div>
+        <div class="dawg-cat-list">${spendHtml}</div>
+        <button class="dawg-view-btn" id="dawg-goto-ledger">VIEW ANALYTICS ›</button>
+      </div>` : ''}
+    </div>` : (_isDebt && _showBreakdown && _curAcctD?.type !== 'loan') ? `<div class="dawg-mid-row">
+      <div class="dawg-breakdown-card" style="flex:1">
         <div class="dawg-card-title">SPENDING BREAKDOWN</div>
         <div class="dawg-cat-list">${spendHtml}</div>
         <button class="dawg-view-btn" id="dawg-goto-ledger">VIEW ANALYTICS ›</button>
       </div>
-    </div>
+    </div>` : ''}
 
-    ${goals.length ? `<div class="dawg-section-card">
+    ${_isDebt && _curAcctD?.payment_due_day ? `<div class="dawg-section-card dawg-due-tile">
+      <div class="dawg-section-hdr">
+        <span class="dawg-card-title">PAYMENT DUE</span>
+      </div>
+      <div class="dawg-due-body">
+        <span class="dawg-due-date" style="color:${paymentDueStr.startsWith('⚠️')?'var(--warn)':'var(--text)'}">${paymentDueStr || '—'}</span>
+        ${_curAcctD.interest_rate ? `<span class="dawg-due-apr">${_curAcctD.interest_rate}% APR</span>` : ''}
+      </div>
+    </div>` : ''}
+
+    ${_showGoals && goals.length ? `<div class="dawg-section-card">
       <div class="dawg-section-hdr">
         <span class="dawg-card-title">SAVINGS GOALS</span>
         <button class="dawg-view-all" id="dawg-goto-goals">VIEW ALL</button>
@@ -2135,19 +2159,21 @@ function renderDashboardDawg() {
       ${goalsHtml}
     </div>` : ''}
 
-    <div class="dawg-section-card" style="margin-bottom:14px">
+    ${_showTxns ? `<div class="dawg-section-card" style="margin-bottom:14px">
       <div class="dawg-section-hdr">
         <span class="dawg-card-title">RECENT TRANSACTIONS</span>
         <button class="dawg-view-all" id="dawg-goto-txns">VIEW ALL</button>
       </div>
       ${txnHtml}
-    </div>
+    </div>` : ''}
   </div>`;
 }
 
 // ── dashboard ──────────────────────────────────────────────────────────────
 function renderDashboard() {
-  if (THEMES[(loadSettings().theme)||'dark']?.dawg) return renderDashboardDawg();
+  return renderDashboardDawg();
+  // Legacy non-DAWG dashboard kept below for reference only
+  if (false) {
   const ds = loadSettings();
   const showBills     = ds.dashBills     !== false;
   const showInsights  = ds.dashInsights  !== false;
@@ -3376,6 +3402,25 @@ function renderSettings() {
           </label>`).join('')}
         </div>
       </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Dashboard Tiles</h2>
+        <p class="code-hint" style="margin-bottom:12px">Show or hide tiles on the main dashboard.</p>
+        <div class="tab-toggles">
+          ${[
+            { key:'dawgBudget',       label:'Budget Overview' },
+            { key:'dawgBreakdown',    label:'Spending Breakdown' },
+            { key:'dawgGoals',        label:'Savings Goals' },
+            { key:'dawgTransactions', label:'Recent Transactions' },
+          ].map(item => `
+            <label class="tab-toggle">
+              <span class="tab-toggle-label">${item.label}</span>
+              <input type="checkbox" class="tab-toggle-input dawg-tile-toggle" data-tile="${item.key}"
+                ${s[item.key] !== false ? 'checked' : ''}>
+              <span class="tab-toggle-switch"></span>
+            </label>`).join('')}
+        </div>
+      </div>
     </div>`;
 }
 
@@ -3556,6 +3601,15 @@ function attachSettings() {
       const s = loadSettings();
       s[cb.dataset.key] = cb.checked;
       saveSettings(s);
+    });
+  });
+
+  document.querySelectorAll('.dawg-tile-toggle').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const s = loadSettings();
+      s[cb.dataset.tile] = cb.checked;
+      saveSettings(s);
+      render();
     });
   });
 }
@@ -3850,7 +3904,7 @@ function attachDashboardDawg() {
   // Account pill — always tappable; opens inline dropdown (positioned below the pill)
   document.getElementById('dawg-acct-switch')?.addEventListener('click', () => toggleDawgAcctDropdown(true));
 
-  document.getElementById('dawg-goto-budgets')?.addEventListener('click', () => showTab('budgets'));
+  document.getElementById('dawg-goto-budgets')?.addEventListener('click', () => showTab('weekly'));
   document.getElementById('dawg-goto-ledger')?.addEventListener('click',  () => showTab('ledger'));
   document.getElementById('dawg-goto-goals')?.addEventListener('click',   () => showTab('goals'));
   document.getElementById('dawg-goto-txns')?.addEventListener('click',    () => showTab('ledger'));
@@ -3895,10 +3949,25 @@ function attachDashboardDawg() {
     if (!data.length) return;
     const ctx  = canvas.getContext('2d');
     const grad = ctx.createLinearGradient(0, 0, 0, canvas.offsetHeight||80);
-    const _sparkClrRgb = document.body.classList.contains('light') ? '34,170,34' : '57,255,20';
+    // Debt sparkline: red when high balance, yellow mid, green when low
+    const _spAcct    = state.accounts.find(a => a.id === currentAccountId);
+    const _spIsDebt  = _spAcct?.type === 'credit' || _spAcct?.type === 'loan';
+    let _sparkClrRgb, _sparkClr;
+    if (_spIsDebt) {
+      const _spInc   = state.transactions.reduce((s,t)=>t.type==='income' ?s+t.amount:s,0);
+      const _spExp   = state.transactions.reduce((s,t)=>t.type==='expense'?s+t.amount:s,0);
+      const _spBal   = Math.max(0,(state.startingBalance||0)+_spExp-_spInc);
+      const _spLimit = parseFloat(_spAcct?.credit_limit||0) || parseFloat(state.startingBalance||0) || 1;
+      const _spRatio = Math.min(_spBal/_spLimit,1);
+      if (_spRatio > 0.5) { _sparkClrRgb='220,50,50';  _sparkClr='#dc3232'; }
+      else if (_spRatio > 0.25) { _sparkClrRgb='220,160,40'; _sparkClr='#dca028'; }
+      else { _sparkClrRgb='50,200,80'; _sparkClr='#32c850'; }
+    } else {
+      _sparkClrRgb = document.body.classList.contains('light') ? '34,170,34' : '57,255,20';
+      _sparkClr    = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    }
     grad.addColorStop(0, `rgba(${_sparkClrRgb},.28)`);
     grad.addColorStop(1, `rgba(${_sparkClrRgb},0)`);
-    const _sparkClr = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     _dawgSpark = new Chart(canvas, {
       type:'line',
       data:{ labels, datasets:[{ data, borderColor:_sparkClr, borderWidth:2, pointRadius:0, tension:0.4, fill:true, backgroundColor:grad }] },
@@ -3928,8 +3997,7 @@ function attachDashboardDawg() {
 function attachHandlers() {
   switch (currentTab) {
     case 'dashboard':
-      if (THEMES[(loadSettings().theme)||'dark']?.dawg) attachDashboardDawg();
-      else attachDashboard();
+      attachDashboardDawg();
       break;
     case 'add':       attachAdd();       break;
     case 'ledger':    attachLedger();    break;

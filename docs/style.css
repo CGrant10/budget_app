@@ -1570,6 +1570,10 @@ body.light .section-title::before {
 .acct-row-bal { font-size:1.1rem; font-weight:800; line-height:1.2; }
 .acct-row-chevron { font-size:1.5rem; color:var(--muted); flex-shrink:0; line-height:1; opacity:.45; padding-right:2px; }
 .acct-home-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:4px 9px; font-size:1rem; cursor:pointer; line-height:1; }
+.acct-picker-hero { min-height:120px !important; padding-bottom:16px; }
+.acct-picker-hero .dawg-hero-dob { width:80px; filter:drop-shadow(0 0 16px rgba(57,255,20,.3)) drop-shadow(0 4px 8px rgba(0,0,0,.8)); }
+.acct-picker-page .acct-row { margin:0 14px 10px; }
+.acct-picker-page .page { background:transparent; }
 
 /* ── debt tab ── */
 .debt-summary-card { background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:18px; padding:22px 20px; margin-bottom:16px; text-align:center; box-shadow:var(--shadow-card); }
@@ -1645,12 +1649,15 @@ body.light .section-title::before {
 
 .dawg-hero {
   position:relative; overflow:hidden;
-  background:linear-gradient(180deg,#050505 0%,#080808 100%);
+  background:linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
   min-height:180px;
 }
 .dawg-hero-glow {
   position:absolute; top:-40%; right:-10%; width:65%; height:180%;
-  background:radial-gradient(ellipse,rgba(57,255,20,.13) 0%,transparent 65%);
+  background:var(--accent);
+  opacity:.08;
+  border-radius:50%;
+  filter:blur(50px);
   pointer-events:none;
 }
 .dawg-hero::after {
@@ -1679,6 +1686,10 @@ body.light .section-title::before {
 .dawg-balance-amt { font-size:2.3rem; font-weight:800; line-height:1.1; margin:4px 0 2px; }
 .dawg-balance-delta { font-size:.8rem; font-weight:600; margin-bottom:12px; }
 .dawg-balance-due { font-size:.75rem; font-weight:600; margin-bottom:4px; }
+.dawg-due-tile { padding:12px 14px 14px !important; }
+.dawg-due-body { display:flex; align-items:baseline; justify-content:space-between; margin-top:6px; }
+.dawg-due-date { font-size:1rem; font-weight:700; color:var(--text); }
+.dawg-due-apr  { font-size:.72rem; color:var(--muted); font-weight:600; }
 .dawg-sparkline-wrap { height:80px; margin-bottom:10px; }
 .dawg-time-btns { display:flex; gap:4px; }
 .dawg-tbtn {
@@ -1770,10 +1781,10 @@ body.light .section-title::before {
 #dawg-bottom-nav::before {
   content:''; position:absolute; top:0; left:0; right:0; height:1px;
   background:linear-gradient(to right,
-    var(--border) calc(50% - 34px),
-    transparent calc(50% - 34px),
-    transparent calc(50% + 34px),
-    var(--border) calc(50% + 34px));
+    var(--border) calc(50% - 32px),
+    transparent calc(50% - 32px),
+    transparent calc(50% + 32px),
+    var(--border) calc(50% + 32px));
 }
 
 .dawg-nav-btn {
@@ -1796,7 +1807,7 @@ body.light .section-title::before {
   color:var(--text) !important; padding:0; margin:0;
   box-shadow:0 -3px 12px rgba(0,0,0,.25);
   justify-content:center; align-items:center; overflow:hidden; gap:0;
-  transform:translateY(-15px);
+  transform:translateY(-8px);
   position:relative; z-index:1;
   transition:background .15s;
 }
