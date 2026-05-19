@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.0.0';
+const VERSION = '4.0.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.0.1', date: '2026-05-19', changes: [
+    'Insights card: background is now deep black-green → brand green gradient (no more brownish/amber end)',
+    'Settings: Personalize section removed (app title, font picker, caps, color)',
+    'Goals nav icon: outer rings stay as outlines when active; only the bullseye fills; a dart appears pointing at the center',
+  ]},
   { version: '4.0.0', date: '2026-05-19', changes: [
     'Header revamp — removed the shrinking text logo; replaced with doberman image + "BUDGET DAWGS" in clean uppercase tracking',
     'Light mode: accent updated to brand green (#4ecb8d) matching dark mode; gray/green gradient on buttons',
@@ -2685,8 +2690,6 @@ function renderSettings() {
   const navPos     = s.navPosition || 'bottom';
   const hiddenTabs = s.hiddenTabs || [];
   const theme      = s.theme || 'dark';
-  const logoFont   = s.logoFont || '';
-  const logoColor  = s.logoColor || '';
   const customCats = s.customCategories || [];
 
   const navOpts = ['bottom','top','left','right'].map(p =>
@@ -2720,73 +2723,6 @@ function renderSettings() {
       ${theme === key ? '<span class="theme-check">✓</span>' : ''}
     </button>`).join('');
 
-  const fonts = [
-    // — Anime / Cool —
-    { label:'Bangers',           value:'Bangers, cursive',               style:"font-family:'Bangers',cursive;letter-spacing:.08em",        group:'anime' },
-    { label:'Russo One',         value:'Russo One, sans-serif',          style:"font-family:'Russo One',sans-serif",                        group:'anime' },
-    { label:'Orbitron',          value:'Orbitron, sans-serif',           style:"font-family:'Orbitron',sans-serif;font-weight:700",          group:'anime' },
-    { label:'Audiowide',         value:'Audiowide, sans-serif',          style:"font-family:'Audiowide',sans-serif",                        group:'anime' },
-    { label:'Chakra Petch',      value:'Chakra Petch, sans-serif',       style:"font-family:'Chakra Petch',sans-serif;font-weight:700",      group:'anime' },
-    { label:'Press Start 2P',    value:'"Press Start 2P", cursive',       style:"font-family:'Press Start 2P',cursive;font-size:.75em",       group:'anime' },
-    // — Modern —
-    { label:'Poppins',           value:'Poppins, sans-serif',            style:"font-family:'Poppins',sans-serif;font-weight:600",           group:'modern' },
-    { label:'Montserrat',        value:'Montserrat, sans-serif',         style:"font-family:'Montserrat',sans-serif;font-weight:700",        group:'modern' },
-    { label:'Raleway',           value:'Raleway, sans-serif',            style:"font-family:'Raleway',sans-serif;font-weight:600",           group:'modern' },
-    { label:'Plus Jakarta Sans', value:'Plus Jakarta Sans, sans-serif',  style:"font-family:'Plus Jakarta Sans',sans-serif;font-weight:600", group:'modern' },
-    // — Cursive / Script —
-    { label:'Dancing Script',    value:'Dancing Script, cursive',        style:"font-family:'Dancing Script',cursive;font-weight:700",       group:'cursive' },
-    { label:'Great Vibes',       value:'Great Vibes, cursive',           style:"font-family:'Great Vibes',cursive",                         group:'cursive' },
-    { label:'Sacramento',        value:'Sacramento, cursive',            style:"font-family:'Sacramento',cursive;font-size:1.2em",           group:'cursive' },
-    { label:'Pacifico',          value:'Pacifico, cursive',              style:"font-family:'Pacifico',cursive",                            group:'cursive' },
-    { label:'Satisfy',           value:'Satisfy, cursive',               style:"font-family:'Satisfy',cursive",                             group:'cursive' },
-  ];
-
-  const fontGroupDefs = [
-    { key:'anime',   label:'Anime / Cool' },
-    { key:'modern',  label:'Modern' },
-    { key:'cursive', label:'Script / Cursive' },
-  ];
-  const titlePreview = s.name || "SlawMinYaw's Budget DAWGs";
-  const allFontsForPicker = [
-    { label:'Default', value:'', style:'' },
-    ...fonts,
-  ];
-  const esc = s => s.replace(/"/g, '&quot;');
-  const fontPickerOptions = fontGroupDefs.map(g => {
-    const items = fonts.filter(f => f.group === g.key).map(f => `
-      <div class="fp-option${logoFont === f.value ? ' active' : ''}" data-font="${esc(f.value)}" data-style="${esc(f.style)}">
-        <span class="fp-opt-name">${f.label}</span>
-        <span class="fp-opt-preview" style="${f.style}">${titlePreview}</span>
-      </div>`).join('');
-    return `<div class="fp-group-label">${g.label}</div>${items}`;
-  }).join('');
-  const currentFont    = allFontsForPicker.find(f => f.value === logoFont) || allFontsForPicker[0];
-  const fontSelect = `
-    <div class="fp-picker" id="fp-picker">
-      <div class="fp-trigger" id="fp-trigger">
-        <span class="fp-trigger-preview" style="${currentFont.style || ''}">${titlePreview}</span>
-        <span class="fp-trigger-label">${currentFont.label}</span>
-        <span class="fp-arrow">▾</span>
-      </div>
-      <div class="fp-panel hidden" id="fp-panel">
-        <div class="fp-option${!logoFont ? ' active' : ''}" data-font="" data-style="">
-          <span class="fp-opt-name">Default</span>
-          <span class="fp-opt-preview">${titlePreview}</span>
-        </div>
-        ${fontPickerOptions}
-      </div>
-    </div>`;
-
-  const logoTransform = s.logoTransform || '';
-  const caps = [
-    { label:'Aa  Normal',     value:'',           style:'text-transform:none' },
-    { label:'AA  Uppercase',  value:'uppercase',  style:'text-transform:uppercase' },
-    { label:'aa  lowercase',  value:'lowercase',  style:'text-transform:lowercase' },
-    { label:'Aᴀ  Small Caps', value:'small-caps', style:'font-variant:small-caps' },
-  ];
-  const capChips = caps.map(c => `
-    <button class="cap-chip${logoTransform === c.value ? ' active' : ''}" data-transform="${c.value}"
-      style="${c.style}">${c.label}</button>`).join('');
 
   const customCatRows = customCats.length ? customCats.map((c, i) => `
     <div class="custom-cat-row">
@@ -2797,33 +2733,6 @@ function renderSettings() {
   return `
     <div class="page">
       <h1 class="page-title">Settings</h1>
-
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:12px">Personalize</h2>
-        <div class="form-row">
-          <label class="form-label">App title</label>
-          <input type="text" id="setting-name" class="form-input" value="${s.name || ''}" placeholder="e.g. Cole's Finances">
-        </div>
-        <div class="form-row">
-          <label class="form-label">Title font</label>
-          ${fontSelect}
-        </div>
-        <div class="form-row">
-          <label class="form-label">Capitalization</label>
-          <div class="cap-grid">${capChips}</div>
-        </div>
-        <div class="form-row" style="align-items:center">
-          <label class="form-label">Title color</label>
-          <div style="display:flex;align-items:center;gap:10px">
-            <input type="color" id="logo-color" value="${logoColor || '#7c6af7'}" style="width:40px;height:32px;padding:2px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer">
-            ${logoColor ? `<button id="logo-color-reset" class="btn-xs" style="font-size:.7rem">Use theme</button>` : ''}
-          </div>
-        </div>
-        <div class="btn-row">
-          <button id="settings-save" class="btn-primary">Save</button>
-          <span id="settings-status" class="status-inline"></span>
-        </div>
-      </div>
 
       <div class="form-card">
         <h2 class="section-title" style="margin-bottom:8px">Account</h2>
@@ -2934,102 +2843,11 @@ function renderSettings() {
 }
 
 function attachSettings() {
-  document.getElementById('settings-save')?.addEventListener('click', () => {
-    const s = loadSettings();
-    s.name = document.getElementById('setting-name').value.trim();
-    saveSettings(s);
-    applySettings();
-    showStatus('settings-status', '✓ Saved', 'success', 2000);
-  });
-
   document.getElementById('starting-bal-settings-save')?.addEventListener('click', () => {
     const val = parseFloat(document.getElementById('starting-bal-settings')?.value);
     state.startingBalance = isNaN(val) ? 0 : val;
     _save();
     showStatus('starting-bal-settings-status', '✓ Saved', 'success', 2000);
-  });
-
-  // Logo color — immediate apply + save
-  document.getElementById('logo-color')?.addEventListener('input', e => {
-    const s = loadSettings();
-    s.logoColor = e.target.value;
-    saveSettings(s);
-    const logo = document.querySelector('.logo');
-    if (logo) logo.style.color = s.logoColor;
-  });
-
-  // Reset logo color to theme default
-  document.getElementById('logo-color-reset')?.addEventListener('click', () => {
-    const s = loadSettings();
-    delete s.logoColor;
-    saveSettings(s);
-    const logo = document.querySelector('.logo');
-    if (logo) logo.style.color = '';
-    render();
-  });
-
-  // Custom font picker
-  const fpTrigger = document.getElementById('fp-trigger');
-  const fpPanel   = document.getElementById('fp-panel');
-  const logo      = document.querySelector('.logo');
-
-  fpTrigger?.addEventListener('click', () => {
-    fpPanel?.classList.toggle('hidden');
-  });
-
-  // Close panel when clicking outside
-  document.addEventListener('click', function fpOutside(e) {
-    if (!document.getElementById('fp-picker')?.contains(e.target)) {
-      fpPanel?.classList.add('hidden');
-      document.removeEventListener('click', fpOutside);
-    }
-  });
-
-  fpPanel?.querySelectorAll('.fp-option').forEach(opt => {
-    // Hover → live preview
-    opt.addEventListener('mouseenter', () => {
-      if (logo) logo.style.fontFamily = opt.dataset.font || '';
-    });
-    opt.addEventListener('mouseleave', () => {
-      const saved = loadSettings().logoFont || '';
-      if (logo) logo.style.fontFamily = saved;
-    });
-    // Click → save
-    opt.addEventListener('click', () => {
-      const s = loadSettings();
-      s.logoFont = opt.dataset.font;
-      saveSettings(s);
-      if (logo) logo.style.fontFamily = s.logoFont || '';
-      fitLogo();
-      fpPanel.classList.add('hidden');
-      fpPanel.querySelectorAll('.fp-option').forEach(o => o.classList.toggle('active', o === opt));
-      // Update trigger preview
-      const prev = document.querySelector('.fp-trigger-preview');
-      const lbl  = document.querySelector('.fp-trigger-label');
-      if (prev) { prev.style.cssText = opt.dataset.style || ''; prev.textContent = opt.querySelector('.fp-opt-preview').textContent; }
-      if (lbl)  lbl.textContent = opt.querySelector('.fp-opt-name').textContent;
-    });
-  });
-
-  // Capitalization chips — immediate apply + save
-  document.querySelectorAll('.cap-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const s = loadSettings();
-      s.logoTransform = btn.dataset.transform;
-      saveSettings(s);
-      const logo = document.querySelector('.logo');
-      if (logo) {
-        if (s.logoTransform === 'small-caps') {
-          logo.style.textTransform = '';
-          logo.style.fontVariant   = 'small-caps';
-        } else {
-          logo.style.textTransform = s.logoTransform || '';
-          logo.style.fontVariant   = '';
-        }
-        fitLogo();
-      }
-      document.querySelectorAll('.cap-chip').forEach(b => b.classList.toggle('active', b === btn));
-    });
   });
 
   // Theme rows — immediate apply + save

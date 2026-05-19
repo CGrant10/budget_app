@@ -814,6 +814,12 @@ body::before {
 .nav-btn.active .nav-icon svg { fill: currentColor; stroke: none; }
 .nav-btn.active .nav-icon svg .detail-line { fill: none; stroke: var(--bg); stroke-width: 1.5; }
 .nav-btn.active .nav-icon svg .detail-dot { fill: var(--bg); stroke: none; }
+/* Goals: rings stay as strokes; only bullseye fills; dart appears on active */
+.nav-btn[data-tab="goals"].active .nav-icon svg { fill: none; stroke: currentColor; }
+.nav-btn[data-tab="goals"].active .nav-icon svg .bullseye { fill: currentColor; stroke: none; }
+.nav-btn[data-tab="goals"] .nav-icon svg .dart { display: none; }
+.nav-btn[data-tab="goals"].active .nav-icon svg .dart { display: inline; }
+.nav-btn[data-tab="goals"].active .nav-icon svg .dart-tip { fill: currentColor; stroke: none; }
 .nav-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
@@ -1787,11 +1793,11 @@ body.light .section-title::before {
 
 /* ── rotating insights card ──────────────────────────────────────────────── */
 .insight-card {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  background: linear-gradient(135deg, #060e08 0%, #1a3820 45%, var(--accent) 100%);
   border-radius: 18px;
   padding: 16px 18px 12px;
   margin-bottom: 16px;
-  box-shadow: 0 4px 18px rgba(0,0,0,.3);
+  box-shadow: 0 4px 18px rgba(0,0,0,.4);
 }
 .insight-card-inner {
   display: flex;
