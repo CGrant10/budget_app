@@ -55,6 +55,23 @@
       </div>
     </header>
 
+    <!-- DAWG persistent fixed topbar — hamburger | account pill | bell -->
+    <div id="dawg-topbar" class="dawg-topbar">
+      <button class="dawg-hamburger" id="dawg-hamburger" aria-label="Menu">
+        <span class="dawg-ham-bar"></span>
+        <span class="dawg-ham-bar"></span>
+        <span class="dawg-ham-bar"></span>
+      </button>
+      <button class="dawg-acct-pill dawg-acct-pill-solo" id="dawg-acct-switch" title="Account">
+        <span class="dawg-acct-pill-icon">🏦</span>
+        <span class="dawg-acct-pill-name" id="dawg-topbar-acct-name">Account</span>
+      </button>
+      <button class="dawg-bell-btn" id="dawg-bell" aria-label="Notifications">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="dawg-bell-badge hidden" id="dawg-bell-badge"></span>
+      </button>
+    </div>
+
     <main id="main-content"></main>
 
     <nav class="bottom-nav">

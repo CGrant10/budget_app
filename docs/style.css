@@ -24,7 +24,9 @@
 
   --header-h: 56px;
   --nav-h: 58px;
+  --topbar-h: 56px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
 
   --font-body: 'Plus Jakarta Sans', sans-serif;
 }
@@ -1763,7 +1765,23 @@ body.light .section-title::before {
 /* Hide the standard top header and bottom nav — DAWG elements replace them */
 #app.dawg-mode .header      { display:none !important; }
 #app.dawg-mode .bottom-nav  { display:none !important; }
-#app.dawg-mode #main-content { padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px); }
+#app.dawg-mode #main-content {
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px);
+  padding-top: calc(var(--topbar-h) + var(--safe-top));
+}
+
+/* DAWG persistent fixed topbar */
+.dawg-topbar {
+  display:none;
+  position:fixed; top:0; left:0; right:0;
+  padding-top:var(--safe-top);
+  height:calc(var(--topbar-h) + var(--safe-top));
+  grid-template-columns:44px 1fr 44px;
+  align-items:end; padding-left:14px; padding-right:14px; padding-bottom:8px; gap:8px;
+  background:var(--surface); border-bottom:1px solid var(--border);
+  z-index:200; backdrop-filter:blur(14px);
+}
+#app.dawg-mode .dawg-topbar { display:grid; }
 
 /* DAWG 5-tab bottom nav */
 #dawg-bottom-nav {

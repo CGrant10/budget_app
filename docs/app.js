@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.3.1';
+const VERSION = '4.3.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1820,7 +1820,7 @@ function renderAccountPicker() {
     <div class="dawg-page acct-picker-page">
       <div class="dawg-hero acct-picker-hero">
         <div class="dawg-hero-glow"></div>
-        <div class="dawg-hero-topbar" style="justify-content:flex-start;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 14px 0">
           <img src="./doberman.png" class="dawg-hero-dob" style="width:70px;flex-shrink:0" alt="">
           <div>
             <div class="acct-picker-title">My Accounts</div>
@@ -1882,6 +1882,7 @@ function render() {
       });
     });
     document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="date"])').forEach(el => el.setAttribute('enterkeyhint', 'done'));
+    updateDawgTopbar();
     return;
   }
 
@@ -1902,6 +1903,7 @@ function render() {
   _applyPageTransition(main);
   attachHandlers();
   updateBillBadge();
+  updateDawgTopbar();
   // Show "Done" checkmark on mobile keyboard for all text/number inputs
   document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="date"])').forEach(el => el.setAttribute('enterkeyhint', 'done'));
 }
@@ -2074,22 +2076,6 @@ function renderDashboardDawg() {
   return `<div class="dawg-page">
     <div class="dawg-hero">
       <div class="dawg-hero-glow"></div>
-      <div class="dawg-hero-topbar">
-        <button class="dawg-hamburger" id="dawg-hamburger" aria-label="Menu">
-          <span class="dawg-ham-bar"></span>
-          <span class="dawg-ham-bar"></span>
-          <span class="dawg-ham-bar"></span>
-        </button>
-        <button class="dawg-acct-pill${multiAcct ? ' dawg-acct-pill-multi' : ' dawg-acct-pill-solo'}" id="dawg-acct-switch" title="${multiAcct ? 'Switch account' : _acctName}">
-          <span class="dawg-acct-pill-icon">🏦</span>
-          <span class="dawg-acct-pill-name">${_acctName}</span>
-          ${multiAcct ? '<span class="dawg-acct-pill-arrow">▾</span>' : ''}
-        </button>
-        <button class="dawg-bell-btn" id="dawg-bell" aria-label="Notifications">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span class="dawg-bell-badge hidden" id="dawg-bell-badge"></span>
-        </button>
-      </div>
       <div class="dawg-hero-inner">
         <div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin">LOCK IN.</em></div>
         <img src="./doberman.png" class="dawg-hero-dob" alt="">
@@ -3827,21 +3813,35 @@ function updateDawgBellBadge() {
   const hasAlerts = getDawgNotifications().some(n => n.type !== 'update');
   badge.classList.toggle('hidden', !hasAlerts);
 }
-function toggleDawgAcctDropdown(fromHero = false) {
+function updateDawgTopbar() {
+  const acct      = state.accounts.find(a => a.id === currentAccountId);
+  const multiAcct = (state.accounts || []).length > 1;
+  const name      = acct?.name || 'Account';
+  const nameEl    = document.getElementById('dawg-topbar-acct-name');
+  const pill      = document.getElementById('dawg-acct-switch');
+  if (nameEl) nameEl.textContent = name;
+  if (pill) {
+    pill.title     = multiAcct ? 'Switch account' : name;
+    pill.className = `dawg-acct-pill ${multiAcct ? 'dawg-acct-pill-multi' : 'dawg-acct-pill-solo'}`;
+    let arrow = pill.querySelector('.dawg-acct-pill-arrow');
+    if (multiAcct && !arrow) {
+      pill.insertAdjacentHTML('beforeend', '<span class="dawg-acct-pill-arrow">▾</span>');
+    } else if (!multiAcct && arrow) {
+      arrow.remove();
+    }
+  }
+  updateDawgBellBadge();
+}
+function toggleDawgAcctDropdown() {
   const panel = document.getElementById('dawg-acct-dropdown');
   if (!panel) return;
   if (!panel.classList.contains('hidden')) {
     panel.classList.add('hidden');
     return;
   }
-  // Position: below hero pill (top) or above nav bar (bottom)
-  if (fromHero) {
-    panel.style.bottom = 'auto';
-    panel.style.top    = '68px';
-  } else {
-    panel.style.top    = 'auto';
-    panel.style.bottom = 'calc(var(--nav-h) + var(--safe-bottom) + 12px)';
-  }
+  // Always position below the fixed topbar
+  panel.style.top    = 'calc(var(--topbar-h) + var(--safe-top) + 8px)';
+  panel.style.bottom = 'auto';
   const acctIcons = { checking:'🏦', savings:'💰', credit:'💳', loan:'📋', investment:'📈', other:'💼' };
   const rows = (state.accounts || []).map(a => {
     const isActive = a.id === currentAccountId;
@@ -3901,9 +3901,6 @@ function toggleDawgBell() {
 }
 
 function attachDashboardDawg() {
-  // Account pill — always tappable; opens inline dropdown (positioned below the pill)
-  document.getElementById('dawg-acct-switch')?.addEventListener('click', () => toggleDawgAcctDropdown(true));
-
   document.getElementById('dawg-goto-budgets')?.addEventListener('click', () => showTab('weekly'));
   document.getElementById('dawg-goto-ledger')?.addEventListener('click',  () => showTab('ledger'));
   document.getElementById('dawg-goto-goals')?.addEventListener('click',   () => showTab('goals'));
@@ -3988,10 +3985,6 @@ function attachDashboardDawg() {
   });
   buildSparkline('1m');
 
-  // Hamburger + bell — in the hero so re-attached each render
-  document.getElementById('dawg-hamburger')?.addEventListener('click', openDawgDrawer);
-  document.getElementById('dawg-bell')?.addEventListener('click', toggleDawgBell);
-  updateDawgBellBadge();
 }
 
 function attachHandlers() {
@@ -4430,6 +4423,10 @@ document.querySelectorAll('.dawg-nav-btn[data-tab]').forEach(btn =>
     showTab(btn.dataset.tab);
   }));
 document.getElementById('dawg-nav-accts')?.addEventListener('click', () => showTab('dashboard'));
+// DAWG persistent topbar — hamburger, bell, account pill (permanent HTML elements)
+document.getElementById('dawg-hamburger')?.addEventListener('click', openDawgDrawer);
+document.getElementById('dawg-bell')?.addEventListener('click', toggleDawgBell);
+document.getElementById('dawg-acct-switch')?.addEventListener('click', () => toggleDawgAcctDropdown());
 // DAWG drawer close + item listeners (permanent HTML elements)
 document.getElementById('dawg-drawer-close')?.addEventListener('click', closeDawgDrawer);
 document.getElementById('dawg-drawer-overlay')?.addEventListener('click', closeDawgDrawer);
