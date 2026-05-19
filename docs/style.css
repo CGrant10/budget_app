@@ -2,7 +2,7 @@
   --bg:      #0e0e0f;
   --surface: #161617;
   --card:    #1c1c1e;
-  --accent:  #5b8de8;
+  --accent:  #4ecb8d;
   --accent2: #a07858;
   --success: #32d74b;
   --warn:    #ffd60a;
@@ -16,7 +16,7 @@
   --radius-btn: 11px;
   --radius-input: 11px;
   --shadow-card: 0 4px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.16), inset 0 -1px 0 rgba(0,0,0,.18);
-  --accent-gradient: linear-gradient(135deg, #7a8898 0%, #a07858 100%);
+  --accent-gradient: linear-gradient(135deg, #4ecb8d 0%, #a07858 100%);
   /* Clear top-lit glass — brighter at top like light catching the surface */
   --glass-bg: linear-gradient(170deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.028) 45%, rgba(255,255,255,.008) 100%);
   --glass-border: rgba(255,255,255,.12);

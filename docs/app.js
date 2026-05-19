@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.9.7';
+const VERSION = '3.9.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.9.8', date: '2026-05-19', changes: [
+    'Dark mode accent updated to brand green (#4ecb8d) — matches the doberman collar and logo green used in animations',
+    'Insights card: SVG viewBox extended so the full paw pad is no longer clipped; black claws now visible against the green gradient card',
+  ]},
   { version: '3.9.7', date: '2026-05-19', changes: [
     'Dark mode: accent gradient now derives from the active theme — no more hardcoded blue-purple; dark mode stays neutral grey',
     'Account overview: no longer offset in left/right side-nav mode — fills full width when sidebar is hidden',
@@ -417,8 +421,8 @@ const THEMES = {
   dark: {
     label:'Dark',
     ..._D,
-    accent:'#7a8898', accent2:'#a07858', success:'#52a872', warn:'#c0a038', danger:'#c05050',
-    cats:{ Food:'#52a872', Gas:'#c05858', Car:'#6888a8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#8890a8', Health:'#4090a8', Other:'#787880' },
+    accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050',
+    cats:{ Food:'#4ecb8d', Gas:'#c05858', Car:'#6888a8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#8890a8', Health:'#4090a8', Other:'#787880' },
   },
   light: {
     label:'Light',
@@ -451,7 +455,7 @@ const THEMES = {
     accent:'#c8a020', accent2:'#c84820', success:'#5aaa40', warn:'#c8a020', danger:'#c84030',
     cats:{ Food:'#5aaa40', Gas:'#c84030', Car:'#c8a020', Boat:'#409870', Tools:'#c86020', Home:'#80a830', Entertainment:'#a07020', Health:'#50a860', Other:'#788858' },
   },
-  auto: { label:'✨ Auto (System)', ..._D, accent:'#7a8898', accent2:'#a07858', success:'#52a872', warn:'#c0a038', danger:'#c05050' },
+  auto: { label:'✨ Auto (System)', ..._D, accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050' },
 };
 
 let CAT_COLORS = {
@@ -1943,7 +1947,7 @@ function renderDashboard() {
     <div class="insight-card" id="insight-rotator" data-insights='${safeInsights}'>
       <div class="insight-card-inner">
         <span class="insight-card-icon">
-          <svg class="scary-paw" viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg">
+          <svg class="scary-paw" viewBox="0 0 44 54" xmlns="http://www.w3.org/2000/svg">
             <!-- Claws — curved hooks tapering to sharp points -->
             <path d="M8,25 C6,19 3,12 5,4 C6,2 9,2 10,5 C11,13 12,20 12,25Z" fill="#0c0c18"/>
             <path d="M16,22 C15,16 14,8 16,2 C17,0 20,0 20,3 C21,10 21,17 21,22Z" fill="#0c0c18"/>
