@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.2.5';
+const VERSION = '4.2.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -3677,6 +3677,44 @@ function updateDawgBellBadge() {
   if (count > 0) { badge.textContent = count; badge.classList.remove('hidden'); }
   else { badge.classList.add('hidden'); }
 }
+function toggleDawgAcctDropdown() {
+  const panel = document.getElementById('dawg-acct-dropdown');
+  if (!panel) return;
+  if (!panel.classList.contains('hidden')) {
+    panel.classList.add('hidden');
+    return;
+  }
+  const acctIcons = { checking:'🏦', savings:'💰', credit:'💳', loan:'📋', investment:'📈', other:'💼' };
+  const rows = (state.accounts || []).map(a => {
+    const isActive = a.id === currentAccountId;
+    return `<button class="dawg-acct-dd-row${isActive ? ' active' : ''}" data-id="${a.id}">
+      <span class="dawg-acct-dd-icon">${acctIcons[a.type] || '🏦'}</span>
+      <span class="dawg-acct-dd-name">${a.name}</span>
+      ${isActive ? '<span class="dawg-acct-dd-check">✓</span>' : ''}
+    </button>`;
+  }).join('');
+  panel.innerHTML = `<div class="dawg-acct-dd-header">ACCOUNTS</div>${rows}`;
+  panel.classList.remove('hidden');
+  panel.querySelectorAll('.dawg-acct-dd-row').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      panel.classList.add('hidden');
+      if (btn.dataset.id !== currentAccountId) {
+        await api.switchAccount(btn.dataset.id);
+      }
+    });
+  });
+  setTimeout(() => {
+    const close = e => {
+      const navBtn = document.getElementById('dawg-nav-accts');
+      if (!panel.contains(e.target) && e.target !== navBtn && !navBtn?.contains(e.target)) {
+        panel.classList.add('hidden');
+        document.removeEventListener('click', close);
+      }
+    };
+    document.addEventListener('click', close);
+  }, 10);
+}
+
 function toggleDawgBell() {
   const panel = document.getElementById('dawg-bell-panel');
   if (!panel) return;
@@ -4219,10 +4257,7 @@ document.querySelectorAll('.dawg-nav-btn[data-tab]').forEach(btn =>
     spawnDollarBurst(btn);
     showTab(btn.dataset.tab);
   }));
-document.getElementById('dawg-nav-accts')?.addEventListener('click', () => {
-  showingAccountPicker = true;
-  render();
-});
+document.getElementById('dawg-nav-accts')?.addEventListener('click', toggleDawgAcctDropdown);
 // DAWG drawer close + item listeners (permanent HTML elements)
 document.getElementById('dawg-drawer-close')?.addEventListener('click', closeDawgDrawer);
 document.getElementById('dawg-drawer-overlay')?.addEventListener('click', closeDawgDrawer);

@@ -1777,16 +1777,50 @@ body.light .section-title::before {
 .dawg-nav-btn.dawg-nav-active .dawg-nav-icon svg { fill:currentColor; stroke:none; }
 .dawg-nav-lbl { font-size:.67rem; font-weight:600; letter-spacing:.02em; }
 
-/* Center home/accounts button */
+/* Center doberman button */
 .dawg-nav-center-btn {
-  flex:0 0 58px !important; width:58px !important; height:54px;
-  background:var(--accent) !important; border-radius:16px;
-  color:#000 !important; padding:0; margin-bottom:4px;
-  box-shadow:0 2px 16px rgba(57,255,20,.35), 0 0 0 3px var(--bg);
-  justify-content:center; gap:0;
+  flex:0 0 62px !important; width:62px !important; height:58px;
+  background:var(--accent) !important; border-radius:18px;
+  color:#000 !important; padding:0; margin-bottom:6px;
+  box-shadow:0 2px 20px rgba(57,255,20,.4), 0 0 0 3px var(--bg);
+  justify-content:flex-end; align-items:flex-end; overflow:hidden; gap:0;
 }
-.dawg-nav-center-btn .dawg-nav-icon svg { width:22px; height:22px; fill:currentColor; stroke:none; }
+.dawg-nav-dob {
+  width:54px; height:54px; object-fit:contain; object-position:bottom center;
+  filter:drop-shadow(0 1px 4px rgba(0,0,0,.5));
+  display:block; flex-shrink:0;
+}
 body.light .dawg-nav-center-btn { box-shadow:0 2px 16px rgba(34,170,34,.4), 0 0 0 3px var(--bg); }
+
+/* DAWG account switcher dropdown (pops up from center button) */
+.dawg-acct-dropdown {
+  position:fixed;
+  bottom:calc(var(--nav-h) + var(--safe-bottom) + 12px);
+  left:50%; transform:translateX(-50%);
+  width:230px;
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  box-shadow:0 -4px 28px rgba(0,0,0,.55);
+  z-index:202; overflow:hidden;
+}
+.dawg-acct-dropdown.hidden { display:none; }
+.dawg-acct-dd-header {
+  padding:11px 16px 9px; border-bottom:1px solid var(--border);
+  font-size:.68rem; font-weight:800; letter-spacing:.1em; color:var(--muted);
+}
+.dawg-acct-dd-row {
+  display:flex; align-items:center; gap:10px;
+  padding:13px 16px; border-bottom:1px solid var(--border);
+  cursor:pointer; transition:background .15s;
+  background:none; border-left:none; border-right:none; border-top:none;
+  width:100%; font-family:var(--font-body); text-align:left;
+}
+.dawg-acct-dd-row:last-child { border-bottom:none; }
+.dawg-acct-dd-row:active { background:var(--surface2); }
+@media (hover:hover) { .dawg-acct-dd-row:hover { background:var(--surface2); } }
+.dawg-acct-dd-row.active { border-left:3px solid var(--accent); padding-left:13px; }
+.dawg-acct-dd-icon { font-size:1.1rem; flex-shrink:0; }
+.dawg-acct-dd-name { flex:1; font-size:.88rem; font-weight:700; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dawg-acct-dd-check { font-size:.85rem; color:var(--accent); flex-shrink:0; }
 
 /* Hero topbar — 3-column grid: hamburger | account pill | bell */
 .dawg-hero-topbar {
