@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.1.1';
+const VERSION = '4.1.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.1.2', date: '2026-05-19', changes: [
+    'Weekly planner: past weeks are now frozen — adjusting balance, buffer, or paydate only affects the current week and ahead; past weeks show actual spending only with no live budget target',
+  ]},
   { version: '4.1.1', date: '2026-05-19', changes: [
     'Text Size setting removed',
     'Tutorial rewritten — covers all current tabs including Goals, Budgets, Debt calculator, and terminal themes',
@@ -2399,13 +2402,19 @@ function calcWeekly() {
     const wkExp  = wkTxns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
     const wkInc  = wkTxns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
     const wkNet  = Math.max(0, wkExp - wkInc);
-    const wkPct  = perWeek > 0 ? Math.min(wkNet/perWeek*100,100) : 0;
-    const wkColor = wkPct>=100?'var(--danger)':wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
     const txnHtml = wkTxns.length
       ? wkTxns.sort((a,b)=>b.date.localeCompare(a.date)).map(txnRow).join('')
       : '<p class="pw-empty">No transactions.</p>';
+    if (isPast) {
+      // Past weeks are static — only show actual spending, never the live budget target
+      const spentColor = wkExp > 0 ? 'var(--text)' : 'var(--muted)';
+      const spentLabel = wkExp > 0 ? `−${fmt(wkExp)}` : 'No spending';
+      return `<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span><span class="wkb-amounts" style="color:${spentColor};margin-left:auto">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`;
+    }
+    const wkPct  = perWeek > 0 ? Math.min(wkNet/perWeek*100,100) : 0;
+    const wkColor = wkPct>=100?'var(--danger)':wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
     const badge = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
-    return `<div class="wkb-row${isCurrent?' wkb-current':isPast?' wkb-past':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(perWeek)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`;
+    return `<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(perWeek)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`;
   }).join('');
 
   const el = document.getElementById('wk-results');
