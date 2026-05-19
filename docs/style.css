@@ -222,7 +222,7 @@ body::before {
   filter: drop-shadow(0 1px 8px rgba(0,0,0,.55));
 }
 .logo {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: .1em;
@@ -1790,7 +1790,7 @@ body.light .section-title::before {
 
 /* ── rotating insights card ──────────────────────────────────────────────── */
 .insight-card {
-  background: linear-gradient(135deg, #060e08 0%, #1a3820 45%, var(--accent) 100%);
+  background: var(--accent-gradient);
   border-radius: 18px;
   padding: 16px 18px 12px;
   margin-bottom: 16px;

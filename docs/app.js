@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.0.4';
+const VERSION = '4.0.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.0.5', date: '2026-05-19', changes: [
+    'CMD theme updated to classic black/green — true terminal green (#00c300) text and accent on pure black background',
+    'VS Code, PowerShell, and CMD themes now auto-apply monospace font when selected — font follows the theme',
+    'Insights card background now follows the active theme\'s gradient instead of being hardcoded dark green',
+    'Font switcher now changes every text element including the header brand name',
+  ]},
   { version: '4.0.4', date: '2026-05-19', changes: [
     'Three new themes: VS Code Dark+, PowerShell (navy/cyan), CMD (black/amber with classic CGA palette)',
     'Font switcher in Settings — Default (Plus Jakarta Sans), System (native OS font), Terminal (Consolas/Menlo monospace)',
@@ -466,6 +472,7 @@ const THEMES = {
     text:'#d4d4d4', muted:'#6a9955', border:'#3e3e42',
     accent:'#569cd6', accent2:'#4ec9b0', success:'#4ec9b0', warn:'#ce9178', danger:'#f44747',
     grad:'linear-gradient(135deg, #1a3a5c 0%, #569cd6 100%)',
+    font:'terminal',
     cats:{ Food:'#4ec9b0', Gas:'#f44747', Car:'#569cd6', Boat:'#9cdcfe', Tools:'#ce9178', Home:'#b5cea8', Entertainment:'#c586c0', Health:'#4fc1ff', Other:'#858585' },
   },
   powershell: {
@@ -474,15 +481,17 @@ const THEMES = {
     text:'#eeedf0', muted:'#8ab8d0', border:'#1255a0',
     accent:'#26c6da', accent2:'#f1e05a', success:'#4caf50', warn:'#f1e05a', danger:'#ef5350',
     grad:'linear-gradient(135deg, #012456 0%, #26c6da 100%)',
+    font:'terminal',
     cats:{ Food:'#26c6da', Gas:'#ef5350', Car:'#42a5f5', Boat:'#29b6f6', Tools:'#ffa726', Home:'#66bb6a', Entertainment:'#ab47bc', Health:'#26c6da', Other:'#8ab8d0' },
   },
   cmd: {
     label:'CMD',
-    bg:'#0c0c0c', surface:'#1a1a1a', surface2:'#242424', card:'#141414',
-    text:'#c0c0c0', muted:'#707070', border:'#2a2a2a',
-    accent:'#ffaa00', accent2:'#ff6600', success:'#55ff55', warn:'#ffaa00', danger:'#ff5555',
-    grad:'linear-gradient(135deg, #1a0f00 0%, #ffaa00 100%)',
-    cats:{ Food:'#55ff55', Gas:'#ff5555', Car:'#5555ff', Boat:'#55ffff', Tools:'#ffaa55', Home:'#aaff55', Entertainment:'#ff55ff', Health:'#55aaff', Other:'#aaaaaa' },
+    bg:'#0c0c0c', surface:'#0f1a0f', surface2:'#162416', card:'#111a11',
+    text:'#00c300', muted:'#005f00', border:'#1a3a1a',
+    accent:'#00c300', accent2:'#00ff41', success:'#00ff41', warn:'#ffff00', danger:'#ff3333',
+    grad:'linear-gradient(135deg, #000000 0%, #003300 60%, #00c300 100%)',
+    font:'terminal',
+    cats:{ Food:'#00c300', Gas:'#ff3333', Car:'#00aaff', Boat:'#00ffff', Tools:'#ffaa00', Home:'#aaff00', Entertainment:'#ff55ff', Health:'#00aaff', Other:'#888888' },
   },
   light: {
     label:'Light',
@@ -758,6 +767,13 @@ function applyTheme(theme) {
   document.body.classList.toggle('light', !!t.light);
   // Update category colors to match theme
   if (t.cats) Object.assign(CAT_COLORS, t.cats);
+  // Auto-apply bundled font for terminal-style themes
+  if (t.font) {
+    applyFontStyle(t.font);
+    const _fs = loadSettings();
+    _fs.fontStyle = t.font;
+    saveSettings(_fs);
+  }
   // Gengar ghost background overlay — lives inside #app so it's above body's solid bg
   let gOverlay = document.getElementById('gengar-bg-overlay');
   if (theme === 'gengar') {
