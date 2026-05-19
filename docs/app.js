@@ -2086,7 +2086,7 @@ function renderDashboardDawg() {
   const yesterdayStr = new Date(Date.now()-86400000).toISOString().split('T')[0];
   const recentTxns = [...state.transactions]
     .filter(t => _isDebt ? t.type === 'income' : true)
-    .sort((a,b) => b.date.localeCompare(a.date) || state.transactions.indexOf(b) - state.transactions.indexOf(a))
+    .sort((a,b) => b.date.localeCompare(a.date) || (b.ts||0) - (a.ts||0))
     .slice(0,5);
   const txnHtml = recentTxns.length ? recentTxns.map(t => {
     const isInc  = t.type === 'income';
@@ -4109,6 +4109,7 @@ function attachAdd() {
       account:     document.getElementById('add-acct').value,
       date,
       recurring:   isRecurring,
+      ts:          Date.now()
     };
     if (isRecurring) t.recur_month = new Date().toISOString().slice(0, 7);
     const balFn  = tx => tx.type === 'income' ? tx.amount : -tx.amount;
