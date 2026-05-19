@@ -2098,6 +2098,16 @@ body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+/* "tap to continue" hint — only fades in after 3.5s so it's invisible during normal load */
+.splash-tap-hint {
+  font-size: .6rem;
+  color: var(--muted);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  margin-top: 18px;
+  opacity: 0;
+  animation: splashFadeIn .4s ease 3.5s both;
+}
 
 /* ── page transition animations ── */
 @keyframes pageSlideInRight {

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.3.3';
+const VERSION = '4.3.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.3.4', date: '2026-05-19', changes: [
+    'Splash screen escape — tap anywhere on the splash to skip it; a "tap to continue" hint appears after 3.5s; hard 5s timeout removes splash regardless',
+    'Init error handling — if the app fails to load after the splash, a clear error message and reload button are shown instead of a blank screen',
+    'Service worker reload loop fixed — removed the redundant controllerchange reload that caused repeated splash screens on updates',
+  ]},
   { version: '4.3.3', date: '2026-05-19', changes: [
     'Persistent top bar — hamburger, account switcher, and notification bell now stay visible on every page, not just the dashboard',
     'What\'s New popup — a one-time modal shows the latest changes after each update; dismissed with "Got it" and never shown again for that version',
@@ -1857,11 +1862,19 @@ function runSplash() {
   return new Promise(resolve => {
     const el = document.getElementById('splash-screen');
     if (!el) return resolve();
-    // Dismiss after 1.9s → fade-out takes .45s → remove and resolve
-    setTimeout(() => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
       el.classList.add('dismiss');
       setTimeout(() => { el.remove(); resolve(); }, 450);
-    }, 1900);
+    };
+    // Auto-dismiss after 1.9s (bar fills at 2.1s — starts fading just before)
+    setTimeout(finish, 1900);
+    // Hard fallback: if anything delays init, tap anywhere skips the splash
+    el.addEventListener('click', finish, { once: true });
+    // Nuclear fallback: force-remove after 5s no matter what
+    setTimeout(() => { if (!done) { done = true; el.remove(); resolve(); } }, 5000);
   });
 }
 
@@ -4540,6 +4553,7 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
 (async () => {
   await runSplash();
   showPinLock(async () => {
+    try {
     await api.load();
     await processRecurring();
     initSoundsToggle();
@@ -4606,9 +4620,18 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
         reg.update();
         window.addEventListener('focus', () => reg.update());
       }).catch(() => {});
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!_reloading) { _reloading = true; window.location.reload(); }
-      });
+      // controllerchange fires when a new SW takes over — checkForUpdate()
+      // already handles version-mismatch reloads, so skip redundant reload here
+    }
+    } catch(err) {
+      // Surface init errors so a blank screen doesn't look like a stuck splash
+      console.error('[Budget DAWGs] Init error:', err);
+      const mc = document.getElementById('main-content');
+      if (mc) mc.innerHTML = `<div style="padding:32px 24px;text-align:center">
+        <div style="font-size:1.1rem;font-weight:700;color:var(--danger);margin-bottom:8px">Something went wrong loading the app.</div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:20px">${err?.message || 'Unknown error'}</div>
+        <button onclick="location.reload()" style="padding:12px 28px;background:var(--accent);color:#000;border:none;border-radius:12px;font-weight:700;font-size:.9rem;cursor:pointer">Reload</button>
+      </div>`;
     }
   });
 })();
