@@ -92,21 +92,27 @@ body::before {
 #app.nav-left  .bottom-nav {
   order: -1;
   flex-direction: column;
+  justify-content: flex-start;
   width: var(--nav-h);
   height: 100dvh;
   border-top: none;
   border-right: 1px solid var(--border);
   padding-bottom: 0;
   padding-top: var(--header-h);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 #app.nav-right .bottom-nav {
   flex-direction: column;
+  justify-content: flex-start;
   width: var(--nav-h);
   height: 100dvh;
   border-top: none;
   border-left: 1px solid var(--border);
   padding-bottom: 0;
   padding-top: var(--header-h);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 #app.nav-left  .nav-btn, #app.nav-right .nav-btn { flex: 0 0 auto; padding: 14px 0; width: 100%; }
 /* Offset header content so it doesn't overlap the sidebar column */
@@ -268,6 +274,7 @@ body.light .logo {
 .card-title { font-size: 10px; color: var(--muted); letter-spacing: .12em; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
 .card-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 2px; }
 .card-sub   { font-size: 11px; color: var(--muted); }
+.card-delta { font-size: 10px; font-weight: 600; margin-top: 3px; letter-spacing: .01em; }
 
 /* ── spending breakdown ───────────────────────────────────────────────────── */
 .breakdown { display: flex; flex-direction: column; gap: 8px; }
@@ -1695,4 +1702,156 @@ body.light .section-title::before {
 .acct-row:nth-child(4) { animation-delay: .15s; }
 .acct-row:nth-child(5) { animation-delay: .20s; }
 .acct-row:nth-child(6) { animation-delay: .25s; }
+
+/* ── rotating insights card ──────────────────────────────────────────────── */
+.insight-card {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  border-radius: 18px;
+  padding: 16px 18px 12px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 18px rgba(0,0,0,.3);
+}
+.insight-card-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.insight-card-icon { font-size: 1.4rem; flex-shrink: 0; line-height: 1.2; }
+.insight-card-text {
+  font-size: .88rem;
+  font-weight: 500;
+  color: #fff;
+  line-height: 1.5;
+  flex: 1;
+  transition: opacity .25s ease;
+}
+.insight-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.insight-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.35);
+  transition: background .25s;
+}
+.insight-dot.active { background: #fff; }
+
+/* ── bill calendar ───────────────────────────────────────────────────────── */
+.bill-cal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 14px 10px;
+  margin-bottom: 16px;
+}
+.bcal-month {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 6px;
+}
+.bcal-legend {
+  font-size: .7rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.bcal-legend-due,
+.bcal-legend-paid {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 2px;
+}
+.bcal-legend-due  { background: var(--danger); }
+.bcal-legend-paid { background: var(--success); }
+.bcal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.bcal-hdr {
+  font-size: .65rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+  padding: 2px 0;
+  letter-spacing: .04em;
+}
+.bcal-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  border-radius: 7px;
+  font-size: .72rem;
+  color: var(--muted);
+  transition: background .1s;
+}
+.bcal-cell.today { background: var(--surface2); color: var(--text); font-weight: 700; }
+.bcal-cell.bill-due  { color: var(--danger); }
+.bcal-cell.bill-paid { color: var(--success); }
+.bcal-num { line-height: 1; }
+.bcal-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 3px;
+}
+.bcal-cell.bill-due  .bcal-dot { background: var(--danger); }
+.bcal-cell.bill-paid .bcal-dot { background: var(--success); }
+
+/* ── debt payoff calculator ──────────────────────────────────────────────── */
+.debt-calc-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.debt-calc-strategy {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.debt-calc-hint {
+  font-size: .75rem;
+  color: var(--muted);
+  margin-bottom: 0;
+  min-height: 16px;
+}
+.debt-calc-results {
+  margin-top: 12px;
+  background: var(--surface2);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.debt-calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .82rem;
+}
+.debt-calc-name { color: var(--text); font-weight: 500; }
+.debt-calc-date { font-weight: 700; font-size: .8rem; }
+.debt-calc-total {
+  font-size: .8rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 2px;
+  text-align: center;
+}
 .acct-row:nth-child(n+7) { animation-delay: .30s; }

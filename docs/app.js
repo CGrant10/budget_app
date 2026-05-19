@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.8.2';
+const VERSION = '3.9.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,16 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.9.0', date: '2026-05-19', changes: [
+    'Haptic feedback — phone vibrates on transaction save, milestone hit, and bill marked paid',
+    'Swipe between tabs — swipe left/right on the main content area to move to the next or previous tab',
+    'Auto (System) theme — new theme option that follows your device dark/light preference automatically',
+    'Month-over-month deltas — Income and Expenses cards now show ↑/↓ vs last month in red/green',
+    'Spending insights rotating card — insights cycle automatically every 4 seconds with dot indicators',
+    'Bill calendar — mini monthly calendar on the Bills tab highlights every bill\'s due date',
+    'Debt payoff calculator — enter a monthly budget and get Snowball vs Avalanche payoff timelines',
+    'Nav sidebar fix — left/right nav scrolls vertically when items overflow',
+  ]},
   { version: '3.8.2', date: '2026-05-18', changes: [
     'What\'s New fix — 3.8.x changelog entries were missing, section now populates correctly',
   ]},
@@ -414,6 +424,7 @@ const THEMES = {
     accent:'#c8a020', accent2:'#c84820', success:'#5aaa40', warn:'#c8a020', danger:'#c84030',
     cats:{ Food:'#5aaa40', Gas:'#c84030', Car:'#c8a020', Boat:'#409870', Tools:'#c86020', Home:'#80a830', Entertainment:'#a07020', Health:'#50a860', Other:'#788858' },
   },
+  auto: { label:'✨ Auto (System)', ..._D, accent:'#7a8898', accent2:'#a07858', success:'#52a872', warn:'#c0a038', danger:'#c05050' },
 };
 
 let CAT_COLORS = {
@@ -432,6 +443,11 @@ let CAT_COLORS = {
   Income:        '#4ecb8d',
   Other:         '#9896a4',
 };
+
+// ── haptic feedback ────────────────────────────────────────────────────────
+function haptic(pattern = [10]) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch(e) {}
+}
 
 // ── audio ──────────────────────────────────────────────────────────────────
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -598,6 +614,9 @@ function applyNavItems(hiddenTabs) {
 }
 
 function applyTheme(theme) {
+  if (theme === 'auto') {
+    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
   const t = THEMES[theme] || THEMES.dark || THEMES[Object.keys(THEMES)[0]];
   const root = document.documentElement;
   root.style.setProperty('--bg',       t.bg);
@@ -859,6 +878,8 @@ function calcHealthScore() {
 let currentTab = 'dashboard';
 let dashMonth = new Date().toISOString().slice(0, 7);
 let debtSubTab = 'credit'; // 'credit' | 'loan'
+let debtCalcMode = 'snowball'; // 'snowball' | 'avalanche'
+let debtMonthlyPay = '';
 let showingAccountPicker = false;
 let _pageTransition = 'fade'; // 'fade' | 'slide-left' | 'slide-right'
 let selectedLedgerIdx = null;
@@ -868,12 +889,14 @@ let ledgerTypeFilter = 'all';
 let ledgerCatFilter = '';
 let ledgerDateFrom = '';
 let ledgerDateTo = '';
+let _insightTimer = null;
 
 function showTab(key) {
   if (currentTab === 'ledger' && key !== 'ledger') {
     ledgerFilter = ''; ledgerSort = 'date-desc'; ledgerTypeFilter = 'all';
     ledgerCatFilter = ''; ledgerDateFrom = ''; ledgerDateTo = '';
   }
+  if (_insightTimer) { clearInterval(_insightTimer); _insightTimer = null; }
   // About page always uses base dark/light — unaffected by Dusk/Denim/Ember etc.
   const activeTheme = (loadSettings().theme) || 'dark';
   if (key === 'about') {
@@ -1107,11 +1130,33 @@ function attachDashboard() {
       setTimeout(() => render(), 800);
     });
   }
+
+  // Rotating insights card
+  const rotator = document.getElementById('insight-rotator');
+  if (rotator) {
+    try {
+      const allInsights = JSON.parse(rotator.dataset.insights || '[]');
+      if (allInsights.length > 1) {
+        let insightIdx = 0;
+        if (_insightTimer) clearInterval(_insightTimer);
+        _insightTimer = setInterval(() => {
+          insightIdx = (insightIdx + 1) % allInsights.length;
+          const textEl  = document.getElementById('insight-text');
+          const dots    = rotator.querySelectorAll('.insight-dot');
+          if (textEl) {
+            textEl.style.opacity = '0';
+            setTimeout(() => { textEl.textContent = allInsights[insightIdx]; textEl.style.opacity = '1'; }, 250);
+          }
+          dots.forEach((d, i) => d.classList.toggle('active', i === insightIdx));
+        }, 4000);
+      }
+    } catch(e) {}
+  }
 }
 
 // ── milestones ─────────────────────────────────────────────────────────────
 function checkMilestones(prevBal, newBal) {
-  if (prevBal < 0 && newBal >= 0) setTimeout(showBalanceMilestone, 500);
+  if (prevBal < 0 && newBal >= 0) { haptic([40, 80, 40, 80, 80]); setTimeout(showBalanceMilestone, 500); }
 }
 
 function getWeekNumber(d) {
@@ -1361,6 +1406,69 @@ function renderDebt() {
       </div>`;
   }).join('');
 
+  // ── payoff calculator ──────────────────────────────────────────────────────
+  const payoffCalcHtml = (() => {
+    const budget = parseFloat(debtMonthlyPay) || 0;
+    // Build sorted debt list for the chosen strategy
+    const debtList = allDebt.map(a => {
+      const { owed } = getOwed(a);
+      return { name: a.name, owed };
+    }).filter(d => d.owed > 0);
+
+    let resultHtml = '';
+    if (budget > 0 && debtList.length > 0) {
+      const sorted = [...debtList].sort((a, b) =>
+        debtCalcMode === 'snowball' ? a.owed - b.owed : b.owed - a.owed);
+      // Simulate month-by-month payoff
+      const remaining = sorted.map(d => ({ ...d }));
+      const payoffMonths = {};
+      let month = 0;
+      const MAX = 600;
+      while (remaining.some(d => d.owed > 0.01) && month < MAX) {
+        month++;
+        let leftover = budget;
+        for (const d of remaining) {
+          if (d.owed <= 0) continue;
+          const pay = Math.min(leftover, d.owed);
+          d.owed -= pay;
+          leftover -= pay;
+          if (d.owed < 0.01 && !payoffMonths[d.name]) {
+            const dt = new Date(); dt.setMonth(dt.getMonth() + month);
+            payoffMonths[d.name] = { months: month, label: dt.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) };
+          }
+          if (leftover <= 0) break;
+        }
+      }
+      const totalMonths = month >= MAX ? null : month;
+      resultHtml = `
+        <div class="debt-calc-results">
+          ${sorted.map(d => {
+            const r = payoffMonths[d.name];
+            return `<div class="debt-calc-row">
+              <span class="debt-calc-name">${d.name}</span>
+              <span class="debt-calc-date" style="color:var(--success)">${r ? r.label : '50+ yrs'}</span>
+            </div>`;
+          }).join('')}
+          ${totalMonths ? `<div class="debt-calc-total">🏁 Debt-free by <strong>${(() => { const dt = new Date(); dt.setMonth(dt.getMonth() + totalMonths); return dt.toLocaleDateString('en-US',{month:'long',year:'numeric'}); })()}</strong> (${totalMonths} mo)</div>` : '<div class="debt-calc-total" style="color:var(--warn)">Increase budget to pay off in under 50 years</div>'}
+        </div>`;
+    }
+
+    return `
+      <div class="debt-calc-card">
+        <h2 class="section-title" style="margin:0 0 10px">Payoff Calculator</h2>
+        <div class="debt-calc-strategy">
+          <button class="debt-pill${debtCalcMode === 'snowball' ? ' active' : ''}" id="debt-calc-snowball">❄️ Snowball</button>
+          <button class="debt-pill${debtCalcMode === 'avalanche' ? ' active' : ''}" id="debt-calc-avalanche">🏔️ Avalanche</button>
+        </div>
+        <div class="debt-calc-hint">${debtCalcMode === 'snowball' ? 'Smallest balance first — quick wins' : 'Largest balance first — total focus'}</div>
+        <div class="form-row" style="margin:10px 0 0">
+          <label class="form-label">Monthly payment budget ($)</label>
+          <input type="number" id="debt-monthly-pay" class="form-input" placeholder="e.g. 500.00" value="${debtMonthlyPay}" step="0.01" inputmode="decimal">
+        </div>
+        ${resultHtml}
+      </div>`;
+  })();
+
   return `
     <div class="page">
       <h1 class="page-title">Debt</h1>
@@ -1370,18 +1478,28 @@ function renderDebt() {
         <div class="debt-summary-value" style="color:${totalOwed > 0 ? 'var(--danger)' : 'var(--success)'}">${fmt(totalOwed)}</div>
         <div class="debt-summary-sub">${allDebt.length} account${allDebt.length !== 1 ? 's' : ''}</div>
       </div>
+      ${payoffCalcHtml}
       ${subNavHtml}
       <div class="debt-acct-list">${acctCards}</div>
     </div>`;
 }
 
 function attachDebt() {
-  // Sub-tab pills
-  document.querySelectorAll('.debt-pill').forEach(btn => {
-    btn.addEventListener('click', () => {
-      debtSubTab = btn.dataset.sub;
-      render();
-    });
+  // Sub-tab pills (credit/loan)
+  document.querySelectorAll('.debt-pill[data-sub]').forEach(btn => {
+    btn.addEventListener('click', () => { debtSubTab = btn.dataset.sub; render(); });
+  });
+
+  // Payoff calculator strategy buttons
+  document.getElementById('debt-calc-snowball')?.addEventListener('click', () => { debtCalcMode = 'snowball'; render(); });
+  document.getElementById('debt-calc-avalanche')?.addEventListener('click', () => { debtCalcMode = 'avalanche'; render(); });
+
+  // Monthly payment input — re-calc on change
+  document.getElementById('debt-monthly-pay')?.addEventListener('input', e => {
+    debtMonthlyPay = e.target.value;
+    // Debounce: wait 600ms then re-render
+    clearTimeout(attachDebt._payTimer);
+    attachDebt._payTimer = setTimeout(() => render(), 600);
   });
 
   // Expand/collapse payment and charge lists
@@ -1571,10 +1689,28 @@ function renderDashboard() {
       ? `amount owed · ${debtTypeLbl}`
       : (state.startingBalance ? 'starting + income − expenses' : 'income − expenses');
   const health = calcHealthScore();
+
+  // ── month-over-month deltas ──────────────────────────────────────────────
+  const prevM = (() => {
+    const yr = parseInt(dashMonth.slice(0, 4));
+    const mo = parseInt(dashMonth.slice(5, 7));
+    return new Date(yr, mo - 2, 1).toISOString().slice(0, 7);
+  })();
+  const prevTotals = monthTotals(prevM);
+  const _momDelta = (cur, prev, higherIsBad) => {
+    if (!prev || prev === 0) return null;
+    const diff = cur - prev;
+    const pct  = Math.abs(diff / prev * 100).toFixed(0);
+    const up   = diff >= 0;
+    return { diff, pct, arrow: up ? '↑' : '↓', color: (up === higherIsBad) ? 'var(--danger)' : 'var(--success)' };
+  };
+  const incomeDelta  = _momDelta(income,  prevTotals.income,  false); // up = good
+  const expenseDelta = _momDelta(expense, prevTotals.expense, true);  // up = bad
+
   const cardDefs = [
     { title: balTitle, value: fmt(balance), color: balColor, sub: balSub },
-    { title: 'INCOME',   value: fmt(income),   color: 'var(--success)', sub: 'total earned' },
-    { title: 'EXPENSES', value: fmt(expense),  color: 'var(--danger)',  sub: 'total spent' },
+    { title: 'INCOME',   value: fmt(income),   color: 'var(--success)', sub: 'total earned', delta: incomeDelta },
+    { title: 'EXPENSES', value: fmt(expense),  color: 'var(--danger)',  sub: 'total spent',  delta: expenseDelta },
     { title: 'HEALTH',   value: String(health.total), color: health.color, sub: `grade ${health.grade}` },
   ];
 
@@ -1670,6 +1806,7 @@ function renderDashboard() {
       <div class="card-title">${c.title}</div>
       <div class="card-value" style="color:${c.color}">${c.value}</div>
       <div class="card-sub">${c.sub}</div>
+      ${c.delta ? `<div class="card-delta" style="color:${c.delta.color}">${c.delta.arrow} ${c.delta.pct}% vs last mo</div>` : ''}
     </div>`).join('');
 
   const nw = getNetWorth();
@@ -1730,10 +1867,14 @@ function renderDashboard() {
   const toggleLabel = dashChartMode === 'bar' ? '🥧 Pie' : '📊 Bar';
 
   const insights = getSpendingInsights(dashMonth);
+  const safeInsights = JSON.stringify(insights).replace(/'/g, '&#39;');
   const insightsHtml = showInsights && insights.length ? `
-    <h2 class="section-title">Insights</h2>
-    <div class="insights-list">
-      ${insights.map(i => `<div class="insight-item">${i}</div>`).join('')}
+    <div class="insight-card" id="insight-rotator" data-insights='${safeInsights}'>
+      <div class="insight-card-inner">
+        <span class="insight-card-icon">🐾</span>
+        <span class="insight-card-text" id="insight-text">${insights[0]}</span>
+      </div>
+      ${insights.length > 1 ? `<div class="insight-dots">${insights.map((_, i) => `<span class="insight-dot${i === 0 ? ' active' : ''}"></span>`).join('')}</div>` : ''}
     </div>` : '';
 
   return `
@@ -2179,6 +2320,37 @@ function renderBills() {
   const totalMonthly = state.bills.reduce((s, b) => s + b.amount, 0);
   const totalUnpaid  = state.bills.filter(b => b.paidMonth !== m).reduce((s, b) => s + b.amount, 0);
 
+  // ── bill calendar ──────────────────────────────────────────────────────────
+  const billCalHtml = (() => {
+    if (!state.bills.length) return '';
+    const now2     = new Date();
+    const yr2      = now2.getFullYear();
+    const mo2      = now2.getMonth();
+    const firstDay = new Date(yr2, mo2, 1).getDay();   // 0=Sun
+    const daysInM  = new Date(yr2, mo2 + 1, 0).getDate();
+    const todayD   = now2.getDate();
+    const curM     = now2.toISOString().slice(0, 7);
+    // Map dueDay -> bills
+    const billsByDay = {};
+    state.bills.forEach(b => { (billsByDay[b.dueDay] = billsByDay[b.dueDay] || []).push(b); });
+    const dayHdrs = ['S','M','T','W','T','F','S'].map(d => `<div class="bcal-hdr">${d}</div>`).join('');
+    let cells = '';
+    for (let i = 0; i < firstDay; i++) cells += '<div class="bcal-cell"></div>';
+    for (let d = 1; d <= daysInM; d++) {
+      const bs   = billsByDay[d] || [];
+      const paid = bs.length && bs.every(b => b.paidMonth === curM);
+      const cls  = ['bcal-cell', d === todayD ? 'today' : '', bs.length ? (paid ? 'bill-paid' : 'bill-due') : ''].filter(Boolean).join(' ');
+      const tip  = bs.map(b => b.name).join(', ');
+      cells += `<div class="${cls}"${tip ? ` title="${tip}"` : ''}><span class="bcal-num">${d}</span>${bs.length ? '<span class="bcal-dot"></span>' : ''}</div>`;
+    }
+    return `
+      <div class="bill-cal">
+        <div class="bcal-month">${now2.toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
+        <div class="bcal-legend"><span class="bcal-legend-due"></span>Due <span class="bcal-legend-paid"></span>Paid</div>
+        <div class="bcal-grid">${dayHdrs}${cells}</div>
+      </div>`;
+  })();
+
   return `
     <div class="page">
       <h1 class="page-title">Bills</h1>
@@ -2195,7 +2367,8 @@ function renderBills() {
           <div class="card-value" style="color:${totalUnpaid>0?'var(--warn)':'var(--success)'}">${fmt(totalUnpaid)}</div>
           <div class="card-sub">this month</div>
         </div>
-      </div>` : ''}
+      </div>
+      ${billCalHtml}` : ''}
       <div class="form-card">
         <h2 class="section-title" style="margin:0 0 8px">Add Bill</h2>
         <div class="form-row">
@@ -2243,6 +2416,7 @@ function attachBills() {
       const m    = new Date().toISOString().slice(0, 7);
       state.bills[i].paidMonth = paid ? null : m;
       await api.saveBills(state.bills);
+      if (!paid) haptic([20, 40, 20]);
       if (!paid) {
         // Was just marked paid — offer to log as expense
         const b = state.bills[i];
@@ -3210,6 +3384,7 @@ function attachAdd() {
     document.getElementById('add-desc').value   = '';
     document.getElementById('add-recurring').checked = false;
     playSound(t.type);
+    haptic(t.type === 'income' ? [20, 50, 20] : [30]);
     if (localStorage.getItem('sounds') !== 'off') {
       if (t.type === 'expense') showRobbery(t.amount);
       else if (t.type === 'income') showPayday(t.amount);
@@ -3563,6 +3738,32 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
     render();
     updateBillBadge();
     checkBillNotifications();
+
+    // ── swipe between tabs ────────────────────────────────────────────────
+    (function attachSwipeTabs() {
+      const mc = document.getElementById('main-content');
+      if (!mc) return;
+      let tx0 = 0, ty0 = 0;
+      mc.addEventListener('touchstart', e => {
+        tx0 = e.touches[0].clientX; ty0 = e.touches[0].clientY;
+      }, { passive: true });
+      mc.addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].clientX - tx0;
+        const dy = Math.abs(e.changedTouches[0].clientY - ty0);
+        if (Math.abs(dx) < 55 || dy > 45) return;
+        const hidden  = loadSettings().hiddenTabs || [];
+        const visible = NAV_ITEMS.map(n => n.key).filter(k => !hidden.includes(k));
+        const idx     = visible.indexOf(currentTab);
+        if (dx < 0 && idx < visible.length - 1) showTab(visible[idx + 1]);
+        else if (dx > 0 && idx > 0)              showTab(visible[idx - 1]);
+      }, { passive: true });
+    })();
+
+    // ── auto-theme: update when system preference changes ─────────────────
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      const s = loadSettings();
+      if ((s.theme || 'dark') === 'auto') applySettings();
+    });
 
     // Check for a new version every open and every time the app is foregrounded
     checkForUpdate();
