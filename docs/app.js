@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.1.3';
+const VERSION = '4.1.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,14 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.1.4', date: '2026-05-19', changes: [
+    'Savings/checking: "Set your starting balance" prompt no longer appears when a starting balance is already saved',
+    'Loan & credit card dashboards: income and expense tiles removed — debt accounts show only what you owe',
+    'Loan dashboard: all income, expense, health, chart, breakdown, and insights sections hidden — loans show balance owed and payment history only',
+    'Net worth tile hidden for debt accounts (credit cards and loans)',
+    'Debt dashboard: due date pulled from matching bill entry and shown on the account card',
+    'Debt dashboard: transaction list section renamed to "Payment History"',
+  ]},
   { version: '4.1.3', date: '2026-05-19', changes: [
     'Weekly planner: past weeks now live in a frozen DOM section — they are written once and never re-rendered when balance, buffer, or paydate changes',
     'Weekly planner: dragging the emergency buffer slider no longer triggers the swipe-to-change-tabs gesture',
@@ -1881,7 +1889,10 @@ function renderDashboard() {
   const incomeDelta  = _momDelta(income,  prevTotals.income,  false); // up = good
   const expenseDelta = _momDelta(expense, prevTotals.expense, true);  // up = bad
 
-  const cardDefs = [
+  // Debt accounts only show the balance owed — no income / expense / health tiles
+  const cardDefs = isDebt ? [
+    { title: balTitle, value: fmt(balance), color: balColor, sub: balSub },
+  ] : [
     { title: balTitle, value: fmt(balance), color: balColor, sub: balSub },
     { title: 'INCOME',   value: fmt(income),   color: 'var(--success)', sub: 'total earned', delta: incomeDelta },
     { title: 'EXPENSES', value: fmt(expense),  color: 'var(--danger)',  sub: 'total spent',  delta: expenseDelta },
@@ -1906,6 +1917,15 @@ function renderDashboard() {
       </div>`;
   } else if (isDebt && state.startingBalance) {
     // Rich debt summary card — replaces the first-run prompt once balance is set
+    const _ordinal = n => n + (n%10===1&&n%100!==11?'st':n%10===2&&n%100!==12?'nd':n%10===3&&n%100!==13?'rd':'th');
+    const _acctNameLow = (acct?.name||'').toLowerCase();
+    const _matchedBill = state.bills.find(b => {
+      const bn = b.name.toLowerCase();
+      return bn === _acctNameLow || bn.includes(_acctNameLow) || _acctNameLow.includes(bn);
+    });
+    const dueDateHtml = _matchedBill
+      ? `<div class="debt-dash-due"><span class="debt-dash-due-label">Payment Due</span><span class="debt-dash-due-val">${_ordinal(_matchedBill.dueDay)} of each month</span></div>`
+      : '';
     const recentTxns = [...state.transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
     const txnRowsHtml = recentTxns.length ? recentTxns.map(t => {
       const isPayment = t.type === 'income';
@@ -1957,12 +1977,13 @@ function renderDashboard() {
             <div class="debt-dash-owed-lbl">owed</div>
           </div>
         </div>
+        ${dueDateHtml}
         ${catHtml}
-        <div class="debt-dash-section">${acct?.type === 'loan' ? 'Payment History' : 'Recent Transactions'}</div>
+        <div class="debt-dash-section">Payment History</div>
         <div class="debt-dash-txns">${txnRowsHtml}</div>
       </div>`;
-  } else if (state.transactions.length === 0) {
-    // Regular account, no transactions yet
+  } else if (state.transactions.length === 0 && !state.startingBalance) {
+    // Regular account with no transactions and no starting balance set yet
     firstRunHtml = `
       <div class="form-card first-run-card" style="margin-bottom:16px;text-align:center;padding:20px">
         <div style="font-size:1.5rem;margin-bottom:8px">👋</div>
@@ -1984,7 +2005,7 @@ function renderDashboard() {
     </div>`).join('');
 
   const nw = getNetWorth();
-  const netWorthHtml = showNetWorth && state.accounts.length >= 2 ? `
+  const netWorthHtml = showNetWorth && !isDebt && state.accounts.length >= 2 ? `
     <div class="net-worth-card">
       <div class="net-worth-total-label">Net Worth</div>
       <div class="net-worth-total-value" style="color:${nw.total >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(nw.total)}</div>
@@ -2062,14 +2083,14 @@ function renderDashboard() {
       </div>
       <div class="cards-grid">${cardsHtml}</div>
       ${netWorthHtml}
-      ${upcomingHtml}
-      ${insightsHtml}
-      ${showChart ? `<div class="chart-header">
+      ${!isDebt ? upcomingHtml : ''}
+      ${!isDebt ? insightsHtml : ''}
+      ${!isDebt && showChart ? `<div class="chart-header">
         <div class="section-title chart-section-title" style="margin:0">${chartTitle}</div>
         <button id="chart-toggle-btn" class="btn-xs">${toggleLabel}</button>
       </div>
       <div class="chart-wrap"><canvas id="spending-chart"></canvas></div>` : ''}
-      ${showBreakdown && Object.keys(bycat).length ? `<h2 class="section-title">Spending by Category</h2><div class="breakdown">${breakdownHtml}</div>` : ''}
+      ${!isDebt && showBreakdown && Object.keys(bycat).length ? `<h2 class="section-title">Spending by Category</h2><div class="breakdown">${breakdownHtml}</div>` : ''}
     </div>`;
 }
 

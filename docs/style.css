@@ -1631,6 +1631,9 @@ body.light .section-title::before {
 .debt-dash-txn-type { font-size:.72rem; font-weight:700; min-width:56px; }
 .debt-dash-txn-desc { flex:1; font-size:.8rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .debt-dash-txn-amt { font-size:.85rem; font-weight:700; white-space:nowrap; }
+.debt-dash-due { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-top:1px solid var(--border); background:rgba(255,255,255,.03); }
+.debt-dash-due-label { font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.debt-dash-due-val { font-size:.88rem; font-weight:700; color:var(--warn); }
 
 /* ── splash screen ── */
 .splash-screen {
