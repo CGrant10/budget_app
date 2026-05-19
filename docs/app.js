@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.9.2';
+const VERSION = '3.9.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.9.3', date: '2026-05-19', changes: [
+    'Nav sidebar — solid background replaces frosted glass in side-nav mode; header clipped to its own column so title can no longer visually bleed into the sidebar',
+  ]},
   { version: '3.9.2', date: '2026-05-19', changes: [
     'Nav sidebar — header no longer overlaps the sidebar; header starts at the sidebar edge so the sidebar runs full screen height top to bottom unobstructed',
   ]},
