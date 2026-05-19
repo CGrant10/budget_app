@@ -1747,32 +1747,174 @@ body.light .section-title::before {
 .dawg-empty { font-size:.8rem; color:var(--muted); padding:6px 0; }
 
 /* ── DAWG mode ────────────────────────────────────────────────────────────── */
-/* Hide the standard top header — the hero section replaces it */
-#app.dawg-mode .header { display:none !important; }
+/* Hide the standard top header and bottom nav — DAWG elements replace them */
+#app.dawg-mode .header      { display:none !important; }
+#app.dawg-mode .bottom-nav  { display:none !important; }
+#app.dawg-mode #main-content { padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px); }
 
-/* Account switcher button — top-right corner of hero */
+/* DAWG 5-tab bottom nav */
+#dawg-bottom-nav {
+  display:none;
+  position:fixed; bottom:0; left:0; right:0;
+  height:calc(var(--nav-h) + var(--safe-bottom));
+  padding-bottom:var(--safe-bottom);
+  background:var(--surface); border-top:1px solid var(--border);
+  align-items:center; justify-content:space-around;
+  z-index:200; backdrop-filter:blur(14px);
+}
+#app.dawg-mode #dawg-bottom-nav { display:flex; }
+
+.dawg-nav-btn {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:3px; background:none; border:none;
+  color:var(--muted); cursor:pointer; height:100%; padding:0 4px;
+  font-family:var(--font-body); transition:color .15s;
+}
+.dawg-nav-btn.dawg-nav-active { color:var(--accent); }
+.dawg-nav-icon { line-height:1; }
+.dawg-nav-icon svg { width:21px; height:21px; display:block; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; transition:fill .15s, stroke .15s; }
+.dawg-nav-btn.dawg-nav-active .dawg-nav-icon svg { fill:currentColor; stroke:none; }
+.dawg-nav-lbl { font-size:.67rem; font-weight:600; letter-spacing:.02em; }
+
+/* Center home/accounts button */
+.dawg-nav-center-btn {
+  flex:0 0 58px !important; width:58px !important; height:54px;
+  background:var(--accent) !important; border-radius:16px;
+  color:#000 !important; padding:0; margin-bottom:4px;
+  box-shadow:0 2px 16px rgba(57,255,20,.35), 0 0 0 3px var(--bg);
+  justify-content:center; gap:0;
+}
+.dawg-nav-center-btn .dawg-nav-icon svg { width:22px; height:22px; fill:currentColor; stroke:none; }
+body.light .dawg-nav-center-btn { box-shadow:0 2px 16px rgba(34,170,34,.4), 0 0 0 3px var(--bg); }
+
+/* Hero topbar — 3-column grid: hamburger | account pill | bell */
 .dawg-hero-topbar {
   position:relative; z-index:2;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:14px 14px 0;
+  display:grid; grid-template-columns:44px 1fr 44px;
+  align-items:center; padding:14px 14px 0; gap:8px;
 }
-.dawg-logo-img {
-  height:42px; width:auto; object-fit:contain;
-  background:rgba(255,255,255,.9);
-  border-radius:10px; padding:3px 10px;
-}
-body.light .dawg-logo-img { background:transparent; padding:0; border-radius:0; }
 
-.dawg-acct-btn {
-  background:rgba(0,0,0,.4); border:1px solid var(--border);
-  color:var(--accent); font-size:1.1rem; line-height:1;
-  width:34px; height:34px; border-radius:8px; flex-shrink:0;
+/* Hamburger button */
+.dawg-hamburger {
+  width:40px; height:40px; background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.14); border-radius:10px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; cursor:pointer; padding:0; backdrop-filter:blur(4px);
+  transition:background .15s;
+}
+.dawg-hamburger:active { background:rgba(255,255,255,.18); }
+.dawg-ham-bar {
+  width:16px; height:2px; border-radius:2px;
+  background:var(--text); display:block;
+}
+
+/* Account pill — center of topbar */
+.dawg-acct-pill {
+  display:flex; align-items:center; justify-content:center; gap:5px;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14);
+  border-radius:20px; padding:8px 14px; cursor:pointer;
+  font-family:var(--font-body); transition:background .15s; min-width:0;
+}
+.dawg-acct-pill:active { background:rgba(255,255,255,.18); }
+.dawg-acct-pill-icon { font-size:.9rem; flex-shrink:0; }
+.dawg-acct-pill-name {
+  font-size:.8rem; font-weight:700; color:var(--text);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px;
+}
+.dawg-acct-pill-arrow { font-size:.7rem; color:var(--muted); flex-shrink:0; margin-left:2px; }
+.dawg-acct-pill-solo { cursor:default; }
+
+/* Bell button */
+.dawg-bell-btn {
+  width:40px; height:40px; background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.14); border-radius:10px;
   display:flex; align-items:center; justify-content:center;
-  cursor:pointer; backdrop-filter:blur(4px);
+  cursor:pointer; position:relative; backdrop-filter:blur(4px);
+  color:var(--text); transition:background .15s; padding:0;
 }
+.dawg-bell-btn:active { background:rgba(255,255,255,.18); }
+.dawg-bell-badge {
+  position:absolute; top:4px; right:4px;
+  min-width:16px; height:16px; border-radius:8px;
+  background:var(--danger); color:#fff; font-size:.58rem; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+  padding:0 3px; line-height:1; pointer-events:none; border:1.5px solid var(--surface);
+}
+.dawg-bell-badge.hidden { display:none; }
 
-/* Light mode — structural overrides only; colors come from CSS vars automatically */
-body.light .dawg-acct-btn { background:rgba(255,255,255,.7); }
+/* DAWG hamburger drawer */
+.dawg-drawer-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.52);
+  z-index:500; backdrop-filter:blur(2px);
+}
+.dawg-drawer {
+  position:fixed; top:0; left:0; bottom:0; width:265px;
+  background:var(--surface); border-right:1px solid var(--border);
+  z-index:501; display:flex; flex-direction:column;
+  box-shadow:6px 0 36px rgba(0,0,0,.55);
+  transform:translateX(-100%); transition:transform .25s cubic-bezier(.4,0,.2,1);
+}
+.dawg-drawer.open { transform:translateX(0); }
+.dawg-drawer-overlay.hidden { display:none; }
+.dawg-drawer.hidden { display:none; }
+.dawg-drawer-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:20px 16px 14px; border-bottom:1px solid var(--border);
+}
+.dawg-drawer-title {
+  font-size:.72rem; font-weight:800; letter-spacing:.12em; color:var(--muted);
+}
+.dawg-drawer-close {
+  background:none; border:none; color:var(--muted); font-size:1rem; cursor:pointer;
+  width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+  border-radius:8px; transition:color .15s, background .15s;
+}
+.dawg-drawer-close:active { color:var(--text); background:var(--surface2); }
+@media (hover:hover) { .dawg-drawer-close:hover { color:var(--text); background:var(--surface2); } }
+.dawg-drawer-items { flex:1; overflow-y:auto; padding:8px 0; }
+.dawg-drawer-item {
+  width:100%; display:flex; align-items:center; gap:14px;
+  padding:15px 20px; background:none; border:none; cursor:pointer;
+  font-family:var(--font-body); transition:background .15s; border-radius:0;
+}
+.dawg-drawer-item:active { background:var(--surface2); }
+@media (hover:hover) { .dawg-drawer-item:hover { background:var(--surface2); } }
+.dawg-di-icon { font-size:1.1rem; width:26px; text-align:center; flex-shrink:0; }
+.dawg-di-lbl  { font-size:.9rem; font-weight:600; color:var(--text); }
+
+/* DAWG notification bell panel */
+.dawg-bell-panel {
+  position:fixed; top:72px; right:14px; width:282px; max-height:340px;
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  overflow:hidden; overflow-y:auto; z-index:502;
+  box-shadow:0 8px 36px rgba(0,0,0,.55);
+}
+.dawg-bell-panel.hidden { display:none; }
+.dawg-notif-header {
+  padding:12px 16px 10px; border-bottom:1px solid var(--border);
+  font-size:.68rem; font-weight:800; letter-spacing:.1em; color:var(--muted);
+  position:sticky; top:0; background:var(--surface);
+}
+.dawg-notif-row {
+  display:flex; align-items:flex-start; gap:10px;
+  padding:12px 16px; border-bottom:1px solid var(--border);
+}
+.dawg-notif-row:last-child { border-bottom:none; }
+.dawg-notif-icon { font-size:1.05rem; flex-shrink:0; margin-top:1px; }
+.dawg-notif-body { flex:1; min-width:0; }
+.dawg-notif-title { font-size:.82rem; font-weight:700; color:var(--text); }
+.dawg-notif-sub { font-size:.71rem; color:var(--muted); margin-top:2px; }
+.dawg-notif-empty { padding:18px 16px; text-align:center; font-size:.83rem; color:var(--muted); }
+
+/* Light mode overrides */
+body.light .dawg-hamburger,
+body.light .dawg-bell-btn { background:rgba(0,0,0,.06); border-color:rgba(0,0,0,.12); color:var(--text); }
+body.light .dawg-hamburger:active,
+body.light .dawg-bell-btn:active { background:rgba(0,0,0,.12); }
+body.light .dawg-acct-pill { background:rgba(0,0,0,.06); border-color:rgba(0,0,0,.12); }
+body.light .dawg-acct-pill:active { background:rgba(0,0,0,.12); }
+body.light .dawg-ham-bar { background:var(--text); }
+body.light #dawg-bottom-nav { background:rgba(255,255,255,.92); }
 body.light .dawg-hero { background:linear-gradient(180deg,#f0f0f0 0%,var(--bg) 100%); }
 body.light .dawg-hero-tagline { color:#111; text-shadow:none; }
 body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }

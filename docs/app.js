@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.2.3';
+const VERSION = '4.2.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1145,6 +1145,8 @@ function showTab(key) {
   currentTab = key;
   document.querySelectorAll('.nav-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.tab === key));
+  document.querySelectorAll('.dawg-nav-btn[data-tab]').forEach(b =>
+    b.classList.toggle('dawg-nav-active', b.dataset.tab === key));
   render();
 }
 
@@ -1941,7 +1943,9 @@ function renderDashboardDawg() {
   const _wkNow      = new Date(); _wkNow.setHours(0,0,0,0);
   const _wkMon      = new Date(_wkNow); _wkMon.setDate(_wkNow.getDate() - (_wkNow.getDay()===0?6:_wkNow.getDay()-1));
   const _monStr     = _wkMon.toISOString().split('T')[0];
-  const weekSpent   = state.transactions.filter(t => t.type==='expense' && t.date >= _monStr).reduce((s,t)=>s+t.amount,0);
+  const _wkExp      = state.transactions.filter(t => t.type==='expense' && t.date >= _monStr).reduce((s,t)=>s+t.amount,0);
+  const _wkInc      = state.transactions.filter(t => t.type==='income'  && t.date >= _monStr).reduce((s,t)=>s+t.amount,0);
+  const weekSpent   = Math.max(0, _wkExp - _wkInc);
   const totalBudget = weekBudget || Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
   const budgetSpent = weekBudget ? weekSpent : mExp;
   const budgetPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
@@ -2000,12 +2004,26 @@ function renderDashboardDawg() {
   }).join('') : '<p class="dawg-empty">No transactions yet</p>';
 
   const multiAcct = state.accounts && state.accounts.length > 1;
+  const _curAcct  = state.accounts.find(a => a.id === currentAccountId);
+  const _acctName = _curAcct?.name || 'Account';
   return `<div class="dawg-page">
     <div class="dawg-hero">
       <div class="dawg-hero-glow"></div>
       <div class="dawg-hero-topbar">
-        <img src="./newicon.png" class="dawg-logo-img" alt="$MY budgeting DAWGS">
-        ${multiAcct ? `<button class="dawg-acct-btn" id="dawg-acct-switch" title="Switch account">⊞</button>` : ''}
+        <button class="dawg-hamburger" id="dawg-hamburger" aria-label="Menu">
+          <span class="dawg-ham-bar"></span>
+          <span class="dawg-ham-bar"></span>
+          <span class="dawg-ham-bar"></span>
+        </button>
+        <button class="dawg-acct-pill${multiAcct ? ' dawg-acct-pill-multi' : ' dawg-acct-pill-solo'}" id="dawg-acct-switch" title="${multiAcct ? 'Switch account' : _acctName}">
+          <span class="dawg-acct-pill-icon">🏦</span>
+          <span class="dawg-acct-pill-name">${_acctName}</span>
+          ${multiAcct ? '<span class="dawg-acct-pill-arrow">▾</span>' : ''}
+        </button>
+        <button class="dawg-bell-btn" id="dawg-bell" aria-label="Notifications">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="dawg-bell-badge hidden" id="dawg-bell-badge">0</span>
+        </button>
       </div>
       <div class="dawg-hero-inner">
         <div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin">LOCK IN.</em></div>
@@ -3612,12 +3630,83 @@ function attachSwipeDelete() {
 }
 
 // ── event handlers ─────────────────────────────────────────────────────────
-function attachDashboardDawg() {
-  // Account switcher — shows picker overlay
-  document.getElementById('dawg-acct-switch')?.addEventListener('click', () => {
-    showingAccountPicker = true;
-    render();
+// ── DAWG utility functions ─────────────────────────────────────────────────
+function openDawgDrawer() {
+  const overlay = document.getElementById('dawg-drawer-overlay');
+  const drawer  = document.getElementById('dawg-drawer');
+  if (!overlay || !drawer) return;
+  overlay.classList.remove('hidden');
+  drawer.classList.remove('hidden');
+  requestAnimationFrame(() => drawer.classList.add('open'));
+}
+function closeDawgDrawer() {
+  const drawer  = document.getElementById('dawg-drawer');
+  const overlay = document.getElementById('dawg-drawer-overlay');
+  if (!drawer) return;
+  drawer.classList.remove('open');
+  setTimeout(() => {
+    drawer.classList.add('hidden');
+    overlay?.classList.add('hidden');
+  }, 250);
+}
+function getDawgNotifications() {
+  const notes = [];
+  notes.push({ type:'update', icon:'🆕', title:`v${VERSION} installed`, body:'Budget DAWGs is up to date' });
+  const now = new Date(); now.setHours(0,0,0,0);
+  const in3 = new Date(now); in3.setDate(now.getDate()+3);
+  const todayStr = now.toISOString().split('T')[0];
+  const limitStr = in3.toISOString().split('T')[0];
+  (state.bills||[]).forEach(b => {
+    if (b.next_due && b.next_due >= todayStr && b.next_due <= limitStr) {
+      const d = Math.round((new Date(b.next_due+'T00:00:00') - now) / 86400000);
+      notes.push({ type:'bill', icon:'📄', title:`${b.name} due`, body: d===0 ? 'Due today!' : `Due in ${d} day${d===1?'':'s'}` });
+    }
   });
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const { expense: _mExp } = monthTotals(thisMonth);
+  const _tBudget = Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
+  if (_tBudget > 0 && _mExp > _tBudget) {
+    notes.push({ type:'warn', icon:'⚠️', title:'Over budget', body:`${fmt(_mExp - _tBudget)} over monthly budget` });
+  }
+  return notes;
+}
+function updateDawgBellBadge() {
+  const badge = document.getElementById('dawg-bell-badge');
+  if (!badge) return;
+  const count = getDawgNotifications().filter(n => n.type !== 'update').length;
+  if (count > 0) { badge.textContent = count; badge.classList.remove('hidden'); }
+  else { badge.classList.add('hidden'); }
+}
+function toggleDawgBell() {
+  const panel = document.getElementById('dawg-bell-panel');
+  if (!panel) return;
+  if (panel.classList.contains('hidden')) {
+    const notes = getDawgNotifications();
+    panel.innerHTML = `<div class="dawg-notif-header">NOTIFICATIONS</div>` +
+      (notes.length
+        ? notes.map(n => `<div class="dawg-notif-row"><span class="dawg-notif-icon">${n.icon}</span><div class="dawg-notif-body"><div class="dawg-notif-title">${n.title}</div><div class="dawg-notif-sub">${n.body}</div></div></div>`).join('')
+        : `<div class="dawg-notif-empty">No new notifications</div>`);
+    panel.classList.remove('hidden');
+    setTimeout(() => {
+      const closePanel = e => {
+        if (!panel.contains(e.target) && e.target.id !== 'dawg-bell') {
+          panel.classList.add('hidden');
+          document.removeEventListener('click', closePanel);
+        }
+      };
+      document.addEventListener('click', closePanel);
+    }, 10);
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+
+function attachDashboardDawg() {
+  // Account switcher — shows picker overlay (only clickable if multi-account)
+  const _pillBtn = document.getElementById('dawg-acct-switch');
+  if (_pillBtn && state.accounts && state.accounts.length > 1) {
+    _pillBtn.addEventListener('click', () => { showingAccountPicker = true; render(); });
+  }
 
   document.getElementById('dawg-goto-budgets')?.addEventListener('click', () => showTab('budgets'));
   document.getElementById('dawg-goto-ledger')?.addEventListener('click',  () => showTab('ledger'));
@@ -3631,7 +3720,9 @@ function attachDashboardDawg() {
     const _wb       = parseFloat(_wp2?.per_week || 0);
     const _dn       = new Date(); _dn.setHours(0,0,0,0);
     const _dm       = new Date(_dn); _dm.setDate(_dn.getDate() - (_dn.getDay()===0?6:_dn.getDay()-1));
-    const _ws       = state.transactions.filter(t=>t.type==='expense'&&t.date>=_dm.toISOString().split('T')[0]).reduce((s,t)=>s+t.amount,0);
+    const _wse      = state.transactions.filter(t=>t.type==='expense'&&t.date>=_dm.toISOString().split('T')[0]).reduce((s,t)=>s+t.amount,0);
+    const _wsi      = state.transactions.filter(t=>t.type==='income' &&t.date>=_dm.toISOString().split('T')[0]).reduce((s,t)=>s+t.amount,0);
+    const _ws       = Math.max(0, _wse - _wsi);
     const _tm       = `${_dn.getFullYear()}-${String(_dn.getMonth()+1).padStart(2,'0')}`;
     const { expense: _me } = monthTotals(_tm);
     const _tb       = _wb || Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
@@ -3685,6 +3776,11 @@ function attachDashboardDawg() {
     });
   });
   buildSparkline('1m');
+
+  // Hamburger + bell — in the hero so re-attached each render
+  document.getElementById('dawg-hamburger')?.addEventListener('click', openDawgDrawer);
+  document.getElementById('dawg-bell')?.addEventListener('click', toggleDawgBell);
+  updateDawgBellBadge();
 }
 
 function attachHandlers() {
@@ -4114,6 +4210,25 @@ function showPinLock(onSuccess) {
 document.querySelectorAll('.nav-btn').forEach(btn =>
   btn.addEventListener('click', () => {
     spawnDollarBurst(btn);
+    showTab(btn.dataset.tab);
+  }));
+
+// DAWG 5-tab bottom nav (permanent HTML elements)
+document.querySelectorAll('.dawg-nav-btn[data-tab]').forEach(btn =>
+  btn.addEventListener('click', () => {
+    spawnDollarBurst(btn);
+    showTab(btn.dataset.tab);
+  }));
+document.getElementById('dawg-nav-accts')?.addEventListener('click', () => {
+  showingAccountPicker = true;
+  render();
+});
+// DAWG drawer close + item listeners (permanent HTML elements)
+document.getElementById('dawg-drawer-close')?.addEventListener('click', closeDawgDrawer);
+document.getElementById('dawg-drawer-overlay')?.addEventListener('click', closeDawgDrawer);
+document.querySelectorAll('.dawg-drawer-item').forEach(btn =>
+  btn.addEventListener('click', () => {
+    closeDawgDrawer();
     showTab(btn.dataset.tab);
   }));
 
