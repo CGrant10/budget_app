@@ -77,8 +77,15 @@ body::before {
 
 /* nav-left / nav-right: row layout, nav is a vertical sidebar */
 #app.nav-left, #app.nav-right { flex-direction: row; }
-#app.nav-left  .header, #app.nav-right .header {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+#app.nav-left  .header {
+  position: fixed; top: 0; left: var(--nav-h); right: 0; z-index: 10;
+  height: calc(var(--header-h) + env(safe-area-inset-top, 0px));
+  align-items: flex-end;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: 10px;
+}
+#app.nav-right .header {
+  position: fixed; top: 0; left: 0; right: var(--nav-h); z-index: 10;
   height: calc(var(--header-h) + env(safe-area-inset-top, 0px));
   align-items: flex-end;
   padding-top: env(safe-area-inset-top, 0px);
@@ -100,8 +107,8 @@ body::before {
   border-top: none;
   border-right: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px));
-  z-index: 9;
+  padding-top: max(env(safe-area-inset-top, 0px), 12px);
+  z-index: 11;
 }
 #app.nav-right .bottom-nav {
   position: fixed;
@@ -111,16 +118,16 @@ body::before {
   border-top: none;
   border-left: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px));
-  z-index: 9;
+  padding-top: max(env(safe-area-inset-top, 0px), 12px);
+  z-index: 11;
 }
 /* Main content needs a margin to clear the fixed sidebar */
 #app.nav-left  #main-content { margin-left: var(--nav-h); }
 #app.nav-right #main-content { margin-right: var(--nav-h); }
 #app.nav-left  .nav-btn, #app.nav-right .nav-btn { flex: 0 0 auto; padding: 14px 0; width: 100%; }
-/* Offset header content so it doesn't overlap the sidebar column */
-#app.nav-left  .header .header-inner { padding: 0 20px 0 calc(var(--nav-h) + 18px); }
-#app.nav-right .header .header-inner { padding: 0 calc(var(--nav-h) + 18px) 0 20px; }
+/* Header inner padding — sidebar no longer overlaps header so just standard padding */
+#app.nav-left  .header .header-inner { padding: 0 20px; }
+#app.nav-right .header .header-inner { padding: 0 20px; }
 
 /* ── header ──────────────────────────────────────────────────────────────── */
 .header {
