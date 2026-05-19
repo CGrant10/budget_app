@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.0.1';
+const VERSION = '4.0.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.0.2', date: '2026-05-19', changes: [
+    'Status bar color now matches the app background — updates live when theme changes',
+  ]},
   { version: '4.0.1', date: '2026-05-19', changes: [
     'Insights card: background is now deep black-green → brand green gradient (no more brownish/amber end)',
     'Settings: Personalize section removed (app title, font picker, caps, color)',
@@ -678,6 +681,7 @@ function applyTheme(theme) {
   const t = THEMES[theme] || THEMES.dark || THEMES[Object.keys(THEMES)[0]];
   const root = document.documentElement;
   root.style.setProperty('--bg',       t.bg);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.bg);
   root.style.setProperty('--surface',  t.surface);
   root.style.setProperty('--surface2', t.surface2);
   root.style.setProperty('--card',     t.card);
