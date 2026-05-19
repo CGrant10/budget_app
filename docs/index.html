@@ -189,6 +189,26 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="animations.js"></script>
+  <!-- Splash escape: runs before app.js so it works even if app.js has an error -->
+  <script>
+    (function() {
+      var el = document.getElementById('splash-screen');
+      if (!el) return;
+      var done = false;
+      function dismiss() {
+        if (done) return;
+        done = true;
+        el.classList.add('dismiss');
+        setTimeout(function() { if (el.parentNode) el.remove(); }, 460);
+      }
+      // Tap anywhere to skip
+      el.addEventListener('click', dismiss);
+      // Auto-dismiss at 2s (normal load) — app.js overrides with its own timing
+      setTimeout(dismiss, 2000);
+      // Nuclear fallback at 6s regardless
+      setTimeout(function() { if (!done) { done = true; if (el.parentNode) el.remove(); } }, 6000);
+    })();
+  </script>
   <script src="app.js"></script>
 </body>
 </html>

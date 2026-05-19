@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.3.4';
+const VERSION = '4.3.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -4373,69 +4373,70 @@ async function checkForUpdate() {
 // ── what's new popup ──────────────────────────────────────────────────────
 function maybeShowWhatsNew() {
   const seenKey = 'slawminyaw_seen_version';
-  if (localStorage.getItem(seenKey) === VERSION) return; // already seen this version
-  const entry = CHANGELOG.find(c => c.version === VERSION);
+  if (localStorage.getItem(seenKey) === VERSION) return;
+  const entry = CHANGELOG.find(function(c) { return c.version === VERSION; });
   if (!entry || !entry.changes.length) {
     localStorage.setItem(seenKey, VERSION);
     return;
   }
 
+  // Build with DOM methods — no nested template literals
   const overlay = document.createElement('div');
   overlay.id = 'whats-new-overlay';
-  overlay.style.cssText = `
-    position:fixed;inset:0;z-index:10000;
-    background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
-    display:flex;align-items:center;justify-content:center;padding:20px;
-  `;
-  overlay.innerHTML = `
-    <div id="whats-new-card" style="
-      background:var(--surface);border:1px solid var(--border);border-radius:22px;
-      padding:24px 22px 20px;max-width:420px;width:100%;
-      box-shadow:0 8px 48px rgba(0,0,0,.7);
-      max-height:80dvh;display:flex;flex-direction:column;overflow:hidden;
-    ">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-shrink:0">
-        <img src="./doberman.png" style="width:44px;height:44px;object-fit:contain;flex-shrink:0" alt="">
-        <div>
-          <div style="font-size:.65rem;font-weight:800;letter-spacing:.12em;color:var(--muted);text-transform:uppercase">What's New</div>
-          <div style="font-size:1.1rem;font-weight:800;color:var(--text)">Budget DAWGs v${VERSION}</div>
-        </div>
-      </div>
-      <ul style="
-        list-style:none;padding:0;margin:0;
-        overflow-y:auto;flex:1;
-        display:flex;flex-direction:column;gap:8px;
-        padding-right:4px;
-      ">
-        ${entry.changes.map(c => `
-          <li style="
-            display:flex;gap:10px;align-items:flex-start;
-            background:var(--surface2);border-radius:12px;padding:10px 12px;
-          ">
-            <span style="color:var(--accent);font-size:.9rem;flex-shrink:0;margin-top:1px">✦</span>
-            <span style="font-size:.84rem;color:var(--text);line-height:1.45">${c}</span>
-          </li>`).join('')}
-      </ul>
-      <button id="whats-new-ok" style="
-        margin-top:18px;width:100%;padding:14px;flex-shrink:0;
-        background:var(--accent);color:#000;
-        border:none;border-radius:13px;
-        font-family:var(--font-body);font-size:.9rem;font-weight:800;
-        cursor:pointer;letter-spacing:.04em;
-        transition:opacity .15s;
-      ">Got it 🐕</button>
-    </div>
-  `;
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  const card = document.createElement('div');
+  card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:24px 22px 20px;max-width:420px;width:100%;box-shadow:0 8px 48px rgba(0,0,0,.7);max-height:80dvh;display:flex;flex-direction:column;overflow:hidden;';
+
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-shrink:0';
+  header.innerHTML = '<img src="./doberman.png" style="width:44px;height:44px;object-fit:contain;flex-shrink:0" alt="">';
+  const htext = document.createElement('div');
+  const hlabel = document.createElement('div');
+  hlabel.style.cssText = 'font-size:.65rem;font-weight:800;letter-spacing:.12em;color:var(--muted);text-transform:uppercase';
+  hlabel.textContent = "What's New";
+  const htitle = document.createElement('div');
+  htitle.style.cssText = 'font-size:1.1rem;font-weight:800;color:var(--text)';
+  htitle.textContent = 'Budget DAWGs v' + VERSION;
+  htext.appendChild(hlabel);
+  htext.appendChild(htitle);
+  header.appendChild(htext);
+
+  const list = document.createElement('ul');
+  list.style.cssText = 'list-style:none;padding:0;margin:0;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;padding-right:4px;';
+  entry.changes.forEach(function(change) {
+    const li = document.createElement('li');
+    li.style.cssText = 'display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border-radius:12px;padding:10px 12px;';
+    const bullet = document.createElement('span');
+    bullet.style.cssText = 'color:var(--accent);font-size:.9rem;flex-shrink:0;margin-top:1px';
+    bullet.textContent = '✶';
+    const text = document.createElement('span');
+    text.style.cssText = 'font-size:.84rem;color:var(--text);line-height:1.45';
+    text.textContent = change;
+    li.appendChild(bullet);
+    li.appendChild(text);
+    list.appendChild(li);
+  });
+
+  const btn = document.createElement('button');
+  btn.id = 'whats-new-ok';
+  btn.style.cssText = 'margin-top:18px;width:100%;padding:14px;flex-shrink:0;background:var(--accent);color:#000;border:none;border-radius:13px;font-family:var(--font-body);font-size:.9rem;font-weight:800;cursor:pointer;letter-spacing:.04em;transition:opacity .15s;';
+  btn.textContent = 'Got it 🐕';
+
+  card.appendChild(header);
+  card.appendChild(list);
+  card.appendChild(btn);
+  overlay.appendChild(card);
   document.body.appendChild(overlay);
 
-  const dismiss = () => {
+  function dismiss() {
     localStorage.setItem(seenKey, VERSION);
     overlay.style.transition = 'opacity .25s';
     overlay.style.opacity = '0';
-    setTimeout(() => overlay.remove(), 260);
-  };
-  document.getElementById('whats-new-ok')?.addEventListener('click', dismiss);
-  overlay.addEventListener('click', e => { if (e.target === overlay) dismiss(); });
+    setTimeout(function() { if (overlay.parentNode) overlay.remove(); }, 260);
+  }
+  btn.addEventListener('click', dismiss);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) dismiss(); });
 }
 
 // ── dollar burst ───────────────────────────────────────────────────────────
