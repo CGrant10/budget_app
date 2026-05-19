@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.1.9';
+const VERSION = '4.2.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.2.0', date: '2026-05-19', changes: [
+    'DAWG theme: account switcher button (⊞) added to top-right of hero — appears only when multiple accounts exist',
+    'DAWG theme: fixed header reappearing on the About page',
+  ]},
   { version: '4.1.9', date: '2026-05-19', changes: [
     'DAWG theme: top header bar hidden — the hero banner fully replaces it',
     'DAWG theme: nav bar reverted to the standard full nav',
@@ -1120,6 +1124,8 @@ function showTab(key) {
   if (key === 'about') {
     const isLight = !!(THEMES[activeTheme] || THEMES.dark).light;
     applyTheme(isLight ? 'light' : 'dark');
+    // About uses base dark/light, but still keep dawg-mode if user's theme is a DAWG variant
+    if (THEMES[activeTheme]?.dawg) document.getElementById('app')?.classList.add('dawg-mode');
   } else if (currentTab === 'about') {
     applyTheme(activeTheme);
   }
@@ -1982,9 +1988,11 @@ function renderDashboardDawg() {
     </div>`;
   }).join('') : '<p class="dawg-empty">No transactions yet</p>';
 
+  const multiAcct = state.accounts && state.accounts.length > 1;
   return `<div class="dawg-page">
     <div class="dawg-hero">
       <div class="dawg-hero-glow"></div>
+      ${multiAcct ? `<button class="dawg-acct-btn" id="dawg-acct-switch" title="Switch account">⊞</button>` : ''}
       <div class="dawg-hero-inner">
         <div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin">LOCK IN.</em></div>
         <img src="./doberman.png" class="dawg-hero-dob" alt="">
@@ -3591,6 +3599,12 @@ function attachSwipeDelete() {
 
 // ── event handlers ─────────────────────────────────────────────────────────
 function attachDashboardDawg() {
+  // Account switcher — shows picker overlay
+  document.getElementById('dawg-acct-switch')?.addEventListener('click', () => {
+    showingAccountPicker = true;
+    render();
+  });
+
   document.getElementById('dawg-goto-budgets')?.addEventListener('click', () => showTab('budgets'));
   document.getElementById('dawg-goto-ledger')?.addEventListener('click',  () => showTab('ledger'));
   document.getElementById('dawg-goto-goals')?.addEventListener('click',   () => showTab('goals'));

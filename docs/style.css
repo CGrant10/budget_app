@@ -1750,6 +1750,19 @@ body.light .section-title::before {
 /* Hide the standard top header — the hero section replaces it */
 #app.dawg-mode .header { display:none !important; }
 
+/* Account switcher button — top-right corner of hero */
+.dawg-acct-btn {
+  position:absolute; top:12px; right:14px; z-index:2;
+  background:rgba(0,0,0,.45); border:1px solid rgba(57,255,20,.35);
+  color:#39ff14; font-size:1.1rem; line-height:1;
+  width:34px; height:34px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; backdrop-filter:blur(4px);
+}
+body.light .dawg-acct-btn {
+  background:rgba(255,255,255,.6); border-color:rgba(26,170,0,.35); color:#1aaa00;
+}
+
 /* Light mode overrides for the DAWG layout */
 body.light .dawg-hero {
   background:linear-gradient(180deg,#eaf5e6 0%,#f4f4f4 100%);
