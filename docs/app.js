@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.9.5';
+const VERSION = '3.9.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,13 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.9.7', date: '2026-05-19', changes: [
+    'Dark mode: accent gradient now derives from the active theme — no more hardcoded blue-purple; dark mode stays neutral grey',
+    'Account overview: no longer offset in left/right side-nav mode — fills full width when sidebar is hidden',
+  ]},
+  { version: '3.9.6', date: '2026-05-19', changes: [
+    'Insights card: paw replaced with a hand-drawn SVG Doberman claw — sharp hooked claws, heavy black pads, claw shine highlights',
+  ]},
   { version: '3.9.5', date: '2026-05-19', changes: [
     'Side-nav footer: accounts ⊞ button now appears correctly in the sidebar footer (was staying in the hidden header)',
     'Side-nav footer: removed cramped dropdown — use the ⊞ button to open the account picker and switch accounts from there',
@@ -685,6 +692,7 @@ function applyTheme(theme) {
   root.style.setProperty('--card',     t.card);
   root.style.setProperty('--accent',   t.accent);
   root.style.setProperty('--accent2',  t.accent2);
+  root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${t.accent} 0%, ${t.accent2} 100%)`);
   root.style.setProperty('--success',  t.success);
   root.style.setProperty('--warn',     t.warn);
   root.style.setProperty('--danger',   t.danger);
@@ -1934,7 +1942,27 @@ function renderDashboard() {
   const insightsHtml = showInsights && insights.length ? `
     <div class="insight-card" id="insight-rotator" data-insights='${safeInsights}'>
       <div class="insight-card-inner">
-        <span class="insight-card-icon">🐾</span>
+        <span class="insight-card-icon">
+          <svg class="scary-paw" viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg">
+            <!-- Claws — curved hooks tapering to sharp points -->
+            <path d="M8,25 C6,19 3,12 5,4 C6,2 9,2 10,5 C11,13 12,20 12,25Z" fill="#0c0c18"/>
+            <path d="M16,22 C15,16 14,8 16,2 C17,0 20,0 20,3 C21,10 21,17 21,22Z" fill="#0c0c18"/>
+            <path d="M24,22 C24,16 24,9 26,2 C27,0 30,0 29,3 C29,10 29,17 28,22Z" fill="#0c0c18"/>
+            <path d="M33,25 C33,20 34,13 36,5 C37,2 40,2 40,5 C40,12 38,19 36,25Z" fill="#0c0c18"/>
+            <!-- Toe pads -->
+            <ellipse cx="10" cy="29" rx="6" ry="5.5" fill="#0c0c18"/>
+            <ellipse cx="18.5" cy="26" rx="6" ry="5.5" fill="#0c0c18"/>
+            <ellipse cx="26.5" cy="26" rx="6" ry="5.5" fill="#0c0c18"/>
+            <ellipse cx="35" cy="29" rx="6" ry="5.5" fill="#0c0c18"/>
+            <!-- Main pad -->
+            <path d="M5,38 C3,48 8,53 22,53 C36,53 41,48 39,38 C37,30 30,29 22,31 C14,29 7,30 5,38Z" fill="#0c0c18"/>
+            <!-- Claw shine lines -->
+            <path d="M9,6 C9,10 9.5,15 9.5,19" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+            <path d="M18,4 C18,8 18.5,13 18.5,17" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+            <path d="M27,4 C27,8 27,13 27,17" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+            <path d="M37,6 C36.5,10 36,15 35.5,19" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+          </svg>
+        </span>
         <span class="insight-card-text" id="insight-text">${insights[0]}</span>
       </div>
       ${insights.length > 1 ? `<div class="insight-dots">${insights.map((_, i) => `<span class="insight-dot${i === 0 ? ' active' : ''}"></span>`).join('')}</div>` : ''}
