@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.1.6';
+const VERSION = '4.1.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.1.7', date: '2026-05-19', changes: [
+    'New DAWG theme 🐕 — completely redesigned dashboard with hero banner, balance sparkline with time ranges (1W/1M/3M/6M/1Y/ALL), donut budget overview, and neon-green black aesthetic',
+  ]},
   { version: '4.1.6', date: '2026-05-19', changes: [
     'Debt dashboard: fixed + button not navigating — event listener now wired before the chart early-return guard so it works on debt accounts that have no chart',
   ]},
@@ -568,6 +571,15 @@ const THEMES = {
     cats:{ Food:'#5aaa40', Gas:'#c84030', Car:'#c8a020', Boat:'#409870', Tools:'#c86020', Home:'#80a830', Entertainment:'#a07020', Health:'#50a860', Other:'#788858' },
   },
   auto: { label:'✨ Auto (System)', ..._D, accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050', grad:'linear-gradient(135deg, #2d3830 0%, #4ecb8d 100%)' },
+  dawg: {
+    label:'DAWG 🐕',
+    bg:'#080808', surface:'#101010', surface2:'#181818', card:'#121212',
+    text:'#ffffff', muted:'#707070', border:'#222222',
+    accent:'#39ff14', accent2:'#00cc00', success:'#39ff14', warn:'#ffd700', danger:'#ff4444',
+    grad:'linear-gradient(135deg, #000000 0%, #071a00 60%, #39ff14 100%)',
+    font:'default', dawg:true,
+    cats:{ Food:'#39ff14', Gas:'#ff4444', Car:'#00aaff', Boat:'#00e5ff', Tools:'#ffd700', Home:'#39ff14', Entertainment:'#cc44ff', Health:'#ff6699', Other:'#888888' },
+  },
 };
 
 let CAT_COLORS = {
@@ -1827,6 +1839,39 @@ function render() {
   document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="date"])').forEach(el => el.setAttribute('enterkeyhint', 'done'));
 }
 
+// ── DAWG sparkline data ────────────────────────────────────────────────────
+function getDawgSparklineData(range) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  let cutoff = null;
+  if      (range === '1w') { cutoff = new Date(now); cutoff.setDate(now.getDate() - 7); }
+  else if (range === '1m') { cutoff = new Date(now); cutoff.setMonth(now.getMonth() - 1); }
+  else if (range === '3m') { cutoff = new Date(now); cutoff.setMonth(now.getMonth() - 3); }
+  else if (range === '6m') { cutoff = new Date(now); cutoff.setMonth(now.getMonth() - 6); }
+  else if (range === '1y') { cutoff = new Date(now); cutoff.setFullYear(now.getFullYear() - 1); }
+  const allTxns = [...state.transactions].sort((a,b) => a.date.localeCompare(b.date));
+  if (!allTxns.length && !state.startingBalance) return { labels:[], data:[] };
+  const startDate = cutoff || (allTxns.length ? new Date(allTxns[0].date + 'T00:00:00') : new Date(now));
+  const cutoffStr = startDate.toISOString().split('T')[0];
+  let runBal = state.startingBalance || 0;
+  allTxns.filter(t => t.date < cutoffStr).forEach(t => {
+    runBal += t.type === 'income' ? t.amount : -t.amount;
+  });
+  const deltaMap = {};
+  allTxns.filter(t => t.date >= cutoffStr).forEach(t => {
+    deltaMap[t.date] = (deltaMap[t.date] || 0) + (t.type === 'income' ? t.amount : -t.amount);
+  });
+  const labels = [], data = [];
+  const d = new Date(startDate);
+  while (d <= now) {
+    const ds = d.toISOString().split('T')[0];
+    runBal += deltaMap[ds] || 0;
+    labels.push(ds.slice(5));
+    data.push(+runBal.toFixed(2));
+    d.setDate(d.getDate() + 1);
+  }
+  return { labels, data };
+}
+
 // ── balance as of date ─────────────────────────────────────────────────────
 function balanceAsOf(dateStr) {
   // Sum all transactions on or before dateStr
@@ -1837,8 +1882,145 @@ function balanceAsOf(dateStr) {
   return bal;
 }
 
+// ── DAWG dashboard layout ──────────────────────────────────────────────────
+function renderDashboardDawg() {
+  const { income, expense } = totals();
+  const balance = (state.startingBalance || 0) + income - expense;
+  const balColor = balance >= 0 ? '#39ff14' : '#ff4444';
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const { income: mInc, expense: mExp, bycat } = monthTotals(thisMonth);
+  const monthDelta = mInc - mExp;
+  const deltaColor = monthDelta >= 0 ? '#39ff14' : '#ff4444';
+  const deltaArrow = monthDelta >= 0 ? '▲' : '▼';
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+  const balLast = balanceAsOf(lastMonthEnd);
+  const deltaPct = balLast !== 0 ? Math.abs(monthDelta / Math.abs(balLast) * 100) : 0;
+  const deltaStr = `${deltaArrow} ${fmt(Math.abs(monthDelta))} (${deltaPct.toFixed(1)}%) this month`;
+
+  const totalBudget = Object.values(state.budgets || {}).reduce((s,v) => s+(parseFloat(v)||0), 0);
+  const budgetPct   = totalBudget > 0 ? Math.min(mExp / totalBudget * 100, 100) : 0;
+  const budgetColor = budgetPct >= 100 ? '#ff4444' : budgetPct >= 80 ? '#ffd700' : '#39ff14';
+
+  const totalMExp  = Object.values(bycat).reduce((s,v)=>s+v, 0);
+  const catEntries = Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const catIcons   = { Food:'🍔', Gas:'⛽', Car:'🚗', Boat:'⛵', Tools:'🔧', Home:'🏠', Entertainment:'🎮', Health:'❤️', Shopping:'🛍️', Transport:'🚗', Housing:'🏠', Other:'💬' };
+
+  const spendHtml = catEntries.length ? catEntries.map(([cat,amt]) => {
+    const pct = totalMExp > 0 ? (amt/totalMExp*100).toFixed(0) : 0;
+    const barW = totalMExp > 0 ? (amt/totalMExp*100).toFixed(1) : 0;
+    return `<div class="dawg-cat-row">
+      <span class="dawg-cat-icon">${catIcons[cat]||'💰'}</span>
+      <span class="dawg-cat-name">${cat}</span>
+      <div class="dawg-cat-bar-wrap"><div class="dawg-cat-bar" style="width:${barW}%"></div></div>
+      <span class="dawg-cat-amt">${fmt(amt)}</span>
+      <span class="dawg-cat-pct">${pct}%</span>
+    </div>`;
+  }).join('') : '<p class="dawg-empty">No spending this month</p>';
+
+  const goals = state.goals || [];
+  const goalsHtml = goals.slice(0,3).map(g => {
+    const pct = g.target > 0 ? Math.min(g.current/g.target*100,100) : 0;
+    return `<div class="dawg-goal-row">
+      <div class="dawg-goal-icon">🎯</div>
+      <div class="dawg-goal-info">
+        <div class="dawg-goal-name">${g.name}</div>
+        <div class="dawg-goal-sub">${fmt(g.current)} / ${fmt(g.target)}</div>
+      </div>
+      <div class="dawg-goal-right">
+        <div class="dawg-goal-bar-wrap"><div class="dawg-goal-bar" style="width:${pct.toFixed(1)}%"></div></div>
+        <span class="dawg-goal-pct">${pct.toFixed(0)}%</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  const todayStr = today();
+  const yesterdayStr = new Date(Date.now()-86400000).toISOString().split('T')[0];
+  const recentTxns = [...state.transactions].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  const txnHtml = recentTxns.length ? recentTxns.map(t => {
+    const isInc  = t.type === 'income';
+    const color  = isInc ? '#39ff14' : '#ff4444';
+    const sign   = isInc ? '+' : '−';
+    const icon   = isInc ? '💵' : (catIcons[t.category] || '💳');
+    const dlbl   = t.date === todayStr ? 'Today' : t.date === yesterdayStr ? 'Yesterday' : t.date.slice(5);
+    return `<div class="dawg-txn-row">
+      <div class="dawg-txn-icon">${icon}</div>
+      <div class="dawg-txn-info">
+        <div class="dawg-txn-desc">${t.description || t.category || '—'}</div>
+        <div class="dawg-txn-date">${dlbl}</div>
+      </div>
+      <div class="dawg-txn-amt" style="color:${color}">${sign}${fmt(t.amount)}</div>
+    </div>`;
+  }).join('') : '<p class="dawg-empty">No transactions yet</p>';
+
+  return `<div class="dawg-page">
+    <div class="dawg-hero">
+      <div class="dawg-hero-glow"></div>
+      <div class="dawg-hero-inner">
+        <div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin">LOCK IN.</em></div>
+        <img src="./doberman.png" class="dawg-hero-dob" alt="">
+      </div>
+    </div>
+
+    <div class="dawg-balance-card">
+      <div class="dawg-balance-label">TOTAL BALANCE</div>
+      <div class="dawg-balance-amt" style="color:${balColor}">${fmt(balance)}</div>
+      <div class="dawg-balance-delta" style="color:${deltaColor}">${deltaStr}</div>
+      <div class="dawg-sparkline-wrap"><canvas id="dawg-sparkline"></canvas></div>
+      <div class="dawg-time-btns">
+        <button class="dawg-tbtn" data-range="1w">1W</button>
+        <button class="dawg-tbtn dawg-tbtn-active" data-range="1m">1M</button>
+        <button class="dawg-tbtn" data-range="3m">3M</button>
+        <button class="dawg-tbtn" data-range="6m">6M</button>
+        <button class="dawg-tbtn" data-range="1y">1Y</button>
+        <button class="dawg-tbtn" data-range="all">ALL</button>
+      </div>
+    </div>
+
+    <div class="dawg-mid-row">
+      <div class="dawg-overview-card">
+        <div class="dawg-card-title">BUDGET OVERVIEW</div>
+        <div class="dawg-donut-wrap">
+          <canvas id="dawg-donut" width="120" height="120"></canvas>
+          <div class="dawg-donut-center">
+            <div class="dawg-donut-pct" style="color:${budgetColor}">${budgetPct.toFixed(0)}%</div>
+            <div class="dawg-donut-lbl">of budget<br>used</div>
+          </div>
+        </div>
+        <div class="dawg-budget-row">
+          <div class="dawg-budget-stat"><span class="dawg-stat-val">${fmt(mExp)}</span><span class="dawg-stat-lbl">spent</span></div>
+          <div class="dawg-budget-stat"><span class="dawg-stat-val">${fmt(totalBudget)}</span><span class="dawg-stat-lbl">budget</span></div>
+        </div>
+        <button class="dawg-view-btn" id="dawg-goto-budgets">VIEW BUDGET ›</button>
+      </div>
+      <div class="dawg-breakdown-card">
+        <div class="dawg-card-title">SPENDING BREAKDOWN</div>
+        <div class="dawg-cat-list">${spendHtml}</div>
+        <button class="dawg-view-btn" id="dawg-goto-ledger">VIEW ANALYTICS ›</button>
+      </div>
+    </div>
+
+    ${goals.length ? `<div class="dawg-section-card">
+      <div class="dawg-section-hdr">
+        <span class="dawg-card-title">SAVINGS GOALS</span>
+        <button class="dawg-view-all" id="dawg-goto-goals">VIEW ALL</button>
+      </div>
+      ${goalsHtml}
+    </div>` : ''}
+
+    <div class="dawg-section-card" style="margin-bottom:14px">
+      <div class="dawg-section-hdr">
+        <span class="dawg-card-title">RECENT TRANSACTIONS</span>
+        <button class="dawg-view-all" id="dawg-goto-txns">VIEW ALL</button>
+      </div>
+      ${txnHtml}
+    </div>
+  </div>`;
+}
+
 // ── dashboard ──────────────────────────────────────────────────────────────
 function renderDashboard() {
+  if (THEMES[(loadSettings().theme)||'dark']?.dawg) return renderDashboardDawg();
   const ds = loadSettings();
   const showBills     = ds.dashBills     !== false;
   const showInsights  = ds.dashInsights  !== false;
@@ -3379,9 +3561,67 @@ function attachSwipeDelete() {
 }
 
 // ── event handlers ─────────────────────────────────────────────────────────
+function attachDashboardDawg() {
+  document.getElementById('dawg-goto-budgets')?.addEventListener('click', () => showTab('budgets'));
+  document.getElementById('dawg-goto-ledger')?.addEventListener('click',  () => showTab('ledger'));
+  document.getElementById('dawg-goto-goals')?.addEventListener('click',   () => showTab('goals'));
+  document.getElementById('dawg-goto-txns')?.addEventListener('click',    () => showTab('ledger'));
+
+  // Donut chart
+  const donutCanvas = document.getElementById('dawg-donut');
+  if (donutCanvas) {
+    const now2  = new Date();
+    const tm   = `${now2.getFullYear()}-${String(now2.getMonth()+1).padStart(2,'0')}`;
+    const { expense: de } = monthTotals(tm);
+    const tb   = Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
+    const dp   = tb > 0 ? de/tb : 0;
+    const dc   = dp >= 1 ? '#ff4444' : dp >= 0.8 ? '#ffd700' : '#39ff14';
+    new Chart(donutCanvas, {
+      type:'doughnut',
+      data:{ datasets:[{ data:[Math.min(de,tb||de), Math.max(0,(tb||de)-Math.min(de,tb||de))||0.001], backgroundColor:[dc,'#1e1e1e'], borderWidth:0 }] },
+      options:{ responsive:false, cutout:'74%', plugins:{ legend:{display:false}, tooltip:{enabled:false} }, animation:{duration:500} }
+    });
+  }
+
+  // Sparkline
+  let _dawgSpark = null;
+  function buildSparkline(range) {
+    const canvas = document.getElementById('dawg-sparkline');
+    if (!canvas) return;
+    if (_dawgSpark) { _dawgSpark.destroy(); _dawgSpark = null; }
+    const { labels, data } = getDawgSparklineData(range);
+    if (!data.length) return;
+    const ctx  = canvas.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, canvas.offsetHeight||80);
+    grad.addColorStop(0, 'rgba(57,255,20,.28)');
+    grad.addColorStop(1, 'rgba(57,255,20,0)');
+    _dawgSpark = new Chart(canvas, {
+      type:'line',
+      data:{ labels, datasets:[{ data, borderColor:'#39ff14', borderWidth:2, pointRadius:0, tension:0.4, fill:true, backgroundColor:grad }] },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{enabled:false} },
+        scales:{ x:{display:false}, y:{display:false} },
+        animation:{duration:400}
+      }
+    });
+  }
+  document.querySelectorAll('.dawg-tbtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.dawg-tbtn').forEach(b => b.classList.remove('dawg-tbtn-active'));
+      btn.classList.add('dawg-tbtn-active');
+      buildSparkline(btn.dataset.range);
+    });
+  });
+  buildSparkline('1m');
+}
+
 function attachHandlers() {
   switch (currentTab) {
-    case 'dashboard': attachDashboard(); break;
+    case 'dashboard':
+      if (THEMES[(loadSettings().theme)||'dark']?.dawg) attachDashboardDawg();
+      else attachDashboard();
+      break;
     case 'add':       attachAdd();       break;
     case 'ledger':    attachLedger();    break;
     case 'weekly':    attachWeekly(); calcWeekly(); break;

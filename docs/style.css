@@ -1637,6 +1637,115 @@ body.light .section-title::before {
 .debt-dash-due-label { font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
 .debt-dash-due-val { font-size:.88rem; font-weight:700; color:var(--warn); }
 
+/* ══════════════════════════════════════════════════════
+   DAWG THEME LAYOUT
+══════════════════════════════════════════════════════ */
+.dawg-page { min-height:100%; background:var(--bg); }
+
+.dawg-hero {
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,#050505 0%,#080808 100%);
+  min-height:180px;
+}
+.dawg-hero-glow {
+  position:absolute; top:-40%; right:-10%; width:65%; height:180%;
+  background:radial-gradient(ellipse,rgba(57,255,20,.13) 0%,transparent 65%);
+  pointer-events:none;
+}
+.dawg-hero::after {
+  content:''; position:absolute; bottom:0; left:0; right:0; height:44px;
+  background:linear-gradient(to bottom,transparent,var(--bg)); pointer-events:none;
+}
+.dawg-hero-inner {
+  position:relative; display:flex; align-items:flex-end;
+  justify-content:space-between; padding:28px 20px 0; min-height:180px;
+}
+.dawg-hero-tagline {
+  font-size:1.75rem; font-weight:900; line-height:1.1; color:#fff;
+  text-transform:uppercase; padding-bottom:24px; text-shadow:0 2px 12px rgba(0,0,0,.8);
+}
+.dawg-lockin { color:#39ff14; font-style:italic; display:block; }
+.dawg-hero-dob {
+  width:145px; flex-shrink:0; object-fit:contain; object-position:bottom;
+  filter:drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8));
+}
+
+.dawg-balance-card {
+  background:var(--card); margin:12px 14px 0; border-radius:18px;
+  padding:16px 16px 12px; border:1px solid rgba(57,255,20,.18);
+}
+.dawg-balance-label { font-size:.68rem; font-weight:700; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; }
+.dawg-balance-amt { font-size:2.3rem; font-weight:800; line-height:1.1; margin:4px 0 2px; }
+.dawg-balance-delta { font-size:.8rem; font-weight:600; margin-bottom:12px; }
+.dawg-sparkline-wrap { height:80px; margin-bottom:10px; }
+.dawg-time-btns { display:flex; gap:4px; }
+.dawg-tbtn {
+  flex:1; padding:5px 2px; font-size:.68rem; font-weight:700; letter-spacing:.04em;
+  background:transparent; border:1px solid var(--border); color:var(--muted);
+  border-radius:8px; cursor:pointer; transition:border-color .15s,color .15s;
+}
+.dawg-tbtn-active { border-color:#39ff14 !important; color:#39ff14 !important; }
+
+.dawg-mid-row { display:flex; gap:10px; margin:10px 14px 0; }
+.dawg-overview-card,.dawg-breakdown-card {
+  flex:1; min-width:0; background:var(--card); border-radius:16px;
+  padding:12px 10px; border:1px solid var(--border);
+  display:flex; flex-direction:column; gap:6px;
+}
+.dawg-card-title { font-size:.6rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+
+.dawg-donut-wrap { position:relative; display:flex; align-items:center; justify-content:center; padding:4px 0; }
+.dawg-donut-center { position:absolute; text-align:center; pointer-events:none; }
+.dawg-donut-pct { font-size:1.4rem; font-weight:800; line-height:1; }
+.dawg-donut-lbl { font-size:.56rem; color:var(--muted); font-weight:600; line-height:1.3; margin-top:2px; }
+.dawg-budget-row { display:flex; justify-content:space-around; }
+.dawg-budget-stat { display:flex; flex-direction:column; align-items:center; gap:1px; }
+.dawg-stat-val { font-size:.78rem; font-weight:700; color:var(--text); }
+.dawg-stat-lbl { font-size:.58rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.dawg-view-btn { background:none; border:none; color:#39ff14; font-size:.68rem; font-weight:700; letter-spacing:.04em; cursor:pointer; padding:2px 0; text-align:left; margin-top:auto; }
+
+.dawg-cat-list { display:flex; flex-direction:column; gap:5px; flex:1; overflow:hidden; }
+.dawg-cat-row { display:flex; align-items:center; gap:3px; }
+.dawg-cat-icon { font-size:.78rem; width:16px; text-align:center; flex-shrink:0; }
+.dawg-cat-name { font-size:.67rem; color:var(--text); min-width:50px; max-width:50px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dawg-cat-bar-wrap { flex:1; height:3px; background:var(--surface2); border-radius:2px; overflow:hidden; margin:0 3px; }
+.dawg-cat-bar { height:100%; background:#39ff14; border-radius:2px; }
+.dawg-cat-amt { font-size:.62rem; color:var(--text); white-space:nowrap; min-width:36px; text-align:right; }
+.dawg-cat-pct { font-size:.6rem; color:var(--muted); min-width:24px; text-align:right; }
+
+.dawg-section-card {
+  background:var(--card); margin:10px 14px 0; border-radius:16px;
+  padding:14px; border:1px solid var(--border);
+  display:flex; flex-direction:column; gap:10px;
+}
+.dawg-section-hdr { display:flex; align-items:center; justify-content:space-between; }
+.dawg-view-all { background:none; border:none; color:#39ff14; font-size:.72rem; font-weight:700; cursor:pointer; letter-spacing:.04em; }
+
+.dawg-goal-row { display:flex; align-items:center; gap:8px; }
+.dawg-goal-icon {
+  font-size:1.05rem; width:34px; height:34px; background:var(--surface2);
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; border:1px solid rgba(57,255,20,.2);
+}
+.dawg-goal-info { flex:1; min-width:0; }
+.dawg-goal-name { font-size:.82rem; font-weight:700; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dawg-goal-sub { font-size:.7rem; color:var(--muted); }
+.dawg-goal-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; min-width:58px; }
+.dawg-goal-bar-wrap { width:58px; height:3px; background:var(--surface2); border-radius:2px; overflow:hidden; }
+.dawg-goal-bar { height:100%; background:#39ff14; border-radius:2px; }
+.dawg-goal-pct { font-size:.75rem; font-weight:700; color:#39ff14; }
+
+.dawg-txn-row { display:flex; align-items:center; gap:10px; padding:3px 0; }
+.dawg-txn-icon {
+  font-size:1.05rem; width:36px; height:36px; background:var(--surface2);
+  border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.dawg-txn-info { flex:1; min-width:0; }
+.dawg-txn-desc { font-size:.84rem; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dawg-txn-date { font-size:.7rem; color:var(--muted); }
+.dawg-txn-amt { font-size:.88rem; font-weight:700; white-space:nowrap; }
+.dawg-empty { font-size:.8rem; color:var(--muted); padding:6px 0; }
+
 /* ── splash screen ── */
 .splash-screen {
   position: fixed;
