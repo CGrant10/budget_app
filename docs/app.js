@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.1.8';
+const VERSION = '4.1.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.1.9', date: '2026-05-19', changes: [
+    'DAWG theme: top header bar hidden — the hero banner fully replaces it',
+    'DAWG theme: nav bar reverted to the standard full nav',
+    'New DAWG Light ☀️ theme — same DAWG layout in a clean white/green palette',
+  ]},
   { version: '4.1.8', date: '2026-05-19', changes: [
     'DAWG theme: nav bar redesigned to 5-tab minimal layout (Dashboard, Transactions, raised doberman Add button, Goals, Profile) matching the mockup',
     'DAWG theme: Budget Overview donut now shows this week\'s spending vs your weekly planner budget — falls back to monthly budget total if no weekly plan is saved',
@@ -584,6 +589,15 @@ const THEMES = {
     font:'default', dawg:true,
     cats:{ Food:'#39ff14', Gas:'#ff4444', Car:'#00aaff', Boat:'#00e5ff', Tools:'#ffd700', Home:'#39ff14', Entertainment:'#cc44ff', Health:'#ff6699', Other:'#888888' },
   },
+  dawglight: {
+    label:'DAWG Light ☀️',
+    bg:'#f4f4f4', surface:'#ffffff', surface2:'#ebebeb', card:'#ffffff',
+    text:'#111111', muted:'#666666', border:'#dedede',
+    accent:'#1aaa00', accent2:'#008800', success:'#1aaa00', warn:'#b87800', danger:'#cc2200',
+    grad:'linear-gradient(135deg, #d4f0cc 0%, #1aaa00 100%)',
+    font:'default', dawg:true, light:true,
+    cats:{ Food:'#1aaa00', Gas:'#cc2200', Car:'#0066cc', Boat:'#0099bb', Tools:'#b87800', Home:'#1aaa00', Entertainment:'#8800cc', Health:'#cc0066', Other:'#888888' },
+  },
 };
 
 let CAT_COLORS = {
@@ -836,8 +850,8 @@ function applyTheme(theme) {
     _fs.fontStyle = t.font;
     saveSettings(_fs);
   }
-  // DAWG nav — swap nav to 5-item minimal bar when DAWG theme is active
-  document.querySelector('.bottom-nav')?.classList.toggle('dawg-nav', !!t.dawg);
+  // DAWG mode — hide the top header bar (hero replaces it)
+  document.getElementById('app')?.classList.toggle('dawg-mode', !!t.dawg);
   // Gengar ghost background overlay — lives inside #app so it's above body's solid bg
   let gOverlay = document.getElementById('gengar-bg-overlay');
   if (theme === 'gengar') {
@@ -3598,9 +3612,10 @@ function attachDashboardDawg() {
     const _dc       = _dp >= 1 ? '#ff4444' : _dp >= 0.8 ? '#ffd700' : '#39ff14';
     const _spent    = Math.min(_bs, _tb || _bs);
     const _remain   = Math.max(0, (_tb||_bs) - _spent) || 0.001;
+    const _emptyClr = document.body.classList.contains('light') ? '#e0e0e0' : '#1e1e1e';
     new Chart(donutCanvas, {
       type:'doughnut',
-      data:{ datasets:[{ data:[_spent, _remain], backgroundColor:[_dc,'#1e1e1e'], borderWidth:0 }] },
+      data:{ datasets:[{ data:[_spent, _remain], backgroundColor:[_dc, _emptyClr], borderWidth:0 }] },
       options:{ responsive:false, cutout:'74%', plugins:{ legend:{display:false}, tooltip:{enabled:false} }, animation:{duration:500} }
     });
   }
