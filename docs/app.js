@@ -2086,8 +2086,9 @@ function renderDashboardDawg() {
   const yesterdayStr = new Date(Date.now()-86400000).toISOString().split('T')[0];
   const recentTxns = [...state.transactions]
     .filter(t => _isDebt ? t.type === 'income' : true)
-    .sort((a,b) => b.date.localeCompare(a.date) || (b.ts||0) - (a.ts||0))
-    .slice(0,5);
+    .sort((a,b) => a.date.localeCompare(b.date) || (a.ts||0) - (b.ts||0))
+    .slice(0,5)
+    .reverse();
   const txnHtml = recentTxns.length ? recentTxns.map(t => {
     const isInc  = t.type === 'income';
     const color  = isInc ? 'var(--success)' : 'var(--danger)';
