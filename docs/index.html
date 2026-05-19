@@ -24,6 +24,22 @@
        splash background matches the app instead of always showing dark.
        Only 'light' needs special handling; all other themes are dark variants. -->
   <script>!function(){try{var s=JSON.parse(localStorage.getItem('slawminyaw_settings')||'{}');if(s.theme==='light'){var r=document.documentElement.style;r.setProperty('--bg','#f3f3f3');r.setProperty('--text','#181820');r.setProperty('--muted','#606070');document.body.classList.add('light');}}catch(e){}}();</script>
+  <!-- Force-reset: add ?reset to the URL to wipe all SW caches and start fresh -->
+  <script>
+    if (location.search.indexOf('reset') !== -1) {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          return Promise.all(regs.map(function(r) { return r.unregister(); }));
+        }).then(function() {
+          return caches.keys();
+        }).then(function(keys) {
+          return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+        }).then(function() {
+          location.replace(location.pathname);
+        });
+      }
+    }
+  </script>
 
   <!-- Splash screen — visible by default, dismissed by JS after animation -->
   <div id="splash-screen" class="splash-screen">

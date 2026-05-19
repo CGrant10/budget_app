@@ -1,4 +1,4 @@
-const CACHE = "slawminyaw-v145";
+const CACHE = "slawminyaw-v146";
 const ASSETS = [
   "./",
   "./index.html",
@@ -18,35 +18,45 @@ const ASSETS = [
 
 self.addEventListener("install", e => {
   e.waitUntil(
-    caches.open(CACHE)
-      .then(c => c.addAll(ASSETS))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE).then(c => {
+      // Cache assets individually — one failure won't block the whole install
+      return Promise.allSettled(
+        ASSETS.map(url => c.add(url).catch(() => { /* skip if unavailable */ }))
+      );
+    }).then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE).map(k => caches.delete(k))
+      ))
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("fetch", e => {
-  // version.txt must never be cached — always live from network
-  if (e.request.url.includes('version.txt')) {
-    e.respondWith(fetch(e.request, { cache: 'no-cache' }));
+  // version.txt — always live, never cached
+  if (e.request.url.includes("version.txt")) {
+    e.respondWith(fetch(e.request, { cache: "no-cache" }).catch(() => new Response("")));
     return;
   }
-  // Always bypass browser HTTP cache, fall back to SW cache if offline
-  const fresh = new Request(e.request, { cache: 'no-cache' });
+  // For everything else: try network first, fall back to cache
   e.respondWith(
-    fetch(fresh)
-      .then(response => {
-        const clone = response.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
-        return response;
+    fetch(new Request(e.request, { cache: "no-cache" }))
+      .then(res => {
+        if (res.ok) {
+          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+        }
+        return res;
       })
       .catch(() => caches.match(e.request))
   );
+});
+
+// Handle force-reset message from the page
+self.addEventListener("message", e => {
+  if (e.data === "SKIP_WAITING") self.skipWaiting();
 });
