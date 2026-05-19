@@ -2110,7 +2110,7 @@ function renderDashboardDawg() {
     <div class="dawg-hero">
       <div class="dawg-hero-glow"></div>
       <div class="dawg-hero-inner">
-        <div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin">LOCK IN.</em></div>
+        <div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin">LOCK TF IN.</em></div>
         <img src="./doberman.png" class="dawg-hero-dob" alt="">
       </div>
     </div>
