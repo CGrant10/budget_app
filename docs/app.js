@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.1.4';
+const VERSION = '4.1.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.1.5', date: '2026-05-19', changes: [
+    'Weekly planner: past weeks now show spent vs budget (e.g. $300 / $320) with a frozen mini progress bar — adjusting the buffer slider or other settings never changes past week budget figures',
+    'Debt dashboard: small + button added to Payment History header — tapping it jumps straight to the Add tab to log a transaction',
+  ]},
   { version: '4.1.4', date: '2026-05-19', changes: [
     'Savings/checking: "Set your starting balance" prompt no longer appears when a starting balance is already saved',
     'Loan & credit card dashboards: income and expense tiles removed — debt accounts show only what you owe',
@@ -1296,6 +1300,12 @@ function attachDashboard() {
     };
   }
 
+  // Debt dashboard quick-add button
+  const debtQuickAdd = document.getElementById('debt-dash-quick-add');
+  if (debtQuickAdd) {
+    debtQuickAdd.addEventListener('click', () => showTab('add'));
+  }
+
   // Starting balance (first-run card)
   const sbSave = document.getElementById('starting-bal-save');
   if (sbSave) {
@@ -1979,7 +1989,10 @@ function renderDashboard() {
         </div>
         ${dueDateHtml}
         ${catHtml}
-        <div class="debt-dash-section">Payment History</div>
+        <div class="debt-dash-section" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Payment History</span>
+          <button class="debt-dash-add-btn" id="debt-dash-quick-add" title="Add transaction">＋</button>
+        </div>
         <div class="debt-dash-txns">${txnRowsHtml}</div>
       </div>`;
   } else if (state.transactions.length === 0 && !state.startingBalance) {
@@ -2441,9 +2454,12 @@ function calcWeekly() {
 
     if (isPast) {
       // Past weeks — static, only transaction data, never recalculated from settings
-      const spentColor = wkExp > 0 ? 'var(--text)' : 'var(--muted)';
-      const spentLabel = wkExp > 0 ? `−${fmt(wkExp)}` : 'No spending';
-      pastRowsHtml.push(`<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span><span class="wkb-amounts" style="color:${spentColor};margin-left:auto">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
+      const pastPct      = perWeek > 0 ? Math.min(wkExp / perWeek * 100, 100) : 0;
+      const pastBarColor = wkExp > perWeek && perWeek > 0 ? 'var(--danger)' : wkExp >= perWeek * 0.8 && perWeek > 0 ? 'var(--warn)' : 'var(--muted)';
+      const spentColor   = perWeek > 0 && wkExp > perWeek ? 'var(--danger)' : wkExp > 0 ? 'var(--text)' : 'var(--muted)';
+      const spentLabel   = wkExp > 0 ? `${fmt(wkExp)} / ${fmt(perWeek)}` : 'No spending';
+      const miniBar      = perWeek > 0 ? `<div class="breakdown-bar-bg small" style="flex:1;margin:0 8px"><div class="breakdown-bar-fill" style="width:${pastPct.toFixed(1)}%;background:${pastBarColor}"></div></div>` : `<span style="flex:1"></span>`;
+      pastRowsHtml.push(`<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span>${miniBar}<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     } else {
       // Current + future weeks — live, recalculated on every settings change
       const wkPct   = perWeek > 0 ? Math.min(wkNet/perWeek*100,100) : 0;
