@@ -89,31 +89,34 @@ body::before {
   flex: 1;
   min-width: 0;
 }
+/* Sidebar is position:fixed so it spans the full screen height — top to bottom,
+   behind and below the fixed header. Items start below the header via padding-top. */
 #app.nav-left  .bottom-nav {
+  position: fixed;
+  top: 0; bottom: 0; left: 0;
   order: -1;
   flex-direction: column;
-  justify-content: flex-start;
   width: var(--nav-h);
-  height: 100dvh;
   border-top: none;
   border-right: 1px solid var(--border);
-  padding-bottom: 0;
-  padding-top: var(--header-h);
-  overflow-y: auto;
-  overflow-x: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px));
+  z-index: 9;
 }
 #app.nav-right .bottom-nav {
+  position: fixed;
+  top: 0; bottom: 0; right: 0;
   flex-direction: column;
-  justify-content: flex-start;
   width: var(--nav-h);
-  height: 100dvh;
   border-top: none;
   border-left: 1px solid var(--border);
-  padding-bottom: 0;
-  padding-top: var(--header-h);
-  overflow-y: auto;
-  overflow-x: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px));
+  z-index: 9;
 }
+/* Main content needs a margin to clear the fixed sidebar */
+#app.nav-left  #main-content { margin-left: var(--nav-h); }
+#app.nav-right #main-content { margin-right: var(--nav-h); }
 #app.nav-left  .nav-btn, #app.nav-right .nav-btn { flex: 0 0 auto; padding: 14px 0; width: 100%; }
 /* Offset header content so it doesn't overlap the sidebar column */
 #app.nav-left  .header .header-inner { padding: 0 20px 0 calc(var(--nav-h) + 18px); }

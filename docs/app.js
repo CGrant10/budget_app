@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.9.0';
+const VERSION = '3.9.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '3.9.1', date: '2026-05-19', changes: [
+    'Nav sidebar fix — sidebar is now position:fixed so it spans the full screen from top to bottom, no longer cut off at the header bar',
+  ]},
   { version: '3.9.0', date: '2026-05-19', changes: [
     'Haptic feedback — phone vibrates on transaction save, milestone hit, and bill marked paid',
     'Swipe between tabs — swipe left/right on the main content area to move to the next or previous tab',
