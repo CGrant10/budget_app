@@ -1746,6 +1746,31 @@ body.light .section-title::before {
 .dawg-txn-amt { font-size:.88rem; font-weight:700; white-space:nowrap; }
 .dawg-empty { font-size:.8rem; color:var(--muted); padding:6px 0; }
 
+/* ── DAWG nav ─────────────────────────────────────────────────────────────── */
+.bottom-nav.dawg-nav { background:#0a0a0a; border-top:1px solid #1c1c1c; align-items:center; }
+.bottom-nav.dawg-nav .nav-btn { display:none; color:#555; }
+.bottom-nav.dawg-nav .nav-btn svg { stroke:#555; }
+.bottom-nav.dawg-nav .nav-btn[data-tab="dashboard"],
+.bottom-nav.dawg-nav .nav-btn[data-tab="ledger"],
+.bottom-nav.dawg-nav .nav-btn[data-tab="add"],
+.bottom-nav.dawg-nav .nav-btn[data-tab="goals"],
+.bottom-nav.dawg-nav .nav-btn[data-tab="settings"] { display:flex; }
+.bottom-nav.dawg-nav .nav-btn.active { color:#39ff14; }
+.bottom-nav.dawg-nav .nav-btn.active svg { stroke:#39ff14; }
+.bottom-nav.dawg-nav .nav-btn[data-tab="ledger"]   .nav-label { font-size:0; }
+.bottom-nav.dawg-nav .nav-btn[data-tab="ledger"]   .nav-label::after { content:'Transactions'; font-size:.6rem; }
+.bottom-nav.dawg-nav .nav-btn[data-tab="settings"] .nav-label { font-size:0; }
+.bottom-nav.dawg-nav .nav-btn[data-tab="settings"] .nav-label::after { content:'Profile'; font-size:.6rem; }
+.bottom-nav.dawg-nav .nav-btn[data-tab="add"] {
+  width:58px; height:58px; min-width:58px; border-radius:50%;
+  border:2px solid #39ff14;
+  background:#000 url('./doberman.png') center/cover no-repeat;
+  overflow:hidden; margin-top:-20px; padding:0; flex-shrink:0;
+  box-shadow:0 0 18px rgba(57,255,20,.5), 0 6px 18px rgba(0,0,0,.8);
+}
+.bottom-nav.dawg-nav .nav-btn[data-tab="add"] .nav-icon,
+.bottom-nav.dawg-nav .nav-btn[data-tab="add"] .nav-label { display:none; }
+
 /* ── splash screen ── */
 .splash-screen {
   position: fixed;

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.1.7';
+const VERSION = '4.1.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.1.8', date: '2026-05-19', changes: [
+    'DAWG theme: nav bar redesigned to 5-tab minimal layout (Dashboard, Transactions, raised doberman Add button, Goals, Profile) matching the mockup',
+    'DAWG theme: Budget Overview donut now shows this week\'s spending vs your weekly planner budget — falls back to monthly budget total if no weekly plan is saved',
+  ]},
   { version: '4.1.7', date: '2026-05-19', changes: [
     'New DAWG theme 🐕 — completely redesigned dashboard with hero banner, balance sparkline with time ranges (1W/1M/3M/6M/1Y/ALL), donut budget overview, and neon-green black aesthetic',
   ]},
@@ -832,6 +836,8 @@ function applyTheme(theme) {
     _fs.fontStyle = t.font;
     saveSettings(_fs);
   }
+  // DAWG nav — swap nav to 5-item minimal bar when DAWG theme is active
+  document.querySelector('.bottom-nav')?.classList.toggle('dawg-nav', !!t.dawg);
   // Gengar ghost background overlay — lives inside #app so it's above body's solid bg
   let gOverlay = document.getElementById('gengar-bg-overlay');
   if (theme === 'gengar') {
@@ -1898,9 +1904,18 @@ function renderDashboardDawg() {
   const deltaPct = balLast !== 0 ? Math.abs(monthDelta / Math.abs(balLast) * 100) : 0;
   const deltaStr = `${deltaArrow} ${fmt(Math.abs(monthDelta))} (${deltaPct.toFixed(1)}%) this month`;
 
-  const totalBudget = Object.values(state.budgets || {}).reduce((s,v) => s+(parseFloat(v)||0), 0);
-  const budgetPct   = totalBudget > 0 ? Math.min(mExp / totalBudget * 100, 100) : 0;
+  // Budget overview — prefer weekly planner per-week budget; fall back to monthly budget total
+  const _wp         = state.weekly_plan;
+  const weekBudget  = parseFloat(_wp?.per_week || 0);
+  const _wkNow      = new Date(); _wkNow.setHours(0,0,0,0);
+  const _wkMon      = new Date(_wkNow); _wkMon.setDate(_wkNow.getDate() - (_wkNow.getDay()===0?6:_wkNow.getDay()-1));
+  const _monStr     = _wkMon.toISOString().split('T')[0];
+  const weekSpent   = state.transactions.filter(t => t.type==='expense' && t.date >= _monStr).reduce((s,t)=>s+t.amount,0);
+  const totalBudget = weekBudget || Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
+  const budgetSpent = weekBudget ? weekSpent : mExp;
+  const budgetPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
   const budgetColor = budgetPct >= 100 ? '#ff4444' : budgetPct >= 80 ? '#ffd700' : '#39ff14';
+  const budgetLbl   = weekBudget ? 'weekly' : 'monthly';
 
   const totalMExp  = Object.values(bycat).reduce((s,v)=>s+v, 0);
   const catEntries = Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,6);
@@ -1988,8 +2003,8 @@ function renderDashboardDawg() {
           </div>
         </div>
         <div class="dawg-budget-row">
-          <div class="dawg-budget-stat"><span class="dawg-stat-val">${fmt(mExp)}</span><span class="dawg-stat-lbl">spent</span></div>
-          <div class="dawg-budget-stat"><span class="dawg-stat-val">${fmt(totalBudget)}</span><span class="dawg-stat-lbl">budget</span></div>
+          <div class="dawg-budget-stat"><span class="dawg-stat-val">${fmt(budgetSpent)}</span><span class="dawg-stat-lbl">spent</span></div>
+          <div class="dawg-budget-stat"><span class="dawg-stat-val">${fmt(totalBudget)}</span><span class="dawg-stat-lbl">${budgetLbl}</span></div>
         </div>
         <button class="dawg-view-btn" id="dawg-goto-budgets">VIEW BUDGET ›</button>
       </div>
@@ -3567,18 +3582,25 @@ function attachDashboardDawg() {
   document.getElementById('dawg-goto-goals')?.addEventListener('click',   () => showTab('goals'));
   document.getElementById('dawg-goto-txns')?.addEventListener('click',    () => showTab('ledger'));
 
-  // Donut chart
+  // Donut chart — uses weekly planner per-week budget if available
   const donutCanvas = document.getElementById('dawg-donut');
   if (donutCanvas) {
-    const now2  = new Date();
-    const tm   = `${now2.getFullYear()}-${String(now2.getMonth()+1).padStart(2,'0')}`;
-    const { expense: de } = monthTotals(tm);
-    const tb   = Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
-    const dp   = tb > 0 ? de/tb : 0;
-    const dc   = dp >= 1 ? '#ff4444' : dp >= 0.8 ? '#ffd700' : '#39ff14';
+    const _wp2      = state.weekly_plan;
+    const _wb       = parseFloat(_wp2?.per_week || 0);
+    const _dn       = new Date(); _dn.setHours(0,0,0,0);
+    const _dm       = new Date(_dn); _dm.setDate(_dn.getDate() - (_dn.getDay()===0?6:_dn.getDay()-1));
+    const _ws       = state.transactions.filter(t=>t.type==='expense'&&t.date>=_dm.toISOString().split('T')[0]).reduce((s,t)=>s+t.amount,0);
+    const _tm       = `${_dn.getFullYear()}-${String(_dn.getMonth()+1).padStart(2,'0')}`;
+    const { expense: _me } = monthTotals(_tm);
+    const _tb       = _wb || Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
+    const _bs       = _wb ? _ws : _me;
+    const _dp       = _tb > 0 ? _bs/_tb : 0;
+    const _dc       = _dp >= 1 ? '#ff4444' : _dp >= 0.8 ? '#ffd700' : '#39ff14';
+    const _spent    = Math.min(_bs, _tb || _bs);
+    const _remain   = Math.max(0, (_tb||_bs) - _spent) || 0.001;
     new Chart(donutCanvas, {
       type:'doughnut',
-      data:{ datasets:[{ data:[Math.min(de,tb||de), Math.max(0,(tb||de)-Math.min(de,tb||de))||0.001], backgroundColor:[dc,'#1e1e1e'], borderWidth:0 }] },
+      data:{ datasets:[{ data:[_spent, _remain], backgroundColor:[_dc,'#1e1e1e'], borderWidth:0 }] },
       options:{ responsive:false, cutout:'74%', plugins:{ legend:{display:false}, tooltip:{enabled:false} }, animation:{duration:500} }
     });
   }
