@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.2.0';
+const VERSION = '4.2.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.2.1', date: '2026-05-19', changes: [
+    'DAWG Light: all accent colors now use CSS variables — neon green no longer bleeds through on the light theme',
+    'DAWG Light: balance amount, hero tagline, and text elements use dark colors; only bars, percentages, and action labels use the theme accent',
+    'DAWG Light: sparkline and donut chart colors read from theme variables so they adapt correctly',
+    'DAWG Light: accent updated to a cleaner mid-green (#22aa22) matching the mockup',
+  ]},
   { version: '4.2.0', date: '2026-05-19', changes: [
     'DAWG theme: account switcher button (⊞) added to top-right of hero — appears only when multiple accounts exist',
     'DAWG theme: fixed header reappearing on the About page',
@@ -595,12 +601,12 @@ const THEMES = {
   },
   dawglight: {
     label:'DAWG Light ☀️',
-    bg:'#f4f4f4', surface:'#ffffff', surface2:'#ebebeb', card:'#ffffff',
-    text:'#111111', muted:'#666666', border:'#dedede',
-    accent:'#1aaa00', accent2:'#008800', success:'#1aaa00', warn:'#b87800', danger:'#cc2200',
-    grad:'linear-gradient(135deg, #d4f0cc 0%, #1aaa00 100%)',
+    bg:'#f4f4f4', surface:'#ffffff', surface2:'#e8e8e8', card:'#ffffff',
+    text:'#111111', muted:'#777777', border:'#e0e0e0',
+    accent:'#22aa22', accent2:'#007700', success:'#22aa22', warn:'#b87800', danger:'#cc2200',
+    grad:'linear-gradient(135deg, #d0ecd0 0%, #22aa22 100%)',
     font:'default', dawg:true, light:true,
-    cats:{ Food:'#1aaa00', Gas:'#cc2200', Car:'#0066cc', Boat:'#0099bb', Tools:'#b87800', Home:'#1aaa00', Entertainment:'#8800cc', Health:'#cc0066', Other:'#888888' },
+    cats:{ Food:'#22aa22', Gas:'#cc2200', Car:'#0066cc', Boat:'#0099bb', Tools:'#b87800', Home:'#22aa22', Entertainment:'#8800cc', Health:'#cc0066', Other:'#888888' },
   },
 };
 
@@ -1912,12 +1918,11 @@ function balanceAsOf(dateStr) {
 function renderDashboardDawg() {
   const { income, expense } = totals();
   const balance = (state.startingBalance || 0) + income - expense;
-  const balColor = balance >= 0 ? '#39ff14' : '#ff4444';
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const { income: mInc, expense: mExp, bycat } = monthTotals(thisMonth);
   const monthDelta = mInc - mExp;
-  const deltaColor = monthDelta >= 0 ? '#39ff14' : '#ff4444';
+  const deltaColor = monthDelta >= 0 ? 'var(--success)' : 'var(--danger)';
   const deltaArrow = monthDelta >= 0 ? '▲' : '▼';
   const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
   const balLast = balanceAsOf(lastMonthEnd);
@@ -1934,7 +1939,7 @@ function renderDashboardDawg() {
   const totalBudget = weekBudget || Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
   const budgetSpent = weekBudget ? weekSpent : mExp;
   const budgetPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
-  const budgetColor = budgetPct >= 100 ? '#ff4444' : budgetPct >= 80 ? '#ffd700' : '#39ff14';
+  const budgetColor = budgetPct >= 100 ? 'var(--danger)' : budgetPct >= 80 ? 'var(--warn)' : 'var(--accent)';
   const budgetLbl   = weekBudget ? 'weekly' : 'monthly';
 
   const totalMExp  = Object.values(bycat).reduce((s,v)=>s+v, 0);
@@ -1974,7 +1979,7 @@ function renderDashboardDawg() {
   const recentTxns = [...state.transactions].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
   const txnHtml = recentTxns.length ? recentTxns.map(t => {
     const isInc  = t.type === 'income';
-    const color  = isInc ? '#39ff14' : '#ff4444';
+    const color  = isInc ? 'var(--success)' : 'var(--danger)';
     const sign   = isInc ? '+' : '−';
     const icon   = isInc ? '💵' : (catIcons[t.category] || '💳');
     const dlbl   = t.date === todayStr ? 'Today' : t.date === yesterdayStr ? 'Yesterday' : t.date.slice(5);
@@ -2001,7 +2006,7 @@ function renderDashboardDawg() {
 
     <div class="dawg-balance-card">
       <div class="dawg-balance-label">TOTAL BALANCE</div>
-      <div class="dawg-balance-amt" style="color:${balColor}">${fmt(balance)}</div>
+      <div class="dawg-balance-amt" style="color:var(--text)">${fmt(balance)}</div>
       <div class="dawg-balance-delta" style="color:${deltaColor}">${deltaStr}</div>
       <div class="dawg-sparkline-wrap"><canvas id="dawg-sparkline"></canvas></div>
       <div class="dawg-time-btns">
@@ -3622,8 +3627,12 @@ function attachDashboardDawg() {
     const { expense: _me } = monthTotals(_tm);
     const _tb       = _wb || Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
     const _bs       = _wb ? _ws : _me;
+    const _cs2      = getComputedStyle(document.documentElement);
+    const _accentC  = _cs2.getPropertyValue('--accent').trim();
+    const _warnC    = _cs2.getPropertyValue('--warn').trim();
+    const _dangerC  = _cs2.getPropertyValue('--danger').trim();
     const _dp       = _tb > 0 ? _bs/_tb : 0;
-    const _dc       = _dp >= 1 ? '#ff4444' : _dp >= 0.8 ? '#ffd700' : '#39ff14';
+    const _dc       = _dp >= 1 ? _dangerC : _dp >= 0.8 ? _warnC : _accentC;
     const _spent    = Math.min(_bs, _tb || _bs);
     const _remain   = Math.max(0, (_tb||_bs) - _spent) || 0.001;
     const _emptyClr = document.body.classList.contains('light') ? '#e0e0e0' : '#1e1e1e';
@@ -3644,11 +3653,13 @@ function attachDashboardDawg() {
     if (!data.length) return;
     const ctx  = canvas.getContext('2d');
     const grad = ctx.createLinearGradient(0, 0, 0, canvas.offsetHeight||80);
-    grad.addColorStop(0, 'rgba(57,255,20,.28)');
-    grad.addColorStop(1, 'rgba(57,255,20,0)');
+    const _sparkClrRgb = document.body.classList.contains('light') ? '34,170,34' : '57,255,20';
+    grad.addColorStop(0, `rgba(${_sparkClrRgb},.28)`);
+    grad.addColorStop(1, `rgba(${_sparkClrRgb},0)`);
+    const _sparkClr = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     _dawgSpark = new Chart(canvas, {
       type:'line',
-      data:{ labels, datasets:[{ data, borderColor:'#39ff14', borderWidth:2, pointRadius:0, tension:0.4, fill:true, backgroundColor:grad }] },
+      data:{ labels, datasets:[{ data, borderColor:_sparkClr, borderWidth:2, pointRadius:0, tension:0.4, fill:true, backgroundColor:grad }] },
       options:{
         responsive:true, maintainAspectRatio:false,
         plugins:{ legend:{display:false}, tooltip:{enabled:false} },

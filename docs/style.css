@@ -1664,7 +1664,7 @@ body.light .section-title::before {
   font-size:1.75rem; font-weight:900; line-height:1.1; color:#fff;
   text-transform:uppercase; padding-bottom:24px; text-shadow:0 2px 12px rgba(0,0,0,.8);
 }
-.dawg-lockin { color:#39ff14; font-style:italic; display:block; }
+.dawg-lockin { color:var(--accent); font-style:italic; display:block; }
 .dawg-hero-dob {
   width:145px; flex-shrink:0; object-fit:contain; object-position:bottom;
   filter:drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8));
@@ -1672,7 +1672,7 @@ body.light .section-title::before {
 
 .dawg-balance-card {
   background:var(--card); margin:12px 14px 0; border-radius:18px;
-  padding:16px 16px 12px; border:1px solid rgba(57,255,20,.18);
+  padding:16px 16px 12px; border:1px solid var(--border);
 }
 .dawg-balance-label { font-size:.68rem; font-weight:700; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; }
 .dawg-balance-amt { font-size:2.3rem; font-weight:800; line-height:1.1; margin:4px 0 2px; }
@@ -1684,7 +1684,7 @@ body.light .section-title::before {
   background:transparent; border:1px solid var(--border); color:var(--muted);
   border-radius:8px; cursor:pointer; transition:border-color .15s,color .15s;
 }
-.dawg-tbtn-active { border-color:#39ff14 !important; color:#39ff14 !important; }
+.dawg-tbtn-active { border-color:var(--accent) !important; color:var(--accent) !important; }
 
 .dawg-mid-row { display:flex; gap:10px; margin:10px 14px 0; }
 .dawg-overview-card,.dawg-breakdown-card {
@@ -1702,14 +1702,14 @@ body.light .section-title::before {
 .dawg-budget-stat { display:flex; flex-direction:column; align-items:center; gap:1px; }
 .dawg-stat-val { font-size:.78rem; font-weight:700; color:var(--text); }
 .dawg-stat-lbl { font-size:.58rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
-.dawg-view-btn { background:none; border:none; color:#39ff14; font-size:.68rem; font-weight:700; letter-spacing:.04em; cursor:pointer; padding:2px 0; text-align:left; margin-top:auto; }
+.dawg-view-btn { background:none; border:none; color:var(--accent); font-size:.68rem; font-weight:700; letter-spacing:.04em; cursor:pointer; padding:2px 0; text-align:left; margin-top:auto; }
 
 .dawg-cat-list { display:flex; flex-direction:column; gap:5px; flex:1; overflow:hidden; }
 .dawg-cat-row { display:flex; align-items:center; gap:3px; }
 .dawg-cat-icon { font-size:.78rem; width:16px; text-align:center; flex-shrink:0; }
 .dawg-cat-name { font-size:.67rem; color:var(--text); min-width:50px; max-width:50px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dawg-cat-bar-wrap { flex:1; height:3px; background:var(--surface2); border-radius:2px; overflow:hidden; margin:0 3px; }
-.dawg-cat-bar { height:100%; background:#39ff14; border-radius:2px; }
+.dawg-cat-bar { height:100%; background:var(--accent); border-radius:2px; }
 .dawg-cat-amt { font-size:.62rem; color:var(--text); white-space:nowrap; min-width:36px; text-align:right; }
 .dawg-cat-pct { font-size:.6rem; color:var(--muted); min-width:24px; text-align:right; }
 
@@ -1719,21 +1719,21 @@ body.light .section-title::before {
   display:flex; flex-direction:column; gap:10px;
 }
 .dawg-section-hdr { display:flex; align-items:center; justify-content:space-between; }
-.dawg-view-all { background:none; border:none; color:#39ff14; font-size:.72rem; font-weight:700; cursor:pointer; letter-spacing:.04em; }
+.dawg-view-all { background:none; border:none; color:var(--accent); font-size:.72rem; font-weight:700; cursor:pointer; letter-spacing:.04em; }
 
 .dawg-goal-row { display:flex; align-items:center; gap:8px; }
 .dawg-goal-icon {
   font-size:1.05rem; width:34px; height:34px; background:var(--surface2);
   border-radius:50%; display:flex; align-items:center; justify-content:center;
-  flex-shrink:0; border:1px solid rgba(57,255,20,.2);
+  flex-shrink:0; border:1px solid var(--border);
 }
 .dawg-goal-info { flex:1; min-width:0; }
 .dawg-goal-name { font-size:.82rem; font-weight:700; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dawg-goal-sub { font-size:.7rem; color:var(--muted); }
 .dawg-goal-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; min-width:58px; }
 .dawg-goal-bar-wrap { width:58px; height:3px; background:var(--surface2); border-radius:2px; overflow:hidden; }
-.dawg-goal-bar { height:100%; background:#39ff14; border-radius:2px; }
-.dawg-goal-pct { font-size:.75rem; font-weight:700; color:#39ff14; }
+.dawg-goal-bar { height:100%; background:var(--accent); border-radius:2px; }
+.dawg-goal-pct { font-size:.75rem; font-weight:700; color:var(--accent); }
 
 .dawg-txn-row { display:flex; align-items:center; gap:10px; padding:3px 0; }
 .dawg-txn-icon {
@@ -1753,36 +1753,18 @@ body.light .section-title::before {
 /* Account switcher button — top-right corner of hero */
 .dawg-acct-btn {
   position:absolute; top:12px; right:14px; z-index:2;
-  background:rgba(0,0,0,.45); border:1px solid rgba(57,255,20,.35);
-  color:#39ff14; font-size:1.1rem; line-height:1;
+  background:rgba(0,0,0,.45); border:1px solid var(--border);
+  color:var(--accent); font-size:1.1rem; line-height:1;
   width:34px; height:34px; border-radius:8px;
   display:flex; align-items:center; justify-content:center;
   cursor:pointer; backdrop-filter:blur(4px);
 }
-body.light .dawg-acct-btn {
-  background:rgba(255,255,255,.6); border-color:rgba(26,170,0,.35); color:#1aaa00;
-}
 
-/* Light mode overrides for the DAWG layout */
-body.light .dawg-hero {
-  background:linear-gradient(180deg,#eaf5e6 0%,#f4f4f4 100%);
-}
-body.light .dawg-hero::after {
-  background:linear-gradient(to bottom,transparent,#f4f4f4);
-}
-body.light .dawg-hero-glow {
-  background:radial-gradient(ellipse,rgba(26,170,0,.1) 0%,transparent 65%);
-}
-body.light .dawg-hero-tagline { color:#111; }
-body.light .dawg-lockin { color:#1aaa00; }
-body.light .dawg-balance-card { border-color:rgba(26,170,0,.22); }
-body.light .dawg-tbtn-active { border-color:#1aaa00 !important; color:#1aaa00 !important; }
-body.light .dawg-view-btn,
-body.light .dawg-view-all    { color:#1aaa00; }
-body.light .dawg-goal-pct    { color:#1aaa00; }
-body.light .dawg-goal-bar    { background:#1aaa00; }
-body.light .dawg-cat-bar     { background:#1aaa00; }
-body.light .dawg-goal-icon   { border-color:rgba(26,170,0,.2); }
+/* Light mode — structural overrides only; colors come from CSS vars automatically */
+body.light .dawg-acct-btn { background:rgba(255,255,255,.7); }
+body.light .dawg-hero { background:linear-gradient(180deg,#f0f0f0 0%,var(--bg) 100%); }
+body.light .dawg-hero-tagline { color:#111; text-shadow:none; }
+body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
 
 /* ── splash screen ── */
 .splash-screen {
