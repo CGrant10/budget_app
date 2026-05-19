@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.1.2';
+const VERSION = '4.1.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.1.3', date: '2026-05-19', changes: [
+    'Weekly planner: past weeks now live in a frozen DOM section — they are written once and never re-rendered when balance, buffer, or paydate changes',
+    'Weekly planner: dragging the emergency buffer slider no longer triggers the swipe-to-change-tabs gesture',
+  ]},
   { version: '4.1.2', date: '2026-05-19', changes: [
     'Weekly planner: past weeks are now frozen — adjusting balance, buffer, or paydate only affects the current week and ahead; past weeks show actual spending only with no live budget target',
   ]},
@@ -2325,7 +2329,12 @@ function renderWeekly() {
           <span id="wk-save-status" class="status-inline"></span>
         </div>
       </div>
-      <div id="wk-results"></div>
+      <div id="wk-live"></div>
+      <div id="wk-week-section" style="display:none">
+        <h2 class="section-title" style="margin-bottom:10px">Week-by-week breakdown</h2>
+        <div class="wkb-rows" id="wk-past-rows"></div>
+        <div class="wkb-rows" id="wk-future-rows"></div>
+      </div>
     </div>`;
 }
 
@@ -2389,14 +2398,17 @@ function calcWeekly() {
 
   const txnRow = t => `<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`;
 
-  const allWeekRows = Array.from({length: totalWeeks}, (_, w) => {
+  const pastRowsHtml  = [];
+  const futureRowsHtml = [];
+
+  Array.from({length: totalWeeks}, (_, w) => {
     const sd = new Date(startMonday); sd.setDate(startMonday.getDate() + w*7);
     const ed = new Date(startMonday); ed.setDate(startMonday.getDate() + (w+1)*7 - 1);
     if (ed > paydate) ed.setTime(paydate.getTime());
     const sdS = sd.toISOString().split('T')[0];
     const edS = ed.toISOString().split('T')[0];
     const isCurrent = sdS <= mondayStr && mondayStr <= edS;
-    const isPast    = ed < now;
+    const isPast    = edS < mondayStr;
     const lbl = `${sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
     const wkTxns = state.transactions.filter(t=>t.date>=sdS&&t.date<=edS);
     const wkExp  = wkTxns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
@@ -2405,21 +2417,25 @@ function calcWeekly() {
     const txnHtml = wkTxns.length
       ? wkTxns.sort((a,b)=>b.date.localeCompare(a.date)).map(txnRow).join('')
       : '<p class="pw-empty">No transactions.</p>';
+
     if (isPast) {
-      // Past weeks are static — only show actual spending, never the live budget target
+      // Past weeks — static, only transaction data, never recalculated from settings
       const spentColor = wkExp > 0 ? 'var(--text)' : 'var(--muted)';
       const spentLabel = wkExp > 0 ? `−${fmt(wkExp)}` : 'No spending';
-      return `<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span><span class="wkb-amounts" style="color:${spentColor};margin-left:auto">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`;
+      pastRowsHtml.push(`<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span><span class="wkb-amounts" style="color:${spentColor};margin-left:auto">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
+    } else {
+      // Current + future weeks — live, recalculated on every settings change
+      const wkPct   = perWeek > 0 ? Math.min(wkNet/perWeek*100,100) : 0;
+      const wkColor = wkPct>=100?'var(--danger)':wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
+      const badge   = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
+      futureRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(perWeek)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     }
-    const wkPct  = perWeek > 0 ? Math.min(wkNet/perWeek*100,100) : 0;
-    const wkColor = wkPct>=100?'var(--danger)':wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
-    const badge = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
-    return `<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(perWeek)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`;
-  }).join('');
+  });
 
-  const el = document.getElementById('wk-results');
-  if (!el) return;
-  el.innerHTML = `
+  // ── Write summary + this-week tracker to #wk-live (always updated) ─────
+  const liveEl = document.getElementById('wk-live');
+  if (!liveEl) return;
+  liveEl.innerHTML = `
     <div class="cards-grid">${summaryCards}</div>
     <div class="week-tracker">
       <div class="wt-header">
@@ -2439,26 +2455,47 @@ function calcWeekly() {
         <button class="wt-txns-toggle">▼  show transactions</button>
         <div class="pw-week-txns wt-txns-body">${thisWeekTxnHtml}</div>
       </div>
-    </div>
-    <h2 class="section-title">Week-by-week breakdown</h2>
-    <div class="wkb-rows">${allWeekRows}</div>`;
-
-  el.querySelector('.wt-txns-toggle')?.addEventListener('click', function() {
+    </div>`;
+  liveEl.querySelector('.wt-txns-toggle')?.addEventListener('click', function() {
     const body = this.nextElementSibling;
     const open = body.style.display !== 'block';
     body.style.display = open ? 'block' : 'none';
     this.textContent = open ? '▲  hide transactions' : '▼  show transactions';
   });
-  el.querySelectorAll('.wkb-header, .pw-week-header').forEach(hdr => {
-    hdr.addEventListener('click', () => {
-      const row  = hdr.closest('.wkb-row, .pw-week-row');
-      const txns = row.querySelector('.pw-week-txns');
-      const tog  = hdr.querySelector('.pw-week-toggle');
-      const open = txns.style.display !== 'block';
-      txns.style.display = open ? 'block' : 'none';
-      if (tog) tog.textContent = open ? '▲' : '▼';
+
+  // ── Write past rows ONCE — never overwrite if already populated ─────────
+  const pastEl = document.getElementById('wk-past-rows');
+  if (pastEl && !pastEl.children.length && pastRowsHtml.length) {
+    pastEl.innerHTML = pastRowsHtml.join('');
+    pastEl.querySelectorAll('.wkb-header').forEach(hdr => {
+      hdr.addEventListener('click', () => {
+        const txns = hdr.nextElementSibling;
+        const tog  = hdr.querySelector('.pw-week-toggle');
+        const open = txns.style.display !== 'block';
+        txns.style.display = open ? 'block' : 'none';
+        if (tog) tog.textContent = open ? '▲' : '▼';
+      });
     });
-  });
+  }
+
+  // ── Always rebuild current + future rows ───────────────────────────────
+  const futureEl = document.getElementById('wk-future-rows');
+  if (futureEl) {
+    futureEl.innerHTML = futureRowsHtml.join('');
+    futureEl.querySelectorAll('.wkb-header').forEach(hdr => {
+      hdr.addEventListener('click', () => {
+        const txns = hdr.nextElementSibling;
+        const tog  = hdr.querySelector('.pw-week-toggle');
+        const open = txns.style.display !== 'block';
+        txns.style.display = open ? 'block' : 'none';
+        if (tog) tog.textContent = open ? '▲' : '▼';
+      });
+    });
+  }
+
+  // Show the week-by-week section if there's anything to show
+  const weekSection = document.getElementById('wk-week-section');
+  if (weekSection) weekSection.style.display = '';
 }
 
 // ── bills ──────────────────────────────────────────────────────────────────
@@ -3759,11 +3796,17 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
     (function attachSwipeTabs() {
       const mc = document.getElementById('main-content');
       if (!mc) return;
-      let tx0 = 0, ty0 = 0;
+      let tx0 = 0, ty0 = 0, swipeTouchTarget = null;
       mc.addEventListener('touchstart', e => {
         tx0 = e.touches[0].clientX; ty0 = e.touches[0].clientY;
+        swipeTouchTarget = e.target;
       }, { passive: true });
       mc.addEventListener('touchend', e => {
+        // Never swipe tabs when the gesture started on a range slider
+        if (swipeTouchTarget && (
+          (swipeTouchTarget.tagName === 'INPUT' && swipeTouchTarget.type === 'range') ||
+          swipeTouchTarget.classList.contains('slider')
+        )) return;
         const dx = e.changedTouches[0].clientX - tx0;
         const dy = Math.abs(e.changedTouches[0].clientY - ty0);
         if (Math.abs(dx) < 55 || dy > 45) return;
