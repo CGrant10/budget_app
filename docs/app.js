@@ -2192,7 +2192,7 @@ function renderDashboardDawg() {
 function renderDashboard() {
   return renderDashboardDawg();
   // Legacy non-DAWG dashboard kept below for reference only
-  if (false) {
+  if (false) {}
   const ds = loadSettings();
   const showBills     = ds.dashBills     !== false;
   const showInsights  = ds.dashInsights  !== false;
