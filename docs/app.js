@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '3.9.9';
+const VERSION = '4.0.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.0.0', date: '2026-05-19', changes: [
+    'Header revamp — removed the shrinking text logo; replaced with doberman image + "BUDGET DAWGS" in clean uppercase tracking',
+    'Light mode: accent updated to brand green (#4ecb8d) matching dark mode; gray/green gradient on buttons',
+    'Insights card: claw logo removed — text only, cleaner look',
+  ]},
   { version: '3.9.9', date: '2026-05-19', changes: [
     'Insight card: replaced complex paw SVG with 3 clean solid-black bear claws — no toe pads, no shine lines, no blue tint',
     'Buttons/bars: dark mode gradient is now deep forest grey → brand green (#2d3830 → #4ecb8d) for the gray/green look',
@@ -432,9 +437,10 @@ const THEMES = {
   light: {
     label:'Light',
     bg:'#f3f3f3', surface:'#ffffff', surface2:'#e8e8e8', card:'#efefef',
-    accent:'#5e58a8', accent2:'#a06838', success:'#3e8a60', warn:'#988018', danger:'#a84040',
+    accent:'#4ecb8d', accent2:'#a06838', success:'#2ea870', warn:'#988018', danger:'#a84040',
+    grad:'linear-gradient(135deg, #1a4030 0%, #4ecb8d 100%)',
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true,
-    cats:{ Food:'#3e8a60', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
+    cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
   },
   denim: {
     label:'Denim',
@@ -599,42 +605,13 @@ const NAV_ITEMS = [
 
 function applySettings() {
   const s = loadSettings();
-  const logo = document.querySelector('.logo');
-  if (logo) {
-    logo.textContent = s.name || "SlawMinYaw's Budget DAWGs";
-    // Font is locked to Plus Jakarta Sans (CSS) — custom logoFont no longer applied
-    logo.style.color = s.logoColor || '';
-    if (s.logoTransform === 'small-caps') {
-      logo.style.textTransform = '';
-      logo.style.fontVariant = 'small-caps';
-    } else {
-      logo.style.textTransform = s.logoTransform || '';
-      logo.style.fontVariant = '';
-    }
-    // When a custom color is chosen, remove the CSS opacity so it shows at full strength
-    logo.style.opacity = s.logoColor ? '1' : '';
-  }
   applyNavPosition(s.navPosition || 'bottom');
   applyNavItems(s.hiddenTabs || []);
   applyTheme(s.theme || 'dark');
-  fitLogo();
 }
 
-// Shrink header logo font-size until the text fits on one line within the flex space.
-// With flex:1 on .logo, offsetWidth IS the available space — no sibling math needed.
-function fitLogo() {
-  const logo = document.querySelector('.logo');
-  if (!logo) return;
-  logo.style.fontSize = '';   // reset to CSS default before measuring
-  requestAnimationFrame(() => {
-    if (logo.scrollWidth <= logo.offsetWidth) return;  // already fits
-    let px = parseFloat(getComputedStyle(logo).fontSize);
-    while (logo.scrollWidth > logo.offsetWidth && px > 10) {
-      px -= 0.5;
-      logo.style.fontSize = px + 'px';
-    }
-  });
-}
+// No-op: brand lockup uses a fixed image + short label — font shrinking no longer needed.
+function fitLogo() {}
 
 function applyNavPosition(pos) {
   const app = document.getElementById('app');
@@ -1951,13 +1928,6 @@ function renderDashboard() {
   const insightsHtml = showInsights && insights.length ? `
     <div class="insight-card" id="insight-rotator" data-insights='${safeInsights}'>
       <div class="insight-card-inner">
-        <span class="insight-card-icon">
-          <svg class="scary-paw" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
-            <path d="M7,0 C3,0 0,8 1,18 C3,29 6,38 9,44 C10,38 13,29 13,18 C14,8 11,0 7,0Z" fill="#0a0a0a"/>
-            <path d="M22,0 C18,0 15,8 16,18 C18,29 21,38 24,44 C25,38 28,29 28,18 C29,8 26,0 22,0Z" fill="#0a0a0a"/>
-            <path d="M37,0 C33,0 30,8 31,18 C33,29 36,38 39,44 C40,38 43,29 43,18 C44,8 41,0 37,0Z" fill="#0a0a0a"/>
-          </svg>
-        </span>
         <span class="insight-card-text" id="insight-text">${insights[0]}</span>
       </div>
       ${insights.length > 1 ? `<div class="insight-dots">${insights.map((_, i) => `<span class="insight-dot${i === 0 ? ' active' : ''}"></span>`).join('')}</div>` : ''}

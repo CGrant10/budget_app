@@ -209,22 +209,27 @@ body::before {
 .header-inner { display: flex; align-items: center; gap: 8px; justify-content: flex-start; width: 100%; }
 /* Right-side controls group — never squished, always visible */
 .header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.logo  {
+/* Brand lockup: doberman image + name */
+.brand-lockup {
+  display: flex; align-items: center; gap: 10px;
+  flex: 1; min-width: 0;
+}
+.brand-dob {
+  width: 28px; height: 28px;
+  object-fit: contain; flex-shrink: 0;
+  filter: drop-shadow(0 1px 8px rgba(0,0,0,.55));
+}
+.logo {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 17px;
+  font-size: 13px;
   font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
   color: var(--accent);
-  letter-spacing: -.01em;
-  opacity: 1;
-  transition: color .3s;
-  /* flex:1 means logo gets ALL remaining space after .header-right — never more, never less */
-  flex: 1 1 0;
-  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
-}
-body.light .logo {
-  text-shadow: 1px 2px 5px rgba(0,0,0,0.15), 3px 4px 10px rgba(0,0,0,0.08);
+  text-overflow: ellipsis;
+  transition: color .3s;
 }
 .tagline { font-size: 10px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
 
