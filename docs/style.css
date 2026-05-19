@@ -1779,18 +1779,27 @@ body.light .section-title::before {
 
 /* Center doberman button */
 .dawg-nav-center-btn {
-  flex:0 0 62px !important; width:62px !important; height:58px;
-  background:var(--accent) !important; border-radius:18px;
-  color:#000 !important; padding:0; margin-bottom:6px;
-  box-shadow:0 2px 20px rgba(57,255,20,.4), 0 0 0 3px var(--bg);
-  justify-content:flex-end; align-items:flex-end; overflow:hidden; gap:0;
+  flex:0 0 62px !important; width:62px !important; height:62px;
+  background:transparent !important; border-radius:50% !important;
+  border:1.5px solid var(--accent) !important;
+  color:var(--text) !important; padding:0; margin-bottom:4px;
+  box-shadow:none;
+  justify-content:center; align-items:center; overflow:hidden; gap:0;
+  transition:background .15s, box-shadow .15s;
+}
+.dawg-nav-center-btn:active {
+  background:rgba(57,255,20,.12) !important;
+  box-shadow:0 0 0 4px rgba(57,255,20,.15) !important;
+}
+body.light .dawg-nav-center-btn:active {
+  background:rgba(34,170,34,.12) !important;
+  box-shadow:0 0 0 4px rgba(34,170,34,.15) !important;
 }
 .dawg-nav-dob {
-  width:54px; height:54px; object-fit:contain; object-position:bottom center;
+  width:50px; height:50px; object-fit:contain; object-position:center;
   filter:drop-shadow(0 1px 4px rgba(0,0,0,.5));
   display:block; flex-shrink:0;
 }
-body.light .dawg-nav-center-btn { box-shadow:0 2px 16px rgba(34,170,34,.4), 0 0 0 3px var(--bg); }
 
 /* DAWG account switcher dropdown (pops up from center button) */
 .dawg-acct-dropdown {
