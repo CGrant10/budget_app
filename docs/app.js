@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.7.1';
+const VERSION = '4.7.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,15 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.7.2', date: '2026-05-20', changes: [
+    'Smart Budget Suggestions: auto-generated per-category budget ideas based on your last 3 months of spending',
+    'Apply individual suggestions or all at once with one tap on the Budgets page',
+    'Savings Challenges: four challenge types — No-Spend Weekend, 52-Week, Spending Freeze, and Beat Last Month',
+    'No-Spend Weekend and category challenges auto-track progress from your transactions',
+    '52-Week challenge has a full 52-cell check-off grid with streak counter',
+    'Completion celebration screen shown when a challenge is finished',
+    'Challenges accessible from the drawer menu',
+  ]},
   { version: '4.7.1', date: '2026-05-20', changes: [
     'Account pill icon now uses the correct text color instead of rendering black',
   ]},
@@ -964,7 +973,7 @@ function checkSpendingAlert(category) {
 }
 
 // ── state + localStorage ───────────────────────────────────────────────────
-let state = { transactions: [], weekly_plan: {}, budgets: {}, bills: [], goals: [], accounts: [], startingBalance: 0 };
+let state = { transactions: [], weekly_plan: {}, budgets: {}, bills: [], goals: [], challenges: [], accounts: [], startingBalance: 0 };
 let lastCalcPerWeek = 0;
 let dashChartMode = 'bar';
 let currentAccountId = 'main';
@@ -1126,6 +1135,7 @@ function _save() {
       budgets:         state.budgets,
       bills:           state.bills,
       goals:           state.goals,
+      challenges:      state.challenges,
       startingBalance: state.startingBalance,
     }));
   } catch(e) { console.warn('Budget DAWGs: save failed', e); _showSaveError(); }
@@ -1143,6 +1153,7 @@ function _loadAccountData(id) {
   state.budgets         = d.budgets         || {};
   state.bills           = d.bills           || [];
   state.goals           = d.goals           || [];
+  state.challenges      = d.challenges      || [];
   state.startingBalance = parseFloat(d.startingBalance) || 0;
 }
 
@@ -1211,6 +1222,7 @@ const api = {
   async saveBudgets(b)             { state.budgets = b; _save(); },
   async saveBills(bills)           { state.bills = bills; _save(); },
   async saveGoals(goals)           { state.goals = goals; _save(); },
+  async saveChallenges(c)          { state.challenges = c; _save(); },
   async saveAccounts(accounts)     { state.accounts = accounts; _saveAccounts(); },
 };
 
@@ -2193,8 +2205,9 @@ function render() {
     case 'debt':      main.innerHTML = renderDebt();      break;
     case 'goals':     main.innerHTML = renderGoals();     break;
     case 'import':    main.innerHTML = renderImport();    break;
-    case 'budgets':   main.innerHTML = renderBudgets();   break;
-    case 'accounts':  main.innerHTML = renderAccounts();  break;
+    case 'budgets':     main.innerHTML = renderBudgets();     break;
+    case 'challenges':  main.innerHTML = renderChallenges(); break;
+    case 'accounts':    main.innerHTML = renderAccounts();   break;
     case 'settings':  main.innerHTML = renderSettings();  break;
     case 'about':     main.innerHTML = renderAbout();     break;
   }
@@ -2555,15 +2568,58 @@ function renderDashboard() {
 }
 
 // ── budgets ────────────────────────────────────────────────────────────────
+function getSmartBudgetSuggestions() {
+  const now = new Date();
+  const suggestions = {};
+  const monthsWithData = [];
+  for (let i = 1; i <= 3; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    monthsWithData.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  for (const cat of getCategories()) {
+    const monthlySums = monthsWithData.map(m =>
+      state.transactions.filter(t => t.type==='expense' && t.category===cat && t.date.startsWith(m))
+        .reduce((s,t) => s+t.amount, 0)
+    ).filter(v => v > 0);
+    if (monthlySums.length >= 1) {
+      const avg = monthlySums.reduce((s,v) => s+v, 0) / monthlySums.length;
+      suggestions[cat] = Math.ceil(avg / 5) * 5; // round up to nearest $5
+    }
+  }
+  return suggestions;
+}
+
 function renderBudgets() {
   const m = new Date().toISOString().slice(0, 7);
   const { bycat } = monthTotals(m);
+  const suggestions = getSmartBudgetSuggestions();
+  const hasSuggestions = Object.keys(suggestions).length > 0;
+  const suggestionsHtml = hasSuggestions ? `
+    <div class="budget-suggest-banner">
+      <div class="budget-suggest-hdr">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="16"/></svg>
+        Smart Suggestions
+        <span style="font-size:.75rem;font-weight:500;color:var(--muted)">based on your last 3 months</span>
+      </div>
+      <div class="budget-suggest-chips">
+        ${Object.entries(suggestions).map(([cat, amt]) => {
+          const catColor = CAT_COLORS[cat] || '#9896a4';
+          return `<div class="budget-suggest-chip">
+            <span class="cat-dot" style="background:${catColor}"></span>
+            <span class="budget-suggest-cat">${cat}</span>
+            <span class="budget-suggest-amt">${fmt(amt)}</span>
+            <button class="budget-suggest-apply" data-cat="${cat}" data-amt="${amt}">Apply</button>
+          </div>`;
+        }).join('')}
+      </div>
+      <button id="budget-apply-all" class="btn-secondary" style="margin-top:10px;width:100%">Apply All Suggestions</button>
+    </div>` : '';
   const rows = getCategories().map(cat => {
     const spent    = bycat[cat] || 0;
     const limit    = parseFloat(state.budgets[cat] || 0);
     const pct      = limit > 0 ? Math.min(spent / limit * 100, 100) : 0;
     const catColor = CAT_COLORS[cat] || '#9896a4';
-    const barColor = pct >= 100 ? 'var(--danger)' : pct >= 80 ? 'var(--warn)' : catColor;
+    const barColor = pct >= 90 ? 'var(--danger)' : pct >= 75 ? 'var(--warn)' : catColor;
     const progressHtml = limit > 0 ? `
       <div class="budget-progress-wrap">
         <div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${pct.toFixed(1)}%;background:${barColor}"></div></div>
@@ -2580,6 +2636,7 @@ function renderBudgets() {
     <div class="page">
       <h1 class="page-title">Budget Limits</h1>
       <p class="page-sub">monthly cap per category</p>
+      ${suggestionsHtml}
       <div class="form-card">
         ${rows}
         <div class="btn-row">
@@ -2591,6 +2648,22 @@ function renderBudgets() {
 }
 
 function attachBudgets() {
+  // Apply single suggestion
+  document.querySelectorAll('.budget-suggest-apply').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const inp = document.getElementById('budget-' + btn.dataset.cat);
+      if (inp) { inp.value = btn.dataset.amt; btn.textContent = '✓'; btn.disabled = true; }
+    });
+  });
+  // Apply all suggestions
+  document.getElementById('budget-apply-all')?.addEventListener('click', () => {
+    const suggestions = getSmartBudgetSuggestions();
+    Object.entries(suggestions).forEach(([cat, amt]) => {
+      const inp = document.getElementById('budget-' + cat);
+      if (inp) inp.value = amt;
+    });
+    document.querySelectorAll('.budget-suggest-apply').forEach(btn => { btn.textContent = '✓'; btn.disabled = true; });
+  });
   document.getElementById('save-budgets')?.addEventListener('click', async () => {
     const dict = {};
     getCategories().forEach(cat => {
@@ -2601,6 +2674,380 @@ function attachBudgets() {
     const status = document.getElementById('budgets-status');
     if (status) { status.textContent = '✓ Saved'; setTimeout(() => { status.textContent = ''; }, 3000); }
   });
+}
+
+// ── challenges ─────────────────────────────────────────────────────────────
+const CHALLENGE_TYPES = {
+  no_spend_weekend: {
+    name: 'No-Spend Weekend',
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>`,
+    desc: 'No non-essential spending Sat & Sun. Auto-tracked each weekend.',
+  },
+  '52_week': {
+    name: '52-Week Challenge',
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
+    desc: 'Check off each week of the year as you hit your weekly goal.',
+  },
+  spending_freeze: {
+    name: 'Spending Freeze',
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+    desc: 'Zero spending in a chosen category for a set number of days.',
+  },
+  beat_last_month: {
+    name: 'Beat Last Month',
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
+    desc: 'Spend less this month than last month in a chosen category.',
+  },
+};
+
+function _challengeAutoStatus(ch) {
+  // Returns 'pass'|'fail'|'pending' for auto-tracked challenges based on transactions
+  const today = new Date(); today.setHours(0,0,0,0);
+  if (ch.type === 'no_spend_weekend') {
+    // Check the most recently passed weekend (last Sat-Sun pair)
+    const day = today.getDay(); // 0=Sun … 6=Sat
+    const lastSun = new Date(today); lastSun.setDate(today.getDate() - (day === 0 ? 0 : day));
+    const lastSat = new Date(lastSun); lastSat.setDate(lastSun.getDate() - 1);
+    const fmt2 = d => d.toISOString().slice(0, 10);
+    const spent = state.transactions.filter(t =>
+      t.type === 'expense' && (t.date === fmt2(lastSat) || t.date === fmt2(lastSun))
+    ).reduce((s, t) => s + t.amount, 0);
+    return spent > 0 ? 'fail' : 'pass';
+  }
+  if (ch.type === 'spending_freeze') {
+    const cat     = ch.data.category;
+    const endDate = ch.data.endDate;
+    const start   = ch.started;
+    const spent   = state.transactions.filter(t =>
+      t.type === 'expense' && t.category === cat && t.date >= start && t.date <= endDate
+    ).reduce((s, t) => s + t.amount, 0);
+    if (ch.data.endDate < today.toISOString().slice(0,10)) return spent === 0 ? 'pass' : 'fail';
+    return spent > 0 ? 'fail' : 'pending';
+  }
+  if (ch.type === 'beat_last_month') {
+    const cat    = ch.data.category;
+    const target = ch.data.target;
+    const month  = ch.data.month;
+    const spent  = state.transactions.filter(t =>
+      t.type === 'expense' && t.category === cat && t.date.startsWith(month)
+    ).reduce((s, t) => s + t.amount, 0);
+    const curMonth = today.toISOString().slice(0, 7);
+    if (curMonth > month) return spent < target ? 'pass' : 'fail';
+    return spent < target ? 'pending' : 'fail';
+  }
+  return 'pending';
+}
+
+function renderChallenges() {
+  const today    = new Date(); today.setHours(0,0,0,0);
+  const todayStr = today.toISOString().slice(0, 10);
+  const active   = state.challenges.filter(c => c.status === 'active');
+  const done     = state.challenges.filter(c => c.status !== 'active');
+
+  const catOptions = getCategories().map(c => `<option>${c}</option>`).join('');
+
+  const cardHtml = ch => {
+    const def      = CHALLENGE_TYPES[ch.type] || {};
+    const statusCls = ch.status === 'completed' ? 'completed' : ch.status === 'abandoned' ? 'abandoned' : 'active';
+    const badgeTxt  = ch.status === 'completed' ? 'Done' : ch.status === 'abandoned' ? 'Abandoned' : 'Active';
+
+    let progressHtml = '';
+    let extraHtml    = '';
+    let autoStatus   = '';
+
+    if (ch.type === '52_week') {
+      const checked  = ch.data.checkedWeeks || [];
+      const cells    = Array.from({ length: 52 }, (_, i) => {
+        const wk = i + 1;
+        const isDone = checked.includes(wk);
+        // Rough current week of year
+        const start  = new Date(ch.started + 'T00:00:00');
+        const elapsed = Math.floor((today - start) / 604800000) + 1;
+        const isCur  = wk === elapsed;
+        return `<div class="challenge-week-cell${isDone ? ' done' : isCur ? ' current' : ''}" data-id="${ch.id}" data-wk="${wk}" title="Week ${wk}">${wk}</div>`;
+      }).join('');
+      const pct = Math.round((checked.length / 52) * 100);
+      progressHtml = `
+        <div class="challenge-progress-bar"><div class="challenge-progress-fill" style="width:${pct}%"></div></div>`;
+      extraHtml = `<div class="challenge-week-grid">${cells}</div>`;
+    } else if (ch.type === 'no_spend_weekend') {
+      const weekends = ch.data.completedWeekends || [];
+      const total    = weekends.length;
+      const pct      = Math.min(Math.round((total / 8) * 100), 100); // show out of ~8 weekends
+      autoStatus     = _challengeAutoStatus(ch);
+      progressHtml   = `
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:6px">
+          ${total} weekend${total !== 1 ? 's' : ''} completed
+          ${autoStatus === 'pass' ? '<span style="color:var(--success);font-weight:700;margin-left:6px">✓ This weekend</span>' : autoStatus === 'fail' ? '<span style="color:var(--danger);font-weight:700;margin-left:6px">✗ Spending detected</span>' : ''}
+        </div>
+        <div class="challenge-progress-bar"><div class="challenge-progress-fill" style="width:${pct}%"></div></div>`;
+    } else if (ch.type === 'spending_freeze') {
+      autoStatus   = _challengeAutoStatus(ch);
+      const days   = Math.max(0, Math.ceil((new Date(ch.data.endDate + 'T00:00:00') - today) / 86400000));
+      progressHtml = `
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:6px">
+          ${ch.data.category} · ${days} day${days !== 1 ? 's' : ''} left
+          ${autoStatus === 'pass' ? '<span style="color:var(--success);font-weight:700;margin-left:6px">✓ On track</span>' : autoStatus === 'fail' ? '<span style="color:var(--danger);font-weight:700;margin-left:6px">✗ Spending detected</span>' : ''}
+        </div>`;
+    } else if (ch.type === 'beat_last_month') {
+      autoStatus   = _challengeAutoStatus(ch);
+      const spent  = state.transactions.filter(t =>
+        t.type === 'expense' && t.category === ch.data.category && t.date.startsWith(ch.data.month)
+      ).reduce((s, t) => s + t.amount, 0);
+      const pct    = ch.data.target > 0 ? Math.min(Math.round((spent / ch.data.target) * 100), 100) : 0;
+      const barCol = pct >= 100 ? 'var(--danger)' : pct >= 80 ? 'var(--warn)' : 'var(--accent)';
+      progressHtml = `
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:6px">
+          ${ch.data.category} · ${fmt(spent)} of ${fmt(ch.data.target)} target
+          ${autoStatus === 'pass' ? '<span style="color:var(--success);font-weight:700;margin-left:6px">✓ Winning</span>' : autoStatus === 'fail' ? '<span style="color:var(--danger);font-weight:700;margin-left:6px">✗ Over target</span>' : ''}
+        </div>
+        <div class="challenge-progress-bar"><div class="challenge-progress-fill" style="width:${pct}%;background:${barCol}"></div></div>`;
+    }
+
+    const streakHtml = ch.streak > 0 ? `<div class="challenge-streak">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      ${ch.streak} streak
+    </div>` : '';
+
+    const actionBtns = ch.status === 'active' ? `
+      <button class="btn-xs challenge-abandon-btn" data-id="${ch.id}" style="background:rgba(255,69,58,.12);color:var(--danger);border-color:rgba(255,69,58,.3)">Abandon</button>
+    ` : '';
+
+    return `
+      <div class="challenge-card challenge-${statusCls}" data-id="${ch.id}">
+        <div class="challenge-card-hdr">
+          <div class="challenge-icon">${def.icon || ''}</div>
+          <div class="challenge-name">${ch.name || def.name}</div>
+          <span class="challenge-status-badge ${statusCls}">${badgeTxt}</span>
+        </div>
+        <div class="challenge-desc">${def.desc || ''}</div>
+        ${streakHtml}
+        ${progressHtml}
+        ${extraHtml}
+        <div class="challenge-actions">${actionBtns}</div>
+      </div>`;
+  };
+
+  const activeHtml = active.length
+    ? active.map(cardHtml).join('')
+    : `<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:.85rem">No active challenges — start one below!</div>`;
+
+  const doneHtml = done.length
+    ? `<h2 class="section-title" style="margin-top:18px">Past Challenges</h2>${done.map(cardHtml).join('')}`
+    : '';
+
+  return `
+    <div class="page">
+      <h1 class="page-title">Challenges</h1>
+      <p class="page-sub">push yourself, build better habits</p>
+
+      <div class="challenge-grid">
+        ${activeHtml}
+        ${doneHtml}
+      </div>
+
+      <div class="challenge-add-form">
+        <h2 class="section-title" style="margin:0 0 12px">Start a Challenge</h2>
+        <div class="challenge-type-grid">
+          ${Object.entries(CHALLENGE_TYPES).map(([key, def]) => `
+            <button class="challenge-type-btn" data-type="${key}">
+              <span class="challenge-type-icon">${def.icon}</span>
+              <span class="challenge-type-name">${def.name}</span>
+              <span class="challenge-type-desc">${def.desc}</span>
+            </button>
+          `).join('')}
+        </div>
+
+        <div id="challenge-form-fields" style="display:none">
+          <div class="form-row" id="challenge-cat-row" style="display:none">
+            <label class="form-label">Category</label>
+            <select id="challenge-cat" class="form-input">${catOptions}</select>
+          </div>
+          <div class="form-row" id="challenge-days-row" style="display:none">
+            <label class="form-label">Duration (days)</label>
+            <input type="number" id="challenge-days" class="form-input" placeholder="30" min="1" max="365" inputmode="numeric">
+          </div>
+          <div id="challenge-status" class="form-status"></div>
+          <button id="challenge-start-btn" class="btn-primary" style="width:100%">Start Challenge</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function attachChallenges() {
+  let selectedType = null;
+
+  const fieldsEl = document.getElementById('challenge-form-fields');
+  const catRow   = document.getElementById('challenge-cat-row');
+  const daysRow  = document.getElementById('challenge-days-row');
+
+  document.querySelectorAll('.challenge-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.challenge-type-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedType = btn.dataset.type;
+      fieldsEl.style.display = 'block';
+      catRow.style.display  = (selectedType === 'spending_freeze' || selectedType === 'beat_last_month') ? '' : 'none';
+      daysRow.style.display = (selectedType === 'spending_freeze') ? '' : 'none';
+    });
+  });
+
+  document.getElementById('challenge-start-btn')?.addEventListener('click', async () => {
+    if (!selectedType) { showStatus('challenge-status', 'Pick a challenge type.', 'error'); return; }
+    const today   = new Date(); today.setHours(0,0,0,0);
+    const todayStr = today.toISOString().slice(0,10);
+    const def      = CHALLENGE_TYPES[selectedType];
+    let data       = {};
+
+    if (selectedType === 'spending_freeze') {
+      const cat  = document.getElementById('challenge-cat')?.value;
+      const days = parseInt(document.getElementById('challenge-days')?.value);
+      if (!cat)              { showStatus('challenge-status', 'Pick a category.', 'error'); return; }
+      if (!days || days < 1) { showStatus('challenge-status', 'Enter a valid duration.', 'error'); return; }
+      const end = new Date(today); end.setDate(end.getDate() + days - 1);
+      data = { category: cat, endDate: end.toISOString().slice(0,10) };
+    } else if (selectedType === 'beat_last_month') {
+      const cat = document.getElementById('challenge-cat')?.value;
+      if (!cat) { showStatus('challenge-status', 'Pick a category.', 'error'); return; }
+      const now = new Date();
+      const month = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const prevM = new Date(now.getFullYear(), now.getMonth()-1, 1);
+      const prevKey = `${prevM.getFullYear()}-${String(prevM.getMonth()+1).padStart(2,'0')}`;
+      const lastSpent = state.transactions
+        .filter(t => t.type==='expense' && t.category===cat && t.date.startsWith(prevKey))
+        .reduce((s,t) => s+t.amount, 0);
+      const target = lastSpent > 0 ? lastSpent : 100;
+      data = { category: cat, month, target };
+    } else if (selectedType === 'no_spend_weekend') {
+      data = { completedWeekends: [] };
+    } else if (selectedType === '52_week') {
+      data = { checkedWeeks: [] };
+    }
+
+    // Prevent duplicate active same-type challenges
+    if (state.challenges.some(c => c.type === selectedType && c.status === 'active')) {
+      showStatus('challenge-status', 'You already have an active challenge of this type.', 'error');
+      return;
+    }
+
+    state.challenges.push({
+      id: Date.now(),
+      type: selectedType,
+      name: def.name,
+      started: todayStr,
+      status: 'active',
+      streak: 0,
+      data,
+    });
+    await api.saveChallenges(state.challenges);
+    render();
+  });
+
+  // 52-week check-off
+  document.querySelectorAll('.challenge-week-cell').forEach(cell => {
+    cell.addEventListener('click', async () => {
+      const id = parseInt(cell.dataset.id);
+      const wk = parseInt(cell.dataset.wk);
+      const ch = state.challenges.find(c => c.id === id);
+      if (!ch || ch.status !== 'active') return;
+      ch.data.checkedWeeks = ch.data.checkedWeeks || [];
+      if (ch.data.checkedWeeks.includes(wk)) {
+        ch.data.checkedWeeks = ch.data.checkedWeeks.filter(w => w !== wk);
+      } else {
+        ch.data.checkedWeeks.push(wk);
+        // Streak = consecutive weeks from week 1
+        let streak = 0;
+        for (let i = 1; i <= 52; i++) {
+          if (ch.data.checkedWeeks.includes(i)) streak++;
+          else break;
+        }
+        ch.streak = streak;
+        // Complete at 52
+        if (ch.data.checkedWeeks.length >= 52) {
+          ch.status = 'completed';
+          await api.saveChallenges(state.challenges);
+          _showChallengeComplete(ch);
+          return;
+        }
+      }
+      await api.saveChallenges(state.challenges);
+      render();
+    });
+  });
+
+  // No-spend weekend: auto-check last weekend on page load
+  const noSpendActive = state.challenges.filter(c => c.type === 'no_spend_weekend' && c.status === 'active');
+  noSpendActive.forEach(async ch => {
+    const status = _challengeAutoStatus(ch);
+    if (status === 'pass') {
+      const today  = new Date(); today.setHours(0,0,0,0);
+      const day    = today.getDay();
+      const lastSun = new Date(today); lastSun.setDate(today.getDate() - (day === 0 ? 0 : day));
+      const weekKey = lastSun.toISOString().slice(0,10);
+      ch.data.completedWeekends = ch.data.completedWeekends || [];
+      if (!ch.data.completedWeekends.includes(weekKey)) {
+        ch.data.completedWeekends.push(weekKey);
+        ch.streak = ch.data.completedWeekends.length;
+        await api.saveChallenges(state.challenges);
+      }
+    }
+  });
+
+  // Spending freeze / beat last month: auto-complete if passed
+  const autoCheck = state.challenges.filter(c =>
+    (c.type === 'spending_freeze' || c.type === 'beat_last_month') && c.status === 'active'
+  );
+  autoCheck.forEach(async ch => {
+    const status = _challengeAutoStatus(ch);
+    if (status === 'pass') {
+      const today = new Date().toISOString().slice(0,10);
+      const endPast = ch.type === 'spending_freeze'
+        ? ch.data.endDate < today
+        : ch.data.month < today.slice(0,7);
+      if (endPast && ch.status !== 'completed') {
+        ch.status = 'completed';
+        await api.saveChallenges(state.challenges);
+        _showChallengeComplete(ch);
+        return;
+      }
+    }
+  });
+
+  // Abandon button
+  document.querySelectorAll('.challenge-abandon-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = parseInt(btn.dataset.id);
+      const ch = state.challenges.find(c => c.id === id);
+      if (!ch) return;
+      showConfirmModal({
+        title: 'Abandon Challenge',
+        message: `Give up on "${ch.name}"? You can always start a new one.`,
+        confirmText: 'Abandon',
+        danger: true,
+        onConfirm: async () => {
+          ch.status = 'abandoned';
+          await api.saveChallenges(state.challenges);
+          render();
+        },
+      });
+    });
+  });
+}
+
+function _showChallengeComplete(ch) {
+  const ov = document.createElement('div');
+  ov.className = 'challenge-celebrate';
+  ov.innerHTML = `
+    <div class="challenge-celebrate-inner">
+      <div class="challenge-celebrate-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+      </div>
+      <div class="challenge-celebrate-title">Challenge Complete!</div>
+      <div class="challenge-celebrate-sub">${ch.name} — well done, you crushed it!</div>
+      <button class="btn-primary" style="width:100%" id="challenge-celebrate-close">Nice!</button>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#challenge-celebrate-close')?.addEventListener('click', () => { ov.remove(); render(); });
 }
 
 // ── add ────────────────────────────────────────────────────────────────────
@@ -4456,8 +4903,9 @@ function attachHandlers() {
     case 'debt':      attachDebt();      break;
     case 'goals':     attachGoals();     break;
     case 'import':    attachImport();    break;
-    case 'budgets':   attachBudgets();   break;
-    case 'accounts':  attachAccounts();  break;
+    case 'budgets':     attachBudgets();     break;
+    case 'challenges':  attachChallenges(); break;
+    case 'accounts':    attachAccounts();   break;
     case 'settings':  attachSettings();  break;
     case 'about':     attachAbout();     break;
   }
