@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.9.1';
+const VERSION = '4.9.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.9.2', date: '2026-05-20', changes: [
+    'Retirement account dashboard: switching to a Roth IRA, 401(k), Traditional IRA, or HSA account now shows a clean retirement-only view instead of the standard budget dashboard',
+    'Retirement dashboard shows: portfolio balance, total invested, YTD contributions vs IRS limit, projected value at age 65, and recent contribution history',
+    'No budget tiles, spending breakdown, or transaction noise on retirement account dashboards',
+  ]},
   { version: '4.9.1', date: '2026-05-20', changes: [
     'Debt account cards now have a "Fill from a bill" dropdown — pick any bill to instantly auto-fill the monthly payment and due day, eliminating duplicate entry',
     'Loan/credit OWED balance now has a pencil edit icon — tap it to update the starting balance without touching existing transactions',
@@ -2414,10 +2419,117 @@ function balanceAsOf(dateStr) {
   return bal;
 }
 
+// ── Retirement account dashboard ───────────────────────────────────────────
+function renderRetirementDashboard(acct) {
+  const bal      = _retireBalance(acct.id);
+  const ytd      = _ytdContributions(acct.id);
+  const lim      = RETIRE_LIMITS[acct.type] || { base: 6000, label: acct.type };
+  const curYear  = new Date().getFullYear();
+  const age      = acct.birthYear ? curYear - parseInt(acct.birthYear) : null;
+  const annualLimit = (age && age >= (lim.catchupAge || 50) && lim.catchup) ? lim.catchup : lim.base;
+  const pct      = annualLimit > 0 ? Math.min(ytd / annualLimit * 100, 100) : 0;
+  const bar      = _boostBar(pct);
+  const isOver   = ytd > annualLimit;
+  const remaining = Math.max(0, annualLimit - ytd);
+  const RETIRE_COLORS = { roth_ira:'#7c6fff', traditional_ira:'#5b8de8', '401k':'#32d74b', hsa:'#2dd4bf' };
+  const color    = RETIRE_COLORS[acct.type] || 'var(--accent)';
+  const typeName = lim.label;
+
+  // All-time contributions (all income transactions ever)
+  const d = JSON.parse(localStorage.getItem(accountDataKey(acct.id)) || '{}');
+  const allTxns  = d.transactions || [];
+  const startBal = parseFloat(d.startingBalance) || 0;
+  const allTimeContribs = allTxns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const totalInvested   = startBal + allTimeContribs;
+  const growth          = Math.max(0, bal - totalInvested);
+
+  // Simple projection using account's expectedReturn (default 7%)
+  const rate    = (acct.expectedReturn != null ? acct.expectedReturn : 7) / 100 / 12;
+  const retAge  = 65;
+  const curAge  = age || 35;
+  const months  = Math.max(0, (retAge - curAge) * 12);
+  let projected = bal;
+  if (rate > 0 && months > 0) {
+    projected = bal * Math.pow(1 + rate, months);
+  } else if (months > 0) {
+    projected = bal;
+  }
+
+  // Recent contributions (last 5 income txns)
+  const recentContribs = allTxns
+    .filter(t => t.type === 'income')
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 5);
+  const recentRows = recentContribs.map(t => `
+    <div class="ret-dash-contrib-row">
+      <span class="ret-dash-contrib-date">${t.date}</span>
+      <span class="ret-dash-contrib-desc">${t.description || 'Contribution'}</span>
+      <span class="ret-dash-contrib-amt" style="color:var(--success)">+${fmt(t.amount)}</span>
+    </div>`).join('');
+
+  return `<div class="dawg-page ret-dash-page">
+    <div class="ret-dash-hero" style="--ret-color:${color}">
+      <div class="ret-dash-hero-glow"></div>
+      <div class="ret-dash-acct-type" style="color:${color}">${typeName}</div>
+      <div class="ret-dash-balance">${fmt(bal)}</div>
+      <div class="ret-dash-bal-lbl">Portfolio Value</div>
+      ${growth > 0 ? `<div class="ret-dash-growth-chip">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        +${fmt(growth)} growth
+      </div>` : ''}
+    </div>
+
+    <div class="ret-dash-grid">
+      <div class="ret-dash-stat">
+        <div class="ret-dash-stat-val">${fmt(totalInvested)}</div>
+        <div class="ret-dash-stat-lbl">Total Invested</div>
+      </div>
+      <div class="ret-dash-stat">
+        <div class="ret-dash-stat-val" style="color:${color}">${fmt(ytd)}</div>
+        <div class="ret-dash-stat-lbl">${curYear} Contributions</div>
+      </div>
+      <div class="ret-dash-stat">
+        <div class="ret-dash-stat-val">${fmt(remaining)}</div>
+        <div class="ret-dash-stat-lbl">Limit Remaining</div>
+      </div>
+      <div class="ret-dash-stat">
+        <div class="ret-dash-stat-val" style="color:var(--success)">${fmt(projected)}</div>
+        <div class="ret-dash-stat-lbl">Projected @ ${retAge}</div>
+      </div>
+    </div>
+
+    <div class="ret-dash-card">
+      <div class="ret-dash-card-title">${curYear} IRS Limit</div>
+      <div class="ret-dash-limit-row">
+        <span class="ret-dash-limit-pct">${pct.toFixed(0)}%</span>
+        <span class="ret-dash-limit-frac${isOver ? ' ret-over' : ''}">${fmt(ytd)} / ${fmt(annualLimit)}</span>
+      </div>
+      <div class="ret-bar-wrap"><div class="ret-bar" style="width:${bar}%;background:${isOver ? 'var(--danger)' : color}"></div></div>
+      <div class="ret-contrib-remain" style="margin-top:5px">${isOver
+        ? '<span style="color:var(--danger);font-weight:700">Over limit — consult a tax advisor</span>'
+        : fmt(remaining) + ' remaining this year'}</div>
+    </div>
+
+    <div class="ret-dash-card">
+      <div class="ret-dash-card-title">Recent Contributions</div>
+      ${recentRows || '<p style="font-size:.82rem;color:var(--muted);text-align:center;padding:16px 0">No contributions recorded yet.</p>'}
+    </div>
+
+    <button class="ret-add-btn" id="ret-dash-add-contrib" style="margin-top:4px">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add Contribution
+    </button>
+  </div>`;
+}
+
 // ── DAWG dashboard layout ──────────────────────────────────────────────────
 function renderDashboardDawg() {
   const _curAcctD = state.accounts.find(a => a.id === currentAccountId);
   const _isDebt   = _curAcctD?.type === 'credit' || _curAcctD?.type === 'loan';
+
+  // Retirement accounts get their own focused dashboard — no budget/spending data
+  if (_curAcctD && RETIRE_TYPES.includes(_curAcctD.type)) {
+    return renderRetirementDashboard(_curAcctD);
+  }
 
   const now      = new Date();
   const currentM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -5506,6 +5618,9 @@ function toggleDawgBell() {
 }
 
 function attachDashboardDawg() {
+  // Retirement dashboard: Add Contribution button
+  document.getElementById('ret-dash-add-contrib')?.addEventListener('click', () => showTab('add'));
+
   document.getElementById('dawg-goto-budgets')?.addEventListener('click', () => showTab('weekly'));
   document.getElementById('dawg-goto-ledger')?.addEventListener('click',  () => showTab('ledger'));
   document.getElementById('dawg-goto-goals')?.addEventListener('click',   () => showTab('goals'));
