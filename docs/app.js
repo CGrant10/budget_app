@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.7.5';
+const VERSION = '4.7.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.7.6', date: '2026-05-20', changes: [
+    'Progress bars now use a boosted visual scale — 30% raw fill looks ~50% wide so small values are never invisible',
+  ]},
   { version: '4.7.5', date: '2026-05-20', changes: [
     'Bills calendar: tap any highlighted day to see a detail panel listing bills due that day with quick Mark Paid buttons',
     'Smart Budget Suggestions: new users with no spending history now get a Starter Budget Pack with sensible defaults instead of a blank page',
@@ -899,6 +902,12 @@ function checkRoast(category) {
 // ── utilities ──────────────────────────────────────────────────────────────
 function _debounce(fn, ms = 250) {
   let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+// Visually boost bar fill — makes small values look less empty while 100% stays 100%.
+// x^0.6 curve: 10%→25%, 20%→38%, 30%→49%, 50%→66%, 75%→83%, 100%→100%
+function _boostBar(pct) {
+  if (pct <= 0) return 0;
+  return +(Math.pow(Math.min(pct, 100) / 100, 0.6) * 100).toFixed(1);
 }
 
 async function _hashPin(pin) {
@@ -2390,7 +2399,8 @@ function renderDashboardDawg() {
 
   const spendHtml = catEntries.length ? catEntries.map(([cat,amt]) => {
     const pct      = totalMExp > 0 ? (amt/totalMExp*100).toFixed(0) : 0;
-    const barW     = totalMExp > 0 ? (amt/totalMExp*100).toFixed(1) : 0;
+    const rawPct   = totalMExp > 0 ? amt/totalMExp*100 : 0;
+    const barW     = _boostBar(rawPct);
     const catColor = CAT_COLORS[cat] || 'var(--accent)';
     return `<div class="dawg-cat-row">
       <span class="dawg-cat-icon">${catIcons[cat]||'💰'}</span>
@@ -2658,7 +2668,7 @@ function renderBudgets() {
     const barColor = pct >= 90 ? 'var(--danger)' : pct >= 75 ? 'var(--warn)' : catColor;
     const progressHtml = limit > 0 ? `
       <div class="budget-progress-wrap">
-        <div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${pct.toFixed(1)}%;background:${barColor}"></div></div>
+        <div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${_boostBar(pct)}%;background:${barColor}"></div></div>
         <span class="budget-spent-lbl" style="color:${barColor}">${fmt(spent)} / ${fmt(limit)}</span>
       </div>` : '';
     return `
