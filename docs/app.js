@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.6.7';
+const VERSION = '4.6.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.6.8', date: '2026-05-20', changes: [
+    'Top nav account pill now shows the correct account type SVG icon instead of a fixed bank logo',
+  ]},
   { version: '4.6.7', date: '2026-05-20', changes: [
     'Top nav account dropdown now uses SVG icons matching the rest of the app',
   ]},
@@ -4349,8 +4352,10 @@ function updateDawgTopbar() {
   const multiAcct = (state.accounts || []).length > 1;
   const name      = acct?.name || 'Account';
   const nameEl    = document.getElementById('dawg-topbar-acct-name');
+  const iconEl    = document.getElementById('dawg-topbar-acct-icon');
   const pill      = document.getElementById('dawg-acct-switch');
   if (nameEl) nameEl.textContent = name;
+  if (iconEl) iconEl.innerHTML = _ACCT_SVG[acct?.type] || _ACCT_SVG.checking;
   if (pill) {
     pill.title     = multiAcct ? 'Switch account' : name;
     pill.className = `dawg-acct-pill ${multiAcct ? 'dawg-acct-pill-multi' : 'dawg-acct-pill-solo'}`;
