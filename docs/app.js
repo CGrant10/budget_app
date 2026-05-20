@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.9.0';
+const VERSION = '4.9.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.9.1', date: '2026-05-20', changes: [
+    'Debt account cards now have a "Fill from a bill" dropdown — pick any bill to instantly auto-fill the monthly payment and due day, eliminating duplicate entry',
+    'Loan/credit OWED balance now has a pencil edit icon — tap it to update the starting balance without touching existing transactions',
+  ]},
   { version: '4.9.0', date: '2026-05-20', changes: [
     'Retirement Hub tab: track Roth IRA, Traditional IRA, 401(k), and HSA accounts separately from regular accounts',
     'Per-account contribution tracker shows year-to-date contributions vs. 2025 IRS limits with a visual progress bar',
@@ -2046,7 +2050,12 @@ function renderDebt() {
         </div>
         <div class="debt-owed-row">
           <span class="debt-owed-label">OWED</span>
-          <span class="debt-owed-value" style="color:${owed > 0 ? 'var(--danger)' : 'var(--success)'}">${fmt(owed)}</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="debt-owed-value" style="color:${owed > 0 ? 'var(--danger)' : 'var(--success)'}">${fmt(owed)}</span>
+            <button class="debt-bal-edit-btn" data-id="${acct.id}" data-starting="${startingBal}" title="Edit starting balance">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+          </div>
         </div>
         ${progressHtml}
         ${lastPmtHtml}
@@ -2157,6 +2166,46 @@ function attachDebt() {
     // Debounce: wait 600ms then re-render
     clearTimeout(attachDebt._payTimer);
     attachDebt._payTimer = setTimeout(() => render(), 600);
+  });
+
+  // Edit starting balance (pencil icon on OWED row)
+  document.querySelectorAll('.debt-bal-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id          = btn.dataset.id;
+      const acct        = state.accounts.find(a => a.id === id);
+      const currentStart = parseFloat(btn.dataset.starting) || 0;
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+      overlay.innerHTML = `
+        <div style="background:var(--card);border-radius:20px;padding:24px 20px;max-width:320px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.6)">
+          <div style="font-size:.95rem;font-weight:800;color:var(--text);margin-bottom:4px">${acct?.name || 'Account'}</div>
+          <div style="font-size:.76rem;color:var(--muted);margin-bottom:18px;line-height:1.5">Update the original loan or credit balance. This sets the starting point — existing transactions are not changed.</div>
+          <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:block;margin-bottom:5px">Starting Balance ($)</label>
+          <div style="position:relative;margin-bottom:18px">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none">$</span>
+            <input type="number" id="debt-bal-inp" value="${currentStart.toFixed(2)}" inputmode="decimal" step="0.01" min="0"
+              style="width:100%;background:var(--bg);border:2px solid var(--accent);border-radius:10px;padding:10px 10px 10px 26px;font-size:1.05rem;color:var(--text);font-family:var(--font-body);box-sizing:border-box">
+          </div>
+          <div style="display:flex;gap:10px">
+            <button id="debt-bal-cancel" style="flex:1;background:var(--border);color:var(--text);border:none;border-radius:10px;padding:12px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">Cancel</button>
+            <button id="debt-bal-save" style="flex:2;background:var(--accent);color:var(--btn-text,#000);border:none;border-radius:10px;padding:12px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">Save</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      const inp = document.getElementById('debt-bal-inp');
+      inp?.focus(); inp?.select();
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+      document.getElementById('debt-bal-cancel')?.addEventListener('click', () => overlay.remove());
+      document.getElementById('debt-bal-save')?.addEventListener('click', () => {
+        const newBal = Math.max(0, parseFloat(inp?.value) || 0);
+        const key = accountDataKey(id);
+        const d   = JSON.parse(localStorage.getItem(key) || '{}');
+        d.startingBalance = newBal;
+        localStorage.setItem(key, JSON.stringify(d));
+        overlay.remove();
+        render();
+      });
+    });
   });
 
   // Expand/collapse payment and charge lists
@@ -4754,8 +4803,18 @@ function _buildAccountCards() {
         </div>
       </div>` : '';
 
+    const billFillOpts = state.bills.length
+      ? state.bills.map(b => `<option value="${b.id}" data-amount="${b.amount}" data-day="${b.dueDay}">${b.name} · ${fmt(b.amount)} · due day ${b.dueDay}</option>`).join('')
+      : '';
     const debtFields = isDebtAcct ? `
       <div class="acct-settings-debt" style="margin-top:10px">
+        ${billFillOpts ? `<div style="margin-bottom:10px">
+          <label class="form-label" style="font-size:.72rem">Fill from a bill</label>
+          <select class="form-input form-select acct-bill-fill" data-id="${a.id}" style="font-size:.82rem">
+            <option value="">— pick a bill to auto-fill amount &amp; due day —</option>
+            ${billFillOpts}
+          </select>
+        </div>` : ''}
         <input type="text" class="form-input acct-interest-input acct-fmt-pct" data-id="${a.id}"
           value="${fmtApr}" placeholder="APR %"
           inputmode="decimal" title="Annual interest rate %">
@@ -5019,6 +5078,33 @@ function attachAccounts() {
       _loadAccountData(btn.dataset.id);
       updateAccountSwitcher();
       render();
+    });
+  });
+
+  // Fill debt fields from an existing bill
+  const _billFillCalSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+  document.querySelectorAll('.acct-bill-fill').forEach(sel => {
+    sel.addEventListener('change', () => {
+      if (!sel.value) return;
+      const id   = sel.dataset.id;
+      const opt  = sel.options[sel.selectedIndex];
+      const amt  = parseFloat(opt.dataset.amount) || 0;
+      const day  = parseInt(opt.dataset.day) || 0;
+      const card = sel.closest('.acct-settings-card');
+      // Fill monthly payment
+      const pmtInput = card.querySelector(`.acct-payment-input[data-id="${id}"]`);
+      if (pmtInput) pmtInput.value = '$' + amt.toFixed(2);
+      // Fill due day
+      if (day) {
+        const hidden = card.querySelector(`.acct-due-day-input[data-id="${id}"]`);
+        if (hidden) hidden.value = day;
+        const pickerBtn = card.querySelector(`.acct-day-picker-btn[data-id="${id}"]`);
+        if (pickerBtn) pickerBtn.innerHTML = `${_billFillCalSvg}${_ordinal(day)}`;
+        card.querySelectorAll(`.acct-day-opt[data-id="${id}"]`).forEach(b =>
+          b.classList.toggle('acct-day-opt-active', parseInt(b.dataset.day) === day)
+        );
+      }
+      sel.value = ''; // reset picker
     });
   });
 
