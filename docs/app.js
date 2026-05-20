@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.5.2';
+const VERSION = '4.5.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.5.3', date: '2026-05-20', changes: [
+    'Sparkline dot now rides along the line of the graph instead of sweeping a full vertical bar',
+    'Due date now uses a tap-to-open day picker (days 1–28 grid) instead of a number input',
+  ]},
   { version: '4.5.2', date: '2026-05-20', changes: [
     'Account cards fully rebuilt for mobile — dedicated CSS class, font-size 16px prevents iOS zoom, 2-column grid for debt fields, no more overflow clipping',
     'Switch account in Settings now stays on the Settings page instead of jumping to the dashboard',
@@ -3404,20 +3408,29 @@ function renderSettings() {
 
   const accountCards = state.accounts.map((a) => {
     const isDebtAcct = a.type === 'credit' || a.type === 'loan';
+    const dueDay = a.payment_due_day || '';
     const debtFields = isDebtAcct ? `
       <div class="acct-settings-debt">
         <input type="number" class="form-input acct-interest-input" data-id="${a.id}"
           value="${a.interest_rate || ''}" placeholder="APR %" step="0.01" min="0" max="100"
           inputmode="decimal" title="Annual interest rate %">
-        <input type="number" class="form-input acct-due-day-input" data-id="${a.id}"
-          value="${a.payment_due_day || ''}" placeholder="Due day" min="1" max="28"
-          inputmode="numeric" title="Payment due day of month">
+        <div>
+          <input type="hidden" class="acct-due-day-input" data-id="${a.id}" value="${dueDay}">
+          <button type="button" class="acct-day-picker-btn" data-id="${a.id}">
+            📅 ${dueDay ? `Day ${dueDay}` : 'Due day'}
+          </button>
+        </div>
         <input type="number" class="form-input acct-limit-input" data-id="${a.id}"
           value="${a.credit_limit || ''}" placeholder="Limit $" min="0" step="100"
           inputmode="decimal" title="Credit/loan limit">
         <input type="number" class="form-input acct-payment-input" data-id="${a.id}"
           value="${a.monthly_payment || ''}" placeholder="Mo. payment $" min="0" step="10"
           inputmode="decimal" title="Fixed monthly payment amount">
+        <div class="acct-day-grid-wrap" id="day-grid-${a.id}" style="display:none">
+          ${Array.from({length:28},(_,i)=>i+1).map(d =>
+            `<button type="button" class="acct-day-opt${dueDay===d?' acct-day-opt-active':''}" data-day="${d}" data-id="${a.id}">${d}</button>`
+          ).join('')}
+        </div>
         <div class="acct-settings-debt-save">
           <button class="btn-xs acct-debt-save-btn" data-id="${a.id}">Save</button>
         </div>
@@ -3663,6 +3676,40 @@ function attachSettings() {
       render(); // currentTab is still 'settings'
     });
   });
+
+  // Due day picker
+  document.querySelectorAll('.acct-day-picker-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id   = btn.dataset.id;
+      const grid = document.getElementById(`day-grid-${id}`);
+      if (!grid) return;
+      const isOpen = grid.style.display !== 'none';
+      document.querySelectorAll('.acct-day-grid-wrap').forEach(g => { g.style.display = 'none'; });
+      if (!isOpen) grid.style.display = 'grid';
+    });
+  });
+
+  document.querySelectorAll('.acct-day-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id  = btn.dataset.id;
+      const day = parseInt(btn.dataset.day);
+      const hidden = document.querySelector(`.acct-due-day-input[data-id="${id}"]`);
+      if (hidden) hidden.value = day;
+      const pickerBtn = document.querySelector(`.acct-day-picker-btn[data-id="${id}"]`);
+      if (pickerBtn) pickerBtn.textContent = `📅 Day ${day}`;
+      document.querySelectorAll(`.acct-day-opt[data-id="${id}"]`).forEach(b =>
+        b.classList.toggle('acct-day-opt-active', parseInt(b.dataset.day) === day)
+      );
+      const grid = document.getElementById(`day-grid-${id}`);
+      if (grid) grid.style.display = 'none';
+    });
+  });
+
+  // Close day grid when tapping outside
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.acct-day-grid-wrap').forEach(g => { g.style.display = 'none'; });
+  }, { once: true });
 
   document.querySelectorAll('.acct-debt-save-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -4172,29 +4219,38 @@ function attachDashboardDawg() {
       afterDraw(chart) {
         const ds = chart.data.datasets[0];
         if (!ds?.data?.length) return;
-        const { ctx, chartArea } = chart;
-        if (!chartArea) return;
-        const { left, right, top, bottom } = chartArea;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta?.data?.length) return;
+        const pts = meta.data;
         const clr = ds.borderColor || '#39ff14';
         const phase = chart._pulsePhase || 0;
-        const sweepX = left + phase * (right - left);
-        const trailW = (right - left) * 0.18; // trailing glow width
 
+        // Interpolate position along the line
+        const total = pts.length - 1;
+        const pos   = phase * total;
+        const idx   = Math.min(Math.floor(pos), total - 1);
+        const frac  = pos - idx;
+        const p1 = pts[idx].getProps(['x','y'], true);
+        const p2 = pts[Math.min(idx + 1, total)].getProps(['x','y'], true);
+        const x  = p1.x + frac * (p2.x - p1.x);
+        const y  = p1.y + frac * (p2.y - p1.y);
+
+        const ctx = chart.ctx;
         ctx.save();
-        // Trailing glow behind the sweep line
-        const grad = ctx.createLinearGradient(sweepX - trailW, 0, sweepX, 0);
-        grad.addColorStop(0, `${clr}00`);
-        grad.addColorStop(1, `${clr}30`);
-        ctx.fillStyle = grad;
-        ctx.fillRect(sweepX - trailW, top, trailW, bottom - top);
-        // Leading scan line
+        // Outer glow ring
         ctx.beginPath();
-        ctx.moveTo(sweepX, top);
-        ctx.lineTo(sweepX, bottom);
-        ctx.strokeStyle = clr;
-        ctx.globalAlpha = 0.55;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+        ctx.arc(x, y, 7, 0, Math.PI * 2);
+        ctx.fillStyle = clr;
+        ctx.globalAlpha = 0.2;
+        ctx.fill();
+        // Inner dot
+        ctx.globalAlpha = 1;
+        ctx.shadowColor = clr;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = clr;
+        ctx.fill();
         ctx.restore();
       },
       beforeDestroy(chart) {

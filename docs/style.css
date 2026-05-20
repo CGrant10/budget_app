@@ -1085,6 +1085,46 @@ body::before {
   grid-column: 1 / -1;
   text-align: right;
 }
+.acct-day-picker-btn {
+  width: 100%;
+  padding: 7px 8px;
+  font-size: 13px;
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  white-space: nowrap;
+  font-family: var(--font-body);
+}
+.acct-day-grid-wrap {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.acct-day-opt {
+  padding: 7px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  font-family: var(--font-body);
+}
+.acct-day-opt.acct-day-opt-active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 700;
+}
 .account-name { flex: 1; font-size: 13px; color: var(--text); }
 .account-type { font-size: 12px; color: var(--muted); }
 .acct-badge {
