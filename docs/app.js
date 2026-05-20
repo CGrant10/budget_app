@@ -9,6 +9,28 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.6.6', date: '2026-05-20', changes: [
+    'Line graph turns red when your account balance is negative',
+    'Budget ring: green under 75%, yellow 75–90%, red at 90%+',
+    'Weekly budget carry-over: overspending in a past week reduces this week\'s budget',
+    'Biometric/PIN lock: back button can no longer bypass the lock screen',
+    'Negative balance popup: logo removed, cleaner look',
+  ]},
+  { version: '4.6.5', date: '2026-05-20', changes: [
+    'Account picker rows now use SVG icons matching the rest of the app — no more 3D emoji',
+    'Account type icons are tinted to match each account\'s color stripe',
+  ]},
+  { version: '4.6.4', date: '2026-05-20', changes: [
+    'Fixed negative balance popup logo not loading',
+  ]},
+  { version: '4.6.3', date: '2026-05-20', changes: [
+    'Nav bar active state: only the icon stroke is colored — no filled background square',
+    'Negative balance popup now shows the Budgeting DAWGs logo instead of emoji',
+  ]},
+  { version: '4.6.2', date: '2026-05-20', changes: [
+    'Drawer menu icons replaced with SVG icons matching the nav bar and account styles',
+    'Fixed: 0% APR debt no longer shows estimated interest — was incorrectly counting payment rounding as interest',
+  ]},
   { version: '4.6.1', date: '2026-05-20', changes: [
     'Past month balance now shows the balance as of that month\'s end, not the current live balance',
     'Sparkline graph clips to the selected month when browsing past months',
