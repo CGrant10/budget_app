@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.3.9';
+const VERSION = '4.4.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,13 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.4.0', date: '2026-05-20', changes: [
+    'Dashboard month navigator — browse any past month\'s spending breakdown and transactions directly from the dashboard',
+    'Split transactions — enter a total amount then split it across multiple categories; each split becomes its own transaction',
+    'Debt payoff calculator — set a monthly payment on any credit/loan account and see the estimated payoff date, total months, and total interest',
+    'Account switching now always lands on the dashboard instead of the tab you were on',
+    'Export button renamed from "SlawMinYaw Backup" to "Budget DAWGs Backup"',
+  ]},
   { version: '4.3.9', date: '2026-05-20', changes: [
     'What\'s New popup: removed dog emoji from the "Got it" button',
   ]},
@@ -973,6 +980,7 @@ const api = {
     currentAccountId = id;
     _loadAccountData(id);
     updateAccountSwitcher();
+    currentTab = 'dashboard'; // always land on dashboard when switching accounts
     render();
   },
   async addAccount(name, type) {
@@ -1185,6 +1193,7 @@ let ledgerCatFilter = '';
 let ledgerDateFrom = '';
 let ledgerDateTo = '';
 let _insightTimer = null;
+let _splitRows    = []; // [{cat, amount}] for split-transaction mode
 
 function showTab(key) {
   if (currentTab === 'ledger' && key !== 'ledger') {
@@ -1602,6 +1611,34 @@ function getSpendingInsights(monthStr) {
   return insights;
 }
 
+// ── debt payoff calculator ─────────────────────────────────────────────────
+function calcDebtPayoff(owed, apr, monthlyPmt) {
+  const pmt  = parseFloat(monthlyPmt || 0);
+  const rate = parseFloat(apr || 0) / 100 / 12; // monthly interest rate
+  if (!owed || owed <= 0 || pmt <= 0) return null;
+  // If payment doesn't cover first month's interest, payoff is impossible
+  if (rate > 0 && pmt <= owed * rate) return null;
+  let bal    = owed;
+  let months = 0;
+  const MAX  = 600; // 50-year cap
+  while (bal > 0.01 && months < MAX) {
+    bal = rate > 0 ? bal * (1 + rate) - pmt : bal - pmt;
+    if (bal < 0) bal = 0;
+    months++;
+  }
+  if (months >= MAX) return null;
+  const dt = new Date();
+  dt.setMonth(dt.getMonth() + months);
+  const totalPaid     = +(pmt * months).toFixed(2);
+  const totalInterest = +(Math.max(0, totalPaid - owed)).toFixed(2);
+  return {
+    months,
+    label:         dt.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    totalPaid,
+    totalInterest,
+  };
+}
+
 // ── debt ───────────────────────────────────────────────────────────────────
 function renderDebt() {
   const creditAccts = state.accounts.filter(a => a.type === 'credit');
@@ -1687,6 +1724,18 @@ function renderDebt() {
     const lastPmtHtml = lastPmt ? `
       <div class="debt-last-pmt">Last payment: <strong style="color:var(--success)">-${fmt(lastPmt.amount)}</strong> on ${lastPmt.date}</div>` : '';
 
+    const _po = calcDebtPayoff(owed, acct.interest_rate, acct.monthly_payment);
+    const _noPayoff = acct.monthly_payment && owed > 0 && !_po;
+    const payoffHtml = _po
+      ? `<div class="debt-payoff-row">
+          <span class="debt-payoff-label">Est. payoff</span>
+          <span class="debt-payoff-val" style="color:var(--success)">${_po.label}</span>
+          <span class="debt-payoff-sub">${_po.months} mo · ${fmt(_po.totalInterest)} interest · ${fmt(_po.totalPaid)} total</span>
+        </div>`
+      : _noPayoff
+        ? `<div class="debt-payoff-row" style="color:var(--warn)">⚠️ Monthly payment doesn't cover interest — increase it</div>`
+        : '';
+
     return `
       <div class="debt-acct-card">
         <div class="debt-acct-header">
@@ -1699,6 +1748,7 @@ function renderDebt() {
         </div>
         ${progressHtml}
         ${lastPmtHtml}
+        ${payoffHtml}
         <div class="debt-section-toggle" data-id="${acct.id}" data-section="payments">
           <span>Payments (${payments.length})</span><span class="debt-toggle-arrow">▼</span>
         </div>
@@ -2027,9 +2077,13 @@ function renderDashboardDawg() {
         ? `⚠️ Payment due in ${_daysUntil} day${_daysUntil===1?'':'s'}`
         : `Payment due ${_due.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
   }
-  const now = new Date();
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const { income: mInc, expense: mExp, bycat } = monthTotals(thisMonth);
+  const now      = new Date();
+  const currentM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const isPastDash = dashMonth < currentM;
+  const dashMonthLabel = new Date(parseInt(dashMonth.slice(0,4)), parseInt(dashMonth.slice(5,7))-1, 1)
+    .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  // Monthly totals always reflect the browsed month; balance/delta stay on live data
+  const { income: mInc, expense: mExp, bycat } = monthTotals(dashMonth);
   const monthDelta = _isDebt ? (income - expense) : (mInc - mExp); // debt: payments made this month
   const deltaColor = _isDebt
     ? (monthDelta > 0 ? 'var(--success)' : 'var(--muted)')
@@ -2052,7 +2106,7 @@ function renderDashboardDawg() {
   const _wkInc      = state.transactions.filter(t => t.type==='income'  && t.date >= _monStr).reduce((s,t)=>s+t.amount,0);
   const weekSpent   = Math.max(0, _wkExp - _wkInc);
   const totalBudget = weekBudget || Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
-  const budgetSpent = weekBudget ? weekSpent : mExp;
+  const budgetSpent = (weekBudget && !isPastDash) ? weekSpent : mExp;
   const budgetPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
   const budgetColor = budgetPct >= 100 ? 'var(--danger)' : budgetPct >= 80 ? 'var(--warn)' : 'var(--accent)';
   const budgetLbl   = weekBudget ? 'weekly' : 'monthly';
@@ -2097,9 +2151,9 @@ function renderDashboardDawg() {
   const todayStr = today();
   const yesterdayStr = new Date(Date.now()-86400000).toISOString().split('T')[0];
   const recentTxns = [...state.transactions]
-    .filter(t => _isDebt ? t.type === 'income' : true)
+    .filter(t => (_isDebt ? t.type === 'income' : true) && t.date.startsWith(dashMonth))
     .sort((a,b) => b.date.localeCompare(a.date) || (b.ts||0) - (a.ts||0))
-    .slice(0,5);
+    .slice(0, 10);
   const txnHtml = recentTxns.length ? recentTxns.map(t => {
     const isInc  = t.type === 'income';
     const color  = isInc ? 'var(--success)' : 'var(--danger)';
@@ -2144,6 +2198,12 @@ function renderDashboardDawg() {
       </div>
     </div>
 
+    <div class="dawg-month-nav">
+      <button class="dawg-mnav-btn" id="dash-month-prev">‹</button>
+      <span class="dawg-mnav-label">${dashMonthLabel}${isPastDash ? '' : ' · Now'}</span>
+      <button class="dawg-mnav-btn dawg-mnav-next${!isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
+    </div>
+
     ${_showBudget && !_isDebt ? `<div class="dawg-mid-row">
       <div class="dawg-overview-card">
         <div class="dawg-card-title">BUDGET OVERVIEW</div>
@@ -2173,15 +2233,27 @@ function renderDashboardDawg() {
       </div>
     </div>` : ''}
 
-    ${_isDebt && _curAcctD?.payment_due_day ? `<div class="dawg-section-card dawg-due-tile">
-      <div class="dawg-section-hdr">
-        <span class="dawg-card-title">PAYMENT DUE</span>
-      </div>
-      <div class="dawg-due-body">
-        <span class="dawg-due-date" style="color:${paymentDueStr.startsWith('⚠️')?'var(--warn)':'var(--text)'}">${paymentDueStr || '—'}</span>
-        ${_curAcctD.interest_rate ? `<span class="dawg-due-apr">${_curAcctD.interest_rate}% APR</span>` : ''}
-      </div>
-    </div>` : ''}
+    ${_isDebt ? (() => {
+      const _payoff = calcDebtPayoff(balance, _curAcctD?.interest_rate, _curAcctD?.monthly_payment);
+      const _noPayoff = _curAcctD?.monthly_payment && balance > 0 && !_payoff;
+      return `<div class="dawg-section-card dawg-due-tile">
+        <div class="dawg-section-hdr">
+          <span class="dawg-card-title">DEBT DETAILS</span>
+        </div>
+        <div class="dawg-due-body">
+          ${paymentDueStr ? `<span class="dawg-due-date" style="color:${paymentDueStr.startsWith('⚠️')?'var(--warn)':'var(--text)'}">${paymentDueStr}</span>` : ''}
+          ${_curAcctD?.interest_rate ? `<span class="dawg-due-apr">${_curAcctD.interest_rate}% APR</span>` : ''}
+          ${_curAcctD?.monthly_payment ? `<span class="dawg-due-apr">${fmt(_curAcctD.monthly_payment)}/mo payment</span>` : ''}
+        </div>
+        ${_payoff ? `<div class="dawg-payoff-est">
+          <span class="dawg-payoff-label">EST. PAYOFF</span>
+          <span class="dawg-payoff-date">${_payoff.label}</span>
+          <span class="dawg-payoff-sub">${_payoff.months} mo · ${fmt(_payoff.totalInterest)} in interest</span>
+        </div>` : ''}
+        ${_noPayoff ? `<div class="dawg-payoff-est" style="color:var(--warn)">⚠️ Payment doesn't cover interest — increase monthly payment</div>` : ''}
+        ${!_curAcctD?.monthly_payment ? `<div style="font-size:.75rem;color:var(--muted);margin-top:6px">Set a monthly payment in Settings → Accounts to see payoff estimate</div>` : ''}
+      </div>`;
+    })() : ''}
 
     ${_showGoals && goals.length ? `<div class="dawg-section-card">
       <div class="dawg-section-hdr">
@@ -2193,10 +2265,10 @@ function renderDashboardDawg() {
 
     ${_showTxns ? `<div class="dawg-section-card" style="margin-bottom:14px">
       <div class="dawg-section-hdr">
-        <span class="dawg-card-title">RECENT TRANSACTIONS</span>
+        <span class="dawg-card-title">${isPastDash ? dashMonthLabel.toUpperCase() + ' TRANSACTIONS' : 'RECENT TRANSACTIONS'}</span>
         <button class="dawg-view-all" id="dawg-goto-txns">VIEW ALL</button>
       </div>
-      ${txnHtml}
+      ${recentTxns.length ? txnHtml : `<p class="dawg-empty">No transactions in ${dashMonthLabel}</p>`}
     </div>` : ''}
   </div>`;
 }
@@ -2555,6 +2627,19 @@ function renderAdd() {
         <div class="form-row" id="add-cat-row">
           <label class="form-label">Category</label>
           <select id="add-cat" class="form-input form-select">${catOptions}</select>
+        </div>
+        <div class="form-row" id="add-split-row">
+          <label class="form-label" style="align-self:flex-start;padding-top:2px">Split</label>
+          <div style="flex:1">
+            <label class="radio-label" style="margin-bottom:4px">
+              <input type="checkbox" id="split-toggle"> Split between categories
+            </label>
+            <div id="split-section" style="display:none;margin-top:8px">
+              <div id="split-rows-container"></div>
+              <button type="button" id="split-add-row-btn" class="btn-xs" style="margin-top:4px">+ Add split</button>
+              <div id="split-summary" style="font-size:.8rem;margin-top:6px;font-weight:600"></div>
+            </div>
+          </div>
         </div>
         <div class="form-row">
           <label class="form-label">From Account</label>
@@ -3198,7 +3283,7 @@ function renderImport() {
       <div class="form-card">
         <h2 class="section-title" style="margin-bottom:8px">Export Backup</h2>
         <p class="code-hint">Includes transactions, bills, goals, accounts, and budgets.</p>
-        <button id="export-json-btn" class="btn-primary" style="margin-top:10px;width:100%">⬇ Download SlawMinYaw Backup</button>
+        <button id="export-json-btn" class="btn-primary" style="margin-top:10px;width:100%">⬇ Download Budget DAWGs Backup</button>
       </div>
       <div class="form-card">
         <h2 class="section-title" style="margin-bottom:8px">Import CSV</h2>
@@ -3289,6 +3374,10 @@ function renderSettings() {
           value="${a.credit_limit || ''}" placeholder="Credit limit" min="0" step="100"
           inputmode="decimal"
           style="width:108px;padding:5px 8px;font-size:11px" title="Credit/loan limit">
+        <input type="number" class="form-input acct-payment-input" data-id="${a.id}"
+          value="${a.monthly_payment || ''}" placeholder="Mo. payment" min="0" step="10"
+          inputmode="decimal"
+          style="width:108px;padding:5px 8px;font-size:11px" title="Fixed monthly payment amount">
         <button class="btn-xs acct-debt-save-btn" data-id="${a.id}">Save</button>
       </div>` : '';
     return `
@@ -3577,9 +3666,11 @@ function attachSettings() {
       const rate  = row.querySelector(`.acct-interest-input[data-id="${id}"]`)?.value.trim();
       const day   = row.querySelector(`.acct-due-day-input[data-id="${id}"]`)?.value.trim();
       const limit = row.querySelector(`.acct-limit-input[data-id="${id}"]`)?.value.trim();
+      const pmt   = row.querySelector(`.acct-payment-input[data-id="${id}"]`)?.value.trim();
       if (rate  !== undefined) acct.interest_rate    = rate  ? parseFloat(rate)  : undefined;
       if (day   !== undefined) acct.payment_due_day  = day   ? parseInt(day)     : undefined;
       if (limit !== undefined) acct.credit_limit     = limit ? parseFloat(limit) : undefined;
+      if (pmt   !== undefined) acct.monthly_payment  = pmt   ? parseFloat(pmt)   : undefined;
       await api.saveAccounts(state.accounts);
       showStatus('acct-status', '✓ Account details saved.', 'success');
     });
@@ -4069,6 +4160,76 @@ async function autoUpdateWeeklyPlan(incomeAdded) {
 }
 
 function attachAdd() {
+  // ── split helpers ───────────────────────────────────────────────────────
+  const cats = getCategories();
+  if (!_splitRows.length) {
+    _splitRows = [{ cat: cats[0], amount: '' }, { cat: cats[0], amount: '' }];
+  }
+
+  function updateSplitSummary() {
+    const total     = parseFloat(document.getElementById('add-amount')?.value || 0);
+    const allocated = _splitRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+    const rem       = +(total - allocated).toFixed(2);
+    const el        = document.getElementById('split-summary');
+    if (!el) return;
+    if (total > 0) {
+      const done = Math.abs(rem) < 0.005;
+      el.textContent = done
+        ? `✓ ${fmt(allocated)} of ${fmt(total)} — fully split`
+        : rem > 0
+          ? `${fmt(allocated)} split · ${fmt(rem)} remaining`
+          : `Over-allocated by ${fmt(-rem)}`;
+      el.style.color = done ? 'var(--success)' : 'var(--warn)';
+    } else { el.textContent = ''; }
+  }
+
+  function renderSplitRows() {
+    const container = document.getElementById('split-rows-container');
+    if (!container) return;
+    container.innerHTML = _splitRows.map((row, i) => `
+      <div class="split-row" style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
+        <select class="form-input split-cat" data-idx="${i}" style="flex:1;padding:6px 8px;font-size:13px">
+          ${cats.map(c => `<option${c === row.cat ? ' selected' : ''}>${c}</option>`).join('')}
+        </select>
+        <input type="number" class="form-input split-amount" data-idx="${i}"
+          value="${row.amount}" placeholder="$0.00" step="0.01" min="0" inputmode="decimal"
+          style="width:92px;padding:6px 8px;font-size:13px">
+        ${_splitRows.length > 2 ? `<button class="btn-xs split-del-row" data-idx="${i}"
+          style="background:var(--danger);color:#fff;border-color:var(--danger);flex-shrink:0">✕</button>` : ''}
+      </div>`).join('');
+    updateSplitSummary();
+    container.querySelectorAll('.split-cat').forEach(sel => {
+      sel.addEventListener('change', () => { _splitRows[+sel.dataset.idx].cat = sel.value; });
+    });
+    container.querySelectorAll('.split-amount').forEach(inp => {
+      inp.addEventListener('input', () => {
+        _splitRows[+inp.dataset.idx].amount = inp.value;
+        updateSplitSummary();
+      });
+    });
+    container.querySelectorAll('.split-del-row').forEach(btn => {
+      btn.addEventListener('click', () => { _splitRows.splice(+btn.dataset.idx, 1); renderSplitRows(); });
+    });
+  }
+
+  document.getElementById('split-toggle')?.addEventListener('change', e => {
+    const on      = e.target.checked;
+    const section = document.getElementById('split-section');
+    const catRow  = document.getElementById('add-cat-row');
+    if (section) section.style.display = on ? '' : 'none';
+    if (catRow)  catRow.style.display  = on ? 'none' : '';
+    if (on) renderSplitRows();
+  });
+
+  document.getElementById('split-add-row-btn')?.addEventListener('click', () => {
+    _splitRows.push({ cat: cats[0], amount: '' });
+    renderSplitRows();
+  });
+
+  document.getElementById('add-amount')?.addEventListener('input', () => {
+    if (document.getElementById('split-toggle')?.checked) updateSplitSummary();
+  });
+
   // Show/hide transfer-specific fields
   document.querySelectorAll('input[name="etype"]').forEach(radio => {
     radio.addEventListener('change', () => {
@@ -4077,10 +4238,12 @@ function attachAdd() {
       const catRow     = document.getElementById('add-cat-row');
       const recurRow   = document.getElementById('add-recurring-row');
       const descRow    = document.getElementById('add-desc-row');
+      const splitRow   = document.getElementById('add-split-row');
       if (toRow)    toRow.style.display    = isTransfer ? '' : 'none';
-      if (catRow)   catRow.style.display   = isTransfer ? 'none' : '';
+      if (catRow)   catRow.style.display   = isTransfer ? 'none' : (document.getElementById('split-toggle')?.checked ? 'none' : '');
       if (recurRow) recurRow.style.display = isTransfer ? 'none' : '';
       if (descRow)  descRow.style.display  = isTransfer ? 'none' : '';
+      if (splitRow) splitRow.style.display = isTransfer ? 'none' : '';
     });
   });
 
@@ -4090,6 +4253,40 @@ function attachAdd() {
     if (!amtVal || isNaN(amount) || amount <= 0) { showStatus('add-status', 'Enter a valid amount.', 'error'); return; }
     const type = document.querySelector('input[name="etype"]:checked').value;
     const date = document.getElementById('add-date').value || today();
+
+    // ── Split transaction mode ─────────────────────────────────────────────
+    if (document.getElementById('split-toggle')?.checked && type !== 'transfer') {
+      const allocated = _splitRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+      if (Math.abs(allocated - amount) > 0.005) {
+        showStatus('add-status', `Split total ${fmt(allocated)} must equal ${fmt(amount)}. Adjust your splits.`, 'error');
+        return;
+      }
+      const desc        = document.getElementById('add-desc').value.trim() || '—';
+      const acct        = document.getElementById('add-acct').value;
+      const isRecurring = document.getElementById('add-recurring').checked;
+      let count = 0;
+      const stamp = Date.now();
+      for (const row of _splitRows) {
+        const splitAmt = parseFloat(row.amount);
+        if (!splitAmt || splitAmt <= 0) continue;
+        const t = { type, amount: splitAmt, description: desc, category: row.cat,
+                    account: acct, date, recurring: isRecurring, ts: stamp + count };
+        if (isRecurring) t.recur_month = new Date().toISOString().slice(0, 7);
+        await api.addTransaction(t);
+        count++;
+      }
+      showStatus('add-status', `✓ Split into ${count} entries (${fmt(amount)} total)`, 'success');
+      document.getElementById('add-amount').value = '';
+      document.getElementById('add-desc').value   = '';
+      document.getElementById('add-recurring').checked = false;
+      _splitRows = [{ cat: cats[0], amount: '' }, { cat: cats[0], amount: '' }];
+      document.getElementById('split-toggle').checked = false;
+      document.getElementById('split-section').style.display = 'none';
+      document.getElementById('add-cat-row').style.display   = '';
+      playSound(type);
+      haptic([30]);
+      return;
+    }
 
     if (type === 'transfer') {
       const toAcctId   = document.getElementById('add-to-acct')?.value;
