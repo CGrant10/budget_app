@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.4.0';
+const VERSION = '4.4.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.4.1', date: '2026-05-20', changes: [
+    'Excel-friendly CSV export — adds UTF-8 BOM so Excel opens without a wizard, Signed Amount column for easy SUM formulas, Running Balance column, and an "Export All Accounts" option',
+    'Import overhaul — handles Excel date formats (5/20/2026, 05/20/26, etc.), bank export column names (Debit/Credit, Transaction Amount, Withdrawal/Deposit), accounting negatives like (123.45), and UTF-8 BOM files',
+    'Import preview — shows the first 5 rows before committing so you can verify the data looks right',
+    'Download blank template button — get a pre-formatted CSV to fill in and import',
+  ]},
   { version: '4.4.0', date: '2026-05-20', changes: [
     'Dashboard month navigator — browse any past month\'s spending breakdown and transactions directly from the dashboard',
     'Split transactions — enter a total amount then split it across multiple categories; each split becomes its own transaction',
@@ -3270,32 +3276,39 @@ function renderImport() {
   return `
     <div class="page">
       <h1 class="page-title">Import / Export</h1>
-      <p class="page-sub">move data between devices</p>
+      <p class="page-sub">Excel &amp; spreadsheet friendly</p>
+
       <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Import Backup</h2>
-        <p class="code-hint">Restore all data from a JSON backup file.</p>
-        <div id="json-import-status" class="form-status"></div>
-        <label class="btn-primary" style="display:inline-block;margin-top:10px;cursor:pointer;text-align:center;width:100%;box-sizing:border-box">
-          ⬆ Load Backup
-          <input type="file" id="import-json-file" accept=".json" style="display:none">
+        <h2 class="section-title" style="margin-bottom:6px">📤 Export to Excel / CSV</h2>
+        <p class="code-hint" style="margin-bottom:12px">Opens directly in Excel. Includes Date, Type, Category, Description, Amount, Signed Amount, Running Balance, Account, and Recurring columns.</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button id="export-csv-btn" class="btn-primary">⬇ Export This Account (CSV)</button>
+          <button id="export-csv-all-btn" class="btn-primary" style="background:var(--surface2);border:1px solid var(--border);color:var(--text)">⬇ Export All Accounts (CSV)</button>
+          <button id="export-json-btn" class="btn-primary" style="background:var(--surface2);border:1px solid var(--border);color:var(--text)">⬇ Download Budget DAWGs Backup (JSON)</button>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:6px">📥 Import from Excel / CSV</h2>
+        <p class="code-hint">Accepts files saved from Excel as CSV. Required columns: <strong>Date</strong> and <strong>Amount</strong>. Optional: Type, Category, Description, Account.</p>
+        <p class="code-hint" style="margin-top:6px">Date formats accepted: <code>2026-05-20</code>, <code>5/20/2026</code>, <code>05/20/26</code></p>
+        <p class="code-hint" style="margin-top:4px">Also works with most bank export formats (Debit/Credit columns, accounting negatives, etc.)</p>
+        <button id="export-template-btn" class="btn-xs" style="margin-top:8px;margin-bottom:2px">⬇ Download blank template</button>
+        <div id="import-status" class="form-status" style="margin-top:8px"></div>
+        <label class="btn-primary" style="display:inline-block;margin-top:8px;cursor:pointer;text-align:center;width:100%;box-sizing:border-box">
+          Choose CSV or Excel File…
+          <input type="file" id="import-file" accept=".csv,.xlsx,.xls,.txt" style="display:none">
         </label>
+        <div id="import-preview" style="display:none;margin-top:12px;padding:12px;background:var(--surface2);border-radius:14px;border:1px solid var(--border)"></div>
       </div>
+
       <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Export Backup</h2>
-        <p class="code-hint">Includes transactions, bills, goals, accounts, and budgets.</p>
-        <button id="export-json-btn" class="btn-primary" style="margin-top:10px;width:100%">⬇ Download Budget DAWGs Backup</button>
-      </div>
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Import CSV</h2>
-        <p class="page-sub" style="margin:0 0 8px">bulk-load transactions from a spreadsheet</p>
-        <p class="code-hint">Expected columns:</p>
-        <code class="code-block">date, type, category, description, amount</code>
-        <p class="code-hint" style="margin-top:12px">Example row:</p>
-        <code class="code-block">2024-03-15, expense, Food, "Grocery run", 87.50</code>
-        <div id="import-status" class="form-status"></div>
-        <label class="btn-primary" style="display:inline-block;margin-top:4px;cursor:pointer;text-align:center">
-          Choose CSV File…
-          <input type="file" id="import-file" accept=".csv" style="display:none">
+        <h2 class="section-title" style="margin-bottom:6px">📥 Restore from Backup</h2>
+        <p class="code-hint">Restores everything from a Budget DAWGs JSON backup file.</p>
+        <div id="json-import-status" class="form-status" style="margin-top:6px"></div>
+        <label class="btn-primary" style="display:inline-block;margin-top:8px;cursor:pointer;text-align:center;width:100%;box-sizing:border-box">
+          ⬆ Load Backup File
+          <input type="file" id="import-json-file" accept=".json" style="display:none">
         </label>
       </div>
     </div>`;
@@ -3868,15 +3881,44 @@ function attachAbout() {
 }
 
 // ── csv helper ─────────────────────────────────────────────────────────────
+// Properly handles RFC-4180 quoted fields, escaped double-quotes (""), and
+// the UTF-8 BOM Excel sometimes prepends.
 function parseCSVLine(line) {
-  const result = []; let cur = '', inQ = false;
-  for (const ch of line) {
-    if (ch === '"') { inQ = !inQ; }
-    else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
-    else { cur += ch; }
+  const result = []; let cur = '', inQ = false, i = 0;
+  while (i < line.length) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"' && line[i+1] === '"') { cur += '"'; i += 2; continue; } // escaped ""
+      if (ch === '"') { inQ = false; i++; continue; }
+      cur += ch;
+    } else {
+      if (ch === '"') { inQ = true; i++; continue; }
+      if (ch === ',') { result.push(cur.trim()); cur = ''; i++; continue; }
+      cur += ch;
+    }
+    i++;
   }
   result.push(cur.trim());
   return result;
+}
+
+// Parse a date string from many formats Excel produces → YYYY-MM-DD
+function parseExcelDate(raw) {
+  const s = (raw || '').trim().replace(/"/g, '');
+  if (!s) return null;
+  // Already ISO format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // M/D/YYYY or MM/DD/YYYY or M/D/YY
+  const mdyMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (mdyMatch) {
+    let [, m, d, y] = mdyMatch;
+    if (y.length === 2) y = parseInt(y) < 50 ? '20' + y : '19' + y;
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  // Try native Date parse as a last resort
+  const dt = new Date(s);
+  if (!isNaN(dt)) return dt.toISOString().slice(0, 10);
+  return null;
 }
 
 // ── swipe to delete ────────────────────────────────────────────────────────
@@ -4342,19 +4384,67 @@ function attachAdd() {
   });
 }
 
-function exportCSV() {
-  const rows = [['Date','Type','Category','Description','Amount','Account']];
-  [...state.transactions]
-    .sort((a,b) => b.date.localeCompare(a.date))
-    .forEach(t => {
-      const acctName = (state.accounts.find(a => a.id === (t.account||'main'))?.name) || 'Main';
-      rows.push([t.date, t.type, t.category, t.description || '', t.amount.toFixed(2), acctName]);
-    });
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `budget-${new Date().toISOString().slice(0,10)}.csv`;
+function exportCSV(allAccounts = false) {
+  // Collect transactions — either active account or every account
+  let txns = [];
+  if (allAccounts) {
+    for (const acct of state.accounts) {
+      const d = JSON.parse(localStorage.getItem(accountDataKey(acct.id)) || '{}');
+      (d.transactions || []).forEach(t => txns.push({ ...t, _acctName: acct.name }));
+    }
+  } else {
+    txns = state.transactions.map(t => ({
+      ...t,
+      _acctName: state.accounts.find(a => a.id === (t.account||'main'))?.name || 'Main',
+    }));
+  }
+
+  // Sort oldest → newest so Excel running-balance formula works top-down
+  txns.sort((a,b) => a.date.localeCompare(b.date) || (a.ts||0) - (b.ts||0));
+
+  // Build running balance column
+  let running = allAccounts ? 0 : (state.startingBalance || 0);
+  const rows = [[
+    'Date', 'Type', 'Category', 'Description', 'Amount',
+    'Signed Amount', 'Running Balance', 'Account', 'Recurring',
+  ]];
+  for (const t of txns) {
+    const signed = t.type === 'income' ? t.amount : -t.amount;
+    running += signed;
+    rows.push([
+      t.date,
+      t.type.charAt(0).toUpperCase() + t.type.slice(1),
+      t.category || 'Other',
+      t.description || '',
+      t.amount.toFixed(2),       // always positive — use Type to know direction
+      signed.toFixed(2),         // negative = expense, positive = income
+      running.toFixed(2),
+      t._acctName || 'Main',
+      t.recurring ? 'Yes' : 'No',
+    ]);
+  }
+
+  // RFC-4180 quoting + UTF-8 BOM so Excel opens it correctly without a wizard
+  const q  = v => `"${String(v).replace(/"/g, '""')}"`;
+  const csv = '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  const suffix = allAccounts ? 'all-accounts' : (state.accounts.find(x=>x.id===currentAccountId)?.name||'account').toLowerCase().replace(/\s+/g,'-');
+  a.download = `budget-dawgs-${suffix}-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+function exportCSVTemplate() {
+  const header  = ['Date','Type','Category','Description','Amount','Account'];
+  const example = ['2026-05-20','Expense','Food','Grocery run','87.50','Main'];
+  const q   = v => `"${String(v).replace(/"/g,'""')}"`;
+  const csv = '﻿' + [header, example].map(r => r.map(q).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'budget-dawgs-import-template.csv';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
 }
@@ -4434,7 +4524,7 @@ function attachLedger() {
 
   attachSwipeDelete();
 
-  document.getElementById('ledger-export-csv')?.addEventListener('click', exportCSV);
+  document.getElementById('ledger-export-csv')?.addEventListener('click', () => exportCSV(false));
 }
 
 function attachWeekly() {
@@ -4484,6 +4574,10 @@ function attachImport() {
     reader.readAsText(file);
   });
 
+  document.getElementById('export-csv-btn')?.addEventListener('click', () => exportCSV(false));
+  document.getElementById('export-csv-all-btn')?.addEventListener('click', () => exportCSV(true));
+  document.getElementById('export-template-btn')?.addEventListener('click', exportCSVTemplate);
+
   document.getElementById('export-json-btn')?.addEventListener('click', () => {
     const payload = JSON.stringify({
       transactions: state.transactions,
@@ -4496,7 +4590,7 @@ function attachImport() {
     const blob = new Blob([payload], { type: 'application/json' });
     const a    = document.createElement('a');
     a.href     = URL.createObjectURL(blob);
-    a.download = `slawminyaw-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `budget-dawgs-backup-${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   });
@@ -4506,30 +4600,153 @@ function attachImport() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
-      const lines   = ev.target.result.split('\n');
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g,''));
-      let added = 0, errors = 0;
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        try {
-          const vals = parseCSVLine(line);
-          const row  = {};
-          headers.forEach((h, j) => row[h] = (vals[j]||'').replace(/"/g,'').trim());
-          const amount = parseFloat((row.amount||'0').replace('$','').replace(',',''));
-          if (isNaN(amount)) { errors++; continue; }
-          state.transactions.push({
-            date: row.date || today(), type: (row.type||'expense').toLowerCase(),
-            category: row.category||'Other', description: row.description||'—', amount,
+      try {
+        // Strip BOM if Excel added one
+        const raw   = ev.target.result.replace(/^﻿/, '');
+        // Split on \r\n or \n
+        const lines = raw.split(/\r?\n/);
+        if (lines.length < 2) { showStatus('import-status', 'File appears empty.', 'error', 0); return; }
+
+        // Normalise header names — handle many bank/Excel column name variations
+        const rawHeaders = parseCSVLine(lines[0]);
+        const headers    = rawHeaders.map(h => h.replace(/"/g,'').trim().toLowerCase());
+
+        // Map common column-name aliases to canonical names
+        const alias = {
+          date:        ['date','transaction date','trans date','posting date','posted date','value date'],
+          type:        ['type','transaction type','trans type','debit/credit'],
+          amount:      ['amount','transaction amount','trans amount','debit amount','credit amount','withdrawal','deposit','sum'],
+          description: ['description','desc','memo','narrative','details','payee','merchant','name','note','notes'],
+          category:    ['category','cat','label','tag'],
+          account:     ['account','account name','acct','account number'],
+        };
+
+        const colIdx = {};
+        for (const [canon, variants] of Object.entries(alias)) {
+          const idx = headers.findIndex(h => variants.includes(h));
+          if (idx !== -1) colIdx[canon] = idx;
+        }
+
+        if (colIdx.date === undefined && colIdx.amount === undefined) {
+          showStatus('import-status', 'Could not detect Date or Amount columns. Check column headers match the expected format.', 'error', 0);
+          return;
+        }
+
+        // Parse all rows first (preview + commit in one pass)
+        const parsed = []; let errors = 0;
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          try {
+            const vals = parseCSVLine(line);
+            const get  = key => colIdx[key] !== undefined ? (vals[colIdx[key]] || '').replace(/"/g,'').trim() : '';
+
+            // Date — try multiple formats
+            const dateRaw = get('date');
+            const date    = parseExcelDate(dateRaw) || today();
+
+            // Amount — strip $, commas, spaces; handle (123.45) = negative
+            let amtStr = get('amount').replace(/[$,\s]/g, '');
+            let amount = 0;
+            if (/^\([\d.]+\)$/.test(amtStr)) {
+              // Accounting negative format: (123.45)
+              amount = parseFloat(amtStr.slice(1, -1));
+            } else {
+              amount = parseFloat(amtStr);
+            }
+            if (isNaN(amount) || amount === 0) { errors++; continue; }
+            amount = Math.abs(amount);
+
+            // Type — infer from column name or value
+            let type = 'expense';
+            const rawType = get('type').toLowerCase();
+            if (rawType.includes('income') || rawType.includes('credit') || rawType.includes('deposit')) {
+              type = 'income';
+            } else if (rawType.includes('expense') || rawType.includes('debit') || rawType.includes('withdrawal')) {
+              type = 'expense';
+            } else if (rawType === 'income' || rawType === 'expense' || rawType === 'transfer') {
+              type = rawType;
+            }
+            // If column was "signed amount", negative = expense, positive = income
+            if (colIdx.amount !== undefined && headers[colIdx.amount] === 'signed amount') {
+              const signed = parseFloat((vals[colIdx.amount] || '0').replace(/[$,\s]/g,''));
+              type   = signed >= 0 ? 'income' : 'expense';
+              amount = Math.abs(signed);
+            }
+
+            parsed.push({
+              date,
+              type,
+              category:    get('category') || 'Other',
+              description: get('description') || '—',
+              amount,
+              account:     currentAccountId,
+              ts:          Date.now() + i,
+            });
+          } catch(err) { errors++; }
+        }
+
+        if (!parsed.length) {
+          showStatus('import-status', `No valid rows found.${errors ? ` (${errors} rows had errors)` : ''}`, 'error', 0);
+          return;
+        }
+
+        // Show preview before committing
+        const previewEl = document.getElementById('import-preview');
+        if (previewEl) {
+          const sample = parsed.slice(0, 5);
+          previewEl.innerHTML = `
+            <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">
+              Preview — first ${Math.min(5, parsed.length)} of ${parsed.length} rows
+              ${errors ? `<span style="color:var(--warn)"> · ${errors} rows skipped</span>` : ''}
+            </div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:.75rem">
+                <tr style="color:var(--muted)">
+                  <th style="text-align:left;padding:4px 6px">Date</th>
+                  <th style="text-align:left;padding:4px 6px">Type</th>
+                  <th style="text-align:left;padding:4px 6px">Category</th>
+                  <th style="text-align:left;padding:4px 6px">Description</th>
+                  <th style="text-align:right;padding:4px 6px">Amount</th>
+                </tr>
+                ${sample.map(t => `<tr style="border-top:1px solid var(--border)">
+                  <td style="padding:4px 6px">${t.date}</td>
+                  <td style="padding:4px 6px;color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type}</td>
+                  <td style="padding:4px 6px">${t.category}</td>
+                  <td style="padding:4px 6px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.description}</td>
+                  <td style="padding:4px 6px;text-align:right">${fmt(t.amount)}</td>
+                </tr>`).join('')}
+              </table>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button id="import-confirm-btn" class="btn-primary" style="flex:1">Import ${parsed.length} Transactions</button>
+              <button id="import-cancel-btn" class="btn-sm">Cancel</button>
+            </div>`;
+          previewEl.style.display = '';
+
+          document.getElementById('import-confirm-btn')?.addEventListener('click', async () => {
+            for (const t of parsed) await api.addTransaction(t);
+            _save();
+            previewEl.style.display = 'none';
+            showStatus('import-status', `✓ Imported ${parsed.length} transactions.${errors?` (${errors} skipped)`:''}`, 'success', 0);
+            render();
           });
-          added++;
-        } catch(err) { errors++; }
+          document.getElementById('import-cancel-btn')?.addEventListener('click', () => {
+            previewEl.style.display = 'none';
+            showStatus('import-status', 'Import cancelled.', 'error', 2000);
+          });
+        } else {
+          // Fallback: commit immediately if preview element missing
+          parsed.forEach(t => state.transactions.push(t));
+          _save();
+          showStatus('import-status', `✓ Imported ${parsed.length} transactions.`, 'success', 0);
+          render();
+        }
+      } catch(err) {
+        showStatus('import-status', `Error reading file: ${err.message}`, 'error', 0);
       }
-      _save();
-      showStatus('import-status', `✓ Imported ${added} transactions.${errors?` (${errors} skipped)`:''}`, 'success', 0);
-      render();
     };
-    reader.readAsText(file);
+    reader.readAsText(file, 'utf-8');
   });
 }
 
