@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.6.1';
+const VERSION = '4.6.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1690,19 +1690,22 @@ function calcDebtPayoff(owed, apr, monthlyPmt) {
   if (!owed || owed <= 0 || pmt <= 0) return null;
   // If payment doesn't cover first month's interest, payoff is impossible
   if (rate > 0 && pmt <= owed * rate) return null;
-  let bal    = owed;
-  let months = 0;
-  const MAX  = 600; // 50-year cap
+  let bal               = owed;
+  let months            = 0;
+  let totalInterestPaid = 0;
+  const MAX             = 600; // 50-year cap
   while (bal > 0.01 && months < MAX) {
-    bal = rate > 0 ? bal * (1 + rate) - pmt : bal - pmt;
+    const monthlyInterest = rate > 0 ? bal * rate : 0;
+    totalInterestPaid += monthlyInterest;
+    bal = bal + monthlyInterest - pmt;
     if (bal < 0) bal = 0;
     months++;
   }
   if (months >= MAX) return null;
   const dt = new Date();
   dt.setMonth(dt.getMonth() + months);
-  const totalPaid     = +(pmt * months).toFixed(2);
-  const totalInterest = +(Math.max(0, totalPaid - owed)).toFixed(2);
+  const totalPaid     = +(owed + totalInterestPaid).toFixed(2);
+  const totalInterest = +(Math.max(0, totalInterestPaid)).toFixed(2);
   return {
     months,
     label:         dt.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),

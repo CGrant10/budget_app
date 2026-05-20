@@ -2134,7 +2134,7 @@ body.light #dawg-bottom-nav { background:rgba(255,255,255,.92); }
 }
 .dawg-drawer-item:active { background:var(--surface2); }
 @media (hover:hover) { .dawg-drawer-item:hover { background:var(--surface2); } }
-.dawg-di-icon { font-size:1.1rem; width:26px; text-align:center; flex-shrink:0; }
+.dawg-di-icon { width:26px; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text); }
 .dawg-di-lbl  { font-size:.9rem; font-weight:600; color:var(--text); }
 
 /* DAWG notification bell panel */
