@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.6.0';
+const VERSION = '4.6.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.6.1', date: '2026-05-20', changes: [
+    'Past month balance now shows the balance as of that month\'s end, not the current live balance',
+    'Sparkline graph clips to the selected month when browsing past months',
+    'Account save button flashes ✓ Saved and keeps the card expanded instead of closing it',
+  ]},
   { version: '4.6.0', date: '2026-05-20', changes: [
     'Nav bar active state: accent-colored pill behind the icon with white outline (inverted) instead of a fully filled solid shape',
     'Account type chips now use matching SVG icons (bank, dollar, card, file, bill) instead of emoji',
@@ -2084,8 +2089,10 @@ function render() {
 }
 
 // ── DAWG sparkline data ────────────────────────────────────────────────────
-function getDawgSparklineData(range) {
-  const now = new Date(); now.setHours(0,0,0,0);
+function getDawgSparklineData(range, maxDateStr = null) {
+  // When browsing a past month, cap the graph at the end of that month
+  const now = maxDateStr ? new Date(maxDateStr + 'T00:00:00') : new Date();
+  now.setHours(0,0,0,0);
   let cutoff = null;
   if      (range === '1w') { cutoff = new Date(now); cutoff.setDate(now.getDate() - 7); }
   else if (range === '1m') { cutoff = new Date(now); cutoff.setMonth(now.getMonth() - 1); }
@@ -2128,13 +2135,27 @@ function balanceAsOf(dateStr) {
 
 // ── DAWG dashboard layout ──────────────────────────────────────────────────
 function renderDashboardDawg() {
-  const { income, expense } = totals();
   const _curAcctD = state.accounts.find(a => a.id === currentAccountId);
   const _isDebt   = _curAcctD?.type === 'credit' || _curAcctD?.type === 'loan';
-  // Debt: balance = amount owed (startBal + expenses − payments)
-  const balance   = _isDebt
-    ? Math.max(0, (state.startingBalance || 0) + expense - income)
-    : (state.startingBalance || 0) + income - expense;
+
+  const now      = new Date();
+  const currentM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const isPastDash = dashMonth < currentM;
+  const [dashYr, dashMo] = dashMonth.split('-').map(Number);
+  // Last day of the browsed month (used for past-month balance and sparkline clipping)
+  const dashMonthEndStr = new Date(dashYr, dashMo, 0).toISOString().split('T')[0];
+  const balAsOfStr = isPastDash ? dashMonthEndStr : today();
+
+  // Balance as of the end of the browsed month (not all-time live balance)
+  let balance;
+  if (_isDebt) {
+    const _incUpTo = state.transactions.filter(t=>t.date<=balAsOfStr&&t.type==='income').reduce((s,t)=>s+t.amount,0);
+    const _expUpTo = state.transactions.filter(t=>t.date<=balAsOfStr&&t.type==='expense').reduce((s,t)=>s+t.amount,0);
+    balance = Math.max(0, (state.startingBalance||0) + _expUpTo - _incUpTo);
+  } else {
+    balance = balanceAsOf(balAsOfStr);
+  }
+
   // Balance color: red if negative (non-debt), or debt color scale
   let balColor = 'var(--text)';
   if (!_isDebt && balance < 0) {
@@ -2145,7 +2166,7 @@ function renderDashboardDawg() {
     const _hue   = Math.round(120 * (1 - _pct));
     balColor     = `hsl(${_hue},70%,${document.body.classList.contains('light')?'35%':'55%'})`;
   }
-  // Payment due date for debt accounts
+  // Payment due date for debt accounts (always based on today, not browsed month)
   let paymentDueStr = '';
   if (_isDebt && _curAcctD.payment_due_day) {
     const _day = parseInt(_curAcctD.payment_due_day);
@@ -2159,20 +2180,18 @@ function renderDashboardDawg() {
         ? `⚠️ Payment due in ${_daysUntil} day${_daysUntil===1?'':'s'}`
         : `Payment due ${_due.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
   }
-  const now      = new Date();
-  const currentM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const isPastDash = dashMonth < currentM;
-  const dashMonthLabel = new Date(parseInt(dashMonth.slice(0,4)), parseInt(dashMonth.slice(5,7))-1, 1)
+  const dashMonthLabel = new Date(dashYr, dashMo - 1, 1)
     .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  // Monthly totals always reflect the browsed month; balance/delta stay on live data
+  // Monthly totals reflect the browsed month
   const { income: mInc, expense: mExp, bycat } = monthTotals(dashMonth);
-  const monthDelta = _isDebt ? (income - expense) : (mInc - mExp); // debt: payments made this month
+  const monthDelta = mInc - mExp; // net for the browsed month (works for both debt and checking)
   const deltaColor = _isDebt
     ? (monthDelta > 0 ? 'var(--success)' : 'var(--muted)')
     : (monthDelta >= 0 ? 'var(--success)' : 'var(--danger)');
   const deltaArrow = monthDelta > 0 ? '▲' : '▼';
-  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
-  const balLast = balanceAsOf(lastMonthEnd);
+  // balLast = balance at end of month prior to dashMonth (for % delta calc)
+  const prevMonthEndStr = new Date(dashYr, dashMo - 1, 0).toISOString().split('T')[0];
+  const balLast = balanceAsOf(prevMonthEndStr);
   const deltaPct = balLast !== 0 ? Math.abs(monthDelta / Math.abs(balLast) * 100) : 0;
   const deltaStr = _isDebt
     ? (monthDelta > 0 ? `▼ ${fmt(monthDelta)} paid this month` : 'No payments this month')
@@ -3774,7 +3793,7 @@ function _buildAccountCards() {
       <div class="acct-card-header" data-id="${a.id}">
         <div style="display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden">
           <span class="acct-card-name">${a.name}</span>
-          <span style="font-size:11px;color:var(--muted);white-space:nowrap">${typeMeta.icon} ${typeMeta.label}</span>
+          <span class="acct-card-type-lbl" style="font-size:11px;color:var(--muted);white-space:nowrap">${typeMeta.icon} ${typeMeta.label}</span>
           ${a.id === currentAccountId ? '<span class="acct-badge" style="font-size:9px">active</span>' : ''}
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
@@ -3950,8 +3969,23 @@ function attachAccounts() {
       if (pmtRaw  !== undefined) acct.monthly_payment = pmtRaw  ? parseFloat(pmtRaw)         : undefined;
       await api.saveAccounts(state.accounts);
       updateAccountSwitcher();
-      showStatus('acct-status', '✓ Saved.', 'success');
-      render();
+      // Update card header in-place so the card stays expanded
+      const nameDisp = card.querySelector('.acct-card-name');
+      if (nameDisp) nameDisp.textContent = newName;
+      const typeDisp = card.querySelector('.acct-card-type-lbl');
+      if (typeDisp && newType) {
+        const tm = ACCT_TYPE_META.find(t => t.key === newType);
+        if (tm) typeDisp.innerHTML = `${tm.icon} ${tm.label}`;
+      }
+      // Flash the button green
+      const origHtml = btn.innerHTML;
+      btn.textContent = '✓ Saved';
+      btn.style.cssText += ';background:var(--success,#2ea84e);border-color:var(--success,#2ea84e)';
+      setTimeout(() => {
+        btn.textContent = 'Save';
+        btn.style.background = 'var(--accent)';
+        btn.style.borderColor = 'var(--accent)';
+      }, 2000);
     });
   });
 
@@ -4406,13 +4440,18 @@ function attachDashboardDawg() {
     });
   }
 
-  // Sparkline
+  // Sparkline — clip to end of browsed month when navigating past months
+  const _isPastSpark = dashMonth < new Date().toISOString().slice(0,7);
+  const _sparkMaxDate = _isPastSpark ? (() => {
+    const [sy, sm] = dashMonth.split('-').map(Number);
+    return new Date(sy, sm, 0).toISOString().split('T')[0];
+  })() : null;
   let _dawgSpark = null;
   function buildSparkline(range) {
     const canvas = document.getElementById('dawg-sparkline');
     if (!canvas) return;
     if (_dawgSpark) { _dawgSpark.destroy(); _dawgSpark = null; }
-    const { labels, data } = getDawgSparklineData(range);
+    const { labels, data } = getDawgSparklineData(range, _sparkMaxDate);
     if (!data.length) return;
     const ctx  = canvas.getContext('2d');
     const grad = ctx.createLinearGradient(0, 0, 0, canvas.offsetHeight||80);
