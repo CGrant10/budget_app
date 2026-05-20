@@ -1887,8 +1887,8 @@ body.light .section-title::before {
 .dawg-cat-row { display:flex; align-items:center; gap:3px; }
 .dawg-cat-icon { font-size:.78rem; width:16px; text-align:center; flex-shrink:0; }
 .dawg-cat-name { font-size:.67rem; color:var(--text); min-width:50px; max-width:50px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.dawg-cat-bar-wrap { flex:1; height:3px; background:var(--surface2); border-radius:2px; overflow:hidden; margin:0 3px; }
-.dawg-cat-bar { height:100%; background:var(--accent); border-radius:2px; }
+.dawg-cat-bar-wrap { flex:1; height:7px; background:var(--surface2); border-radius:4px; overflow:hidden; margin:0 4px; }
+.dawg-cat-bar { height:100%; background:var(--accent); border-radius:4px; transition:width .4s cubic-bezier(.25,.8,.25,1); }
 .dawg-cat-amt { font-size:.62rem; color:var(--text); white-space:nowrap; min-width:36px; text-align:right; }
 .dawg-cat-pct { font-size:.6rem; color:var(--muted); min-width:24px; text-align:right; }
 
@@ -1910,8 +1910,8 @@ body.light .section-title::before {
 .dawg-goal-name { font-size:.82rem; font-weight:700; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dawg-goal-sub { font-size:.7rem; color:var(--muted); }
 .dawg-goal-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; min-width:58px; }
-.dawg-goal-bar-wrap { width:58px; height:3px; background:var(--surface2); border-radius:2px; overflow:hidden; }
-.dawg-goal-bar { height:100%; background:var(--accent); border-radius:2px; }
+.dawg-goal-bar-wrap { width:64px; height:6px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+.dawg-goal-bar { height:100%; background:var(--accent); border-radius:4px; transition:width .4s cubic-bezier(.25,.8,.25,1); }
 .dawg-goal-pct { font-size:.75rem; font-weight:700; color:var(--accent); }
 
 .dawg-txn-row { display:flex; align-items:center; gap:10px; padding:3px 0; }
@@ -2450,6 +2450,74 @@ body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
 }
 .bcal-cell.bill-due  .bcal-dot { background: var(--danger); }
 .bcal-cell.bill-paid .bcal-dot { background: var(--success); }
+.bcal-cell[role="button"] { cursor: pointer; }
+.bcal-cell[role="button"]:hover { background: var(--surface2); }
+.bcal-cell.bcal-selected { background: var(--surface2); outline: 1.5px solid var(--accent); }
+
+/* Calendar day detail panel */
+.bcal-day-detail {
+  margin-top: 10px;
+  background: var(--surface2);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: fadeSlideIn .15s ease;
+}
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.bcal-detail-hdr {
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.bcal-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bcal-detail-info {
+  flex: 1;
+  min-width: 0;
+}
+.bcal-detail-name {
+  font-size: .84rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bcal-detail-meta {
+  font-size: .7rem;
+  color: var(--muted);
+}
+
+/* Preset / starter budget banner tint */
+.budget-suggest-preset {
+  border-color: rgba(255,214,10,.25);
+}
+.budget-suggest-preset .budget-suggest-hdr {
+  color: var(--warn);
+}
+.budget-suggest-preset .budget-suggest-apply {
+  background: rgba(255,214,10,.1);
+  color: var(--warn);
+  border-color: rgba(255,214,10,.3);
+}
+.budget-suggest-preset .budget-suggest-apply:hover {
+  background: rgba(255,214,10,.2);
+}
+.budget-suggest-preset #budget-apply-all {
+  border-color: rgba(255,214,10,.3);
+  color: var(--warn);
+}
 
 /* ── debt payoff calculator ──────────────────────────────────────────────── */
 .debt-calc-card {

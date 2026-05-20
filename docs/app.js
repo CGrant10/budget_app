@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.7.4';
+const VERSION = '4.7.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.7.5', date: '2026-05-20', changes: [
+    'Bills calendar: tap any highlighted day to see a detail panel listing bills due that day with quick Mark Paid buttons',
+    'Smart Budget Suggestions: new users with no spending history now get a Starter Budget Pack with sensible defaults instead of a blank page',
+    'Spending Breakdown bars: taller and per-category colored instead of all one accent color',
+    'Goal bars on the dashboard also slightly taller',
+  ]},
   { version: '4.7.4', date: '2026-05-20', changes: [
     'Theme picker redesigned: Dark / Light / Terminal mode toggle replaces the dropdown',
     'Dark mode accent options: Green, OLED, Blue, Orange, Gold, Auto',
@@ -2383,12 +2389,13 @@ function renderDashboardDawg() {
   const catIcons   = { Food:'🍔', Gas:'⛽', Car:'🚗', Boat:'⛵', Tools:'🔧', Home:'🏠', Entertainment:'🎮', Health:'❤️', Shopping:'🛍️', Transport:'🚗', Housing:'🏠', Other:'💬' };
 
   const spendHtml = catEntries.length ? catEntries.map(([cat,amt]) => {
-    const pct = totalMExp > 0 ? (amt/totalMExp*100).toFixed(0) : 0;
-    const barW = totalMExp > 0 ? (amt/totalMExp*100).toFixed(1) : 0;
+    const pct      = totalMExp > 0 ? (amt/totalMExp*100).toFixed(0) : 0;
+    const barW     = totalMExp > 0 ? (amt/totalMExp*100).toFixed(1) : 0;
+    const catColor = CAT_COLORS[cat] || 'var(--accent)';
     return `<div class="dawg-cat-row">
       <span class="dawg-cat-icon">${catIcons[cat]||'💰'}</span>
       <span class="dawg-cat-name">${cat}</span>
-      <div class="dawg-cat-bar-wrap"><div class="dawg-cat-bar" style="width:${barW}%"></div></div>
+      <div class="dawg-cat-bar-wrap"><div class="dawg-cat-bar" style="width:${barW}%;background:${catColor}"></div></div>
       <span class="dawg-cat-amt">${fmt(amt)}</span>
       <span class="dawg-cat-pct">${pct}%</span>
     </div>`;
@@ -2568,9 +2575,21 @@ function renderDashboard() {
 }
 
 // ── budgets ────────────────────────────────────────────────────────────────
+const _BUDGET_PRESETS = {
+  Food:          400,
+  Gas:           150,
+  Car:           200,
+  Boat:          100,
+  Tools:         75,
+  Home:          300,
+  Entertainment: 100,
+  Health:        100,
+  Other:         150,
+};
+
 function getSmartBudgetSuggestions() {
   const now = new Date();
-  const suggestions = {};
+  const calculated = {};
   const monthsWithData = [];
   for (let i = 1; i <= 3; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -2583,24 +2602,41 @@ function getSmartBudgetSuggestions() {
     ).filter(v => v > 0);
     if (monthlySums.length >= 1) {
       const avg = monthlySums.reduce((s,v) => s+v, 0) / monthlySums.length;
-      suggestions[cat] = Math.ceil(avg / 5) * 5; // round up to nearest $5
+      calculated[cat] = Math.ceil(avg / 5) * 5;
     }
   }
-  return suggestions;
+
+  if (Object.keys(calculated).length > 0) {
+    return { suggestions: calculated, isPreset: false };
+  }
+
+  // No history yet — return sensible starter defaults for built-in categories only
+  const presets = {};
+  for (const cat of getCategories()) {
+    if (_BUDGET_PRESETS[cat]) presets[cat] = _BUDGET_PRESETS[cat];
+  }
+  return { suggestions: presets, isPreset: true };
 }
 
 function renderBudgets() {
   const m = new Date().toISOString().slice(0, 7);
   const { bycat } = monthTotals(m);
-  const suggestions = getSmartBudgetSuggestions();
+  const { suggestions, isPreset } = getSmartBudgetSuggestions();
   const hasSuggestions = Object.keys(suggestions).length > 0;
   const suggestionsHtml = hasSuggestions ? `
-    <div class="budget-suggest-banner">
+    <div class="budget-suggest-banner${isPreset ? ' budget-suggest-preset' : ''}">
       <div class="budget-suggest-hdr">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="16"/></svg>
-        Smart Suggestions
-        <span style="font-size:.75rem;font-weight:500;color:var(--muted)">based on your last 3 months</span>
+        ${isPreset
+          ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Starter Budget Pack`
+          : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="16"/></svg>
+            Smart Suggestions`
+        }
+        <span style="font-size:.75rem;font-weight:500;color:var(--muted)">
+          ${isPreset ? 'common starting points — adjust to your life' : 'based on your last 3 months'}
+        </span>
       </div>
+      ${isPreset ? `<p style="font-size:.75rem;color:var(--muted);margin-bottom:10px;line-height:1.4">No spending history yet. Here are reasonable defaults to get you started — apply any and edit the numbers to fit your situation.</p>` : ''}
       <div class="budget-suggest-chips">
         ${Object.entries(suggestions).map(([cat, amt]) => {
           const catColor = CAT_COLORS[cat] || '#9896a4';
@@ -2612,7 +2648,7 @@ function renderBudgets() {
           </div>`;
         }).join('')}
       </div>
-      <button id="budget-apply-all" class="btn-secondary" style="margin-top:10px;width:100%">Apply All Suggestions</button>
+      <button id="budget-apply-all" class="btn-secondary" style="margin-top:10px;width:100%">${isPreset ? 'Apply All Defaults' : 'Apply All Suggestions'}</button>
     </div>` : '';
   const rows = getCategories().map(cat => {
     const spent    = bycat[cat] || 0;
@@ -2657,7 +2693,7 @@ function attachBudgets() {
   });
   // Apply all suggestions
   document.getElementById('budget-apply-all')?.addEventListener('click', () => {
-    const suggestions = getSmartBudgetSuggestions();
+    const { suggestions } = getSmartBudgetSuggestions();
     Object.entries(suggestions).forEach(([cat, amt]) => {
       const inp = document.getElementById('budget-' + cat);
       if (inp) inp.value = amt;
@@ -3495,17 +3531,18 @@ function renderBills() {
     let cells = '';
     for (let i = 0; i < firstDay; i++) cells += '<div class="bcal-cell"></div>';
     for (let d = 1; d <= daysInM; d++) {
-      const bs   = billsByDay[d] || [];
-      const paid = bs.length && bs.every(b => b.paidMonth === curM);
-      const cls  = ['bcal-cell', d === todayD ? 'today' : '', bs.length ? (paid ? 'bill-paid' : 'bill-due') : ''].filter(Boolean).join(' ');
-      const tip  = bs.map(b => b.name).join(', ');
-      cells += `<div class="${cls}"${tip ? ` title="${tip}"` : ''}><span class="bcal-num">${d}</span>${bs.length ? '<span class="bcal-dot"></span>' : ''}</div>`;
+      const bs      = billsByDay[d] || [];
+      const paid    = bs.length && bs.every(b => b.paidMonth === curM);
+      const hasBill = bs.length > 0;
+      const cls     = ['bcal-cell', d === todayD ? 'today' : '', hasBill ? (paid ? 'bill-paid' : 'bill-due') : ''].filter(Boolean).join(' ');
+      cells += `<div class="${cls}" data-day="${d}"${hasBill ? ' role="button" tabindex="0"' : ''}><span class="bcal-num">${d}</span>${hasBill ? '<span class="bcal-dot"></span>' : ''}</div>`;
     }
     return `
       <div class="bill-cal">
         <div class="bcal-month">${now2.toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
         <div class="bcal-legend"><span class="bcal-legend-due"></span>Due <span class="bcal-legend-paid"></span>Paid</div>
-        <div class="bcal-grid">${dayHdrs}${cells}</div>
+        <div class="bcal-grid" id="bcal-grid">${dayHdrs}${cells}</div>
+        <div id="bcal-day-detail" class="bcal-day-detail" style="display:none"></div>
       </div>`;
   })();
 
@@ -3604,6 +3641,78 @@ function attachBills() {
         message: `Delete "${state.bills[i].name}"? This cannot be undone.`,
         confirmText: 'Delete', danger: true,
         onConfirm: async () => { state.bills.splice(i, 1); await api.saveBills(state.bills); render(); },
+      });
+    });
+  });
+
+  // ── calendar day click ────────────────────────────────────────────────────
+  const curM2   = new Date().toISOString().slice(0, 7);
+  const detailEl = document.getElementById('bcal-day-detail');
+  let activeDay  = null;
+
+  document.querySelectorAll('#bcal-grid .bcal-cell[data-day]').forEach(cell => {
+    cell.addEventListener('click', () => {
+      const day = parseInt(cell.dataset.day);
+      const bills = state.bills.filter(b => b.dueDay === day);
+      if (!bills.length) return;
+
+      // Toggle off if clicking the same day
+      if (activeDay === day) {
+        activeDay = null;
+        detailEl.style.display = 'none';
+        document.querySelectorAll('#bcal-grid .bcal-cell').forEach(c => c.classList.remove('bcal-selected'));
+        return;
+      }
+      activeDay = day;
+      document.querySelectorAll('#bcal-grid .bcal-cell').forEach(c => c.classList.remove('bcal-selected'));
+      cell.classList.add('bcal-selected');
+
+      const now  = new Date();
+      const mo   = now.toLocaleDateString('en-US', { month: 'long' });
+      const rows = bills.map((b, idx) => {
+        const paid    = b.paidMonth === curM2;
+        const color   = CAT_COLORS[b.category] || '#9896a4';
+        const billIdx = state.bills.indexOf(b);
+        return `
+          <div class="bcal-detail-row">
+            <span class="cat-dot" style="background:${color}"></span>
+            <div class="bcal-detail-info">
+              <div class="bcal-detail-name">${b.name}</div>
+              <div class="bcal-detail-meta">${b.category} · ${fmt(b.amount)}</div>
+            </div>
+            <button class="btn-xs bcal-quick-paid" data-bidx="${billIdx}" data-paid="${paid}"
+              style="${paid ? 'background:rgba(50,215,75,.15);color:var(--success);border-color:rgba(50,215,75,.3)' : ''}">
+              ${paid ? '✓ Paid' : 'Mark Paid'}
+            </button>
+          </div>`;
+      }).join('');
+
+      detailEl.innerHTML = `
+        <div class="bcal-detail-hdr">${mo} ${day}</div>
+        ${rows}`;
+      detailEl.style.display = '';
+
+      // Quick-pay from detail panel (no expense log prompt)
+      detailEl.querySelectorAll('.bcal-quick-paid').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const bi   = parseInt(btn.dataset.bidx);
+          const wasPaid = btn.dataset.paid === 'true';
+          state.bills[bi].paidMonth = wasPaid ? null : curM2;
+          await api.saveBills(state.bills);
+          // Re-render detail without full page render
+          btn.dataset.paid = String(!wasPaid);
+          if (!wasPaid) {
+            btn.textContent = '✓ Paid';
+            btn.style.cssText = 'background:rgba(50,215,75,.15);color:var(--success);border-color:rgba(50,215,75,.3)';
+            cell.classList.remove('bill-due');
+            cell.classList.add('bill-paid');
+          } else {
+            btn.textContent = 'Mark Paid';
+            btn.style.cssText = '';
+            cell.classList.remove('bill-paid');
+            cell.classList.add('bill-due');
+          }
+        });
       });
     });
   });
