@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.5.8';
+const VERSION = '4.5.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.5.9', date: '2026-05-20', changes: [
+    'Dashboard month ‹ back button now works (handlers were wired to the wrong function)',
+    'Negative balance on non-debt accounts now displays in red',
+  ]},
   { version: '4.5.8', date: '2026-05-20', changes: [
     'Accounts page now has a ← Back button to return directly to Settings',
     'Account card expand/collapse button is larger and easier to tap',
@@ -2127,9 +2131,11 @@ function renderDashboardDawg() {
   const balance   = _isDebt
     ? Math.max(0, (state.startingBalance || 0) + expense - income)
     : (state.startingBalance || 0) + income - expense;
-  // Debt balance color: red when high, transitions to green when paid down
+  // Balance color: red if negative (non-debt), or debt color scale
   let balColor = 'var(--text)';
-  if (_isDebt) {
+  if (!_isDebt && balance < 0) {
+    balColor = 'var(--danger)';
+  } else if (_isDebt) {
     const _limit = parseFloat(_curAcctD.credit_limit || 0);
     const _pct   = _limit > 0 ? Math.min(balance / _limit, 1) : (balance > 0 ? 1 : 0);
     const _hue   = Math.round(120 * (1 - _pct));
@@ -4342,6 +4348,22 @@ function attachDashboardDawg() {
   document.getElementById('dawg-goto-ledger')?.addEventListener('click',  () => showTab('ledger'));
   document.getElementById('dawg-goto-goals')?.addEventListener('click',   () => showTab('goals'));
   document.getElementById('dawg-goto-txns')?.addEventListener('click',    () => showTab('ledger'));
+
+  // Month navigator
+  document.getElementById('dash-month-prev')?.addEventListener('click', () => {
+    const yr = parseInt(dashMonth.slice(0,4)), mo = parseInt(dashMonth.slice(5,7));
+    const d  = new Date(yr, mo - 2, 1); // mo-1 for 0-index, then -1 more for previous month
+    dashMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0');
+    render();
+  });
+  document.getElementById('dash-month-next')?.addEventListener('click', () => {
+    const now = new Date().toISOString().slice(0, 7);
+    if (dashMonth >= now) return;
+    const yr = parseInt(dashMonth.slice(0,4)), mo = parseInt(dashMonth.slice(5,7));
+    const d  = new Date(yr, mo, 1); // mo already 0-indexed offset by +1 = next month
+    dashMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0');
+    render();
+  });
 
   // Donut chart — uses weekly planner per-week budget if available
   const donutCanvas = document.getElementById('dawg-donut');
