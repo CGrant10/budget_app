@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.4.1';
+const VERSION = '4.5.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,13 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.5.0', date: '2026-05-20', changes: [
+    'Settings overhaul — removed Navigation Position and Customize Nav sections; merged Account starting balance into the Accounts card',
+    'Account cards redesigned — name and type are now clearly readable and fully editable; dedicated Save button handles both name and type changes',
+    'Dashboard Tiles — added Net Worth and Spending Insights toggles, both off by default',
+    'Notification bell dot fixed — badge now correctly appears when bills are due within 3 days',
+    'Phone lock — use your device biometric (Face ID, fingerprint, or pattern) to unlock the app instead of a PIN',
+  ]},
   { version: '4.4.1', date: '2026-05-20', changes: [
     'Excel-friendly CSV export — adds UTF-8 BOM so Excel opens without a wizard, Signed Amount column for easy SUM formulas, Running Balance column, and an "Export All Accounts" option',
     'Import overhaul — handles Excel date formats (5/20/2026, 05/20/26, etc.), bank export column names (Debit/Credit, Transaction Amount, Withdrawal/Deposit), accounting negatives like (123.45), and UTF-8 BOM files',
@@ -2116,11 +2123,13 @@ function renderDashboardDawg() {
   const budgetPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
   const budgetColor = budgetPct >= 100 ? 'var(--danger)' : budgetPct >= 80 ? 'var(--warn)' : 'var(--accent)';
   const budgetLbl   = weekBudget ? 'weekly' : 'monthly';
-  const _ds          = loadSettings();
-  const _showBudget  = _ds.dawgBudget       !== false;
-  const _showBreakdown= _ds.dawgBreakdown   !== false;
-  const _showGoals   = _ds.dawgGoals        !== false;
-  const _showTxns    = _ds.dawgTransactions !== false;
+  const _ds            = loadSettings();
+  const _showBudget    = _ds.dawgBudget         !== false;
+  const _showBreakdown = _ds.dawgBreakdown       !== false;
+  const _showGoals     = _ds.dawgGoals           !== false;
+  const _showTxns      = _ds.dawgTransactions    !== false;
+  const _showNetWorth  = _ds.dawgNetWorth         === true;
+  const _showInsights  = _ds.dawgInsights         === true;
 
   const totalMExp  = Object.values(bycat).reduce((s,v)=>s+v, 0);
   const catEntries = Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,6);
@@ -2276,6 +2285,33 @@ function renderDashboardDawg() {
       </div>
       ${recentTxns.length ? txnHtml : `<p class="dawg-empty">No transactions in ${dashMonthLabel}</p>`}
     </div>` : ''}
+
+    ${(() => {
+      if (!_showNetWorth || _isDebt) return '';
+      const nw = getNetWorth();
+      if (state.accounts.length < 1) return '';
+      return `<div class="dawg-section-card" style="margin-bottom:14px">
+        <div class="dawg-section-hdr"><span class="dawg-card-title">NET WORTH</span></div>
+        <div style="font-size:1.4rem;font-weight:700;color:${nw.total >= 0 ? 'var(--success)' : 'var(--danger)'};margin-bottom:10px">${fmt(nw.total)}</div>
+        ${nw.accounts.map(a => {
+          const isDebtA = a.type === 'credit' || a.type === 'loan';
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:.82rem;color:var(--text)">${a.name}${isDebtA ? `<span style="font-size:.7rem;color:var(--muted);margin-left:4px">(${a.type})</span>` : ''}</span>
+            <span style="font-size:.82rem;font-weight:600;color:${a.balance >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(a.balance)}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    })()}
+
+    ${(() => {
+      if (!_showInsights || _isDebt) return '';
+      const ins = getSpendingInsights(dashMonth);
+      if (!ins.length) return '';
+      return `<div class="dawg-section-card" style="margin-bottom:14px">
+        <div class="dawg-section-hdr"><span class="dawg-card-title">SPENDING INSIGHTS</span></div>
+        ${ins.map(i => `<div style="font-size:.82rem;color:var(--text);padding:5px 0;border-bottom:1px solid var(--border);line-height:1.45">${i}</div>`).join('')}
+      </div>`;
+    })()}
   </div>`;
 }
 
@@ -3345,11 +3381,10 @@ async function checkBillNotifications() {
 // ── settings ───────────────────────────────────────────────────────────────
 function renderSettings() {
   const s          = loadSettings();
-  const navPos     = s.navPosition || 'bottom';
-  const hiddenTabs = s.hiddenTabs || [];
   const theme      = s.theme || 'dark';
   const customCats = s.customCategories || [];
   const fontStyle  = s.fontStyle || 'default';
+  const bioEnabled = !!localStorage.getItem('slawminyaw_biometric_cred');
 
   const fontBtns = [
     { key:'default',  label:'Default',  sub:'Plus Jakarta Sans' },
@@ -3357,51 +3392,45 @@ function renderSettings() {
     { key:'terminal', label:'Terminal', sub:'Consolas / Menlo' },
   ].map(f => `<button class="nav-pos-btn${fontStyle === f.key ? ' active' : ''}" data-font-style="${f.key}" style="line-height:1.3"><span style="display:block">${f.label}</span><span style="font-size:.65rem;opacity:.55;font-weight:400;font-family:'Plus Jakarta Sans',sans-serif">${f.sub}</span></button>`).join('');
 
-  const navOpts = ['bottom','top','left','right'].map(p =>
-    `<button class="nav-pos-btn${navPos === p ? ' active' : ''}" data-pos="${p}">${p.charAt(0).toUpperCase() + p.slice(1)}</button>`
-  ).join('');
-
-  const tabToggles = NAV_ITEMS.map(item => `
-    <label class="tab-toggle${item.required ? ' tab-toggle--disabled' : ''}">
-      <span class="tab-toggle-icon">${item.icon}</span>
-      <span class="tab-toggle-label">${item.label}</span>
-      <input type="checkbox" class="tab-toggle-input" data-tab="${item.key}"
-        ${!hiddenTabs.includes(item.key) ? 'checked' : ''}
-        ${item.required ? 'disabled' : ''}>
-      <span class="tab-toggle-switch"></span>
-    </label>`).join('');
-
-  const accountRows = state.accounts.map((a) => {
+  const accountCards = state.accounts.map((a) => {
     const isDebtAcct = a.type === 'credit' || a.type === 'loan';
     const debtFields = isDebtAcct ? `
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;padding-left:2px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
         <input type="number" class="form-input acct-interest-input" data-id="${a.id}"
           value="${a.interest_rate || ''}" placeholder="APR %" step="0.01" min="0" max="100"
-          inputmode="decimal"
-          style="width:88px;padding:5px 8px;font-size:11px" title="Annual interest rate %">
+          inputmode="decimal" style="width:90px;padding:5px 8px;font-size:12px" title="Annual interest rate %">
         <input type="number" class="form-input acct-due-day-input" data-id="${a.id}"
           value="${a.payment_due_day || ''}" placeholder="Due day" min="1" max="28"
-          inputmode="numeric"
-          style="width:78px;padding:5px 8px;font-size:11px" title="Payment due day of month">
+          inputmode="numeric" style="width:80px;padding:5px 8px;font-size:12px" title="Payment due day of month">
         <input type="number" class="form-input acct-limit-input" data-id="${a.id}"
-          value="${a.credit_limit || ''}" placeholder="Credit limit" min="0" step="100"
-          inputmode="decimal"
-          style="width:108px;padding:5px 8px;font-size:11px" title="Credit/loan limit">
+          value="${a.credit_limit || ''}" placeholder="Limit $" min="0" step="100"
+          inputmode="decimal" style="width:90px;padding:5px 8px;font-size:12px" title="Credit/loan limit">
         <input type="number" class="form-input acct-payment-input" data-id="${a.id}"
-          value="${a.monthly_payment || ''}" placeholder="Mo. payment" min="0" step="10"
-          inputmode="decimal"
-          style="width:108px;padding:5px 8px;font-size:11px" title="Fixed monthly payment amount">
-        <button class="btn-xs acct-debt-save-btn" data-id="${a.id}">Save</button>
+          value="${a.monthly_payment || ''}" placeholder="Mo. payment $" min="0" step="10"
+          inputmode="decimal" style="width:115px;padding:5px 8px;font-size:12px" title="Fixed monthly payment amount">
+        <button class="btn-xs acct-debt-save-btn" data-id="${a.id}" style="align-self:center">Save</button>
       </div>` : '';
     return `
-    <div class="account-row" style="margin-bottom:10px">
-      <div style="display:flex;align-items:center;gap:6px">
+    <div class="account-row" style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:10px">
+      <div style="margin-bottom:8px">
         <input type="text" class="form-input acct-name-input" value="${a.name}" data-id="${a.id}"
-          style="flex:1;padding:6px 10px;font-size:12px${a.id === currentAccountId ? ';border-color:var(--accent)' : ''}">
-        <span class="account-type" style="font-size:10px;white-space:nowrap">${a.type}</span>
-        <button class="btn-xs acct-rename-btn" data-id="${a.id}" title="Rename">✓</button>
-        ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">✕</button>` : ''}
-        ${a.id === currentAccountId ? '<span class="acct-badge" style="font-size:9px">active</span>' : `<button class="btn-xs acct-switch-btn" data-id="${a.id}" style="background:var(--surface2)">Switch</button>`}
+          style="width:100%;padding:8px 10px;font-size:14px;font-weight:600;box-sizing:border-box${a.id === currentAccountId ? ';border-color:var(--accent)' : ''}"
+          placeholder="Account name">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <select class="form-input form-select acct-type-select" data-id="${a.id}"
+          style="flex:1;padding:6px 8px;font-size:12px">
+          ${['checking','savings','credit','loan','cash'].map(t =>
+            `<option value="${t}"${a.type === t ? ' selected' : ''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`
+          ).join('')}
+        </select>
+        ${a.id === currentAccountId
+          ? '<span class="acct-badge" style="font-size:9px;white-space:nowrap;flex-shrink:0">active</span>'
+          : `<button class="btn-xs acct-switch-btn" data-id="${a.id}" style="flex-shrink:0">Switch</button>`}
+      </div>
+      <div style="display:flex;gap:6px;justify-content:flex-end">
+        <button class="btn-xs acct-edit-save-btn" data-id="${a.id}" style="background:var(--accent);color:var(--bg);border-color:var(--accent)">Save</button>
+        ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">Delete</button>` : ''}
       </div>
       ${debtFields}
     </div>`;
@@ -3414,7 +3443,6 @@ function renderSettings() {
       ${theme === key ? '<span class="theme-check">✓</span>' : ''}
     </button>`).join('');
 
-
   const customCatRows = customCats.length ? customCats.map((c, i) => `
     <div class="custom-cat-row">
       <span class="custom-cat-name">${c}</span>
@@ -3426,19 +3454,6 @@ function renderSettings() {
       <h1 class="page-title">Settings</h1>
 
       <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Account</h2>
-        <p class="code-hint" style="margin-bottom:12px">Your starting balance is added to your running balance but not counted as income.</p>
-        <div class="form-row" style="align-items:center">
-          <label class="form-label">Starting balance ($)</label>
-          <input type="number" id="starting-bal-settings" class="form-input" value="${state.startingBalance || ''}" placeholder="0.00" step="0.01" inputmode="decimal" style="max-width:140px">
-        </div>
-        <div class="btn-row">
-          <button id="starting-bal-settings-save" class="btn-primary">Save</button>
-          <span id="starting-bal-settings-status" class="status-inline"></span>
-        </div>
-      </div>
-
-      <div class="form-card">
         <h2 class="section-title" style="margin-bottom:12px">Theme</h2>
         <div class="theme-list">${themeRows}</div>
       </div>
@@ -3447,18 +3462,6 @@ function renderSettings() {
         <h2 class="section-title" style="margin-bottom:8px">Font</h2>
         <p class="code-hint" style="margin-bottom:12px">Changes text style throughout the entire app.</p>
         <div class="nav-pos-grid">${fontBtns}</div>
-      </div>
-
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Navigation Position</h2>
-        <p class="code-hint" style="margin-bottom:12px">Choose which side of the screen the nav bar sits on.</p>
-        <div class="nav-pos-grid">${navOpts}</div>
-      </div>
-
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Customize Nav</h2>
-        <p class="code-hint" style="margin-bottom:12px">Show or hide tabs in the nav bar.</p>
-        <div class="tab-toggles">${tabToggles}</div>
       </div>
 
       <div class="form-card">
@@ -3473,14 +3476,25 @@ function renderSettings() {
       </div>
 
       <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Accounts</h2>
-        <p class="code-hint" style="margin-bottom:12px">Label transactions by account.</p>
-        <div class="accounts-list">${accountRows}</div>
-        <div class="form-row" style="margin-top:12px">
-          <label class="form-label">Add account</label>
-          <div style="display:flex;gap:8px;align-items:stretch">
+        <h2 class="section-title" style="margin-bottom:4px">Accounts</h2>
+        <p class="code-hint" style="margin-bottom:10px">Starting balance is added to your running total but not counted as income.</p>
+        <div class="form-row" style="align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <label class="form-label" style="margin-bottom:0">Starting balance ($)</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="number" id="starting-bal-settings" class="form-input" value="${state.startingBalance || ''}" placeholder="0.00" step="0.01" inputmode="decimal" style="width:130px">
+            <button id="starting-bal-settings-save" class="btn-sm">Save</button>
+            <span id="starting-bal-settings-status" class="status-inline"></span>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:6px">
+          <p class="code-hint" style="margin-bottom:12px">Edit name or account type, then tap Save. Delete removes the account and all its data permanently.</p>
+          <div class="accounts-list">${accountCards}</div>
+        </div>
+        <div class="form-row" style="margin-top:4px;flex-wrap:wrap;gap:8px">
+          <label class="form-label" style="margin-bottom:0">Add account</label>
+          <div style="display:flex;gap:8px;align-items:stretch;flex:1;min-width:200px">
             <input type="text" id="new-acct-name" class="form-input" placeholder="Account name" style="flex:1">
-            <select id="new-acct-type" class="form-input form-select" style="width:120px">
+            <select id="new-acct-type" class="form-input form-select" style="width:110px">
               <option value="checking">Checking</option>
               <option value="savings">Savings</option>
               <option value="credit">Credit</option>
@@ -3489,7 +3503,7 @@ function renderSettings() {
             </select>
           </div>
         </div>
-        <button id="add-acct-btn" class="btn-sm">Add Account</button>
+        <button id="add-acct-btn" class="btn-sm" style="margin-top:8px">Add Account</button>
         <span id="acct-status" class="form-status" style="font-size:11px"></span>
       </div>
 
@@ -3515,25 +3529,15 @@ function renderSettings() {
         </div>` : `
         <button id="pin-set-btn" class="btn-sm">Set PIN</button>`}
         <span id="pin-status" class="form-status" style="font-size:11px;margin-top:8px"></span>
-      </div>
-
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Dashboard</h2>
-        <p class="code-hint" style="margin-bottom:12px">Choose which sections appear on your dashboard.</p>
-        <div class="tab-toggles">
-          ${[
-            { key:'dashBills',     label:'Bills Due Soon' },
-            { key:'dashInsights',  label:'Spending Insights' },
-            { key:'dashChart',     label:'Chart' },
-            { key:'dashBreakdown', label:'Spending Breakdown' },
-            { key:'dashNetWorth',  label:'Net Worth' },
-          ].map(item => `
-          <label class="tab-toggle">
-            <span class="tab-toggle-label">${item.label}</span>
-            <input type="checkbox" class="tab-toggle-input dash-section-toggle" data-key="${item.key}"
-              ${s[item.key] !== false ? 'checked' : ''}>
-            <span class="tab-toggle-switch"></span>
-          </label>`).join('')}
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <p class="code-hint" style="margin-bottom:10px">Use your phone's built-in lock (Face ID, fingerprint, or pattern) to unlock the app.</p>
+          ${bioEnabled ? `
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:.9rem;color:var(--success)">Phone Lock Enabled ✓</span>
+            <button id="bio-remove-btn" class="btn-xs" style="background:var(--danger);color:#fff;border-color:var(--danger)">Remove</button>
+          </div>` : `
+          <button id="bio-set-btn" class="btn-sm"${!window.PublicKeyCredential ? ' disabled title="Not supported on this device/browser"' : ''}>Enable Phone Lock</button>`}
+          <span id="bio-status" class="form-status" style="font-size:11px;margin-top:8px"></span>
         </div>
       </div>
 
@@ -3542,15 +3546,17 @@ function renderSettings() {
         <p class="code-hint" style="margin-bottom:12px">Show or hide tiles on the main dashboard.</p>
         <div class="tab-toggles">
           ${[
-            { key:'dawgBudget',       label:'Budget Overview' },
-            { key:'dawgBreakdown',    label:'Spending Breakdown' },
-            { key:'dawgGoals',        label:'Savings Goals' },
-            { key:'dawgTransactions', label:'Recent Transactions' },
+            { key:'dawgBudget',       label:'Budget Overview',    defaultOff: false },
+            { key:'dawgBreakdown',    label:'Spending Breakdown',  defaultOff: false },
+            { key:'dawgGoals',        label:'Savings Goals',       defaultOff: false },
+            { key:'dawgTransactions', label:'Recent Transactions',  defaultOff: false },
+            { key:'dawgNetWorth',     label:'Net Worth',            defaultOff: true  },
+            { key:'dawgInsights',     label:'Spending Insights',    defaultOff: true  },
           ].map(item => `
             <label class="tab-toggle">
               <span class="tab-toggle-label">${item.label}</span>
               <input type="checkbox" class="tab-toggle-input dawg-tile-toggle" data-tile="${item.key}"
-                ${s[item.key] !== false ? 'checked' : ''}>
+                ${item.defaultOff ? (s[item.key] === true ? 'checked' : '') : (s[item.key] !== false ? 'checked' : '')}>
               <span class="tab-toggle-switch"></span>
             </label>`).join('')}
         </div>
@@ -3577,7 +3583,6 @@ function attachSettings() {
     });
   });
 
-
   // Theme rows — immediate apply + save
   document.querySelectorAll('.theme-row').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -3585,31 +3590,7 @@ function attachSettings() {
       s.theme = btn.dataset.theme;
       saveSettings(s);
       applyTheme(s.theme);
-      render(); // re-render settings so checkmark + active state update
-    });
-  });
-
-  document.querySelectorAll('.nav-pos-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const s = loadSettings();
-      s.navPosition = btn.dataset.pos;
-      saveSettings(s);
-      applyNavPosition(btn.dataset.pos);
-      fitLogo(); // header width changes with nav position — remeasure immediately
-      document.querySelectorAll('.nav-pos-btn').forEach(b => b.classList.toggle('active', b === btn));
-    });
-  });
-
-  document.querySelectorAll('.tab-toggle-input').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const s = loadSettings();
-      const hidden = [];
-      document.querySelectorAll('.tab-toggle-input').forEach(c => {
-        if (!c.checked && !c.disabled) hidden.push(c.dataset.tab);
-      });
-      s.hiddenTabs = hidden;
-      saveSettings(s);
-      applyNavItems(hidden);
+      render();
     });
   });
 
@@ -3643,24 +3624,22 @@ function attachSettings() {
     });
   });
 
-  document.getElementById('add-acct-btn')?.addEventListener('click', async () => {
-    const name = document.getElementById('new-acct-name').value.trim();
-    const type = document.getElementById('new-acct-type').value;
-    if (!name) { showStatus('acct-status', 'Enter an account name.', 'error'); return; }
-    await api.addAccount(name, type);
-    showStatus('acct-status', `✓ "${name}" added. Switch to it above.`, 'success');
-    document.getElementById('new-acct-name').value = '';
-    render();
-  });
-
-  document.querySelectorAll('.acct-rename-btn').forEach(btn => {
+  // Account edit save (name + type)
+  document.querySelectorAll('.acct-edit-save-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const id    = btn.dataset.id;
-      const input = btn.closest('.account-row').querySelector('.acct-name-input');
-      const name  = input.value.trim();
-      if (!name) return;
-      await api.renameAccount(id, name);
-      showStatus('acct-status', '✓ Renamed.', 'success');
+      const id   = btn.dataset.id;
+      const acct = state.accounts.find(a => a.id === id);
+      if (!acct) return;
+      const card    = btn.closest('.account-row');
+      const newName = card.querySelector(`.acct-name-input[data-id="${id}"]`)?.value.trim();
+      const newType = card.querySelector(`.acct-type-select[data-id="${id}"]`)?.value;
+      if (!newName) { showStatus('acct-status', 'Account name cannot be empty.', 'error'); return; }
+      acct.name = newName;
+      if (newType) acct.type = newType;
+      await api.saveAccounts(state.accounts);
+      updateAccountSwitcher();
+      showStatus('acct-status', '✓ Account saved.', 'success');
+      render();
     });
   });
 
@@ -3675,18 +3654,28 @@ function attachSettings() {
       const id   = btn.dataset.id;
       const acct = state.accounts.find(a => a.id === id);
       if (!acct) return;
-      const row = btn.closest('div').parentElement;
-      const rate  = row.querySelector(`.acct-interest-input[data-id="${id}"]`)?.value.trim();
-      const day   = row.querySelector(`.acct-due-day-input[data-id="${id}"]`)?.value.trim();
-      const limit = row.querySelector(`.acct-limit-input[data-id="${id}"]`)?.value.trim();
-      const pmt   = row.querySelector(`.acct-payment-input[data-id="${id}"]`)?.value.trim();
-      if (rate  !== undefined) acct.interest_rate    = rate  ? parseFloat(rate)  : undefined;
-      if (day   !== undefined) acct.payment_due_day  = day   ? parseInt(day)     : undefined;
-      if (limit !== undefined) acct.credit_limit     = limit ? parseFloat(limit) : undefined;
-      if (pmt   !== undefined) acct.monthly_payment  = pmt   ? parseFloat(pmt)   : undefined;
+      const card  = btn.closest('.account-row');
+      const rate  = card.querySelector(`.acct-interest-input[data-id="${id}"]`)?.value.trim();
+      const day   = card.querySelector(`.acct-due-day-input[data-id="${id}"]`)?.value.trim();
+      const limit = card.querySelector(`.acct-limit-input[data-id="${id}"]`)?.value.trim();
+      const pmt   = card.querySelector(`.acct-payment-input[data-id="${id}"]`)?.value.trim();
+      if (rate  !== undefined) acct.interest_rate   = rate  ? parseFloat(rate)  : undefined;
+      if (day   !== undefined) acct.payment_due_day = day   ? parseInt(day)     : undefined;
+      if (limit !== undefined) acct.credit_limit    = limit ? parseFloat(limit) : undefined;
+      if (pmt   !== undefined) acct.monthly_payment = pmt   ? parseFloat(pmt)   : undefined;
       await api.saveAccounts(state.accounts);
       showStatus('acct-status', '✓ Account details saved.', 'success');
     });
+  });
+
+  document.getElementById('add-acct-btn')?.addEventListener('click', async () => {
+    const name = document.getElementById('new-acct-name').value.trim();
+    const type = document.getElementById('new-acct-type').value;
+    if (!name) { showStatus('acct-status', 'Enter an account name.', 'error'); return; }
+    await api.addAccount(name, type);
+    showStatus('acct-status', `✓ "${name}" added. Switch to it above.`, 'success');
+    document.getElementById('new-acct-name').value = '';
+    render();
   });
 
   document.querySelectorAll('.acct-delete-btn').forEach(btn => {
@@ -3731,13 +3720,23 @@ function attachSettings() {
     }
   });
 
-  // Dashboard section toggles
-  document.querySelectorAll('.dash-section-toggle').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const s = loadSettings();
-      s[cb.dataset.key] = cb.checked;
-      saveSettings(s);
-    });
+  // Biometric / phone lock
+  document.getElementById('bio-set-btn')?.addEventListener('click', async () => {
+    showStatus('bio-status', 'Setting up…', 'info');
+    const ok = await setupBiometric();
+    if (ok) {
+      showStatus('bio-status', '✓ Phone lock enabled.', 'success');
+      render();
+    } else {
+      showStatus('bio-status', 'Setup failed — biometric may not be supported on this device/browser.', 'error');
+    }
+  });
+
+  document.getElementById('bio-remove-btn')?.addEventListener('click', () => {
+    if (confirm('Remove phone lock?')) {
+      localStorage.removeItem('slawminyaw_biometric_cred');
+      render();
+    }
   });
 
   document.querySelectorAll('.dawg-tile-toggle').forEach(cb => {
@@ -3969,12 +3968,11 @@ function getDawgNotifications() {
   const notes = [];
   notes.push({ type:'update', icon:'🆕', title:`v${VERSION} installed`, body:'Budget DAWGs is up to date' });
   const now = new Date(); now.setHours(0,0,0,0);
-  const in3 = new Date(now); in3.setDate(now.getDate()+3);
-  const todayStr = now.toISOString().split('T')[0];
-  const limitStr = in3.toISOString().split('T')[0];
+  const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   (state.bills||[]).forEach(b => {
-    if (b.next_due && b.next_due >= todayStr && b.next_due <= limitStr) {
-      const d = Math.round((new Date(b.next_due+'T00:00:00') - now) / 86400000);
+    if (b.paidMonth === curMonth) return; // already paid this month
+    const d = getDaysUntilDue(b.dueDay);
+    if (d >= 0 && d <= 3) {
       notes.push({ type:'bill', icon:'📄', title:`${b.name} due`, body: d===0 ? 'Due today!' : `Due in ${d} day${d===1?'':'s'}` });
     }
   });
@@ -4896,52 +4894,113 @@ function spawnDollarBurst(originEl) {
   }
 }
 
+// ── biometric helpers ──────────────────────────────────────────────────────
+function _b64ToUint8(b64) {
+  const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(bin, c => c.charCodeAt(0));
+}
+function _uint8ToB64(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+async function setupBiometric() {
+  if (!window.PublicKeyCredential) return false;
+  try {
+    const chal = crypto.getRandomValues(new Uint8Array(32));
+    const uid  = crypto.getRandomValues(new Uint8Array(16));
+    const cred = await navigator.credentials.create({ publicKey: {
+      challenge: chal,
+      rp: { name: 'Budget DAWGs', id: window.location.hostname },
+      user: { id: uid, name: 'dawg-user', displayName: 'Budget DAWGs User' },
+      pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+      authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged' },
+      timeout: 60000,
+    }});
+    if (!cred) return false;
+    localStorage.setItem('slawminyaw_biometric_cred', _uint8ToB64(cred.rawId));
+    return true;
+  } catch(e) { return false; }
+}
+async function verifyBiometric() {
+  const credB64 = localStorage.getItem('slawminyaw_biometric_cred');
+  if (!credB64 || !window.PublicKeyCredential) return false;
+  try {
+    const chal = crypto.getRandomValues(new Uint8Array(32));
+    const assertion = await navigator.credentials.get({ publicKey: {
+      challenge: chal,
+      rpId: window.location.hostname,
+      userVerification: 'required',
+      allowCredentials: [{ id: _b64ToUint8(credB64), type: 'public-key' }],
+      timeout: 60000,
+    }});
+    return !!assertion;
+  } catch(e) { return false; }
+}
+
 // ── pin lock ───────────────────────────────────────────────────────────────
 function showPinLock(onSuccess) {
   const existing = document.getElementById('pin-lock-overlay');
   if (existing) existing.remove();
-  const saved = localStorage.getItem('slawminyaw_pin');
-  if (!saved) { onSuccess(); return; }
+  const saved      = localStorage.getItem('slawminyaw_pin');
+  const bioEnabled = !!localStorage.getItem('slawminyaw_biometric_cred');
 
-  let entered = '';
-  const overlay = document.createElement('div');
-  overlay.id = 'pin-lock-overlay';
-  overlay.className = 'pin-lock-overlay';
-  overlay.innerHTML = `
-    <div class="pin-lock-card">
-      <div class="pin-lock-title">Enter PIN</div>
-      <div class="pin-dots" id="pin-dots">
-        <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
-      </div>
-      <div class="pin-numpad">
-        ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k => `<button class="pin-key${k===''?' pin-key-blank':''}" data-key="${k}">${k}</button>`).join('')}
-      </div>
-      <div id="pin-error" class="pin-error"></div>
-    </div>`;
-  document.body.appendChild(overlay);
-
-  function updateDots() {
-    overlay.querySelectorAll('.pin-dot').forEach((d, i) => d.classList.toggle('filled', i < entered.length));
-  }
-  overlay.querySelectorAll('.pin-key').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const k = btn.dataset.key;
-      if (k === '⌫') { entered = entered.slice(0, -1); }
-      else if (k !== '' && entered.length < 4) { entered += k; }
-      updateDots();
-      if (entered.length === 4) {
-        if (entered === saved) {
-          overlay.remove();
-          onSuccess();
-        } else {
-          overlay.querySelector('#pin-error').textContent = 'Incorrect PIN';
-          entered = '';
-          updateDots();
-          setTimeout(() => { if (overlay.isConnected) overlay.querySelector('#pin-error').textContent = ''; }, 1500);
+  function showPinUI() {
+    if (!saved) { onSuccess(); return; }
+    let entered = '';
+    const overlay = document.createElement('div');
+    overlay.id = 'pin-lock-overlay';
+    overlay.className = 'pin-lock-overlay';
+    overlay.innerHTML = `
+      <div class="pin-lock-card">
+        <div class="pin-lock-title">Enter PIN</div>
+        <div class="pin-dots" id="pin-dots">
+          <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+        </div>
+        <div class="pin-numpad">
+          ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k => `<button class="pin-key${k===''?' pin-key-blank':''}" data-key="${k}">${k}</button>`).join('')}
+        </div>
+        <div id="pin-error" class="pin-error"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    function updateDots() {
+      overlay.querySelectorAll('.pin-dot').forEach((d, i) => d.classList.toggle('filled', i < entered.length));
+    }
+    overlay.querySelectorAll('.pin-key').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const k = btn.dataset.key;
+        if (k === '⌫') { entered = entered.slice(0, -1); }
+        else if (k !== '' && entered.length < 4) { entered += k; }
+        updateDots();
+        if (entered.length === 4) {
+          if (entered === saved) {
+            overlay.remove();
+            onSuccess();
+          } else {
+            overlay.querySelector('#pin-error').textContent = 'Incorrect PIN';
+            entered = '';
+            updateDots();
+            setTimeout(() => { if (overlay.isConnected) overlay.querySelector('#pin-error').textContent = ''; }, 1500);
+          }
         }
-      }
+      });
     });
-  });
+  }
+
+  if (!saved && !bioEnabled) { onSuccess(); return; }
+
+  if (bioEnabled) {
+    verifyBiometric().then(ok => {
+      if (ok) { onSuccess(); return; }
+      // Biometric failed or cancelled — fall back to PIN if set
+      if (saved) showPinUI();
+      else onSuccess(); // no PIN fallback, let through
+    }).catch(() => {
+      if (saved) showPinUI();
+      else onSuccess();
+    });
+    return;
+  }
+  showPinUI();
 }
 
 // ── init ───────────────────────────────────────────────────────────────────
