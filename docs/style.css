@@ -1190,6 +1190,9 @@ body::before {
   cursor: pointer;
   font-family: var(--font-body);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   transition: background .15s, color .15s, border-color .15s;
 }
 .acct-type-chip.active {
@@ -1198,6 +1201,8 @@ body::before {
   border-color: var(--accent);
   font-weight: 600;
 }
+/* SVG icons inside chips inherit currentColor for stroke — active chips show --bg colored strokes */
+.acct-type-chip svg { flex-shrink: 0; }
 .account-name { flex: 1; font-size: 13px; color: var(--text); }
 .account-type { font-size: 12px; color: var(--muted); }
 .acct-badge {
@@ -1972,7 +1977,19 @@ body.light .section-title::before {
 .dawg-nav-btn.dawg-nav-active { color:var(--accent); }
 .dawg-nav-icon { line-height:1; }
 .dawg-nav-icon svg { width:21px; height:21px; display:block; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; transition:fill .15s, stroke .15s; }
-.dawg-nav-btn.dawg-nav-active .dawg-nav-icon svg { fill:currentColor; stroke:none; }
+/* Active: accent pill behind icon, white outline — inverted / still readable */
+.dawg-nav-btn.dawg-nav-active .dawg-nav-icon {
+  background: var(--accent);
+  border-radius: 10px;
+  padding: 5px;
+  line-height: 0;
+}
+.dawg-nav-btn.dawg-nav-active .dawg-nav-icon svg {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+}
+.dawg-nav-btn.dawg-nav-active .dawg-nav-icon svg .detail-dot { fill:#fff; stroke:none; }
 .dawg-nav-lbl { font-size:.67rem; font-weight:600; letter-spacing:.02em; }
 
 /* Center doberman button — rises out of nav with arc cutout */

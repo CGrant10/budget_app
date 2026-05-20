@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.5.9';
+const VERSION = '4.6.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.6.0', date: '2026-05-20', changes: [
+    'Nav bar active state: accent-colored pill behind the icon with white outline (inverted) instead of a fully filled solid shape',
+    'Account type chips now use matching SVG icons (bank, dollar, card, file, bill) instead of emoji',
+  ]},
   { version: '4.5.9', date: '2026-05-20', changes: [
     'Dashboard month ‹ back button now works (handlers were wired to the wrong function)',
     'Negative balance on non-debt accounts now displays in red',
@@ -3716,12 +3720,19 @@ function showNegativeBalancePopup() {
   el.addEventListener('click', e => { if (e.target === el) el.remove(); });
   document.getElementById('neg-bal-dismiss')?.addEventListener('click', () => el.remove());
 }
+const _ACCT_SVG = {
+  checking: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 22 7 2 7"/></svg>`,
+  savings:  `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="18"/><path d="M15 9a3 3 0 0 0-6 0c0 3 6 3 6 6a3 3 0 0 1-6 0"/></svg>`,
+  credit:   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="5" y1="15" x2="8" y2="15"/></svg>`,
+  loan:     `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>`,
+  cash:     `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+};
 const ACCT_TYPE_META = [
-  { key:'checking', icon:'🏦', label:'Checking' },
-  { key:'savings',  icon:'💰', label:'Savings'  },
-  { key:'credit',   icon:'💳', label:'Credit'   },
-  { key:'loan',     icon:'📋', label:'Loan'     },
-  { key:'cash',     icon:'💵', label:'Cash'     },
+  { key:'checking', icon:_ACCT_SVG.checking, label:'Checking' },
+  { key:'savings',  icon:_ACCT_SVG.savings,  label:'Savings'  },
+  { key:'credit',   icon:_ACCT_SVG.credit,   label:'Credit'   },
+  { key:'loan',     icon:_ACCT_SVG.loan,     label:'Loan'     },
+  { key:'cash',     icon:_ACCT_SVG.cash,     label:'Cash'     },
 ];
 
 function _buildAccountCards() {
