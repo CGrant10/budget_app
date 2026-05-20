@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.6.5';
+const VERSION = '4.6.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -2209,10 +2209,26 @@ function renderDashboardDawg() {
   const _wkExp      = state.transactions.filter(t => t.type==='expense' && t.date >= _monStr).reduce((s,t)=>s+t.amount,0);
   const _wkInc      = state.transactions.filter(t => t.type==='income'  && t.date >= _monStr).reduce((s,t)=>s+t.amount,0);
   const weekSpent   = Math.max(0, _wkExp - _wkInc);
-  const totalBudget = weekBudget || Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
+  // Carry-over: if previous weeks in this plan cycle were over/under budget, adjust this week's budget
+  let effectiveWeekBudget = weekBudget;
+  if (weekBudget > 0 && _wp?.saved_date && !isPastDash) {
+    const _planOrigin = new Date(_wp.saved_date + 'T00:00:00');
+    _planOrigin.setDate(_planOrigin.getDate() - (_planOrigin.getDay()===0?6:_planOrigin.getDay()-1)); // snap to Monday
+    const _msPerWeek = 7*24*60*60*1000;
+    const _completedWks = Math.floor((_wkMon - _planOrigin) / _msPerWeek);
+    if (_completedWks > 0) {
+      const _originStr  = _planOrigin.toISOString().split('T')[0];
+      const _pastExp    = state.transactions.filter(t=>t.type==='expense'&&t.date>=_originStr&&t.date<_monStr).reduce((s,t)=>s+t.amount,0);
+      const _pastInc    = state.transactions.filter(t=>t.type==='income' &&t.date>=_originStr&&t.date<_monStr).reduce((s,t)=>s+t.amount,0);
+      const _pastNet    = Math.max(0, _pastExp - _pastInc);
+      const _carryOver  = _completedWks * weekBudget - _pastNet; // positive = banked, negative = debt
+      effectiveWeekBudget = Math.max(0, weekBudget + _carryOver);
+    }
+  }
+  const totalBudget = (weekBudget ? effectiveWeekBudget : 0) || Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
   const budgetSpent = (weekBudget && !isPastDash) ? weekSpent : mExp;
   const budgetPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
-  const budgetColor = budgetPct >= 100 ? 'var(--danger)' : budgetPct >= 80 ? 'var(--warn)' : 'var(--accent)';
+  const budgetColor = budgetPct >= 90 ? 'var(--danger)' : budgetPct >= 75 ? 'var(--warn)' : 'var(--accent)';
   const budgetLbl   = weekBudget ? 'weekly' : 'monthly';
   const _ds            = loadSettings();
   const _showBudget    = _ds.dawgBudget         !== false;
@@ -3733,7 +3749,6 @@ function showNegativeBalancePopup() {
   el.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
   el.innerHTML = `
     <div style="background:var(--card);border:2px solid var(--danger);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.6)">
-      <img src="./newicon.png" alt="Budgeting Dawg" style="width:72px;height:72px;object-fit:contain;margin-bottom:12px;border-radius:14px">
       <div style="font-size:1rem;font-weight:900;color:var(--danger);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Get your shit together, man</div>
       <p style="font-size:.83rem;color:var(--muted);margin:0 0 20px;line-height:1.55">Your balance just went negative. Time to lock tf in and get those finances right.</p>
       <button id="neg-bal-dismiss" style="background:var(--danger);color:white;border:none;border-radius:10px;padding:10px 28px;font-size:.9rem;font-weight:800;cursor:pointer;font-family:var(--font-body);text-transform:uppercase;letter-spacing:.04em">I got it</button>
@@ -4432,7 +4447,7 @@ function attachDashboardDawg() {
     const _warnC    = _cs2.getPropertyValue('--warn').trim();
     const _dangerC  = _cs2.getPropertyValue('--danger').trim();
     const _dp       = _tb > 0 ? _bs/_tb : 0;
-    const _dc       = _dp >= 1 ? _dangerC : _dp >= 0.8 ? _warnC : _accentC;
+    const _dc       = _dp >= 0.9 ? _dangerC : _dp >= 0.75 ? _warnC : _accentC;
     const _spent    = Math.min(_bs, _tb || _bs);
     const _remain   = Math.max(0, (_tb||_bs) - _spent) || 0.001;
     const _emptyClr = document.body.classList.contains('light') ? '#e0e0e0' : '#1e1e1e';
@@ -4472,8 +4487,15 @@ function attachDashboardDawg() {
       else if (_spRatio > 0.25) { _sparkClrRgb='220,160,40'; _sparkClr='#dca028'; }
       else { _sparkClrRgb='50,200,80'; _sparkClr='#32c850'; }
     } else {
-      _sparkClrRgb = document.body.classList.contains('light') ? '34,170,34' : '57,255,20';
-      _sparkClr    = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+      const _spBalDate = _sparkMaxDate || today();
+      const _spCurBal  = balanceAsOf(_spBalDate);
+      if (_spCurBal < 0) {
+        _sparkClrRgb = '220,50,50';
+        _sparkClr    = getComputedStyle(document.documentElement).getPropertyValue('--danger').trim() || '#dc3232';
+      } else {
+        _sparkClrRgb = document.body.classList.contains('light') ? '34,170,34' : '57,255,20';
+        _sparkClr    = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+      }
     }
     grad.addColorStop(0, `rgba(${_sparkClrRgb},.28)`);
     grad.addColorStop(1, `rgba(${_sparkClrRgb},0)`);
@@ -4924,11 +4946,12 @@ function attachWeekly() {
   document.getElementById('wk-calc')?.addEventListener('click', calcWeekly);
   document.getElementById('wk-save')?.addEventListener('click', async () => {
     const plan = {
-      balance:  document.getElementById('wk-balance').value,
-      bills:    document.getElementById('wk-bills').value,
-      paydate:  document.getElementById('wk-paydate').value,
-      buffer:   parseInt(document.getElementById('wk-buffer').value),
-      per_week: lastCalcPerWeek,
+      balance:    document.getElementById('wk-balance').value,
+      bills:      document.getElementById('wk-bills').value,
+      paydate:    document.getElementById('wk-paydate').value,
+      buffer:     parseInt(document.getElementById('wk-buffer').value),
+      per_week:   lastCalcPerWeek,
+      saved_date: today(),
     };
     await api.saveWeeklyPlan(plan);
     const el = document.getElementById('wk-save-status');
@@ -5378,6 +5401,9 @@ function showPinLock(onSuccess) {
 
   if (!saved && !bioEnabled) { onSuccess(); return; }
 
+  // Push a history entry so the back button can't bypass the lock screen
+  history.pushState({ dawgLock: true }, '');
+
   if (bioEnabled) {
     // Block the UI immediately so the app content isn't visible while waiting
     const blocker = document.createElement('div');
@@ -5436,6 +5462,13 @@ document.getElementById('tut-float-btn')?.addEventListener('click', openTutorial
 // Close tutorial on backdrop click
 document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
   if (e.target === document.getElementById('tutorial-overlay')) closeTutorial();
+});
+
+// Re-push history state whenever back is pressed while a lock overlay is active
+window.addEventListener('popstate', () => {
+  if (document.getElementById('pin-lock-overlay') || document.getElementById('bio-lock-overlay')) {
+    history.pushState({ dawgLock: true }, '');
+  }
 });
 
 (async () => {
