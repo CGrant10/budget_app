@@ -2068,7 +2068,7 @@ body.light #dawg-bottom-nav { background:rgba(255,255,255,.92); }
   font-family:var(--font-body); transition:background .15s; min-width:0;
 }
 .dawg-acct-pill:active { background:rgba(255,255,255,.18); }
-.dawg-acct-pill-icon { width:16px; height:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.dawg-acct-pill-icon { width:16px; height:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text); }
 .dawg-acct-pill-icon svg { width:15px; height:15px; }
 .dawg-acct-pill-name {
   font-size:.8rem; font-weight:700; color:var(--text);

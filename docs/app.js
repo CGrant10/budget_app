@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.7.0';
+const VERSION = '4.7.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.7.1', date: '2026-05-20', changes: [
+    'Account pill icon now uses the correct text color instead of rendering black',
+  ]},
   { version: '4.7.0', date: '2026-05-20', changes: [
     'All delete and destructive actions now use styled in-app modals instead of browser confirm dialogs',
     'PIN setup now uses an in-app styled form instead of a browser prompt dialog',
