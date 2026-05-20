@@ -3134,3 +3134,294 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
   margin-bottom: 20px;
   line-height: 1.4;
 }
+
+/* ── Retirement Hub ──────────────────────────────────────────────────────── */
+.ret-page { padding-bottom: calc(var(--nav-h) + 24px); }
+
+/* Hero banner */
+.ret-hero {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 20px 22px;
+  text-align: center;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.ret-hero-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(124,111,255,.13) 0%, transparent 65%);
+  pointer-events: none;
+}
+.ret-hero-lbl {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--muted);
+  margin-bottom: 6px;
+  position: relative;
+}
+.ret-hero-total {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1;
+  position: relative;
+}
+.ret-hero-sub {
+  font-size: .76rem;
+  color: var(--muted);
+  margin-top: 5px;
+  position: relative;
+}
+
+/* Section header */
+.ret-section-hdr {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+/* Account cards */
+.ret-acct-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.ret-acct-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.ret-acct-name {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.ret-acct-badge {
+  display: inline-block;
+  font-size: .67rem;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.ret-acct-bal {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* Contribution progress */
+.ret-contrib-wrap { margin-bottom: 12px; }
+.ret-contrib-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+.ret-contrib-lbl { font-size: .74rem; color: var(--muted); }
+.ret-contrib-val { font-size: .78rem; font-weight: 700; color: var(--text); }
+.ret-contrib-val.ret-over { color: var(--danger); }
+.ret-bar-wrap {
+  height: 7px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.ret-bar {
+  height: 100%;
+  border-radius: 99px;
+  transition: width .4s ease;
+}
+.ret-contrib-remain {
+  font-size: .71rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+/* Add contribution button */
+.ret-add-btn {
+  width: 100%;
+  background: var(--accent);
+  color: var(--btn-text, #000);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 0;
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-body);
+  letter-spacing: .02em;
+}
+.ret-add-btn:active { opacity: .8; }
+
+/* Growth Projector card */
+.ret-proj-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 16px 20px;
+  margin-bottom: 28px;
+}
+.ret-proj-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+.ret-proj-form { display: flex; flex-direction: column; gap: 12px; }
+.ret-proj-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ret-proj-field { display: flex; flex-direction: column; gap: 4px; }
+.ret-proj-lbl {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--muted);
+}
+.ret-proj-select,
+.ret-proj-input {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  padding: 9px 10px;
+  font-size: .85rem;
+  color: var(--text);
+  font-family: var(--font-body);
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+}
+.ret-proj-select:focus,
+.ret-proj-input:focus { outline: none; border-color: var(--accent); }
+.ret-proj-input-wrap { position: relative; display: flex; align-items: center; }
+.ret-proj-prefix {
+  position: absolute;
+  left: 10px;
+  font-size: .85rem;
+  color: var(--muted);
+  pointer-events: none;
+  z-index: 1;
+}
+.ret-proj-suffix {
+  position: absolute;
+  right: 10px;
+  font-size: .85rem;
+  color: var(--muted);
+  pointer-events: none;
+}
+.ret-proj-pfx { padding-left: 22px; }
+.ret-proj-sfx { padding-right: 26px; }
+
+/* Projector result */
+.ret-proj-result {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--bg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.ret-proj-total {
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: var(--accent);
+  text-align: center;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.ret-proj-sub {
+  font-size: .73rem;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 14px;
+}
+.ret-proj-bk {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.ret-proj-bk-item {
+  flex: 1;
+  text-align: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 4px;
+}
+.ret-proj-bk-val {
+  font-size: .92rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.ret-proj-bk-lbl {
+  font-size: .64rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.ret-proj-milestones { display: flex; flex-direction: column; }
+.ret-proj-ms {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.ret-proj-ms:last-child { border-bottom: none; }
+.ret-proj-ms-age { font-size: .78rem; color: var(--muted); font-weight: 600; }
+.ret-proj-ms-bal { font-size: .82rem; font-weight: 800; color: var(--text); }
+
+/* Empty state */
+.ret-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 24px;
+}
+.ret-empty-icon { color: var(--muted); margin-bottom: 20px; }
+.ret-empty-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.ret-empty-sub {
+  font-size: .83rem;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 290px;
+  margin-bottom: 24px;
+}
+.ret-empty-btn {
+  background: var(--accent);
+  color: var(--btn-text, #000);
+  border: none;
+  border-radius: 12px;
+  padding: 12px 30px;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-body);
+}

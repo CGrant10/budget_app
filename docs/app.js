@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.8.0';
+const VERSION = '4.9.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,15 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.9.0', date: '2026-05-20', changes: [
+    'Retirement Hub tab: track Roth IRA, Traditional IRA, 401(k), and HSA accounts separately from regular accounts',
+    'Per-account contribution tracker shows year-to-date contributions vs. 2025 IRS limits with a visual progress bar',
+    'Catch-up contribution limits automatically applied for users age 50+ when birth year is set on the account',
+    'Growth Projector: enter monthly contribution, expected annual return, current age, and target retirement age to see projected balance at retirement with 5-year milestones',
+    'Growth breakdown shows starting balance vs. contributions vs. investment growth at a glance',
+    'Roth IRA, Traditional IRA, 401(k), HSA added as selectable account types with unique icons and colors',
+    'One-tap Add Contribution button on each retirement card switches to the Add tab on that account',
+  ]},
   { version: '4.8.0', date: '2026-05-20', changes: [
     'Paycheck Scheduler: set a pay amount, frequency (weekly / bi-weekly / semi-monthly / monthly), and next pay date on any checking or savings account — income is auto-entered on pay day, even for missed dates you haven\'t opened the app',
     'Paychecks auto-applied on app open and when returning to the app; a green toast confirms each entry',
@@ -2166,7 +2175,7 @@ function attachDebt() {
 
 // ── account picker ─────────────────────────────────────────────────────────
 function renderAccountPicker() {
-  const TYPE_COLORS = { checking:'#5b8de8', savings:'#32d74b', credit:'#ff453a', loan:'#ffd60a', cash:'#52d68a' };
+  const TYPE_COLORS = { checking:'#5b8de8', savings:'#32d74b', credit:'#ff453a', loan:'#ffd60a', cash:'#52d68a', roth_ira:'#7c6fff', traditional_ira:'#5b8de8', '401k':'#32d74b', hsa:'#2dd4bf' };
   const rows = state.accounts.map(acct => {
     const d        = JSON.parse(localStorage.getItem(accountDataKey(acct.id)) || '{}');
     const txns     = d.transactions || [];
@@ -2285,8 +2294,9 @@ function render() {
     case 'goals':     main.innerHTML = renderGoals();     break;
     case 'import':    main.innerHTML = renderImport();    break;
     case 'budgets':     main.innerHTML = renderBudgets();     break;
-    case 'challenges':  main.innerHTML = renderChallenges(); break;
-    case 'accounts':    main.innerHTML = renderAccounts();   break;
+    case 'challenges':  main.innerHTML = renderChallenges();  break;
+    case 'retirement':  main.innerHTML = renderRetirement();  break;
+    case 'accounts':    main.innerHTML = renderAccounts();    break;
     case 'settings':  main.innerHTML = renderSettings();  break;
     case 'about':     main.innerHTML = renderAbout();     break;
   }
@@ -4089,6 +4099,214 @@ async function checkBillNotifications() {
   saveSettings(s);
 }
 
+// ── retirement hub ─────────────────────────────────────────────────────────
+function renderRetirement() {
+  const accts  = state.accounts.filter(a => RETIRE_TYPES.includes(a.type));
+  const curYear = new Date().getFullYear();
+
+  if (!accts.length) {
+    return `<div class="dawg-page" style="display:flex;align-items:center;justify-content:center;min-height:70vh">
+      <div class="ret-empty">
+        <div class="ret-empty-icon">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+        <div class="ret-empty-title">No Retirement Accounts</div>
+        <div class="ret-empty-sub">Add a Roth IRA, Traditional IRA, 401(k), or HSA in Manage Accounts to start tracking your future.</div>
+        <button class="ret-empty-btn" id="ret-go-accounts">Manage Accounts</button>
+      </div>
+    </div>`;
+  }
+
+  const totalBalance = accts.reduce((s, a) => s + _retireBalance(a.id), 0);
+  const RETIRE_COLORS = { roth_ira:'#7c6fff', traditional_ira:'#5b8de8', '401k':'#32d74b', hsa:'#2dd4bf' };
+
+  const accountCards = accts.map(a => {
+    const bal   = _retireBalance(a.id);
+    const ytd   = _ytdContributions(a.id);
+    const lim   = RETIRE_LIMITS[a.type] || { base: 6000, label: a.type };
+    const age   = a.birthYear ? curYear - parseInt(a.birthYear) : null;
+    const annualLimit = (age && age >= (lim.catchupAge || 50) && lim.catchup) ? lim.catchup : lim.base;
+    const pct   = annualLimit > 0 ? Math.min(ytd / annualLimit * 100, 100) : 0;
+    const bar   = _boostBar(pct);
+    const isOver   = ytd > annualLimit;
+    const remaining = Math.max(0, annualLimit - ytd);
+    const color     = RETIRE_COLORS[a.type] || 'var(--accent)';
+    const typeName  = lim.label;
+    return `
+      <div class="ret-acct-card">
+        <div class="ret-acct-header">
+          <div>
+            <div class="ret-acct-name">${a.name}</div>
+            <div class="ret-acct-badge" style="background:${color}22;color:${color}">${typeName}</div>
+          </div>
+          <div class="ret-acct-bal">${fmt(bal)}</div>
+        </div>
+        <div class="ret-contrib-wrap">
+          <div class="ret-contrib-row">
+            <span class="ret-contrib-lbl">${curYear} Contributions</span>
+            <span class="ret-contrib-val${isOver ? ' ret-over' : ''}">${fmt(ytd)} / ${fmt(annualLimit)}</span>
+          </div>
+          <div class="ret-bar-wrap"><div class="ret-bar" style="width:${bar}%;background:${isOver ? 'var(--danger)' : color}"></div></div>
+          <div class="ret-contrib-remain">${isOver
+            ? '<span style="color:var(--danger);font-weight:700">Over limit — consult a tax advisor</span>'
+            : fmt(remaining) + ' remaining this year'}</div>
+        </div>
+        <button class="ret-add-btn" data-id="${a.id}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add Contribution
+        </button>
+      </div>`;
+  }).join('');
+
+  // Default projector values: prefer first acct's stored settings
+  const firstAcct    = accts[0];
+  const bYear        = firstAcct?.birthYear ? parseInt(firstAcct.birthYear) : null;
+  const defaultAge   = bYear ? Math.max(18, Math.min(79, curYear - bYear)) : 35;
+  const defaultReturn = firstAcct?.expectedReturn != null ? firstAcct.expectedReturn : 7;
+
+  const projOptions = accts.map(a =>
+    `<option value="${a.id}" data-bal="${_retireBalance(a.id)}">${a.name} (${RETIRE_LIMITS[a.type]?.label || a.type})</option>`
+  ).join('');
+
+  return `<div class="dawg-page ret-page">
+    <div class="ret-hero">
+      <div class="ret-hero-glow"></div>
+      <div class="ret-hero-lbl">Total Retirement</div>
+      <div class="ret-hero-total">${fmt(totalBalance)}</div>
+      <div class="ret-hero-sub">${accts.length} account${accts.length !== 1 ? 's' : ''} · ${curYear}</div>
+    </div>
+
+    <div class="ret-section-hdr">Accounts</div>
+    ${accountCards}
+
+    <div class="ret-proj-card">
+      <div class="ret-proj-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        Growth Projector
+      </div>
+      <div class="ret-proj-form">
+        <div class="ret-proj-field">
+          <label class="ret-proj-lbl">Account</label>
+          <select id="ret-proj-acct" class="ret-proj-select">${projOptions}</select>
+        </div>
+        <div class="ret-proj-row2">
+          <div class="ret-proj-field">
+            <label class="ret-proj-lbl">Monthly Contribution</label>
+            <div class="ret-proj-input-wrap"><span class="ret-proj-prefix">$</span><input type="number" id="ret-proj-contrib" class="ret-proj-input ret-proj-pfx" value="500" min="0" step="10" inputmode="decimal"></div>
+          </div>
+          <div class="ret-proj-field">
+            <label class="ret-proj-lbl">Annual Return</label>
+            <div class="ret-proj-input-wrap"><input type="number" id="ret-proj-return" class="ret-proj-input ret-proj-sfx" value="${defaultReturn}" min="0" max="20" step="0.5" inputmode="decimal"><span class="ret-proj-suffix">%</span></div>
+          </div>
+        </div>
+        <div class="ret-proj-row2">
+          <div class="ret-proj-field">
+            <label class="ret-proj-lbl">Current Age</label>
+            <input type="number" id="ret-proj-age" class="ret-proj-input" value="${defaultAge}" min="18" max="80" step="1" inputmode="numeric">
+          </div>
+          <div class="ret-proj-field">
+            <label class="ret-proj-lbl">Retire At Age</label>
+            <input type="number" id="ret-proj-retire-age" class="ret-proj-input" value="65" min="40" max="90" step="1" inputmode="numeric">
+          </div>
+        </div>
+      </div>
+      <div id="ret-proj-result" class="ret-proj-result"></div>
+    </div>
+  </div>`;
+}
+
+function attachRetirement() {
+  // Empty state — go to Manage Accounts
+  document.getElementById('ret-go-accounts')?.addEventListener('click', () => {
+    currentTab = 'accounts';
+    render();
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'accounts'));
+  });
+
+  // Add Contribution buttons — switch account + go to Add tab
+  document.querySelectorAll('.ret-add-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      if (id !== currentAccountId) {
+        currentAccountId = id;
+        _loadAccountData(id);
+        updateAccountSwitcher();
+        const sw = document.getElementById('account-switcher');
+        if (sw) sw.value = id;
+        const acct = state.accounts.find(a => a.id === id);
+        const nameEl = document.getElementById('dawg-topbar-acct-name');
+        if (nameEl && acct) nameEl.textContent = acct.name;
+      }
+      currentTab = 'add';
+      render();
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'add'));
+    });
+  });
+
+  // Growth Projector
+  const elAcct    = document.getElementById('ret-proj-acct');
+  const elContrib = document.getElementById('ret-proj-contrib');
+  const elReturn  = document.getElementById('ret-proj-return');
+  const elAge     = document.getElementById('ret-proj-age');
+  const elRetAge  = document.getElementById('ret-proj-retire-age');
+  if (!elAcct) return;
+
+  function _calcFV(pv, pmt, annualRatePct, years) {
+    const r = annualRatePct / 100 / 12;
+    const n = Math.max(0, Math.round(years * 12));
+    if (n === 0) return pv;
+    if (r === 0) return pv + pmt * n;
+    return pv * Math.pow(1 + r, n) + pmt * ((Math.pow(1 + r, n) - 1) / r);
+  }
+
+  function recalcProjector() {
+    const opt  = elAcct.options[elAcct.selectedIndex];
+    const pv   = opt ? parseFloat(opt.dataset.bal) || 0 : 0;
+    const pmt  = Math.max(0, parseFloat(elContrib?.value) || 0);
+    const rate = Math.max(0, parseFloat(elReturn?.value)  || 7);
+    const curAge = parseInt(elAge?.value)    || 35;
+    const retAge = parseInt(elRetAge?.value) || 65;
+    const years  = Math.max(0, retAge - curAge);
+    const fv     = _calcFV(pv, pmt, rate, years);
+    const totalContribs = pmt * years * 12;
+    const growth = Math.max(0, fv - pv - totalContribs);
+
+    // 5-year milestones (skip final year — already shown as total)
+    const milestones = [];
+    for (let y = 5; y < years; y += 5) {
+      milestones.push({ age: curAge + y, bal: _calcFV(pv, pmt, rate, y) });
+    }
+
+    const resultEl = document.getElementById('ret-proj-result');
+    if (!resultEl) return;
+    resultEl.innerHTML = `
+      <div class="ret-proj-total">${fmt(fv)}</div>
+      <div class="ret-proj-sub">Projected at age ${retAge} · ${years} year${years !== 1 ? 's' : ''}</div>
+      <div class="ret-proj-bk">
+        <div class="ret-proj-bk-item">
+          <div class="ret-proj-bk-val">${fmt(pv)}</div>
+          <div class="ret-proj-bk-lbl">Starting</div>
+        </div>
+        <div class="ret-proj-bk-item">
+          <div class="ret-proj-bk-val">${fmt(totalContribs)}</div>
+          <div class="ret-proj-bk-lbl">Contributions</div>
+        </div>
+        <div class="ret-proj-bk-item">
+          <div class="ret-proj-bk-val" style="color:var(--success)">${fmt(growth)}</div>
+          <div class="ret-proj-bk-lbl">Growth</div>
+        </div>
+      </div>
+      ${milestones.length ? `<div class="ret-proj-milestones">
+        ${milestones.map(m => `<div class="ret-proj-ms"><span class="ret-proj-ms-age">Age ${m.age}</span><span class="ret-proj-ms-bal">${fmt(m.bal)}</span></div>`).join('')}
+      </div>` : ''}`;
+  }
+
+  [elAcct, elContrib, elReturn, elAge, elRetAge].forEach(el => {
+    el?.addEventListener('input',  recalcProjector);
+    el?.addEventListener('change', recalcProjector);
+  });
+  recalcProjector();
+}
+
 // ── settings ───────────────────────────────────────────────────────────────
 function renderSettings() {
   const s          = loadSettings();
@@ -4430,20 +4648,52 @@ const _ACCT_SVG = {
   savings:  `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="18"/><path d="M15 9a3 3 0 0 0-6 0c0 3 6 3 6 6a3 3 0 0 1-6 0"/></svg>`,
   credit:   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="5" y1="15" x2="8" y2="15"/></svg>`,
   loan:     `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>`,
-  cash:     `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+  cash:            `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+  roth_ira:        `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  traditional_ira: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`,
+  '401k':          `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
+  hsa:             `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
 };
 const ACCT_TYPE_META = [
-  { key:'checking', icon:_ACCT_SVG.checking, label:'Checking' },
-  { key:'savings',  icon:_ACCT_SVG.savings,  label:'Savings'  },
-  { key:'credit',   icon:_ACCT_SVG.credit,   label:'Credit'   },
-  { key:'loan',     icon:_ACCT_SVG.loan,     label:'Loan'     },
-  { key:'cash',     icon:_ACCT_SVG.cash,     label:'Cash'     },
+  { key:'checking',        icon:_ACCT_SVG.checking,        label:'Checking'       },
+  { key:'savings',         icon:_ACCT_SVG.savings,         label:'Savings'        },
+  { key:'credit',          icon:_ACCT_SVG.credit,          label:'Credit'         },
+  { key:'loan',            icon:_ACCT_SVG.loan,            label:'Loan'           },
+  { key:'cash',            icon:_ACCT_SVG.cash,            label:'Cash'           },
+  { key:'roth_ira',        icon:_ACCT_SVG.roth_ira,        label:'Roth IRA'       },
+  { key:'traditional_ira', icon:_ACCT_SVG.traditional_ira, label:'Traditional IRA'},
+  { key:'401k',            icon:_ACCT_SVG['401k'],         label:'401(k)'         },
+  { key:'hsa',             icon:_ACCT_SVG.hsa,             label:'HSA'            },
 ];
+
+const RETIRE_TYPES = ['roth_ira', 'traditional_ira', '401k', 'hsa'];
+const RETIRE_LIMITS = {
+  roth_ira:        { base: 7000,  catchup: 8000,  catchupAge: 50, label: 'Roth IRA'        },
+  traditional_ira: { base: 7000,  catchup: 8000,  catchupAge: 50, label: 'Traditional IRA' },
+  '401k':          { base: 23500, catchup: 31000, catchupAge: 50, label: '401(k)'          },
+  hsa:             { base: 4300,  family:  8550,                   label: 'HSA'             },
+};
+function _retireBalance(acctId) {
+  const d = JSON.parse(localStorage.getItem(accountDataKey(acctId)) || '{}');
+  const txns = d.transactions || [];
+  const startBal = parseFloat(d.startingBalance) || 0;
+  let inc = 0, exp = 0;
+  for (const t of txns) { if (t.type === 'income') inc += t.amount; else exp += t.amount; }
+  return startBal + inc - exp;
+}
+function _ytdContributions(acctId) {
+  const year = String(new Date().getFullYear());
+  const d = JSON.parse(localStorage.getItem(accountDataKey(acctId)) || '{}');
+  return (d.transactions || [])
+    .filter(t => t.type === 'income' && (t.date || '').startsWith(year))
+    .reduce((s, t) => s + t.amount, 0);
+}
 
 function _buildAccountCards() {
   const _calSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
   return state.accounts.map((a) => {
-    const isDebtAcct = a.type === 'credit' || a.type === 'loan';
+    const isDebtAcct   = a.type === 'credit' || a.type === 'loan';
+    const isRetireAcct = RETIRE_TYPES.includes(a.type);
     const dueDay = a.payment_due_day || '';
     const typeChips = ACCT_TYPE_META.map(t => `
       <button type="button" class="acct-type-chip${a.type === t.key ? ' active' : ''}" data-type="${t.key}" data-id="${a.id}">
@@ -4454,12 +4704,24 @@ function _buildAccountCards() {
     const fmtPmt = a.monthly_payment ? '$' + parseFloat(a.monthly_payment).toFixed(2) : '';
     const dueDateDisplay = dueDay ? _ordinal(dueDay) : 'Choose due date';
     const typeMeta = ACCT_TYPE_META.find(t => t.key === a.type) || ACCT_TYPE_META[0];
-    // Paycheck schedule (checking / savings / cash only)
+    // Paycheck schedule (checking / savings / cash only — not debt, not retirement)
     const ps = a.paySchedule || {};
     const freqOpts = ['weekly','biweekly','semimonthly','monthly']
       .map(f => `<option value="${f}"${ps.frequency===f?' selected':''}>${{weekly:'Weekly',biweekly:'Bi-weekly',semimonthly:'Semi-monthly (1st & 15th)',monthly:'Monthly'}[f]}</option>`)
       .join('');
-    const paycheckSection = !isDebtAcct ? `
+    const retireFields = isRetireAcct ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+        <span style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:block;margin-bottom:8px">Retirement Settings</span>
+        <div class="form-row" style="margin-bottom:8px">
+          <label class="form-label" style="font-size:.72rem">Birth Year (for catch-up limits)</label>
+          <input type="number" class="form-input acct-birth-year" data-id="${a.id}" value="${a.birthYear || ''}" placeholder="e.g. 1985" inputmode="numeric" min="1930" max="2006" step="1">
+        </div>
+        <div class="form-row" style="margin-bottom:4px">
+          <label class="form-label" style="font-size:.72rem">Expected Annual Return (%)</label>
+          <input type="number" class="form-input acct-exp-return" data-id="${a.id}" value="${a.expectedReturn != null ? a.expectedReturn : 7}" placeholder="7" inputmode="decimal" min="0" max="30" step="0.5">
+        </div>
+      </div>` : '';
+    const paycheckSection = (!isDebtAcct && !isRetireAcct) ? `
       <div class="acct-pay-section" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <span style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)">Paycheck Schedule</span>
@@ -4534,6 +4796,7 @@ function _buildAccountCards() {
         <div class="acct-type-chips" data-id="${a.id}" style="margin-bottom:10px">${typeChips}</div>
         ${debtFields}
         ${paycheckSection}
+        ${retireFields}
         <div class="acct-settings-actions" style="margin-top:10px">
           <button class="btn-xs acct-edit-save-btn" data-id="${a.id}" style="background:var(--accent);color:var(--bg);border-color:var(--accent)">Save</button>
           ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">Delete</button>` : ''}
@@ -4705,7 +4968,12 @@ function attachAccounts() {
       if (rateRaw !== undefined) acct.interest_rate   = rateRaw !== '' ? parseFloat(rateRaw) : undefined;
       if (day     !== undefined) acct.payment_due_day = day     ? parseInt(day)              : undefined;
       if (pmtRaw  !== undefined) acct.monthly_payment = pmtRaw  ? parseFloat(pmtRaw)         : undefined;
-      // Paycheck schedule (non-debt accounts)
+      // Retirement fields
+      const birthYearEl  = card.querySelector(`.acct-birth-year[data-id="${id}"]`);
+      const expReturnEl  = card.querySelector(`.acct-exp-return[data-id="${id}"]`);
+      if (birthYearEl)  acct.birthYear     = birthYearEl.value.trim();
+      if (expReturnEl)  acct.expectedReturn = parseFloat(expReturnEl.value) || 7;
+      // Paycheck schedule (non-debt, non-retirement accounts)
       const payEnabledEl  = card.querySelector(`.acct-pay-enabled[data-id="${id}"]`);
       if (payEnabledEl) {
         const payAmt  = parseFloat(card.querySelector(`.acct-pay-amount[data-id="${id}"]`)?.value || '0') || 0;
@@ -5333,8 +5601,9 @@ function attachHandlers() {
     case 'goals':     attachGoals();     break;
     case 'import':    attachImport();    break;
     case 'budgets':     attachBudgets();     break;
-    case 'challenges':  attachChallenges(); break;
-    case 'accounts':    attachAccounts();   break;
+    case 'challenges':  attachChallenges();  break;
+    case 'retirement':  attachRetirement();  break;
+    case 'accounts':    attachAccounts();    break;
     case 'settings':  attachSettings();  break;
     case 'about':     attachAbout();     break;
   }
