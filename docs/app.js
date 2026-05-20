@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.5.4';
+const VERSION = '4.5.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,14 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.5.5', date: '2026-05-20', changes: [
+    'Monthly payment and Starting Balance fields now auto-format as $##.## on blur',
+    'APR field auto-formats as ##.##% on blur',
+    'Due date picker shows a calendar icon and displays the selected day as MM-DD',
+    'Due date picker button defaults to "Choose due date" before a day is selected',
+    'Starting balance input has a more noticeable accent border',
+    'Add Account type chips are now more visually distinct',
+  ]},
   { version: '4.5.4', date: '2026-05-20', changes: [
     'Accounts now has its own dedicated page — tap Accounts in Settings or the drawer to manage',
     'Theme is now a compact dropdown instead of a list of buttons',
@@ -3656,6 +3664,7 @@ const ACCT_TYPE_META = [
 ];
 
 function _buildAccountCards() {
+  const _calSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
   return state.accounts.map((a) => {
     const isDebtAcct = a.type === 'credit' || a.type === 'loan';
     const dueDay = a.payment_due_day || '';
@@ -3663,19 +3672,23 @@ function _buildAccountCards() {
       <button type="button" class="acct-type-chip${a.type === t.key ? ' active' : ''}" data-type="${t.key}" data-id="${a.id}">
         ${t.icon} ${t.label}
       </button>`).join('');
+    const fmtApr = a.interest_rate ? parseFloat(a.interest_rate).toFixed(2) + '%' : '';
+    const fmtPmt = a.monthly_payment ? '$' + parseFloat(a.monthly_payment).toFixed(2) : '';
+    const nowMM  = String(new Date().getMonth() + 1).padStart(2, '0');
+    const dueDateDisplay = dueDay ? `${nowMM}-${String(dueDay).padStart(2,'0')}` : 'Choose due date';
     const debtFields = isDebtAcct ? `
       <div class="acct-settings-debt">
-        <input type="number" class="form-input acct-interest-input" data-id="${a.id}"
-          value="${a.interest_rate || ''}" placeholder="APR %" step="0.01" min="0" max="100"
+        <input type="text" class="form-input acct-interest-input acct-fmt-pct" data-id="${a.id}"
+          value="${fmtApr}" placeholder="APR %"
           inputmode="decimal" title="Annual interest rate %">
         <div>
           <input type="hidden" class="acct-due-day-input" data-id="${a.id}" value="${dueDay}">
           <button type="button" class="acct-day-picker-btn" data-id="${a.id}">
-            📅 ${dueDay ? `Day ${dueDay}` : 'Due day'}
+            ${_calSvg}${dueDateDisplay}
           </button>
         </div>
-        <input type="number" class="form-input acct-payment-input" data-id="${a.id}"
-          value="${a.monthly_payment || ''}" placeholder="Mo. payment $" min="0" step="10"
+        <input type="text" class="form-input acct-payment-input acct-fmt-cur" data-id="${a.id}"
+          value="${fmtPmt}" placeholder="Mo. payment $"
           inputmode="decimal" style="grid-column:1/-1" title="Fixed monthly payment amount">
         <div class="acct-day-grid-wrap" id="day-grid-${a.id}" style="display:none">
           ${Array.from({length:28},(_,i)=>i+1).map(d =>
@@ -3719,7 +3732,7 @@ function renderAccounts() {
         <h2 class="section-title" style="margin-bottom:4px">Starting Balance</h2>
         <p class="code-hint" style="margin-bottom:10px">Added to your running total but not counted as income.</p>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <input type="number" id="starting-bal-settings" class="form-input" value="${state.startingBalance || ''}" placeholder="0.00" step="0.01" inputmode="decimal" style="flex:1;min-width:120px">
+          <input type="text" id="starting-bal-settings" class="form-input acct-fmt-cur" value="${state.startingBalance ? '$' + parseFloat(state.startingBalance).toFixed(2) : ''}" placeholder="$0.00" inputmode="decimal" style="flex:1;min-width:120px;border-color:var(--accent);border-width:2px;font-weight:600">
           <button id="starting-bal-settings-save" class="btn-sm">Save</button>
           <span id="starting-bal-settings-status" class="status-inline"></span>
         </div>
@@ -3750,11 +3763,44 @@ function renderAccounts() {
 }
 
 function attachAccounts() {
+  // Starting balance blur/focus formatting
+  const _startBalInp = document.getElementById('starting-bal-settings');
+  if (_startBalInp) {
+    _startBalInp.addEventListener('focus', () => {
+      _startBalInp.value = _startBalInp.value.replace(/[$,]/g, '');
+    });
+    _startBalInp.addEventListener('blur', () => {
+      const n = parseFloat(_startBalInp.value.replace(/[$,]/g, ''));
+      _startBalInp.value = isNaN(n) ? '' : '$' + n.toFixed(2);
+    });
+  }
+
   document.getElementById('starting-bal-settings-save')?.addEventListener('click', () => {
-    const val = parseFloat(document.getElementById('starting-bal-settings')?.value);
+    const raw = document.getElementById('starting-bal-settings')?.value.replace(/[$,]/g, '');
+    const val = parseFloat(raw);
     state.startingBalance = isNaN(val) ? 0 : val;
     _save();
     showStatus('starting-bal-settings-status', '✓ Saved', 'success', 2000);
+  });
+
+  // Currency/percent input auto-formatting
+  document.querySelectorAll('.acct-fmt-cur').forEach(inp => {
+    inp.addEventListener('focus', () => {
+      inp.value = inp.value.replace(/[$,]/g, '');
+    });
+    inp.addEventListener('blur', () => {
+      const n = parseFloat(inp.value.replace(/[$,]/g, ''));
+      inp.value = isNaN(n) ? '' : '$' + n.toFixed(2);
+    });
+  });
+  document.querySelectorAll('.acct-fmt-pct').forEach(inp => {
+    inp.addEventListener('focus', () => {
+      inp.value = inp.value.replace(/%/g, '');
+    });
+    inp.addEventListener('blur', () => {
+      const n = parseFloat(inp.value.replace(/%/g, ''));
+      inp.value = isNaN(n) ? '' : n.toFixed(2) + '%';
+    });
   });
 
   // Account type chips (existing accounts)
@@ -3822,6 +3868,7 @@ function attachAccounts() {
     });
   });
 
+  const _calSvgInline = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
   document.querySelectorAll('.acct-day-opt').forEach(btn => {
     btn.addEventListener('click', () => {
       const id  = btn.dataset.id;
@@ -3829,7 +3876,11 @@ function attachAccounts() {
       const hidden = document.querySelector(`.acct-due-day-input[data-id="${id}"]`);
       if (hidden) hidden.value = day;
       const pickerBtn = document.querySelector(`.acct-day-picker-btn[data-id="${id}"]`);
-      if (pickerBtn) pickerBtn.textContent = `📅 Day ${day}`;
+      if (pickerBtn) {
+        const mm = String(new Date().getMonth() + 1).padStart(2, '0');
+        const dd = String(day).padStart(2, '0');
+        pickerBtn.innerHTML = `${_calSvgInline}${mm}-${dd}`;
+      }
       document.querySelectorAll(`.acct-day-opt[data-id="${id}"]`).forEach(b =>
         b.classList.toggle('acct-day-opt-active', parseInt(b.dataset.day) === day)
       );
@@ -3848,9 +3899,9 @@ function attachAccounts() {
       const acct = state.accounts.find(a => a.id === id);
       if (!acct) return;
       const card = btn.closest('.acct-settings-card');
-      const rate = card.querySelector(`.acct-interest-input[data-id="${id}"]`)?.value.trim();
+      const rate = card.querySelector(`.acct-interest-input[data-id="${id}"]`)?.value.replace(/%/g,'').trim();
       const day  = card.querySelector(`.acct-due-day-input[data-id="${id}"]`)?.value.trim();
-      const pmt  = card.querySelector(`.acct-payment-input[data-id="${id}"]`)?.value.trim();
+      const pmt  = card.querySelector(`.acct-payment-input[data-id="${id}"]`)?.value.replace(/[$,]/g,'').trim();
       if (rate !== undefined) acct.interest_rate   = rate ? parseFloat(rate) : undefined;
       if (day  !== undefined) acct.payment_due_day = day  ? parseInt(day)    : undefined;
       if (pmt  !== undefined) acct.monthly_payment = pmt  ? parseFloat(pmt)  : undefined;
