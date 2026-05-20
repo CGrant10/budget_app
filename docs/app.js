@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.5.3';
+const VERSION = '4.5.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.5.4', date: '2026-05-20', changes: [
+    'Accounts now has its own dedicated page — tap Accounts in Settings or the drawer to manage',
+    'Theme is now a compact dropdown instead of a list of buttons',
+    'Account type shown as large tap-to-select chips, making it obvious which type is selected',
+    'Removed the Limit $ field from credit/loan accounts',
+  ]},
   { version: '4.5.3', date: '2026-05-20', changes: [
     'Sparkline dot now rides along the line of the graph instead of sweeping a full vertical bar',
     'Due date now uses a tap-to-open day picker (days 1–28 grid) instead of a number input',
@@ -2019,6 +2025,7 @@ function render() {
     case 'goals':     main.innerHTML = renderGoals();     break;
     case 'import':    main.innerHTML = renderImport();    break;
     case 'budgets':   main.innerHTML = renderBudgets();   break;
+    case 'accounts':  main.innerHTML = renderAccounts();  break;
     case 'settings':  main.innerHTML = renderSettings();  break;
     case 'about':     main.innerHTML = renderAbout();     break;
   }
@@ -3406,80 +3413,40 @@ function renderSettings() {
     { key:'terminal', label:'Terminal', sub:'Consolas / Menlo' },
   ].map(f => `<button class="nav-pos-btn${fontStyle === f.key ? ' active' : ''}" data-font-style="${f.key}" style="line-height:1.3"><span style="display:block">${f.label}</span><span style="font-size:.65rem;opacity:.55;font-weight:400;font-family:'Plus Jakarta Sans',sans-serif">${f.sub}</span></button>`).join('');
 
-  const accountCards = state.accounts.map((a) => {
-    const isDebtAcct = a.type === 'credit' || a.type === 'loan';
-    const dueDay = a.payment_due_day || '';
-    const debtFields = isDebtAcct ? `
-      <div class="acct-settings-debt">
-        <input type="number" class="form-input acct-interest-input" data-id="${a.id}"
-          value="${a.interest_rate || ''}" placeholder="APR %" step="0.01" min="0" max="100"
-          inputmode="decimal" title="Annual interest rate %">
-        <div>
-          <input type="hidden" class="acct-due-day-input" data-id="${a.id}" value="${dueDay}">
-          <button type="button" class="acct-day-picker-btn" data-id="${a.id}">
-            📅 ${dueDay ? `Day ${dueDay}` : 'Due day'}
-          </button>
-        </div>
-        <input type="number" class="form-input acct-limit-input" data-id="${a.id}"
-          value="${a.credit_limit || ''}" placeholder="Limit $" min="0" step="100"
-          inputmode="decimal" title="Credit/loan limit">
-        <input type="number" class="form-input acct-payment-input" data-id="${a.id}"
-          value="${a.monthly_payment || ''}" placeholder="Mo. payment $" min="0" step="10"
-          inputmode="decimal" title="Fixed monthly payment amount">
-        <div class="acct-day-grid-wrap" id="day-grid-${a.id}" style="display:none">
-          ${Array.from({length:28},(_,i)=>i+1).map(d =>
-            `<button type="button" class="acct-day-opt${dueDay===d?' acct-day-opt-active':''}" data-day="${d}" data-id="${a.id}">${d}</button>`
-          ).join('')}
-        </div>
-        <div class="acct-settings-debt-save">
-          <button class="btn-xs acct-debt-save-btn" data-id="${a.id}">Save</button>
-        </div>
-      </div>` : '';
-    return `
-    <div class="acct-settings-card">
-      <div class="acct-settings-top">
-        <span class="acct-settings-type-lbl">${a.type}</span>
-        ${a.id === currentAccountId
-          ? '<span class="acct-badge" style="font-size:9px">active</span>'
-          : `<button class="btn-xs acct-switch-btn" data-id="${a.id}">Switch</button>`}
-      </div>
-      <input type="text" class="form-input acct-name-input" value="${a.name}" data-id="${a.id}"
-        style="width:100%;margin-bottom:8px;font-size:16px;font-weight:600;box-sizing:border-box${a.id === currentAccountId ? ';border-color:var(--accent)' : ''}"
-        placeholder="Account name">
-      <select class="form-input form-select acct-type-select" data-id="${a.id}"
-        style="width:100%;box-sizing:border-box;font-size:15px">
-        ${['checking','savings','credit','loan','cash'].map(t =>
-          `<option value="${t}"${a.type === t ? ' selected' : ''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`
-        ).join('')}
-      </select>
-      <div class="acct-settings-actions">
-        <button class="btn-xs acct-edit-save-btn" data-id="${a.id}" style="background:var(--accent);color:var(--bg);border-color:var(--accent)">Save</button>
-        ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">Delete</button>` : ''}
-      </div>
-      ${debtFields}
-    </div>`;
-  }).join('');
-
-  const themeRows = Object.entries(THEMES).map(([key, t]) => `
-    <button class="theme-row${theme === key ? ' active' : ''}" data-theme="${key}">
-      <span class="theme-dot" style="${key === 'light' ? 'background:#ffffff;border:1.5px solid #bbb' : 'background:' + t.accent}"></span>
-      <span class="theme-row-name">${t.label}</span>
-      ${theme === key ? '<span class="theme-check">✓</span>' : ''}
-    </button>`).join('');
-
   const customCatRows = customCats.length ? customCats.map((c, i) => `
     <div class="custom-cat-row">
       <span class="custom-cat-name">${c}</span>
       <button class="btn-xs custom-cat-del" data-idx="${i}" style="background:var(--danger);color:#fff;border-color:var(--danger)">✕</button>
     </div>`).join('') : '<p style="font-size:.8rem;color:var(--muted);margin-bottom:6px">No custom categories yet.</p>';
 
+  const themeDot = theme === 'light'
+    ? 'background:#ffffff;border:1.5px solid #bbb'
+    : `background:${THEMES[theme]?.accent || 'var(--accent)'}`;
+
   return `
     <div class="page">
       <h1 class="page-title">Settings</h1>
 
+      <div class="form-card" style="cursor:pointer" id="goto-accounts-card">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <h2 class="section-title" style="margin-bottom:2px">Accounts</h2>
+            <p class="code-hint" style="margin:0">${state.accounts.length} account${state.accounts.length !== 1 ? 's' : ''} · tap to manage</p>
+          </div>
+          <span style="font-size:1.4rem;color:var(--muted)">›</span>
+        </div>
+      </div>
+
       <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:12px">Theme</h2>
-        <div class="theme-list">${themeRows}</div>
+        <h2 class="section-title" style="margin-bottom:10px">Theme</h2>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="theme-swatch" style="width:20px;height:20px;border-radius:50%;flex-shrink:0;${themeDot}"></span>
+          <select id="theme-select" class="form-input form-select" style="flex:1">
+            ${Object.entries(THEMES).map(([key, t]) =>
+              `<option value="${key}"${theme === key ? ' selected' : ''}>${t.label}</option>`
+            ).join('')}
+          </select>
+        </div>
       </div>
 
       <div class="form-card">
@@ -3497,38 +3464,6 @@ function renderSettings() {
           <button id="add-cat-btn" class="btn-sm">Add</button>
         </div>
         <span id="cat-status" class="form-status" style="font-size:11px"></span>
-      </div>
-
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:4px">Accounts</h2>
-        <p class="code-hint" style="margin-bottom:10px">Starting balance is added to your running total but not counted as income.</p>
-        <div class="form-row" style="align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-          <label class="form-label" style="margin-bottom:0">Starting balance ($)</label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input type="number" id="starting-bal-settings" class="form-input" value="${state.startingBalance || ''}" placeholder="0.00" step="0.01" inputmode="decimal" style="width:130px">
-            <button id="starting-bal-settings-save" class="btn-sm">Save</button>
-            <span id="starting-bal-settings-status" class="status-inline"></span>
-          </div>
-        </div>
-        <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:6px">
-          <p class="code-hint" style="margin-bottom:12px">Edit name or account type, then tap Save. Delete removes the account and all its data permanently.</p>
-          <div class="accounts-list">${accountCards}</div>
-        </div>
-        <div class="form-row" style="margin-top:4px;flex-wrap:wrap;gap:8px">
-          <label class="form-label" style="margin-bottom:0">Add account</label>
-          <div style="display:flex;gap:8px;align-items:stretch;flex:1;min-width:200px">
-            <input type="text" id="new-acct-name" class="form-input" placeholder="Account name" style="flex:1">
-            <select id="new-acct-type" class="form-input form-select" style="width:110px">
-              <option value="checking">Checking</option>
-              <option value="savings">Savings</option>
-              <option value="credit">Credit</option>
-              <option value="loan">Loan</option>
-              <option value="cash">Cash</option>
-            </select>
-          </div>
-        </div>
-        <button id="add-acct-btn" class="btn-sm" style="margin-top:8px">Add Account</button>
-        <span id="acct-status" class="form-status" style="font-size:11px"></span>
       </div>
 
       <div class="form-card">
@@ -3589,13 +3524,6 @@ function renderSettings() {
 }
 
 function attachSettings() {
-  document.getElementById('starting-bal-settings-save')?.addEventListener('click', () => {
-    const val = parseFloat(document.getElementById('starting-bal-settings')?.value);
-    state.startingBalance = isNaN(val) ? 0 : val;
-    _save();
-    showStatus('starting-bal-settings-status', '✓ Saved', 'success', 2000);
-  });
-
   // Font style switcher
   document.querySelectorAll('[data-font-style]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -3607,15 +3535,26 @@ function attachSettings() {
     });
   });
 
-  // Theme rows — immediate apply + save
-  document.querySelectorAll('.theme-row').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const s = loadSettings();
-      s.theme = btn.dataset.theme;
-      saveSettings(s);
-      applyTheme(s.theme);
-      render();
-    });
+  // Theme dropdown
+  document.getElementById('theme-select')?.addEventListener('change', e => {
+    const s = loadSettings();
+    s.theme = e.target.value;
+    saveSettings(s);
+    applyTheme(s.theme);
+    // Update swatch dot color
+    const swatch = document.getElementById('theme-swatch');
+    if (swatch) {
+      swatch.style.cssText = `width:20px;height:20px;border-radius:50%;flex-shrink:0;${
+        e.target.value === 'light'
+          ? 'background:#ffffff;border:1.5px solid #bbb'
+          : `background:${THEMES[e.target.value]?.accent || 'var(--accent)'}`
+      }`;
+    }
+  });
+
+  // Go to accounts page
+  document.getElementById('goto-accounts-card')?.addEventListener('click', () => {
+    showTab('accounts');
   });
 
   // Custom categories
@@ -3645,110 +3584,6 @@ function attachSettings() {
       s.customCategories = custom;
       saveSettings(s);
       render();
-    });
-  });
-
-  // Account edit save (name + type) — stays on settings page
-  document.querySelectorAll('.acct-edit-save-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id   = btn.dataset.id;
-      const acct = state.accounts.find(a => a.id === id);
-      if (!acct) return;
-      const card    = btn.closest('.acct-settings-card');
-      const newName = card.querySelector(`.acct-name-input[data-id="${id}"]`)?.value.trim();
-      const newType = card.querySelector(`.acct-type-select[data-id="${id}"]`)?.value;
-      if (!newName) { showStatus('acct-status', 'Account name cannot be empty.', 'error'); return; }
-      acct.name = newName;
-      if (newType) acct.type = newType;
-      await api.saveAccounts(state.accounts);
-      updateAccountSwitcher();
-      showStatus('acct-status', '✓ Account saved.', 'success');
-      render(); // stays on settings
-    });
-  });
-
-  // Switch account without leaving settings
-  document.querySelectorAll('.acct-switch-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentAccountId = btn.dataset.id;
-      _loadAccountData(btn.dataset.id);
-      updateAccountSwitcher();
-      render(); // currentTab is still 'settings'
-    });
-  });
-
-  // Due day picker
-  document.querySelectorAll('.acct-day-picker-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const id   = btn.dataset.id;
-      const grid = document.getElementById(`day-grid-${id}`);
-      if (!grid) return;
-      const isOpen = grid.style.display !== 'none';
-      document.querySelectorAll('.acct-day-grid-wrap').forEach(g => { g.style.display = 'none'; });
-      if (!isOpen) grid.style.display = 'grid';
-    });
-  });
-
-  document.querySelectorAll('.acct-day-opt').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id  = btn.dataset.id;
-      const day = parseInt(btn.dataset.day);
-      const hidden = document.querySelector(`.acct-due-day-input[data-id="${id}"]`);
-      if (hidden) hidden.value = day;
-      const pickerBtn = document.querySelector(`.acct-day-picker-btn[data-id="${id}"]`);
-      if (pickerBtn) pickerBtn.textContent = `📅 Day ${day}`;
-      document.querySelectorAll(`.acct-day-opt[data-id="${id}"]`).forEach(b =>
-        b.classList.toggle('acct-day-opt-active', parseInt(b.dataset.day) === day)
-      );
-      const grid = document.getElementById(`day-grid-${id}`);
-      if (grid) grid.style.display = 'none';
-    });
-  });
-
-  // Close day grid when tapping outside
-  document.addEventListener('click', () => {
-    document.querySelectorAll('.acct-day-grid-wrap').forEach(g => { g.style.display = 'none'; });
-  }, { once: true });
-
-  document.querySelectorAll('.acct-debt-save-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id   = btn.dataset.id;
-      const acct = state.accounts.find(a => a.id === id);
-      if (!acct) return;
-      const card  = btn.closest('.acct-settings-card');
-      const rate  = card.querySelector(`.acct-interest-input[data-id="${id}"]`)?.value.trim();
-      const day   = card.querySelector(`.acct-due-day-input[data-id="${id}"]`)?.value.trim();
-      const limit = card.querySelector(`.acct-limit-input[data-id="${id}"]`)?.value.trim();
-      const pmt   = card.querySelector(`.acct-payment-input[data-id="${id}"]`)?.value.trim();
-      if (rate  !== undefined) acct.interest_rate   = rate  ? parseFloat(rate)  : undefined;
-      if (day   !== undefined) acct.payment_due_day = day   ? parseInt(day)     : undefined;
-      if (limit !== undefined) acct.credit_limit    = limit ? parseFloat(limit) : undefined;
-      if (pmt   !== undefined) acct.monthly_payment = pmt   ? parseFloat(pmt)   : undefined;
-      await api.saveAccounts(state.accounts);
-      showStatus('acct-status', '✓ Account details saved.', 'success');
-    });
-  });
-
-  document.getElementById('add-acct-btn')?.addEventListener('click', async () => {
-    const name = document.getElementById('new-acct-name').value.trim();
-    const type = document.getElementById('new-acct-type').value;
-    if (!name) { showStatus('acct-status', 'Enter an account name.', 'error'); return; }
-    await api.addAccount(name, type);
-    showStatus('acct-status', `✓ "${name}" added. Switch to it above.`, 'success');
-    document.getElementById('new-acct-name').value = '';
-    render();
-  });
-
-  document.querySelectorAll('.acct-delete-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id   = btn.dataset.id;
-      const acct = state.accounts.find(a => a.id === id);
-      if (!acct) return;
-      if (confirm(`Delete "${acct.name}"? All its transactions, budgets, and bills will be permanently removed.`)) {
-        await api.deleteAccount(id);
-        render();
-      }
     });
   });
 
@@ -3807,6 +3642,242 @@ function attachSettings() {
       s[cb.dataset.tile] = cb.checked;
       saveSettings(s);
       render();
+    });
+  });
+}
+
+// ── accounts management page ──────────────────────────────────────────────
+const ACCT_TYPE_META = [
+  { key:'checking', icon:'🏦', label:'Checking' },
+  { key:'savings',  icon:'💰', label:'Savings'  },
+  { key:'credit',   icon:'💳', label:'Credit'   },
+  { key:'loan',     icon:'📋', label:'Loan'     },
+  { key:'cash',     icon:'💵', label:'Cash'     },
+];
+
+function _buildAccountCards() {
+  return state.accounts.map((a) => {
+    const isDebtAcct = a.type === 'credit' || a.type === 'loan';
+    const dueDay = a.payment_due_day || '';
+    const typeChips = ACCT_TYPE_META.map(t => `
+      <button type="button" class="acct-type-chip${a.type === t.key ? ' active' : ''}" data-type="${t.key}" data-id="${a.id}">
+        ${t.icon} ${t.label}
+      </button>`).join('');
+    const debtFields = isDebtAcct ? `
+      <div class="acct-settings-debt">
+        <input type="number" class="form-input acct-interest-input" data-id="${a.id}"
+          value="${a.interest_rate || ''}" placeholder="APR %" step="0.01" min="0" max="100"
+          inputmode="decimal" title="Annual interest rate %">
+        <div>
+          <input type="hidden" class="acct-due-day-input" data-id="${a.id}" value="${dueDay}">
+          <button type="button" class="acct-day-picker-btn" data-id="${a.id}">
+            📅 ${dueDay ? `Day ${dueDay}` : 'Due day'}
+          </button>
+        </div>
+        <input type="number" class="form-input acct-payment-input" data-id="${a.id}"
+          value="${a.monthly_payment || ''}" placeholder="Mo. payment $" min="0" step="10"
+          inputmode="decimal" style="grid-column:1/-1" title="Fixed monthly payment amount">
+        <div class="acct-day-grid-wrap" id="day-grid-${a.id}" style="display:none">
+          ${Array.from({length:28},(_,i)=>i+1).map(d =>
+            `<button type="button" class="acct-day-opt${dueDay===d?' acct-day-opt-active':''}" data-day="${d}" data-id="${a.id}">${d}</button>`
+          ).join('')}
+        </div>
+        <div class="acct-settings-debt-save">
+          <button class="btn-xs acct-debt-save-btn" data-id="${a.id}">Save</button>
+        </div>
+      </div>` : '';
+    return `
+    <div class="acct-settings-card">
+      <div class="acct-settings-top">
+        <span style="font-size:.8rem;font-weight:600;color:var(--text)">${a.name}</span>
+        ${a.id === currentAccountId
+          ? '<span class="acct-badge" style="font-size:9px">active</span>'
+          : `<button class="btn-xs acct-switch-btn" data-id="${a.id}">Switch</button>`}
+      </div>
+      <input type="text" class="form-input acct-name-input" value="${a.name}" data-id="${a.id}"
+        style="width:100%;margin-bottom:10px;font-size:16px;font-weight:600;box-sizing:border-box${a.id === currentAccountId ? ';border-color:var(--accent)' : ''}"
+        placeholder="Account name">
+      <p style="font-size:11px;color:var(--muted);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em">Account Type</p>
+      <input type="hidden" class="acct-type-select" data-id="${a.id}" value="${a.type}">
+      <div class="acct-type-chips" data-id="${a.id}" style="margin-bottom:10px">${typeChips}</div>
+      <div class="acct-settings-actions">
+        <button class="btn-xs acct-edit-save-btn" data-id="${a.id}" style="background:var(--accent);color:var(--bg);border-color:var(--accent)">Save</button>
+        ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">Delete</button>` : ''}
+      </div>
+      ${debtFields}
+    </div>`;
+  }).join('');
+}
+
+function renderAccounts() {
+  const accountCards = _buildAccountCards();
+  return `
+    <div class="page">
+      <h1 class="page-title">Accounts</h1>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:4px">Starting Balance</h2>
+        <p class="code-hint" style="margin-bottom:10px">Added to your running total but not counted as income.</p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="number" id="starting-bal-settings" class="form-input" value="${state.startingBalance || ''}" placeholder="0.00" step="0.01" inputmode="decimal" style="flex:1;min-width:120px">
+          <button id="starting-bal-settings-save" class="btn-sm">Save</button>
+          <span id="starting-bal-settings-status" class="status-inline"></span>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:4px">Your Accounts</h2>
+        <p class="code-hint" style="margin-bottom:12px">Edit name or type, then tap Save. Delete removes all data for that account permanently.</p>
+        <div class="accounts-list">${accountCards}</div>
+        <span id="acct-status" class="form-status" style="font-size:11px"></span>
+      </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Add Account</h2>
+        <input type="text" id="new-acct-name" class="form-input" placeholder="Account name" style="width:100%;box-sizing:border-box;margin-bottom:8px">
+        <p style="font-size:11px;color:var(--muted);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em">Account Type</p>
+        <div class="acct-type-chips new-acct-type-chips" style="margin-bottom:12px">
+          ${ACCT_TYPE_META.map((t, i) => `
+            <button type="button" class="acct-type-chip new-acct-type-chip${i === 0 ? ' active' : ''}" data-type="${t.key}">
+              ${t.icon} ${t.label}
+            </button>`).join('')}
+        </div>
+        <input type="hidden" id="new-acct-type" value="checking">
+        <button id="add-acct-btn" class="btn-sm">Add Account</button>
+        <span id="new-acct-status" class="form-status" style="font-size:11px"></span>
+      </div>
+    </div>`;
+}
+
+function attachAccounts() {
+  document.getElementById('starting-bal-settings-save')?.addEventListener('click', () => {
+    const val = parseFloat(document.getElementById('starting-bal-settings')?.value);
+    state.startingBalance = isNaN(val) ? 0 : val;
+    _save();
+    showStatus('starting-bal-settings-status', '✓ Saved', 'success', 2000);
+  });
+
+  // Account type chips (existing accounts)
+  document.querySelectorAll('.acct-type-chip:not(.new-acct-type-chip)').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const type = btn.dataset.type;
+      const hidden = document.querySelector(`.acct-type-select[data-id="${id}"]`);
+      if (hidden) hidden.value = type;
+      document.querySelectorAll(`.acct-type-chip[data-id="${id}"]`).forEach(b =>
+        b.classList.toggle('active', b.dataset.type === type)
+      );
+    });
+  });
+
+  // Account type chips (new account)
+  document.querySelectorAll('.new-acct-type-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.new-acct-type-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const hidden = document.getElementById('new-acct-type');
+      if (hidden) hidden.value = btn.dataset.type;
+    });
+  });
+
+  // Account edit save (name + type)
+  document.querySelectorAll('.acct-edit-save-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id   = btn.dataset.id;
+      const acct = state.accounts.find(a => a.id === id);
+      if (!acct) return;
+      const card    = btn.closest('.acct-settings-card');
+      const newName = card.querySelector(`.acct-name-input[data-id="${id}"]`)?.value.trim();
+      const newType = card.querySelector(`.acct-type-select[data-id="${id}"]`)?.value;
+      if (!newName) { showStatus('acct-status', 'Account name cannot be empty.', 'error'); return; }
+      acct.name = newName;
+      if (newType) acct.type = newType;
+      await api.saveAccounts(state.accounts);
+      updateAccountSwitcher();
+      showStatus('acct-status', '✓ Account saved.', 'success');
+      render();
+    });
+  });
+
+  // Switch account — stays on accounts page
+  document.querySelectorAll('.acct-switch-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentAccountId = btn.dataset.id;
+      _loadAccountData(btn.dataset.id);
+      updateAccountSwitcher();
+      render();
+    });
+  });
+
+  // Due day picker
+  document.querySelectorAll('.acct-day-picker-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id   = btn.dataset.id;
+      const grid = document.getElementById(`day-grid-${id}`);
+      if (!grid) return;
+      const isOpen = grid.style.display !== 'none';
+      document.querySelectorAll('.acct-day-grid-wrap').forEach(g => { g.style.display = 'none'; });
+      if (!isOpen) grid.style.display = 'grid';
+    });
+  });
+
+  document.querySelectorAll('.acct-day-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id  = btn.dataset.id;
+      const day = parseInt(btn.dataset.day);
+      const hidden = document.querySelector(`.acct-due-day-input[data-id="${id}"]`);
+      if (hidden) hidden.value = day;
+      const pickerBtn = document.querySelector(`.acct-day-picker-btn[data-id="${id}"]`);
+      if (pickerBtn) pickerBtn.textContent = `📅 Day ${day}`;
+      document.querySelectorAll(`.acct-day-opt[data-id="${id}"]`).forEach(b =>
+        b.classList.toggle('acct-day-opt-active', parseInt(b.dataset.day) === day)
+      );
+      const grid = document.getElementById(`day-grid-${id}`);
+      if (grid) grid.style.display = 'none';
+    });
+  });
+
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.acct-day-grid-wrap').forEach(g => { g.style.display = 'none'; });
+  }, { once: true });
+
+  document.querySelectorAll('.acct-debt-save-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id   = btn.dataset.id;
+      const acct = state.accounts.find(a => a.id === id);
+      if (!acct) return;
+      const card = btn.closest('.acct-settings-card');
+      const rate = card.querySelector(`.acct-interest-input[data-id="${id}"]`)?.value.trim();
+      const day  = card.querySelector(`.acct-due-day-input[data-id="${id}"]`)?.value.trim();
+      const pmt  = card.querySelector(`.acct-payment-input[data-id="${id}"]`)?.value.trim();
+      if (rate !== undefined) acct.interest_rate   = rate ? parseFloat(rate) : undefined;
+      if (day  !== undefined) acct.payment_due_day = day  ? parseInt(day)    : undefined;
+      if (pmt  !== undefined) acct.monthly_payment = pmt  ? parseFloat(pmt)  : undefined;
+      await api.saveAccounts(state.accounts);
+      showStatus('acct-status', '✓ Account details saved.', 'success');
+    });
+  });
+
+  document.getElementById('add-acct-btn')?.addEventListener('click', async () => {
+    const name = document.getElementById('new-acct-name').value.trim();
+    const type = document.getElementById('new-acct-type').value;
+    if (!name) { showStatus('new-acct-status', 'Enter an account name.', 'error'); return; }
+    await api.addAccount(name, type);
+    showStatus('new-acct-status', `✓ "${name}" added.`, 'success');
+    document.getElementById('new-acct-name').value = '';
+    render();
+  });
+
+  document.querySelectorAll('.acct-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id   = btn.dataset.id;
+      const acct = state.accounts.find(a => a.id === id);
+      if (!acct) return;
+      if (confirm(`Delete "${acct.name}"? All its transactions, budgets, and bills will be permanently removed.`)) {
+        await api.deleteAccount(id);
+        render();
+      }
     });
   });
 }
@@ -4293,6 +4364,7 @@ function attachHandlers() {
     case 'goals':     attachGoals();     break;
     case 'import':    attachImport();    break;
     case 'budgets':   attachBudgets();   break;
+    case 'accounts':  attachAccounts();  break;
     case 'settings':  attachSettings();  break;
     case 'about':     attachAbout();     break;
   }
