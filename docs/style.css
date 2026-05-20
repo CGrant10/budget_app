@@ -2581,6 +2581,26 @@ body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
 /* ── Split-transaction rows ─────────────────────────────────────────────── */
 .split-row .form-input { border-color: var(--border); }
 
+/* ── Import mode toggle ─────────────────────────────────────────────────── */
+.import-mode-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 10px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  text-align: center;
+}
+.import-mode-btn:hover { border-color: var(--accent); color: var(--text); }
+.import-mode-btn.import-mode-active {
+  background: rgba(78,203,141,.12);
+  border-color: rgba(78,203,141,.45);
+  color: var(--accent);
+}
+
 /* ── Smart Budget Suggestions ───────────────────────────────────────────── */
 .budget-suggest-banner {
   background: var(--surface);

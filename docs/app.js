@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.7.2';
+const VERSION = '4.7.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.7.3', date: '2026-05-20', changes: [
+    'CSV import now has Append / Overwrite toggle — Append adds to existing data (default), Overwrite replaces all transactions with the imported file',
+    'Overwrite mode shows a danger confirmation before wiping existing transactions',
+  ]},
   { version: '4.7.2', date: '2026-05-20', changes: [
     'Smart Budget Suggestions: auto-generated per-category budget ideas based on your last 3 months of spending',
     'Apply individual suggestions or all at once with one tap on the Budgets page',
@@ -3745,6 +3749,17 @@ function renderImport() {
         <p class="code-hint" style="margin-top:6px">Date formats accepted: <code>2026-05-20</code>, <code>5/20/2026</code>, <code>05/20/26</code></p>
         <p class="code-hint" style="margin-top:4px">Also works with most bank export formats (Debit/Credit columns, accounting negatives, etc.)</p>
         <button id="export-template-btn" class="btn-xs" style="margin-top:8px;margin-bottom:2px">⬇ Download blank template</button>
+        <div style="display:flex;gap:8px;margin-top:12px;margin-bottom:4px">
+          <button id="import-mode-append" class="import-mode-btn import-mode-active" data-mode="append" style="flex:1">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Append
+          </button>
+          <button id="import-mode-overwrite" class="import-mode-btn" data-mode="overwrite" style="flex:1">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+            Overwrite
+          </button>
+        </div>
+        <p id="import-mode-hint" class="code-hint" style="margin-top:4px;margin-bottom:0">Adds new transactions on top of existing ones.</p>
         <div id="import-status" class="form-status" style="margin-top:8px"></div>
         <label class="btn-primary" style="display:inline-block;margin-top:8px;cursor:pointer;text-align:center;width:100%;box-sizing:border-box">
           Choose CSV or Excel File…
@@ -5277,6 +5292,25 @@ function attachWeekly() {
 }
 
 function attachImport() {
+  // ── import mode toggle (append / overwrite) ───────────────────────────────
+  let importMode = 'append';
+  const hintEl = document.getElementById('import-mode-hint');
+  document.querySelectorAll('.import-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      importMode = btn.dataset.mode;
+      document.querySelectorAll('.import-mode-btn').forEach(b => b.classList.remove('import-mode-active'));
+      btn.classList.add('import-mode-active');
+      if (hintEl) hintEl.textContent = importMode === 'overwrite'
+        ? 'Replaces ALL existing transactions with the imported file. Cannot be undone.'
+        : 'Adds new transactions on top of existing ones.';
+      // Clear any pending preview when mode switches
+      const prev = document.getElementById('import-preview');
+      if (prev) { prev.style.display = 'none'; prev.innerHTML = ''; }
+      const fileEl = document.getElementById('import-file');
+      if (fileEl) fileEl.value = '';
+    });
+  });
+
   document.getElementById('import-json-file')?.addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -5462,13 +5496,31 @@ function attachImport() {
           previewEl.style.display = '';
 
           document.getElementById('import-confirm-btn')?.addEventListener('click', async () => {
-            const importBtn = document.getElementById('import-confirm-btn');
-            if (importBtn) { importBtn.disabled = true; importBtn.textContent = 'Importing…'; }
-            for (const t of parsed) await api.addTransaction(t);
-            _save();
-            previewEl.style.display = 'none';
-            showStatus('import-status', `✓ Imported ${parsed.length} transactions.${errors?` (${errors} skipped)`:''}`, 'success', 0);
-            render();
+            const doImport = async () => {
+              const importBtn = document.getElementById('import-confirm-btn');
+              if (importBtn) { importBtn.disabled = true; importBtn.textContent = 'Importing…'; }
+              if (importMode === 'overwrite') {
+                state.transactions = [];
+              }
+              for (const t of parsed) await api.addTransaction(t);
+              _save();
+              previewEl.style.display = 'none';
+              const modeNote = importMode === 'overwrite' ? ' (replaced existing)' : '';
+              showStatus('import-status', `✓ Imported ${parsed.length} transactions.${errors?` (${errors} skipped)`:''}${modeNote}`, 'success', 0);
+              render();
+            };
+
+            if (importMode === 'overwrite') {
+              showConfirmModal({
+                title: 'Overwrite All Transactions?',
+                message: `This will permanently delete all ${state.transactions.length} existing transaction${state.transactions.length !== 1 ? 's' : ''} and replace them with the ${parsed.length} rows from your file. This cannot be undone.`,
+                confirmText: 'Yes, Overwrite',
+                danger: true,
+                onConfirm: doImport,
+              });
+            } else {
+              await doImport();
+            }
           });
           document.getElementById('import-cancel-btn')?.addEventListener('click', () => {
             previewEl.style.display = 'none';
@@ -5476,6 +5528,7 @@ function attachImport() {
           });
         } else {
           // Fallback: commit immediately if preview element missing
+          if (importMode === 'overwrite') state.transactions = [];
           parsed.forEach(t => state.transactions.push(t));
           _save();
           showStatus('import-status', `✓ Imported ${parsed.length} transactions.`, 'success', 0);
