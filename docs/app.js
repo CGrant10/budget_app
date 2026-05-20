@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.5.6';
+const VERSION = '4.5.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.5.7', date: '2026-05-20', changes: [
+    'Due date picker now shows the day with an ordinal suffix (e.g. 15th) instead of MM-DD',
+    'Starting balance and payment fields now accept negative values (e.g. -$50.00)',
+    'Negative balance triggers a friendly pop-up to motivate you to get it together',
+  ]},
   { version: '4.5.6', date: '2026-05-20', changes: [
     'Account cards are now collapsible — tap the header to expand/collapse each one',
     'Single Save button on each account card handles name, type, APR, due date, and payment all at once',
@@ -2049,6 +2054,18 @@ function render() {
   attachHandlers();
   updateBillBadge();
   updateDawgTopbar();
+  // Negative balance warning — show once per session when dashboard is visible
+  if (currentTab === 'dashboard' && !_shownNegativePopup) {
+    const _curD  = state.accounts?.find(a => a.id === currentAccountId);
+    const _isDbt = _curD?.type === 'credit' || _curD?.type === 'loan';
+    if (!_isDbt) {
+      const { income: _i, expense: _e } = totals();
+      if ((state.startingBalance || 0) + _i - _e < 0) {
+        _shownNegativePopup = true;
+        setTimeout(showNegativeBalancePopup, 350); // slight delay so page renders first
+      }
+    }
+  }
   // Show "Done" checkmark on mobile keyboard for all text/number inputs
   document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="date"])').forEach(el => el.setAttribute('enterkeyhint', 'done'));
 }
@@ -3663,6 +3680,31 @@ function attachSettings() {
 }
 
 // ── accounts management page ──────────────────────────────────────────────
+function _ordinal(n) {
+  const v = n % 100;
+  return n + (['th','st','nd','rd'][(v - 20) % 10] || ['th','st','nd','rd'][v] || 'th');
+}
+function _fmtCurrency(n) {
+  if (n == null || isNaN(n)) return '';
+  return n < 0 ? '-$' + Math.abs(n).toFixed(2) : '$' + n.toFixed(2);
+}
+let _shownNegativePopup = false;
+function showNegativeBalancePopup() {
+  if (document.getElementById('neg-balance-popup')) return;
+  const el = document.createElement('div');
+  el.id = 'neg-balance-popup';
+  el.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+  el.innerHTML = `
+    <div style="background:var(--card);border:2px solid var(--danger);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.6)">
+      <div style="font-size:3rem;margin-bottom:10px">😤</div>
+      <div style="font-size:1rem;font-weight:900;color:var(--danger);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Get your shit together, man</div>
+      <p style="font-size:.83rem;color:var(--muted);margin:0 0 20px;line-height:1.55">Your balance just went negative. Time to lock tf in and get those finances right. 🐕</p>
+      <button id="neg-bal-dismiss" style="background:var(--danger);color:white;border:none;border-radius:10px;padding:10px 28px;font-size:.9rem;font-weight:800;cursor:pointer;font-family:var(--font-body);text-transform:uppercase;letter-spacing:.04em">I got it 💪</button>
+    </div>`;
+  document.body.appendChild(el);
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
+  document.getElementById('neg-bal-dismiss')?.addEventListener('click', () => el.remove());
+}
 const ACCT_TYPE_META = [
   { key:'checking', icon:'🏦', label:'Checking' },
   { key:'savings',  icon:'💰', label:'Savings'  },
@@ -3683,8 +3725,7 @@ function _buildAccountCards() {
     // Use != null so 0 is treated as a valid value (not falsy)
     const fmtApr = (a.interest_rate != null) ? parseFloat(a.interest_rate).toFixed(2) + '%' : '';
     const fmtPmt = a.monthly_payment ? '$' + parseFloat(a.monthly_payment).toFixed(2) : '';
-    const nowMM  = String(new Date().getMonth() + 1).padStart(2, '0');
-    const dueDateDisplay = dueDay ? `${nowMM}-${String(dueDay).padStart(2,'0')}` : 'Choose due date';
+    const dueDateDisplay = dueDay ? _ordinal(dueDay) : 'Choose due date';
     const typeMeta = ACCT_TYPE_META.find(t => t.key === a.type) || ACCT_TYPE_META[0];
     const debtFields = isDebtAcct ? `
       <div class="acct-settings-debt" style="margin-top:10px">
@@ -3746,7 +3787,7 @@ function renderAccounts() {
         <h2 class="section-title" style="margin-bottom:4px">Starting Balance</h2>
         <p class="code-hint" style="margin-bottom:10px">Added to your running total but not counted as income.</p>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <input type="text" id="starting-bal-settings" class="form-input acct-fmt-cur" value="${state.startingBalance ? '$' + parseFloat(state.startingBalance).toFixed(2) : ''}" placeholder="$0.00" inputmode="decimal" style="flex:1;min-width:120px;border-color:var(--accent);border-width:2px;font-weight:600">
+          <input type="text" id="starting-bal-settings" class="form-input acct-fmt-cur" value="${_fmtCurrency(state.startingBalance)}" placeholder="$0.00" inputmode="decimal" style="flex:1;min-width:120px;border-color:var(--accent);border-width:2px;font-weight:600">
           <button id="starting-bal-settings-save" class="btn-sm">Save</button>
           <span id="starting-bal-settings-status" class="status-inline"></span>
         </div>
@@ -3785,7 +3826,7 @@ function attachAccounts() {
     });
     _startBalInp.addEventListener('blur', () => {
       const n = parseFloat(_startBalInp.value.replace(/[$,]/g, ''));
-      _startBalInp.value = isNaN(n) ? '' : '$' + n.toFixed(2);
+      _startBalInp.value = _fmtCurrency(n);
     });
   }
 
@@ -3795,6 +3836,7 @@ function attachAccounts() {
     state.startingBalance = isNaN(val) ? 0 : val;
     _save();
     showStatus('starting-bal-settings-status', '✓ Saved', 'success', 2000);
+    if (val < 0) { _shownNegativePopup = true; showNegativeBalancePopup(); }
   });
 
   // Currency/percent input auto-formatting
@@ -3804,7 +3846,7 @@ function attachAccounts() {
     });
     inp.addEventListener('blur', () => {
       const n = parseFloat(inp.value.replace(/[$,]/g, ''));
-      inp.value = isNaN(n) ? '' : '$' + n.toFixed(2);
+      inp.value = _fmtCurrency(n);
     });
   });
   document.querySelectorAll('.acct-fmt-pct').forEach(inp => {
@@ -3884,6 +3926,7 @@ function attachAccounts() {
   document.querySelectorAll('.acct-switch-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       currentAccountId = btn.dataset.id;
+      _shownNegativePopup = false; // reset so popup can fire for the new account
       _loadAccountData(btn.dataset.id);
       updateAccountSwitcher();
       render();
@@ -3912,9 +3955,7 @@ function attachAccounts() {
       if (hidden) hidden.value = day;
       const pickerBtn = document.querySelector(`.acct-day-picker-btn[data-id="${id}"]`);
       if (pickerBtn) {
-        const mm = String(new Date().getMonth() + 1).padStart(2, '0');
-        const dd = String(day).padStart(2, '0');
-        pickerBtn.innerHTML = `${_calSvgInline}${mm}-${dd}`;
+        pickerBtn.innerHTML = `${_calSvgInline}${_ordinal(day)}`;
       }
       document.querySelectorAll(`.acct-day-opt[data-id="${id}"]`).forEach(b =>
         b.classList.toggle('acct-day-opt-active', parseInt(b.dataset.day) === day)
