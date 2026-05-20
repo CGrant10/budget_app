@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.5.0';
+const VERSION = '4.5.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.5.1', date: '2026-05-20', changes: [
+    'Account cards in Settings fixed — names and type dropdowns now display correctly; inputs no longer leak outside the card',
+    'Sparkline pulse — a glowing dot with an expanding ring animates at the right edge of the balance chart',
+  ]},
   { version: '4.5.0', date: '2026-05-20', changes: [
     'Settings overhaul — removed Navigation Position and Customize Nav sections; merged Account starting balance into the Accounts card',
     'Account cards redesigned — name and type are now clearly readable and fully editable; dedicated Save button handles both name and type changes',
@@ -4142,9 +4146,53 @@ function attachDashboardDawg() {
     }
     grad.addColorStop(0, `rgba(${_sparkClrRgb},.28)`);
     grad.addColorStop(1, `rgba(${_sparkClrRgb},0)`);
+    const _pulsePlugin = {
+      id: 'dawgPulse',
+      afterInit(chart) {
+        chart._pulsePhase = 0;
+        const tick = () => {
+          if (!chart.canvas?.isConnected) return;
+          chart._pulsePhase = (chart._pulsePhase + 0.02) % 1;
+          chart.draw();
+          chart._pulseRaf = requestAnimationFrame(tick);
+        };
+        chart._pulseRaf = requestAnimationFrame(tick);
+      },
+      afterDraw(chart) {
+        const ds = chart.data.datasets[0];
+        if (!ds?.data?.length) return;
+        const meta = chart.getDatasetMeta(0);
+        const lastIdx = ds.data.length - 1;
+        const pt = meta.data?.[lastIdx];
+        if (!pt) return;
+        const { x, y } = pt.getProps(['x','y'], true);
+        const ctx = chart.ctx;
+        const clr = ds.borderColor || '#39ff14';
+        const phase = chart._pulsePhase || 0;
+        ctx.save();
+        // Expanding ring
+        ctx.beginPath();
+        ctx.arc(x, y, 4 + phase * 14, 0, Math.PI * 2);
+        ctx.strokeStyle = clr;
+        ctx.globalAlpha = 1 - phase;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Solid dot
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = clr;
+        ctx.fill();
+        ctx.restore();
+      },
+      beforeDestroy(chart) {
+        if (chart._pulseRaf) { cancelAnimationFrame(chart._pulseRaf); chart._pulseRaf = null; }
+      }
+    };
     _dawgSpark = new Chart(canvas, {
       type:'line',
       data:{ labels, datasets:[{ data, borderColor:_sparkClr, borderWidth:2, pointRadius:0, tension:0.4, fill:true, backgroundColor:grad }] },
+      plugins:[_pulsePlugin],
       options:{
         responsive:true, maintainAspectRatio:false,
         plugins:{ legend:{display:false}, tooltip:{enabled:false} },
