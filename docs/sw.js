@@ -1,4 +1,4 @@
-const CACHE = "slawminyaw-v170";
+const CACHE = "slawminyaw-v171";
 const ASSETS = [
   "./",
   "./index.html",
@@ -37,10 +37,27 @@ self.addEventListener("activate", e => {
   );
 });
 
+const FONT_CACHE = "slawminyaw-fonts-v1";
+
 self.addEventListener("fetch", e => {
   // version.txt — always live, never cached
   if (e.request.url.includes("version.txt")) {
     e.respondWith(fetch(e.request, { cache: "no-cache" }).catch(() => new Response("")));
+    return;
+  }
+  // Google Fonts — cache-first (fonts don't change, re-fetching is wasted bandwidth)
+  if (e.request.url.includes("fonts.googleapis.com") || e.request.url.includes("fonts.gstatic.com")) {
+    e.respondWith(
+      caches.open(FONT_CACHE).then(c =>
+        c.match(e.request).then(cached => {
+          if (cached) return cached;
+          return fetch(e.request).then(res => {
+            if (res.ok) c.put(e.request, res.clone());
+            return res;
+          });
+        })
+      )
+    );
     return;
   }
   // For everything else: try network first, fall back to cache

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.6.8';
+const VERSION = '4.7.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,21 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.7.0', date: '2026-05-20', changes: [
+    'All delete and destructive actions now use styled in-app modals instead of browser confirm dialogs',
+    'PIN setup now uses an in-app styled form instead of a browser prompt dialog',
+    'PIN is now stored as a SHA-256 hash — existing plain-text PINs migrate automatically on next login',
+    'All localStorage saves wrapped in try/catch — a "storage full" toast appears instead of silent data loss',
+    'Ledger search is now debounced — no more full re-render on every keypress',
+    'Toggling multiple dashboard tiles now batches re-renders instead of firing one per toggle',
+    'Google Fonts now served cache-first from the service worker — faster loads on repeat visits',
+    'Sparkline animation loop properly cancelled when switching away from the dashboard',
+    'Account dropdown close listener no longer accumulates on rapid open/close',
+    'JSON backup restore now shows a confirmation modal before overwriting all data',
+    'CSV import button shows "Importing…" and disables while importing large files',
+    'Dead legacy dashboard code removed (~270 lines)',
+    'Sounds and tutorial buttons now have proper accessible labels',
+  ]},
   { version: '4.6.8', date: '2026-05-20', changes: [
     'Top nav account pill now shows the correct account type SVG icon instead of a fixed bank logo',
   ]},
@@ -851,6 +866,76 @@ function checkRoast(category) {
   }
 }
 
+// ── utilities ──────────────────────────────────────────────────────────────
+function _debounce(fn, ms = 250) {
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+
+async function _hashPin(pin) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('dawg:' + pin));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function showConfirmModal({ title, message, confirmText = 'Confirm', cancelText = 'Cancel', danger = false, onConfirm, onCancel } = {}) {
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+  ov.innerHTML = `<div style="background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:24px 20px;max-width:320px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.6)">
+    ${title ? `<div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:8px">${title}</div>` : ''}
+    <p style="font-size:.87rem;color:var(--muted);margin:0 0 20px;line-height:1.55">${message}</p>
+    <div style="display:flex;gap:10px">
+      <button id="_mc-cancel" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">${cancelText}</button>
+      <button id="_mc-confirm" style="flex:1;padding:10px;border:none;border-radius:10px;background:${danger?'var(--danger)':'var(--accent)'};color:${danger?'#fff':'var(--bg)'};font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">${confirmText}</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const close = (cb) => { ov.remove(); cb?.(); };
+  ov.querySelector('#_mc-confirm').addEventListener('click', () => close(onConfirm));
+  ov.querySelector('#_mc-cancel').addEventListener('click',  () => close(onCancel));
+  ov.addEventListener('click', e => { if (e.target === ov) close(onCancel); });
+}
+
+function showPinSetupModal(onSuccess) {
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+  ov.innerHTML = `<div style="background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:24px 20px;max-width:300px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.6)">
+    <div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:16px">Set PIN</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <input id="_pin-in1" type="password" inputmode="numeric" maxlength="4" placeholder="4-digit PIN"
+        style="padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-size:1.1rem;font-family:var(--font-body);letter-spacing:.3em;text-align:center;outline:none;width:100%;box-sizing:border-box">
+      <input id="_pin-in2" type="password" inputmode="numeric" maxlength="4" placeholder="Confirm PIN"
+        style="padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-size:1.1rem;font-family:var(--font-body);letter-spacing:.3em;text-align:center;outline:none;width:100%;box-sizing:border-box">
+      <div id="_pin-err" style="font-size:.8rem;color:var(--danger);min-height:18px;text-align:center"></div>
+      <div style="display:flex;gap:10px">
+        <button id="_pin-cancel" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">Cancel</button>
+        <button id="_pin-save" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--accent);color:var(--bg);font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">Save PIN</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#_pin-cancel').addEventListener('click', () => ov.remove());
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  ov.querySelector('#_pin-save').addEventListener('click', async () => {
+    const p1 = ov.querySelector('#_pin-in1').value;
+    const p2 = ov.querySelector('#_pin-in2').value;
+    const err = ov.querySelector('#_pin-err');
+    if (!/^\d{4}$/.test(p1)) { err.textContent = 'PIN must be exactly 4 digits.'; return; }
+    if (p1 !== p2) { err.textContent = 'PINs do not match.'; return; }
+    const hash = await _hashPin(p1);
+    localStorage.setItem('slawminyaw_pin', hash);
+    ov.remove();
+    onSuccess?.();
+  });
+}
+
+function _showSaveError() {
+  // Show a non-blocking toast if a localStorage save fails
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:10002;background:var(--danger);color:#fff;padding:10px 18px;border-radius:10px;font-size:.85rem;font-weight:700;pointer-events:none;text-align:center';
+  el.textContent = '⚠ Save failed — storage may be full';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
 // ── spending alert ─────────────────────────────────────────────────────────
 function showAlert(msg) {
   const el = document.createElement('div');
@@ -885,8 +970,12 @@ const SETTINGS_KEY = 'slawminyaw_settings';
 const ACCOUNTS_KEY = 'slawminyaw_accounts';
 function accountDataKey(id) { return 'slawminyaw_data_' + id; }
 
-function loadSettings() { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); }
-function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch { return {}; }
+}
+function saveSettings(s) {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch(e) { console.warn('Budget DAWGs: settings save failed', e); }
+}
 function defaultAccounts() { return [{ id: 'main', name: 'Main', type: 'checking' }]; }
 
 const NAV_ITEMS = [
@@ -1027,20 +1116,25 @@ function applyTheme(theme) {
 }
 
 function _save() {
-  localStorage.setItem(accountDataKey(currentAccountId), JSON.stringify({
-    transactions:    state.transactions,
-    weekly_plan:     state.weekly_plan,
-    budgets:         state.budgets,
-    bills:           state.bills,
-    goals:           state.goals,
-    startingBalance: state.startingBalance,
-  }));
+  try {
+    localStorage.setItem(accountDataKey(currentAccountId), JSON.stringify({
+      transactions:    state.transactions,
+      weekly_plan:     state.weekly_plan,
+      budgets:         state.budgets,
+      bills:           state.bills,
+      goals:           state.goals,
+      startingBalance: state.startingBalance,
+    }));
+  } catch(e) { console.warn('Budget DAWGs: save failed', e); _showSaveError(); }
 }
 function _saveAccounts() {
-  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
+  try {
+    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
+  } catch(e) { console.warn('Budget DAWGs: account save failed', e); _showSaveError(); }
 }
 function _loadAccountData(id) {
-  const d = JSON.parse(localStorage.getItem(accountDataKey(id)) || '{}');
+  let d = {};
+  try { d = JSON.parse(localStorage.getItem(accountDataKey(id)) || '{}'); } catch(e) { d = {}; }
   state.transactions    = d.transactions    || [];
   state.weekly_plan     = d.weekly_plan     || {};
   state.budgets         = d.budgets         || {};
@@ -1293,6 +1387,7 @@ let ledgerCatFilter = '';
 let ledgerDateFrom = '';
 let ledgerDateTo = '';
 let _insightTimer = null;
+let _dawgSparkGlobal = null; // module-level ref so tab switches can destroy it
 let _splitRows    = []; // [{cat, amount}] for split-transaction mode
 
 function showTab(key) {
@@ -1301,6 +1396,7 @@ function showTab(key) {
     ledgerCatFilter = ''; ledgerDateFrom = ''; ledgerDateTo = '';
   }
   if (_insightTimer) { clearInterval(_insightTimer); _insightTimer = null; }
+  if (_dawgSparkGlobal) { _dawgSparkGlobal.destroy(); _dawgSparkGlobal = null; }
   // About page always uses base dark/light — unaffected by Dusk/Denim/Ember etc.
   const activeTheme = (loadSettings().theme) || 'dark';
   if (key === 'about') {
@@ -2453,278 +2549,7 @@ function renderDashboardDawg() {
 // ── dashboard ──────────────────────────────────────────────────────────────
 function renderDashboard() {
   return renderDashboardDawg();
-  // Legacy non-DAWG dashboard kept below for reference only
-  if (false) {
-  const ds = loadSettings();
-  const showBills     = ds.dashBills     !== false;
-  const showInsights  = ds.dashInsights  !== false;
-  const showChart     = ds.dashChart     !== false;
-  const showBreakdown = ds.dashBreakdown !== false;
-  const showNetWorth  = ds.dashNetWorth  !== false;
-
-  const { income, expense, bycat } = monthTotals(dashMonth);
-  const currentM = new Date().toISOString().slice(0, 7);
-  const isPastMonth = dashMonth < currentM;
-  const acct   = state.accounts.find(a => a.id === currentAccountId);
-  const isDebt = acct?.type === 'credit' || acct?.type === 'loan';
-
-  // Balance: for debt accounts owed = startBal + expenses − income (payments reduce debt)
-  // For past months compute as-of last day of that month
-  let balance;
-  if (isPastMonth) {
-    const mo = parseInt(dashMonth.slice(5, 7));
-    const yr = parseInt(dashMonth.slice(0, 4));
-    const lastDayStr = dashMonth + '-' + String(new Date(yr, mo, 0).getDate()).padStart(2, '0');
-    if (isDebt) {
-      let owed = state.startingBalance || 0;
-      for (const t of state.transactions) {
-        if (t.date <= lastDayStr) owed += t.type === 'expense' ? t.amount : -t.amount;
-      }
-      balance = Math.max(0, owed);
-    } else {
-      balance = balanceAsOf(lastDayStr);
-    }
-  } else {
-    const { income: ai, expense: ae } = totals();
-    balance = isDebt
-      ? Math.max(0, (state.startingBalance || 0) + ae - ai)
-      : (state.startingBalance || 0) + ai - ae;
-  }
-
-  const debtTypeLbl = acct?.type === 'loan' ? '(Loan)' : '(Credit)';
-  const balTitle = acct?.type === 'loan' ? 'LOAN BALANCE' : isDebt ? 'BALANCE OWED' : 'BALANCE';
-  const balColor = isDebt ? 'var(--danger)' : (balance >= 0 ? 'var(--success)' : 'var(--danger)');
-  const balSub   = isPastMonth
-    ? `end of ${new Date(parseInt(dashMonth.slice(0,4)), parseInt(dashMonth.slice(5,7)) - 1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}${isDebt ? ' · ' + debtTypeLbl : ''}`
-    : isDebt
-      ? `amount owed · ${debtTypeLbl}`
-      : (state.startingBalance ? 'starting + income − expenses' : 'income − expenses');
-  const health = calcHealthScore();
-
-  // ── month-over-month deltas ──────────────────────────────────────────────
-  const prevM = (() => {
-    const yr = parseInt(dashMonth.slice(0, 4));
-    const mo = parseInt(dashMonth.slice(5, 7));
-    return new Date(yr, mo - 2, 1).toISOString().slice(0, 7);
-  })();
-  const prevTotals = monthTotals(prevM);
-  const _momDelta = (cur, prev, higherIsBad) => {
-    if (!prev || prev === 0) return null;
-    const diff = cur - prev;
-    const pct  = Math.abs(diff / prev * 100).toFixed(0);
-    const up   = diff >= 0;
-    return { diff, pct, arrow: up ? '↑' : '↓', color: (up === higherIsBad) ? 'var(--danger)' : 'var(--success)' };
-  };
-  const incomeDelta  = _momDelta(income,  prevTotals.income,  false); // up = good
-  const expenseDelta = _momDelta(expense, prevTotals.expense, true);  // up = bad
-
-  // Debt accounts only show the balance owed — no income / expense / health tiles
-  const cardDefs = isDebt ? [
-    { title: balTitle, value: fmt(balance), color: balColor, sub: balSub },
-  ] : [
-    { title: balTitle, value: fmt(balance), color: balColor, sub: balSub },
-    { title: 'INCOME',   value: fmt(income),   color: 'var(--success)', sub: 'total earned', delta: incomeDelta },
-    { title: 'EXPENSES', value: fmt(expense),  color: 'var(--danger)',  sub: 'total spent',  delta: expenseDelta },
-    { title: 'HEALTH',   value: String(health.total), color: health.color, sub: `grade ${health.grade}` },
-  ];
-
-  // ── first-run / debt summary card ─────────────────────────────────────────
-  let firstRunHtml = '';
-  if (isDebt && !state.startingBalance) {
-    // Debt account but no balance set yet
-    const debtPrompt = acct?.type === 'loan' ? 'Enter your current loan balance so we can track what you owe.' : 'Enter the current balance you owe on this card.';
-    firstRunHtml = `
-      <div class="form-card first-run-card" style="margin-bottom:16px;text-align:center;padding:20px">
-        <div style="font-size:1.5rem;margin-bottom:8px">${acct?.type === 'loan' ? '🏦' : '💳'}</div>
-        <div style="font-weight:600;color:var(--text);margin-bottom:6px">Set your starting balance</div>
-        <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px">${debtPrompt}</p>
-        <div style="display:flex;gap:8px;justify-content:center;max-width:260px;margin:0 auto">
-          <input type="number" id="starting-bal-input" class="form-input" placeholder="e.g. 4200.00" step="0.01" inputmode="decimal" style="flex:1">
-          <button id="starting-bal-save" class="btn-primary" style="white-space:nowrap">Set Balance</button>
-        </div>
-        <span id="starting-bal-status" class="status-inline" style="display:block;margin-top:8px"></span>
-      </div>`;
-  } else if (isDebt && state.startingBalance) {
-    // Rich debt summary card — replaces the first-run prompt once balance is set
-    const _ordinal = n => n + (n%10===1&&n%100!==11?'st':n%10===2&&n%100!==12?'nd':n%10===3&&n%100!==13?'rd':'th');
-    const _acctNameLow = (acct?.name||'').toLowerCase();
-    const _matchedBill = state.bills.find(b => {
-      const bn = b.name.toLowerCase();
-      return bn === _acctNameLow || bn.includes(_acctNameLow) || _acctNameLow.includes(bn);
-    });
-    const dueDateHtml = _matchedBill
-      ? `<div class="debt-dash-due"><span class="debt-dash-due-label">Payment Due</span><span class="debt-dash-due-val">${_ordinal(_matchedBill.dueDay)} of each month</span></div>`
-      : '';
-    const recentTxns = [...state.transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
-    const txnRowsHtml = recentTxns.length ? recentTxns.map(t => {
-      const isPayment = t.type === 'income';
-      const color     = isPayment ? 'var(--success)' : 'var(--danger)';
-      const sign      = isPayment ? '−' : '+';
-      const typeLabel = isPayment ? 'Payment' : (t.category || 'Charge');
-      return `
-        <div class="debt-dash-txn">
-          <span class="debt-dash-txn-date">${t.date.slice(5)}</span>
-          <span class="debt-dash-txn-type" style="color:${color}">${typeLabel}</span>
-          <span class="debt-dash-txn-desc">${t.description && t.description !== '—' ? t.description : ''}</span>
-          <span class="debt-dash-txn-amt" style="color:${color}">${sign}${fmt(t.amount)}</span>
-        </div>`;
-    }).join('') : '<p class="empty-msg" style="padding:8px 0">No transactions yet.</p>';
-
-    // Category breakdown (credit cards only — loans don't have purchase categories)
-    let catHtml = '';
-    if (acct?.type === 'credit') {
-      const { bycat: mCats } = monthTotals(dashMonth);
-      const catEntries = Object.entries(mCats).sort((a, b) => b[1] - a[1]).slice(0, 5);
-      if (catEntries.length) {
-        const maxAmt = catEntries[0][1];
-        catHtml = `
-          <div class="debt-dash-section">This Month by Category</div>
-          <div class="debt-dash-cats">
-            ${catEntries.map(([cat, amt]) => {
-              const cc = CAT_COLORS[cat] || 'var(--accent)';
-              return `
-                <div class="debt-dash-cat-row">
-                  <span class="cat-dot" style="background:${cc}"></span>
-                  <span class="debt-dash-cat-name">${cat}</span>
-                  <div class="breakdown-bar-bg" style="flex:1;margin:0 8px"><div class="breakdown-bar-fill" style="width:${(amt/maxAmt*100).toFixed(1)}%;background:${cc}"></div></div>
-                  <span class="debt-dash-cat-amt">${fmt(amt)}</span>
-                </div>`;
-            }).join('')}
-          </div>`;
-      }
-    }
-
-    firstRunHtml = `
-      <div class="debt-dash-card" style="margin-bottom:16px">
-        <div class="debt-dash-header">
-          <div>
-            <div class="debt-dash-acct-name">${acct?.name || ''}</div>
-            <div class="debt-dash-acct-type">${acct?.type === 'loan' ? '🏦 Loan' : '💳 Credit Card'}</div>
-          </div>
-          <div class="debt-dash-owed">
-            <div class="debt-dash-owed-amt" style="color:var(--danger)">${fmt(balance)}</div>
-            <div class="debt-dash-owed-lbl">owed</div>
-          </div>
-        </div>
-        ${dueDateHtml}
-        ${catHtml}
-        <div class="debt-dash-section" style="display:flex;align-items:center;justify-content:space-between">
-          <span>Payment History</span>
-          <button class="debt-dash-add-btn" id="debt-dash-quick-add" title="Add transaction">＋</button>
-        </div>
-        <div class="debt-dash-txns">${txnRowsHtml}</div>
-      </div>`;
-  } else if (state.transactions.length === 0 && !state.startingBalance) {
-    // Regular account with no transactions and no starting balance set yet
-    firstRunHtml = `
-      <div class="form-card first-run-card" style="margin-bottom:16px;text-align:center;padding:20px">
-        <div style="font-size:1.5rem;margin-bottom:8px">👋</div>
-        <div style="font-weight:600;color:var(--text);margin-bottom:6px">Set your starting balance</div>
-        <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px">Enter what's currently in your account so your balance is accurate from day one.</p>
-        <div style="display:flex;gap:8px;justify-content:center;max-width:260px;margin:0 auto">
-          <input type="number" id="starting-bal-input" class="form-input" placeholder="e.g. 1500.00" step="0.01" inputmode="decimal" style="flex:1">
-          <button id="starting-bal-save" class="btn-primary" style="white-space:nowrap">Set Balance</button>
-        </div>
-        <span id="starting-bal-status" class="status-inline" style="display:block;margin-top:8px"></span>
-      </div>`;
-  }
-  const cardsHtml = cardDefs.map(c => `
-    <div class="card">
-      <div class="card-title">${c.title}</div>
-      <div class="card-value" style="color:${c.color}">${c.value}</div>
-      <div class="card-sub">${c.sub}</div>
-      ${c.delta ? `<div class="card-delta" style="color:${c.delta.color}">${c.delta.arrow} ${c.delta.pct}% vs last mo</div>` : ''}
-    </div>`).join('');
-
-  const nw = getNetWorth();
-  const netWorthHtml = showNetWorth && !isDebt && state.accounts.length >= 2 ? `
-    <div class="net-worth-card">
-      <div class="net-worth-total-label">Net Worth</div>
-      <div class="net-worth-total-value" style="color:${nw.total >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(nw.total)}</div>
-      <div class="net-worth-rows">
-        ${nw.accounts.map(a => {
-          const isDebt = a.type === 'credit' || a.type === 'loan';
-          const typeLabel = a.type === 'loan' ? '(Loan)' : a.type === 'credit' ? '(Credit)' : '';
-          return isDebt ? `
-          <div class="net-worth-row">
-            <span class="net-worth-acct">${a.name}${typeLabel ? ` <span style="font-size:10px;color:var(--muted)">${typeLabel}</span>` : ''}</span>
-            <span class="net-worth-bal" style="color:var(--danger)">Owes: ${fmt(-a.balance)}</span>
-          </div>` : `
-          <div class="net-worth-row">
-            <span class="net-worth-acct">${a.name}</span>
-            <span class="net-worth-bal" style="color:${a.balance >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(a.balance)}</span>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>` : '';
-
-  const upcoming = getUpcomingBills(7);
-  const upcomingHtml = showBills && upcoming.length ? `
-    <h2 class="section-title">Bills Due Soon</h2>
-    <div class="bills-list" style="margin-bottom:8px">
-      ${upcoming.map(b => {
-        const d = getDaysUntilDue(b.dueDay);
-        const badge = d === 0 ? '<span class="bill-badge due-today">TODAY</span>'
-          : `<span class="bill-badge due-soon">in ${d}d</span>`;
-        return `<div class="bill-item"><span class="cat-dot" style="background:${CAT_COLORS[b.category]||'#9896a4'}"></span><span class="bill-name">${b.name}</span><span class="bill-amt">${fmt(b.amount)}</span>${badge}</div>`;
-      }).join('')}
-    </div>` : '';
-
-  const maxCat = Math.max(...Object.values(bycat), 1);
-  const breakdownHtml = Object.entries(bycat).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => {
-    const limit    = parseFloat(state.budgets[cat] || 0);
-    const catColor = CAT_COLORS[cat] || 'var(--accent)';
-    let barColor = catColor, badge = '';
-    if (limit > 0) {
-      const pct = amt / limit;
-      if (pct >= 1)        { barColor = 'var(--danger)'; badge = '<span class="budget-badge over">OVER!</span>'; }
-      else if (pct >= 0.8) { barColor = 'var(--warn)';   badge = '<span class="budget-badge warn">80%</span>'; }
-    }
-    return `
-      <div class="breakdown-row">
-        <span class="breakdown-label"><span class="cat-dot" style="background:${catColor}"></span>${cat}</span>
-        <div class="breakdown-bar-bg">
-          <div class="breakdown-bar-fill" style="width:${(amt/maxCat*100).toFixed(1)}%;background:${barColor}"></div>
-        </div>
-        <span class="breakdown-amt">${fmt(amt)}${badge}</span>
-      </div>`;
-  }).join('');
-
-  const chartTitle = 'This Month by Category';
-  const toggleLabel = dashChartMode === 'bar' ? '🥧 Pie' : '📊 Bar';
-
-  const insights = getSpendingInsights(dashMonth);
-  const safeInsights = JSON.stringify(insights).replace(/'/g, '&#39;');
-  const insightsHtml = showInsights && insights.length ? `
-    <div class="insight-card" id="insight-rotator" data-insights='${safeInsights}'>
-      <div class="insight-card-inner">
-        <span class="insight-card-text" id="insight-text">${insights[0]}</span>
-      </div>
-      ${insights.length > 1 ? `<div class="insight-dots">${insights.map((_, i) => `<span class="insight-dot${i === 0 ? ' active' : ''}"></span>`).join('')}</div>` : ''}
-    </div>` : '';
-
-  return `
-    <div class="page">
-      <h1 class="page-title">Dashboard</h1>
-      <p class="page-sub">your financial snapshot</p>
-      ${firstRunHtml}
-      <div class="dash-month-nav">
-        <button class="dash-month-btn" id="dash-month-prev">‹</button>
-        <span class="dash-month-label">${new Date(parseInt(dashMonth.slice(0,4)), parseInt(dashMonth.slice(5,7)) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-        <button class="dash-month-btn" id="dash-month-next" ${dashMonth >= new Date().toISOString().slice(0,7) ? 'disabled' : ''}>›</button>
-      </div>
-      <div class="cards-grid">${cardsHtml}</div>
-      ${netWorthHtml}
-      ${!isDebt ? upcomingHtml : ''}
-      ${!isDebt ? insightsHtml : ''}
-      ${!isDebt && showChart ? `<div class="chart-header">
-        <div class="section-title chart-section-title" style="margin:0">${chartTitle}</div>
-        <button id="chart-toggle-btn" class="btn-xs">${toggleLabel}</button>
-      </div>
-      <div class="chart-wrap"><canvas id="spending-chart"></canvas></div>` : ''}
-      ${!isDebt && showBreakdown && Object.keys(bycat).length ? `<h2 class="section-title">Spending by Category</h2><div class="breakdown">${breakdownHtml}</div>` : ''}
-    </div>`;
-}}
+}
 
 // ── budgets ────────────────────────────────────────────────────────────────
 function renderBudgets() {
@@ -3303,29 +3128,33 @@ function attachBills() {
       if (!paid) {
         // Was just marked paid — offer to log as expense
         const b = state.bills[i];
-        if (confirm(`Log "${b.name}" as a $${b.amount.toFixed(2)} expense?`)) {
-          await api.addTransaction({
-            type: 'expense',
-            amount: b.amount,
-            description: b.name,
-            category: b.category,
-            date: new Date().toISOString().slice(0, 10),
-            account: currentAccountId,
-          });
-        }
-      }
-      render();
+        showConfirmModal({
+          title: 'Log as Expense?',
+          message: `Add "${b.name}" as a ${fmt(b.amount)} expense?`,
+          confirmText: 'Log it',
+          cancelText: 'Skip',
+          onConfirm: async () => {
+            await api.addTransaction({
+              type: 'expense', amount: b.amount, description: b.name,
+              category: b.category, date: new Date().toISOString().slice(0, 10), account: currentAccountId,
+            });
+            render();
+          },
+          onCancel: () => render(),
+        });
+      } else { render(); }
     });
   });
 
   document.querySelectorAll('.bill-delete-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
       const i = parseInt(btn.dataset.idx);
-      if (confirm(`Delete bill: ${state.bills[i].name}?`)) {
-        state.bills.splice(i, 1);
-        await api.saveBills(state.bills);
-        render();
-      }
+      showConfirmModal({
+        title: 'Delete Bill',
+        message: `Delete "${state.bills[i].name}"? This cannot be undone.`,
+        confirmText: 'Delete', danger: true,
+        onConfirm: async () => { state.bills.splice(i, 1); await api.saveBills(state.bills); render(); },
+      });
     });
   });
 }
@@ -3431,13 +3260,14 @@ function attachGoals() {
   });
 
   document.querySelectorAll('.goal-delete-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
       const i = parseInt(btn.dataset.idx);
-      if (confirm(`Delete goal: ${state.goals[i].name}?`)) {
-        state.goals.splice(i, 1);
-        await api.saveGoals(state.goals);
-        render();
-      }
+      showConfirmModal({
+        title: 'Delete Goal', danger: true,
+        message: `Delete "${state.goals[i].name}"? This cannot be undone.`,
+        confirmText: 'Delete',
+        onConfirm: async () => { state.goals.splice(i, 1); await api.saveGoals(state.goals); render(); },
+      });
     });
   });
 }
@@ -3715,20 +3545,16 @@ function attachSettings() {
 
   // PIN lock
   document.getElementById('pin-set-btn')?.addEventListener('click', () => {
-    const pin1 = prompt('Enter a 4-digit PIN:');
-    if (!pin1 || !/^\d{4}$/.test(pin1)) { showStatus('pin-status', 'PIN must be exactly 4 digits.', 'error'); return; }
-    const pin2 = prompt('Confirm PIN:');
-    if (pin1 !== pin2) { showStatus('pin-status', 'PINs do not match.', 'error'); return; }
-    localStorage.setItem('slawminyaw_pin', pin1);
-    showStatus('pin-status', '✓ PIN set.', 'success');
-    render();
+    showPinSetupModal(() => { showStatus('pin-status', '✓ PIN set.', 'success'); render(); });
   });
 
   document.getElementById('pin-remove-btn')?.addEventListener('click', () => {
-    if (confirm('Remove PIN lock?')) {
-      localStorage.removeItem('slawminyaw_pin');
-      render();
-    }
+    showConfirmModal({
+      title: 'Remove PIN', danger: true,
+      message: 'Remove your PIN lock? Anyone will be able to open the app.',
+      confirmText: 'Remove',
+      onConfirm: () => { localStorage.removeItem('slawminyaw_pin'); render(); },
+    });
   });
 
   // Biometric / phone lock
@@ -3744,18 +3570,21 @@ function attachSettings() {
   });
 
   document.getElementById('bio-remove-btn')?.addEventListener('click', () => {
-    if (confirm('Remove phone lock?')) {
-      localStorage.removeItem('slawminyaw_biometric_cred');
-      render();
-    }
+    showConfirmModal({
+      title: 'Remove Phone Lock', danger: true,
+      message: 'Remove biometric lock? Anyone will be able to open the app.',
+      confirmText: 'Remove',
+      onConfirm: () => { localStorage.removeItem('slawminyaw_biometric_cred'); render(); },
+    });
   });
 
+  const _tileRender = _debounce(() => render(), 150);
   document.querySelectorAll('.dawg-tile-toggle').forEach(cb => {
     cb.addEventListener('change', () => {
       const s = loadSettings();
       s[cb.dataset.tile] = cb.checked;
       saveSettings(s);
-      render();
+      _tileRender();
     });
   });
 }
@@ -4098,10 +3927,12 @@ function attachAccounts() {
       const id   = btn.dataset.id;
       const acct = state.accounts.find(a => a.id === id);
       if (!acct) return;
-      if (confirm(`Delete "${acct.name}"? All its transactions, budgets, and bills will be permanently removed.`)) {
-        await api.deleteAccount(id);
-        render();
-      }
+      showConfirmModal({
+        title: `Delete "${acct.name}"?`, danger: true,
+        message: 'All transactions, budgets, and bills for this account will be permanently removed.',
+        confirmText: 'Delete Account',
+        onConfirm: async () => { await api.deleteAccount(id); render(); },
+      });
     });
   });
 }
@@ -4294,9 +4125,14 @@ function attachSwipeDelete() {
     if (swipedRow && !swipedRow.contains(e.target)) { swipedRow.classList.remove('swiped'); swipedRow = null; }
   }, { passive: true });
   document.querySelectorAll('.swipe-delete-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
       const idx = parseInt(btn.dataset.idx);
-      if (confirm('Delete this transaction?')) { await api.deleteTransaction(idx); ledgerFilter = ''; render(); }
+      showConfirmModal({
+        title: 'Delete Transaction', danger: true,
+        message: 'Delete this transaction? This cannot be undone.',
+        confirmText: 'Delete',
+        onConfirm: async () => { await api.deleteTransaction(idx); ledgerFilter = ''; render(); },
+      });
     });
   });
 }
@@ -4396,19 +4232,20 @@ function toggleDawgAcctDropdown() {
       }
     });
   });
-  setTimeout(() => {
-    const close = e => {
-      const navBtn   = document.getElementById('dawg-nav-accts');
-      const pillBtn  = document.getElementById('dawg-acct-switch');
+  if (!panel._closeListener) {
+    panel._closeListener = e => {
+      const navBtn  = document.getElementById('dawg-nav-accts');
+      const pillBtn = document.getElementById('dawg-acct-switch');
       if (!panel.contains(e.target) &&
           e.target !== navBtn  && !navBtn?.contains(e.target) &&
           e.target !== pillBtn && !pillBtn?.contains(e.target)) {
         panel.classList.add('hidden');
-        document.removeEventListener('click', close);
+        document.removeEventListener('click', panel._closeListener);
+        panel._closeListener = null;
       }
     };
-    document.addEventListener('click', close);
-  }, 10);
+    setTimeout(() => document.addEventListener('click', panel._closeListener), 10);
+  }
 }
 
 function toggleDawgBell() {
@@ -4497,7 +4334,7 @@ function attachDashboardDawg() {
   function buildSparkline(range) {
     const canvas = document.getElementById('dawg-sparkline');
     if (!canvas) return;
-    if (_dawgSpark) { _dawgSpark.destroy(); _dawgSpark = null; }
+    if (_dawgSpark) { _dawgSpark.destroy(); _dawgSpark = null; _dawgSparkGlobal = null; }
     const { labels, data } = getDawgSparklineData(range, _sparkMaxDate);
     if (!data.length) return;
     const ctx  = canvas.getContext('2d');
@@ -4581,7 +4418,7 @@ function attachDashboardDawg() {
         if (chart._pulseRaf) { cancelAnimationFrame(chart._pulseRaf); chart._pulseRaf = null; }
       }
     };
-    _dawgSpark = new Chart(canvas, {
+    _dawgSpark = _dawgSparkGlobal = new Chart(canvas, {
       type:'line',
       data:{ labels, datasets:[{ data, borderColor:_sparkClr, borderWidth:2, pointRadius:0, tension:0.4, fill:true, backgroundColor:grad }] },
       plugins:[_pulsePlugin],
@@ -4889,9 +4726,9 @@ function exportCSVTemplate() {
 }
 
 function attachLedger() {
-  document.getElementById('ledger-search')?.addEventListener('input', e => {
+  document.getElementById('ledger-search')?.addEventListener('input', _debounce(e => {
     ledgerFilter = e.target.value.toLowerCase(); render();
-  });
+  }, 220));
   document.getElementById('ledger-sort')?.addEventListener('change', e => {
     ledgerSort = e.target.value; render();
   });
@@ -4948,16 +4785,16 @@ function attachLedger() {
   });
 
   document.querySelectorAll('.ledger-delete').forEach(btn => {
-    btn.addEventListener('click', async e => {
+    btn.addEventListener('click', e => {
       e.stopPropagation();
       const idx = parseInt(btn.dataset.idx);
       const t   = state.transactions[idx];
-      if (confirm(`Delete: ${t.description} (${fmt(t.amount)})?`)) {
-        await api.deleteTransaction(idx);
-        selectedLedgerIdx = null;
-        ledgerFilter = '';
-        render();
-      }
+      showConfirmModal({
+        title: 'Delete Transaction', danger: true,
+        message: `Delete "${t.description}" (${fmt(t.amount)})? This cannot be undone.`,
+        confirmText: 'Delete',
+        onConfirm: async () => { await api.deleteTransaction(idx); selectedLedgerIdx = null; ledgerFilter = ''; render(); },
+      });
     });
   });
 
@@ -4997,16 +4834,25 @@ function attachImport() {
       try {
         const data = JSON.parse(ev.target.result);
         if (!data.transactions) throw new Error('Invalid backup file');
-        state.transactions = data.transactions || [];
-        state.weekly_plan  = data.weekly_plan  || {};
-        state.budgets      = data.budgets      || {};
-        state.bills        = data.bills        || [];
-        state.goals        = data.goals        || [];
-        state.accounts     = data.accounts     || defaultAccounts();
-        if (!state.accounts.length) state.accounts = defaultAccounts();
-        _save();
-        showStatus('json-import-status', `✓ Loaded ${state.transactions.length} transactions from backup.`, 'success', 0);
-        render();
+        const txnCount = (data.transactions || []).length;
+        const acctCount = (data.accounts || []).length;
+        showConfirmModal({
+          title: 'Restore Backup?',
+          message: `This will replace ALL current data with the backup (${txnCount} transactions, ${acctCount} account${acctCount !== 1 ? 's' : ''}). This cannot be undone.`,
+          confirmText: 'Restore', danger: true,
+          onConfirm: () => {
+            state.transactions = data.transactions || [];
+            state.weekly_plan  = data.weekly_plan  || {};
+            state.budgets      = data.budgets      || {};
+            state.bills        = data.bills        || [];
+            state.goals        = data.goals        || [];
+            state.accounts     = data.accounts     || defaultAccounts();
+            if (!state.accounts.length) state.accounts = defaultAccounts();
+            _save(); _saveAccounts();
+            showStatus('json-import-status', `✓ Restored ${state.transactions.length} transactions from backup.`, 'success', 0);
+            render();
+          },
+        });
       } catch(err) {
         showStatus('json-import-status', `Error: ${err.message}`, 'error', 0);
       }
@@ -5165,6 +5011,8 @@ function attachImport() {
           previewEl.style.display = '';
 
           document.getElementById('import-confirm-btn')?.addEventListener('click', async () => {
+            const importBtn = document.getElementById('import-confirm-btn');
+            if (importBtn) { importBtn.disabled = true; importBtn.textContent = 'Importing…'; }
             for (const t of parsed) await api.addTransaction(t);
             _save();
             previewEl.style.display = 'none';
@@ -5414,15 +5262,23 @@ function showPinLock(onSuccess) {
         else if (k !== '' && entered.length < 4) { entered += k; }
         updateDots();
         if (entered.length === 4) {
-          if (entered === saved) {
-            overlay.remove();
-            onSuccess();
-          } else {
-            overlay.querySelector('#pin-error').textContent = 'Incorrect PIN';
-            entered = '';
-            updateDots();
-            setTimeout(() => { if (overlay.isConnected) overlay.querySelector('#pin-error').textContent = ''; }, 1500);
-          }
+          const checkPin = async () => {
+            let match = false;
+            if (saved.length === 4) {
+              // Legacy plain-text PIN — verify and silently migrate to hash
+              match = (entered === saved);
+              if (match) { const h = await _hashPin(entered); localStorage.setItem('slawminyaw_pin', h); }
+            } else {
+              match = ((await _hashPin(entered)) === saved);
+            }
+            if (match) { overlay.remove(); onSuccess(); }
+            else {
+              overlay.querySelector('#pin-error').textContent = 'Incorrect PIN';
+              entered = ''; updateDots();
+              setTimeout(() => { if (overlay.isConnected) overlay.querySelector('#pin-error').textContent = ''; }, 1500);
+            }
+          };
+          checkPin();
         }
       });
     });
