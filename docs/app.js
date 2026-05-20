@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.5.5';
+const VERSION = '4.5.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,14 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.5.6', date: '2026-05-20', changes: [
+    'Account cards are now collapsible — tap the header to expand/collapse each one',
+    'Single Save button on each account card handles name, type, APR, due date, and payment all at once',
+    'APR of 0% now saves and displays correctly (0.00%)',
+    'Theme dropdown styled to match app colors instead of browser default',
+    'Fixed brief glimpse of app content before biometric lock screen appears',
+    'Tightened spacing in dashboard tiles',
+  ]},
   { version: '4.5.5', date: '2026-05-20', changes: [
     'Monthly payment and Starting Balance fields now auto-format as $##.## on blur',
     'APR field auto-formats as ##.##% on blur',
@@ -3672,12 +3680,14 @@ function _buildAccountCards() {
       <button type="button" class="acct-type-chip${a.type === t.key ? ' active' : ''}" data-type="${t.key}" data-id="${a.id}">
         ${t.icon} ${t.label}
       </button>`).join('');
-    const fmtApr = a.interest_rate ? parseFloat(a.interest_rate).toFixed(2) + '%' : '';
+    // Use != null so 0 is treated as a valid value (not falsy)
+    const fmtApr = (a.interest_rate != null) ? parseFloat(a.interest_rate).toFixed(2) + '%' : '';
     const fmtPmt = a.monthly_payment ? '$' + parseFloat(a.monthly_payment).toFixed(2) : '';
     const nowMM  = String(new Date().getMonth() + 1).padStart(2, '0');
     const dueDateDisplay = dueDay ? `${nowMM}-${String(dueDay).padStart(2,'0')}` : 'Choose due date';
+    const typeMeta = ACCT_TYPE_META.find(t => t.key === a.type) || ACCT_TYPE_META[0];
     const debtFields = isDebtAcct ? `
-      <div class="acct-settings-debt">
+      <div class="acct-settings-debt" style="margin-top:10px">
         <input type="text" class="form-input acct-interest-input acct-fmt-pct" data-id="${a.id}"
           value="${fmtApr}" placeholder="APR %"
           inputmode="decimal" title="Annual interest rate %">
@@ -3695,29 +3705,33 @@ function _buildAccountCards() {
             `<button type="button" class="acct-day-opt${dueDay===d?' acct-day-opt-active':''}" data-day="${d}" data-id="${a.id}">${d}</button>`
           ).join('')}
         </div>
-        <div class="acct-settings-debt-save">
-          <button class="btn-xs acct-debt-save-btn" data-id="${a.id}">Save</button>
-        </div>
       </div>` : '';
     return `
-    <div class="acct-settings-card">
-      <div class="acct-settings-top">
-        <span style="font-size:.8rem;font-weight:600;color:var(--text)">${a.name}</span>
-        ${a.id === currentAccountId
-          ? '<span class="acct-badge" style="font-size:9px">active</span>'
-          : `<button class="btn-xs acct-switch-btn" data-id="${a.id}">Switch</button>`}
+    <div class="acct-settings-card acct-card-collapsed">
+      <div class="acct-card-header" data-id="${a.id}">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden">
+          <span class="acct-card-name">${a.name}</span>
+          <span style="font-size:11px;color:var(--muted);white-space:nowrap">${typeMeta.icon} ${typeMeta.label}</span>
+          ${a.id === currentAccountId ? '<span class="acct-badge" style="font-size:9px">active</span>' : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          ${a.id !== currentAccountId ? `<button class="btn-xs acct-switch-btn" data-id="${a.id}">Switch</button>` : ''}
+          <button type="button" class="acct-card-toggle" data-id="${a.id}" aria-label="Expand">›</button>
+        </div>
       </div>
-      <input type="text" class="form-input acct-name-input" value="${a.name}" data-id="${a.id}"
-        style="width:100%;margin-bottom:10px;font-size:16px;font-weight:600;box-sizing:border-box${a.id === currentAccountId ? ';border-color:var(--accent)' : ''}"
-        placeholder="Account name">
-      <p style="font-size:11px;color:var(--muted);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em">Account Type</p>
-      <input type="hidden" class="acct-type-select" data-id="${a.id}" value="${a.type}">
-      <div class="acct-type-chips" data-id="${a.id}" style="margin-bottom:10px">${typeChips}</div>
-      <div class="acct-settings-actions">
-        <button class="btn-xs acct-edit-save-btn" data-id="${a.id}" style="background:var(--accent);color:var(--bg);border-color:var(--accent)">Save</button>
-        ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">Delete</button>` : ''}
+      <div class="acct-card-body" style="display:none">
+        <input type="text" class="form-input acct-name-input" value="${a.name}" data-id="${a.id}"
+          style="width:100%;margin-bottom:10px;font-size:16px;font-weight:600;box-sizing:border-box${a.id === currentAccountId ? ';border-color:var(--accent)' : ''}"
+          placeholder="Account name">
+        <p style="font-size:11px;color:var(--muted);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em">Account Type</p>
+        <input type="hidden" class="acct-type-select" data-id="${a.id}" value="${a.type}">
+        <div class="acct-type-chips" data-id="${a.id}" style="margin-bottom:10px">${typeChips}</div>
+        ${debtFields}
+        <div class="acct-settings-actions" style="margin-top:10px">
+          <button class="btn-xs acct-edit-save-btn" data-id="${a.id}" style="background:var(--accent);color:var(--bg);border-color:var(--accent)">Save</button>
+          ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">Delete</button>` : ''}
+        </div>
       </div>
-      ${debtFields}
     </div>`;
   }).join('');
 }
@@ -3826,7 +3840,21 @@ function attachAccounts() {
     });
   });
 
-  // Account edit save (name + type)
+  // Collapsible card headers
+  document.querySelectorAll('.acct-card-header').forEach(hdr => {
+    hdr.addEventListener('click', e => {
+      if (e.target.closest('.acct-switch-btn')) return;
+      const card   = hdr.closest('.acct-settings-card');
+      const body   = card.querySelector('.acct-card-body');
+      const toggle = card.querySelector('.acct-card-toggle');
+      const opening = card.classList.contains('acct-card-collapsed');
+      card.classList.toggle('acct-card-collapsed', !opening);
+      body.style.display = opening ? '' : 'none';
+      if (toggle) toggle.textContent = opening ? '∨' : '›';
+    });
+  });
+
+  // Account edit save — handles name, type, and debt fields all at once
   document.querySelectorAll('.acct-edit-save-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id   = btn.dataset.id;
@@ -3838,9 +3866,16 @@ function attachAccounts() {
       if (!newName) { showStatus('acct-status', 'Account name cannot be empty.', 'error'); return; }
       acct.name = newName;
       if (newType) acct.type = newType;
+      // Debt fields (only present for credit/loan)
+      const rateRaw = card.querySelector(`.acct-interest-input[data-id="${id}"]`)?.value.replace(/%/g,'').trim();
+      const day     = card.querySelector(`.acct-due-day-input[data-id="${id}"]`)?.value.trim();
+      const pmtRaw  = card.querySelector(`.acct-payment-input[data-id="${id}"]`)?.value.replace(/[$,]/g,'').trim();
+      if (rateRaw !== undefined) acct.interest_rate   = rateRaw !== '' ? parseFloat(rateRaw) : undefined;
+      if (day     !== undefined) acct.payment_due_day = day     ? parseInt(day)              : undefined;
+      if (pmtRaw  !== undefined) acct.monthly_payment = pmtRaw  ? parseFloat(pmtRaw)         : undefined;
       await api.saveAccounts(state.accounts);
       updateAccountSwitcher();
-      showStatus('acct-status', '✓ Account saved.', 'success');
+      showStatus('acct-status', '✓ Saved.', 'success');
       render();
     });
   });
@@ -3893,22 +3928,6 @@ function attachAccounts() {
     document.querySelectorAll('.acct-day-grid-wrap').forEach(g => { g.style.display = 'none'; });
   }, { once: true });
 
-  document.querySelectorAll('.acct-debt-save-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id   = btn.dataset.id;
-      const acct = state.accounts.find(a => a.id === id);
-      if (!acct) return;
-      const card = btn.closest('.acct-settings-card');
-      const rate = card.querySelector(`.acct-interest-input[data-id="${id}"]`)?.value.replace(/%/g,'').trim();
-      const day  = card.querySelector(`.acct-due-day-input[data-id="${id}"]`)?.value.trim();
-      const pmt  = card.querySelector(`.acct-payment-input[data-id="${id}"]`)?.value.replace(/[$,]/g,'').trim();
-      if (rate !== undefined) acct.interest_rate   = rate ? parseFloat(rate) : undefined;
-      if (day  !== undefined) acct.payment_due_day = day  ? parseInt(day)    : undefined;
-      if (pmt  !== undefined) acct.monthly_payment = pmt  ? parseFloat(pmt)  : undefined;
-      await api.saveAccounts(state.accounts);
-      showStatus('acct-status', '✓ Account details saved.', 'success');
-    });
-  });
 
   document.getElementById('add-acct-btn')?.addEventListener('click', async () => {
     const name = document.getElementById('new-acct-name').value.trim();
@@ -5288,8 +5307,18 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
 });
 
 (async () => {
+  // If a lock is configured, cover the app content immediately so it can't be
+  // glimpsed between the splash fading out and the biometric/PIN overlay appearing.
+  const _hasLock = !!localStorage.getItem('slawminyaw_pin') || !!localStorage.getItem('slawminyaw_biometric_cred');
+  let _earlyBlocker = null;
+  if (_hasLock) {
+    _earlyBlocker = document.createElement('div');
+    _earlyBlocker.style.cssText = 'position:fixed;inset:0;z-index:9997;background:var(--bg,#0f0f14)';
+    document.body.appendChild(_earlyBlocker);
+  }
   await runSplash();
   showPinLock(async () => {
+    _earlyBlocker?.remove();
     try {
     await api.load();
     await processRecurring();
