@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.6.6';
+const VERSION = '4.6.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.6.7', date: '2026-05-20', changes: [
+    'Top nav account dropdown now uses SVG icons matching the rest of the app',
+  ]},
   { version: '4.6.6', date: '2026-05-20', changes: [
     'Line graph turns red when your account balance is negative',
     'Budget ring: green under 75%, yellow 75–90%, red at 90%+',
@@ -4370,11 +4373,10 @@ function toggleDawgAcctDropdown() {
   // Always position below the fixed topbar
   panel.style.top    = 'calc(var(--topbar-h) + var(--safe-top) + 8px)';
   panel.style.bottom = 'auto';
-  const acctIcons = { checking:'🏦', savings:'💰', credit:'💳', loan:'📋', investment:'📈', other:'💼' };
   const rows = (state.accounts || []).map(a => {
     const isActive = a.id === currentAccountId;
     return `<button class="dawg-acct-dd-row${isActive ? ' active' : ''}" data-id="${a.id}">
-      <span class="dawg-acct-dd-icon">${acctIcons[a.type] || '🏦'}</span>
+      <span class="dawg-acct-dd-icon">${_ACCT_SVG[a.type] || _ACCT_SVG.checking}</span>
       <span class="dawg-acct-dd-name">${a.name}</span>
       ${isActive ? '<span class="dawg-acct-dd-check">✓</span>' : ''}
     </button>`;

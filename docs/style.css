@@ -2034,7 +2034,8 @@ body.light #dawg-bottom-nav { background:rgba(255,255,255,.92); }
 .dawg-acct-dd-row:active { background:var(--surface2); }
 @media (hover:hover) { .dawg-acct-dd-row:hover { background:var(--surface2); } }
 .dawg-acct-dd-row.active { border-left:3px solid var(--accent); padding-left:13px; }
-.dawg-acct-dd-icon { font-size:1.1rem; flex-shrink:0; }
+.dawg-acct-dd-icon { width:20px; height:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text); }
+.dawg-acct-dd-icon svg { width:18px; height:18px; }
 .dawg-acct-dd-name { flex:1; font-size:.88rem; font-weight:700; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dawg-acct-dd-check { font-size:.85rem; color:var(--accent); flex-shrink:0; }
 
