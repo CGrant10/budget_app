@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.9.7';
+const VERSION = '4.9.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.9.8', date: '2026-05-20', changes: [
+    'Retirement contributions now accept a flat dollar amount per paycheck (in addition to or instead of a percentage) — both fields shown side-by-side for My Contribution and Employer Match',
+    'Flat dollar contributions fire automatically even when no gross pay is set — no longer requires a gross amount to auto-contribute',
+    'If both % and $ are filled, they are added together each payday (e.g. 6% of gross + $50 extra)',
+  ]},
   { version: '4.9.7', date: '2026-05-20', changes: [
     'Retirement/IRA dashboards now show a balance history sparkline with 1W/1M/3M/6M/1Y/ALL range selector, matching the regular account dashboard graph',
   ]},
@@ -1016,37 +1021,33 @@ async function _checkPaychecks() {
       });
       currentAccountId = prevId;
       _loadAccountData(prevId);
-      // Auto-contribute to linked retirement accounts from gross pay
-      if (ps.grossAmount) {
-        const gross = ps.grossAmount;
-        const linkedRetire = state.accounts.filter(ra =>
-          RETIRE_TYPES.includes(ra.type) && ra.linkedPaycheckAcctId === acct.id
-        );
-        for (const retAcct of linkedRetire) {
-          const empPct    = retAcct.myContribPct     || 0;
-          const matchPct  = retAcct.employerMatchPct || 0;
-          const empAmt    = +(gross * empPct    / 100).toFixed(2);
-          const matchAmt  = +(gross * matchPct  / 100).toFixed(2);
-          const savedId2  = currentAccountId;
-          currentAccountId = retAcct.id;
-          _loadAccountData(retAcct.id);
-          if (empAmt > 0) {
-            await api.addTransaction({
-              type: 'income', amount: empAmt,
-              description: `${ps.description || 'Paycheck'} — My Contribution`,
-              category: 'Income', date: payDate, account: retAcct.id,
-            });
-          }
-          if (matchAmt > 0) {
-            await api.addTransaction({
-              type: 'income', amount: matchAmt,
-              description: `${ps.description || 'Paycheck'} — Employer Match`,
-              category: 'Income', date: payDate, account: retAcct.id,
-            });
-          }
-          currentAccountId = savedId2;
-          _loadAccountData(savedId2);
+      // Auto-contribute to linked retirement accounts
+      const linkedRetire = state.accounts.filter(ra =>
+        RETIRE_TYPES.includes(ra.type) && ra.linkedPaycheckAcctId === acct.id
+      );
+      for (const retAcct of linkedRetire) {
+        const gross     = ps.grossAmount || 0;
+        const empAmt    = +((gross * (retAcct.myContribPct    || 0) / 100) + (retAcct.myContribAmt    || 0)).toFixed(2);
+        const matchAmt  = +((gross * (retAcct.employerMatchPct || 0) / 100) + (retAcct.employerMatchAmt || 0)).toFixed(2);
+        const savedId2  = currentAccountId;
+        currentAccountId = retAcct.id;
+        _loadAccountData(retAcct.id);
+        if (empAmt > 0) {
+          await api.addTransaction({
+            type: 'income', amount: empAmt,
+            description: `${ps.description || 'Paycheck'} — My Contribution`,
+            category: 'Income', date: payDate, account: retAcct.id,
+          });
         }
+        if (matchAmt > 0) {
+          await api.addTransaction({
+            type: 'income', amount: matchAmt,
+            description: `${ps.description || 'Paycheck'} — Employer Match`,
+            category: 'Income', date: payDate, account: retAcct.id,
+          });
+        }
+        currentAccountId = savedId2;
+        _loadAccountData(savedId2);
       }
       ps.lastAutoAdded = payDate;
       ps.nextPayDate   = _nextPayDate(payDate, ps.frequency);
@@ -5009,12 +5010,30 @@ function _buildAccountCards() {
           <input type="number" class="form-input acct-exp-return" data-id="${a.id}" value="${a.expectedReturn != null ? a.expectedReturn : 7}" placeholder="7" inputmode="decimal" min="0" max="30" step="0.5">
         </div>
         <div class="form-row" style="margin-bottom:8px">
-          <label class="form-label" style="font-size:.72rem">My Contribution (% of gross)</label>
-          <input type="number" class="form-input acct-contrib-pct" data-id="${a.id}" value="${a.myContribPct != null ? a.myContribPct : ''}" placeholder="e.g. 6" inputmode="decimal" min="0" max="100" step="0.5">
+          <label class="form-label" style="font-size:.72rem">My Contribution <span style="font-weight:400;color:var(--muted)">(fill one or both)</span></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="position:relative">
+              <input type="number" class="form-input acct-contrib-pct" data-id="${a.id}" value="${a.myContribPct != null ? a.myContribPct : ''}" placeholder="% of gross" inputmode="decimal" min="0" max="100" step="0.5" style="padding-right:28px">
+              <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.72rem;color:var(--muted);pointer-events:none">%</span>
+            </div>
+            <div style="position:relative">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.72rem;color:var(--muted);pointer-events:none">$</span>
+              <input type="number" class="form-input acct-contrib-amt" data-id="${a.id}" value="${a.myContribAmt != null ? a.myContribAmt : ''}" placeholder="flat / check" inputmode="decimal" min="0" step="0.01" style="padding-left:22px">
+            </div>
+          </div>
         </div>
         <div class="form-row" style="margin-bottom:8px">
-          <label class="form-label" style="font-size:.72rem">Employer Match (% of gross)</label>
-          <input type="number" class="form-input acct-employer-match" data-id="${a.id}" value="${a.employerMatchPct != null ? a.employerMatchPct : ''}" placeholder="e.g. 3" inputmode="decimal" min="0" max="100" step="0.5">
+          <label class="form-label" style="font-size:.72rem">Employer Match <span style="font-weight:400;color:var(--muted)">(fill one or both)</span></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="position:relative">
+              <input type="number" class="form-input acct-employer-match" data-id="${a.id}" value="${a.employerMatchPct != null ? a.employerMatchPct : ''}" placeholder="% of gross" inputmode="decimal" min="0" max="100" step="0.5" style="padding-right:28px">
+              <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.72rem;color:var(--muted);pointer-events:none">%</span>
+            </div>
+            <div style="position:relative">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.72rem;color:var(--muted);pointer-events:none">$</span>
+              <input type="number" class="form-input acct-employer-match-amt" data-id="${a.id}" value="${a.employerMatchAmt != null ? a.employerMatchAmt : ''}" placeholder="flat / check" inputmode="decimal" min="0" step="0.01" style="padding-left:22px">
+            </div>
+          </div>
         </div>
         <div class="form-row" style="margin-bottom:4px">
           <label class="form-label" style="font-size:.72rem">Auto-contribute from paycheck</label>
@@ -5427,10 +5446,14 @@ function attachAccounts() {
       const expReturnEl  = card.querySelector(`.acct-exp-return[data-id="${id}"]`);
       if (birthYearEl)  acct.birthYear      = birthYearEl.value.trim();
       if (expReturnEl)  acct.expectedReturn  = parseFloat(expReturnEl.value) || 7;
-      const contribPctEl = card.querySelector(`.acct-contrib-pct[data-id="${id}"]`);
-      const matchPctEl   = card.querySelector(`.acct-employer-match[data-id="${id}"]`);
-      if (contribPctEl) acct.myContribPct     = contribPctEl.value.trim() !== '' ? parseFloat(contribPctEl.value) : undefined;
-      if (matchPctEl)   acct.employerMatchPct  = matchPctEl.value.trim()   !== '' ? parseFloat(matchPctEl.value)   : undefined;
+      const contribPctEl  = card.querySelector(`.acct-contrib-pct[data-id="${id}"]`);
+      const contribAmtEl  = card.querySelector(`.acct-contrib-amt[data-id="${id}"]`);
+      const matchPctEl    = card.querySelector(`.acct-employer-match[data-id="${id}"]`);
+      const matchAmtEl    = card.querySelector(`.acct-employer-match-amt[data-id="${id}"]`);
+      if (contribPctEl) acct.myContribPct      = contribPctEl.value.trim()  !== '' ? parseFloat(contribPctEl.value)  : undefined;
+      if (contribAmtEl) acct.myContribAmt       = contribAmtEl.value.trim()  !== '' ? parseFloat(contribAmtEl.value)  : undefined;
+      if (matchPctEl)   acct.employerMatchPct   = matchPctEl.value.trim()    !== '' ? parseFloat(matchPctEl.value)    : undefined;
+      if (matchAmtEl)   acct.employerMatchAmt   = matchAmtEl.value.trim()    !== '' ? parseFloat(matchAmtEl.value)    : undefined;
       const paycheckLinkEl = card.querySelector(`.acct-paycheck-link[data-id="${id}"]`);
       if (paycheckLinkEl) acct.linkedPaycheckAcctId = paycheckLinkEl.value || undefined;
       // Paycheck schedule (non-debt, non-retirement accounts)
