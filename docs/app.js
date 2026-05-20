@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.7.6';
+const VERSION = '4.8.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.8.0', date: '2026-05-20', changes: [
+    'Paycheck Scheduler: set a pay amount, frequency (weekly / bi-weekly / semi-monthly / monthly), and next pay date on any checking or savings account — income is auto-entered on pay day, even for missed dates you haven\'t opened the app',
+    'Paychecks auto-applied on app open and when returning to the app; a green toast confirms each entry',
+    'Income Budget Planner: appears on the Budgets page when a paycheck schedule is active — shows monthly income estimate, bills deducted, 20% savings recommendation, and suggested per-category spending amounts',
+    'Budget Planner bars are colored per-category; apply individual rows or all at once to your budget limits',
+  ]},
   { version: '4.7.6', date: '2026-05-20', changes: [
     'Progress bars now use a boosted visual scale — 30% raw fill looks ~50% wide so small values are never invisible',
   ]},
@@ -897,6 +903,64 @@ function checkRoast(category) {
     const quip = ROASTS[Math.floor(Math.random() * ROASTS.length)].replace('{cat}', category);
     showRoast(quip);
   }
+}
+
+// ── paycheck schedule helpers ──────────────────────────────────────────────
+function _nextPayDate(dateStr, frequency) {
+  const d = new Date(dateStr + 'T00:00:00');
+  switch (frequency) {
+    case 'weekly':       d.setDate(d.getDate() + 7);  break;
+    case 'biweekly':     d.setDate(d.getDate() + 14); break;
+    case 'semimonthly':
+      if (d.getDate() < 15) d.setDate(15);
+      else { d.setMonth(d.getMonth() + 1); d.setDate(1); }
+      break;
+    case 'monthly':      d.setMonth(d.getMonth() + 1); break;
+    default:             d.setDate(d.getDate() + 14);
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+function _payMonthlyMultiplier(frequency) {
+  return { weekly: 4.33, biweekly: 2.167, semimonthly: 2, monthly: 1 }[frequency] || 2.167;
+}
+
+function _showPaycheckToast(amount, nextDate) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:calc(var(--nav-h) + 12px);left:50%;transform:translateX(-50%);background:var(--success);color:#000;padding:10px 18px;border-radius:12px;font-size:.82rem;font-weight:700;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);animation:fadeSlideIn .2s ease';
+  t.textContent = `💵 Paycheck of ${fmt(amount)} added!`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3800);
+}
+
+async function _checkPaychecks() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayStr = today.toISOString().slice(0, 10);
+  let changed = false;
+  for (const acct of state.accounts) {
+    const ps = acct.paySchedule;
+    if (!ps?.enabled || !ps.amount || !ps.nextPayDate) continue;
+    // Process all missed pay dates up to and including today
+    while (ps.nextPayDate <= todayStr && ps.lastAutoAdded !== ps.nextPayDate) {
+      const savedId = currentAccountId;
+      // Temporarily target the right account when adding
+      const prevId = currentAccountId;
+      currentAccountId = acct.id;
+      _loadAccountData(acct.id);
+      await api.addTransaction({
+        type: 'income', amount: ps.amount,
+        description: ps.description || 'Paycheck',
+        category: 'Income', date: ps.nextPayDate, account: acct.id,
+      });
+      currentAccountId = prevId;
+      _loadAccountData(prevId);
+      ps.lastAutoAdded = ps.nextPayDate;
+      ps.nextPayDate   = _nextPayDate(ps.nextPayDate, ps.frequency);
+      changed = true;
+      if (acct.id === currentAccountId) _showPaycheckToast(ps.amount, ps.nextPayDate);
+    }
+  }
+  if (changed) { await api.saveAccounts(state.accounts); render(); }
 }
 
 // ── utilities ──────────────────────────────────────────────────────────────
@@ -2584,6 +2648,46 @@ function renderDashboard() {
   return renderDashboardDawg();
 }
 
+// ── income budget planner ──────────────────────────────────────────────────
+function getIncomeBudgetPlan() {
+  const acct = state.accounts.find(a => a.id === currentAccountId);
+  const ps   = acct?.paySchedule;
+  if (!ps?.enabled || !ps.amount) return null;
+
+  const monthlyIncome = ps.amount * _payMonthlyMultiplier(ps.frequency);
+  const totalBills    = state.bills.reduce((s, b) => s + b.amount, 0);
+  const savings       = Math.round(monthlyIncome * 0.20 / 5) * 5;
+  const disposable    = Math.max(0, monthlyIncome - totalBills - savings);
+
+  // Spending split of disposable income
+  const splits = {
+    Food:           0.26,
+    Gas:            0.12,
+    Car:            0.13,
+    Home:           0.14,
+    Entertainment:  0.10,
+    Health:         0.09,
+    Tools:          0.06,
+    Boat:           0.04,
+    Other:          0.06,
+  };
+  const suggestions = {};
+  for (const [cat, pct] of Object.entries(splits)) {
+    const v = Math.round(disposable * pct / 5) * 5;
+    if (v > 0) suggestions[cat] = v;
+  }
+
+  return {
+    monthlyIncome,
+    perPaycheck: ps.amount,
+    frequency:   ps.frequency,
+    totalBills,
+    savings,
+    disposable,
+    suggestions,
+  };
+}
+
 // ── budgets ────────────────────────────────────────────────────────────────
 const _BUDGET_PRESETS = {
   Food:          400,
@@ -2631,6 +2735,57 @@ function getSmartBudgetSuggestions() {
 function renderBudgets() {
   const m = new Date().toISOString().slice(0, 7);
   const { bycat } = monthTotals(m);
+
+  // ── Income Budget Planner card ───────────────────────────────────────────
+  const plan = getIncomeBudgetPlan();
+  const freqLabel = { weekly:'week', biweekly:'2 weeks', semimonthly:'semi-month', monthly:'month' };
+  const planHtml = plan ? (() => {
+    const rows = Object.entries(plan.suggestions).map(([cat, amt]) => {
+      const pct      = plan.disposable > 0 ? Math.round(amt / plan.disposable * 100) : 0;
+      const catColor = CAT_COLORS[cat] || '#9896a4';
+      return `<div class="ibp-row">
+        <span class="cat-dot" style="background:${catColor}"></span>
+        <span class="ibp-cat">${cat}</span>
+        <div class="ibp-bar-wrap"><div class="ibp-bar" style="width:${_boostBar(pct)}%;background:${catColor}"></div></div>
+        <span class="ibp-pct">${pct}%</span>
+        <span class="ibp-amt">${fmt(amt)}</span>
+        <button class="budget-suggest-apply ibp-apply" data-cat="${cat}" data-amt="${amt}" style="padding:3px 8px;font-size:.68rem">Apply</button>
+      </div>`;
+    }).join('');
+    return `
+    <div class="ibp-card">
+      <div class="ibp-hdr">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Income Budget Planner
+      </div>
+      <div class="ibp-income-row">
+        <div class="ibp-income-block">
+          <span class="ibp-income-lbl">Per paycheck</span>
+          <span class="ibp-income-val">${fmt(plan.perPaycheck)}</span>
+          <span class="ibp-income-sub">every ${freqLabel[plan.frequency]||plan.frequency}</span>
+        </div>
+        <div class="ibp-income-block">
+          <span class="ibp-income-lbl">Monthly est.</span>
+          <span class="ibp-income-val">${fmt(plan.monthlyIncome)}</span>
+          <span class="ibp-income-sub">gross</span>
+        </div>
+        <div class="ibp-income-block">
+          <span class="ibp-income-lbl">After bills</span>
+          <span class="ibp-income-val" style="color:var(--accent)">${fmt(plan.disposable + plan.savings)}</span>
+          <span class="ibp-income-sub">−${fmt(plan.totalBills)} bills</span>
+        </div>
+      </div>
+      <div class="ibp-savings-row">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0H5m14 0h2M5 21H3m2 0v-4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4"/></svg>
+        Suggested savings: <strong>${fmt(plan.savings)}/mo</strong>
+        <span style="color:var(--muted);font-size:.7rem"> (20% of income)</span>
+      </div>
+      <p style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Remaining ${fmt(plan.disposable)} split across spending categories:</p>
+      <div class="ibp-rows">${rows}</div>
+      <button id="ibp-apply-all" class="btn-primary" style="width:100%;margin-top:10px;font-size:.82rem">Apply All to Budget Limits</button>
+    </div>`;
+  })() : '';
+
   const { suggestions, isPreset } = getSmartBudgetSuggestions();
   const hasSuggestions = Object.keys(suggestions).length > 0;
   const suggestionsHtml = hasSuggestions ? `
@@ -2682,6 +2837,7 @@ function renderBudgets() {
     <div class="page">
       <h1 class="page-title">Budget Limits</h1>
       <p class="page-sub">monthly cap per category</p>
+      ${planHtml}
       ${suggestionsHtml}
       <div class="form-card">
         ${rows}
@@ -2694,14 +2850,14 @@ function renderBudgets() {
 }
 
 function attachBudgets() {
-  // Apply single suggestion
+  // Apply single chip (smart suggestion OR planner row)
   document.querySelectorAll('.budget-suggest-apply').forEach(btn => {
     btn.addEventListener('click', () => {
       const inp = document.getElementById('budget-' + btn.dataset.cat);
       if (inp) { inp.value = btn.dataset.amt; btn.textContent = '✓'; btn.disabled = true; }
     });
   });
-  // Apply all suggestions
+  // Apply all smart suggestions
   document.getElementById('budget-apply-all')?.addEventListener('click', () => {
     const { suggestions } = getSmartBudgetSuggestions();
     Object.entries(suggestions).forEach(([cat, amt]) => {
@@ -2709,6 +2865,16 @@ function attachBudgets() {
       if (inp) inp.value = amt;
     });
     document.querySelectorAll('.budget-suggest-apply').forEach(btn => { btn.textContent = '✓'; btn.disabled = true; });
+  });
+  // Apply all planner suggestions
+  document.getElementById('ibp-apply-all')?.addEventListener('click', () => {
+    const plan = getIncomeBudgetPlan();
+    if (!plan) return;
+    Object.entries(plan.suggestions).forEach(([cat, amt]) => {
+      const inp = document.getElementById('budget-' + cat);
+      if (inp) inp.value = amt;
+    });
+    document.querySelectorAll('.ibp-apply').forEach(btn => { btn.textContent = '✓'; btn.disabled = true; });
   });
   document.getElementById('save-budgets')?.addEventListener('click', async () => {
     const dict = {};
@@ -4288,6 +4454,44 @@ function _buildAccountCards() {
     const fmtPmt = a.monthly_payment ? '$' + parseFloat(a.monthly_payment).toFixed(2) : '';
     const dueDateDisplay = dueDay ? _ordinal(dueDay) : 'Choose due date';
     const typeMeta = ACCT_TYPE_META.find(t => t.key === a.type) || ACCT_TYPE_META[0];
+    // Paycheck schedule (checking / savings / cash only)
+    const ps = a.paySchedule || {};
+    const freqOpts = ['weekly','biweekly','semimonthly','monthly']
+      .map(f => `<option value="${f}"${ps.frequency===f?' selected':''}>${{weekly:'Weekly',biweekly:'Bi-weekly',semimonthly:'Semi-monthly (1st & 15th)',monthly:'Monthly'}[f]}</option>`)
+      .join('');
+    const paycheckSection = !isDebtAcct ? `
+      <div class="acct-pay-section" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)">Paycheck Schedule</span>
+          <label class="acct-pay-toggle-wrap" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <span style="font-size:.72rem;color:var(--muted)">${ps.enabled ? 'On' : 'Off'}</span>
+            <div class="toggle-pill${ps.enabled?' toggle-pill-on':''}">
+              <input type="checkbox" class="acct-pay-enabled" data-id="${a.id}" ${ps.enabled?'checked':''} style="display:none">
+              <span class="toggle-knob"></span>
+            </div>
+          </label>
+        </div>
+        <div class="acct-pay-fields" style="${ps.enabled?'':'display:none'}">
+          <div class="form-row" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:.72rem">Amount per paycheck</label>
+            <input type="number" class="form-input acct-pay-amount" data-id="${a.id}" placeholder="e.g. 2500" value="${ps.amount||''}" inputmode="decimal" step="0.01" min="0">
+          </div>
+          <div class="form-row" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:.72rem">Pay frequency</label>
+            <select class="form-input form-select acct-pay-freq" data-id="${a.id}">${freqOpts}</select>
+          </div>
+          <div class="form-row" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:.72rem">Next pay date</label>
+            <input type="date" class="form-input acct-pay-nextdate" data-id="${a.id}" value="${ps.nextPayDate||''}">
+          </div>
+          <div class="form-row" style="margin-bottom:4px">
+            <label class="form-label" style="font-size:.72rem">Label (optional)</label>
+            <input type="text" class="form-input acct-pay-desc" data-id="${a.id}" placeholder="Paycheck" value="${ps.description||''}">
+          </div>
+          ${ps.nextPayDate ? `<p style="font-size:.7rem;color:var(--accent);margin-top:4px">Next auto-entry: ${ps.nextPayDate}</p>` : ''}
+        </div>
+      </div>` : '';
+
     const debtFields = isDebtAcct ? `
       <div class="acct-settings-debt" style="margin-top:10px">
         <input type="text" class="form-input acct-interest-input acct-fmt-pct" data-id="${a.id}"
@@ -4329,6 +4533,7 @@ function _buildAccountCards() {
         <input type="hidden" class="acct-type-select" data-id="${a.id}" value="${a.type}">
         <div class="acct-type-chips" data-id="${a.id}" style="margin-bottom:10px">${typeChips}</div>
         ${debtFields}
+        ${paycheckSection}
         <div class="acct-settings-actions" style="margin-top:10px">
           <button class="btn-xs acct-edit-save-btn" data-id="${a.id}" style="background:var(--accent);color:var(--bg);border-color:var(--accent)">Save</button>
           ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">Delete</button>` : ''}
@@ -4468,7 +4673,20 @@ function attachAccounts() {
     });
   });
 
-  // Account edit save — handles name, type, and debt fields all at once
+  // Paycheck toggle — show/hide fields live
+  document.querySelectorAll('.acct-pay-enabled').forEach(chk => {
+    const card   = chk.closest('.acct-settings-card');
+    const fields = card?.querySelector('.acct-pay-fields');
+    const pill   = chk.closest('.toggle-pill');
+    const lbl    = chk.closest('.acct-pay-toggle-wrap')?.querySelector('span');
+    chk.addEventListener('change', () => {
+      if (fields) fields.style.display = chk.checked ? '' : 'none';
+      if (pill)   pill.classList.toggle('toggle-pill-on', chk.checked);
+      if (lbl)    lbl.textContent = chk.checked ? 'On' : 'Off';
+    });
+  });
+
+  // Account edit save — handles name, type, debt fields, and paycheck schedule
   document.querySelectorAll('.acct-edit-save-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id   = btn.dataset.id;
@@ -4487,6 +4705,22 @@ function attachAccounts() {
       if (rateRaw !== undefined) acct.interest_rate   = rateRaw !== '' ? parseFloat(rateRaw) : undefined;
       if (day     !== undefined) acct.payment_due_day = day     ? parseInt(day)              : undefined;
       if (pmtRaw  !== undefined) acct.monthly_payment = pmtRaw  ? parseFloat(pmtRaw)         : undefined;
+      // Paycheck schedule (non-debt accounts)
+      const payEnabledEl  = card.querySelector(`.acct-pay-enabled[data-id="${id}"]`);
+      if (payEnabledEl) {
+        const payAmt  = parseFloat(card.querySelector(`.acct-pay-amount[data-id="${id}"]`)?.value || '0') || 0;
+        const payFreq = card.querySelector(`.acct-pay-freq[data-id="${id}"]`)?.value || 'biweekly';
+        const payDate = card.querySelector(`.acct-pay-nextdate[data-id="${id}"]`)?.value || '';
+        const payDesc = card.querySelector(`.acct-pay-desc[data-id="${id}"]`)?.value.trim() || 'Paycheck';
+        acct.paySchedule = {
+          ...(acct.paySchedule || {}),
+          enabled:     payEnabledEl.checked,
+          amount:      payAmt,
+          frequency:   payFreq,
+          nextPayDate: payDate,
+          description: payDesc,
+        };
+      }
       await api.saveAccounts(state.accounts);
       updateAccountSwitcher();
       // Update card header in-place so the card stays expanded
@@ -6110,6 +6344,10 @@ window.addEventListener('popstate', () => {
       const s = loadSettings();
       if ((s.theme || 'dark') === 'auto') applySettings();
     });
+
+    // Auto-add any paychecks that are due today or overdue
+    _checkPaychecks();
+    window.addEventListener('focus', _checkPaychecks);
 
     // Check for a new version every open and every time the app is foregrounded
     checkForUpdate();
