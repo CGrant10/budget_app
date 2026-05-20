@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.3.8';
+const VERSION = '4.3.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.3.9', date: '2026-05-20', changes: [
+    'What\'s New popup: removed dog emoji from the "Got it" button',
+  ]},
   { version: '4.3.8', date: '2026-05-20', changes: [
     'Recent transactions tile now shows the 5 most recent transactions with the newest at the top',
     'What\'s New popup fixed — was silently skipping the popup when no changelog entry matched the current version',
@@ -4432,7 +4435,7 @@ function maybeShowWhatsNew() {
   const btn = document.createElement('button');
   btn.id = 'whats-new-ok';
   btn.style.cssText = 'margin-top:18px;width:100%;padding:14px;flex-shrink:0;background:var(--accent);color:#000;border:none;border-radius:13px;font-family:var(--font-body);font-size:.9rem;font-weight:800;cursor:pointer;letter-spacing:.04em;transition:opacity .15s;';
-  btn.textContent = 'Got it 🐕';
+  btn.textContent = 'Got it';
 
   card.appendChild(header);
   card.appendChild(list);
