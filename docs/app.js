@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.9.5';
+const VERSION = '4.9.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.9.6', date: '2026-05-20', changes: [
+    'Paycheck gross pay: add a "Gross pay per check" field to the paycheck schedule so retirement accounts can auto-calculate contributions from pre-tax income',
+    'Retirement auto-contributions: link a retirement account to a paycheck account; when a paycheck fires, employee and employer contributions are automatically posted to the retirement account based on your contribution % and employer match %',
+  ]},
   { version: '4.9.5', date: '2026-05-20', changes: [
     'Paycheck Estimator: tap "Don\'t know your net pay? Estimate it" in the paycheck schedule to open a gross-to-net calculator — enter gross pay, filing status, state tax %, and pre-tax deductions to get an itemized breakdown (federal tax, FICA, state, deductions) with a one-tap "Use this amount" button',
     'Federal tax estimate uses 2025 IRS brackets for single and married filers',
@@ -997,20 +1001,52 @@ async function _checkPaychecks() {
     if (!ps?.enabled || !ps.amount || !ps.nextPayDate) continue;
     // Process all missed pay dates up to and including today
     while (ps.nextPayDate <= todayStr && ps.lastAutoAdded !== ps.nextPayDate) {
-      const savedId = currentAccountId;
-      // Temporarily target the right account when adding
+      const payDate = ps.nextPayDate; // capture before advancing
       const prevId = currentAccountId;
+      // Post net paycheck to the source account
       currentAccountId = acct.id;
       _loadAccountData(acct.id);
       await api.addTransaction({
         type: 'income', amount: ps.amount,
         description: ps.description || 'Paycheck',
-        category: 'Income', date: ps.nextPayDate, account: acct.id,
+        category: 'Income', date: payDate, account: acct.id,
       });
       currentAccountId = prevId;
       _loadAccountData(prevId);
-      ps.lastAutoAdded = ps.nextPayDate;
-      ps.nextPayDate   = _nextPayDate(ps.nextPayDate, ps.frequency);
+      // Auto-contribute to linked retirement accounts from gross pay
+      if (ps.grossAmount) {
+        const gross = ps.grossAmount;
+        const linkedRetire = state.accounts.filter(ra =>
+          RETIRE_TYPES.includes(ra.type) && ra.linkedPaycheckAcctId === acct.id
+        );
+        for (const retAcct of linkedRetire) {
+          const empPct    = retAcct.myContribPct     || 0;
+          const matchPct  = retAcct.employerMatchPct || 0;
+          const empAmt    = +(gross * empPct    / 100).toFixed(2);
+          const matchAmt  = +(gross * matchPct  / 100).toFixed(2);
+          const savedId2  = currentAccountId;
+          currentAccountId = retAcct.id;
+          _loadAccountData(retAcct.id);
+          if (empAmt > 0) {
+            await api.addTransaction({
+              type: 'income', amount: empAmt,
+              description: `${ps.description || 'Paycheck'} — My Contribution`,
+              category: 'Income', date: payDate, account: retAcct.id,
+            });
+          }
+          if (matchAmt > 0) {
+            await api.addTransaction({
+              type: 'income', amount: matchAmt,
+              description: `${ps.description || 'Paycheck'} — Employer Match`,
+              category: 'Income', date: payDate, account: retAcct.id,
+            });
+          }
+          currentAccountId = savedId2;
+          _loadAccountData(savedId2);
+        }
+      }
+      ps.lastAutoAdded = payDate;
+      ps.nextPayDate   = _nextPayDate(payDate, ps.frequency);
       changed = true;
       if (acct.id === currentAccountId) _showPaycheckToast(ps.amount, ps.nextPayDate);
     }
@@ -4944,6 +4980,11 @@ function _buildAccountCards() {
     const freqOpts = ['weekly','biweekly','semimonthly','monthly']
       .map(f => `<option value="${f}"${ps.frequency===f?' selected':''}>${{weekly:'Weekly',biweekly:'Bi-weekly',semimonthly:'Semi-monthly (1st & 15th)',monthly:'Monthly'}[f]}</option>`)
       .join('');
+    // Paycheck accounts available to link to a retirement account
+    const paycheckAcctOpts = state.accounts
+      .filter(ac => ac.type !== 'credit' && ac.type !== 'loan' && !RETIRE_TYPES.includes(ac.type) && ac.paySchedule?.enabled)
+      .map(ac => `<option value="${ac.id}"${ac.id === a.linkedPaycheckAcctId ? ' selected' : ''}>${ac.name}</option>`)
+      .join('');
     const retireFields = isRetireAcct ? `
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <span style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:block;margin-bottom:8px">Retirement Settings</span>
@@ -4956,12 +4997,23 @@ function _buildAccountCards() {
           <input type="number" class="form-input acct-exp-return" data-id="${a.id}" value="${a.expectedReturn != null ? a.expectedReturn : 7}" placeholder="7" inputmode="decimal" min="0" max="30" step="0.5">
         </div>
         <div class="form-row" style="margin-bottom:8px">
-          <label class="form-label" style="font-size:.72rem">My Contribution (% of salary)</label>
+          <label class="form-label" style="font-size:.72rem">My Contribution (% of gross)</label>
           <input type="number" class="form-input acct-contrib-pct" data-id="${a.id}" value="${a.myContribPct != null ? a.myContribPct : ''}" placeholder="e.g. 6" inputmode="decimal" min="0" max="100" step="0.5">
         </div>
-        <div class="form-row" style="margin-bottom:4px">
-          <label class="form-label" style="font-size:.72rem">Employer Match (% of salary)</label>
+        <div class="form-row" style="margin-bottom:8px">
+          <label class="form-label" style="font-size:.72rem">Employer Match (% of gross)</label>
           <input type="number" class="form-input acct-employer-match" data-id="${a.id}" value="${a.employerMatchPct != null ? a.employerMatchPct : ''}" placeholder="e.g. 3" inputmode="decimal" min="0" max="100" step="0.5">
+        </div>
+        <div class="form-row" style="margin-bottom:4px">
+          <label class="form-label" style="font-size:.72rem">Auto-contribute from paycheck</label>
+          ${paycheckAcctOpts
+            ? `<select class="form-input form-select acct-paycheck-link" data-id="${a.id}">
+                <option value="">— none —</option>
+                ${paycheckAcctOpts}
+              </select>
+              <p style="font-size:.69rem;color:var(--muted);margin:4px 0 0">When a paycheck fires on the linked account, contributions are automatically posted here using the gross pay amount above.</p>`
+            : `<p style="font-size:.72rem;color:var(--muted);margin:4px 0 0">No paycheck schedule active. Enable a paycheck schedule on a checking/savings account first, then come back here to link it.</p>`
+          }
         </div>
       </div>` : '';
     const paycheckSection = (!isDebtAcct && !isRetireAcct) ? `
@@ -4980,6 +5032,10 @@ function _buildAccountCards() {
           <div class="form-row" style="margin-bottom:6px">
             <label class="form-label" style="font-size:.72rem">Amount per paycheck (net/take-home)</label>
             <input type="number" class="form-input acct-pay-amount" data-id="${a.id}" placeholder="e.g. 2500" value="${ps.amount||''}" inputmode="decimal" step="0.01" min="0">
+          </div>
+          <div class="form-row" style="margin-bottom:6px">
+            <label class="form-label" style="font-size:.72rem">Gross pay per check <span style="font-weight:400;color:var(--muted)">(for retirement auto-contributions)</span></label>
+            <input type="number" class="form-input acct-pay-gross" data-id="${a.id}" placeholder="e.g. 3000" value="${ps.grossAmount||''}" inputmode="decimal" step="0.01" min="0">
           </div>
           <button type="button" class="est-toggle-btn" data-id="${a.id}">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Don't know your net pay? Estimate it
@@ -5363,17 +5419,21 @@ function attachAccounts() {
       const matchPctEl   = card.querySelector(`.acct-employer-match[data-id="${id}"]`);
       if (contribPctEl) acct.myContribPct     = contribPctEl.value.trim() !== '' ? parseFloat(contribPctEl.value) : undefined;
       if (matchPctEl)   acct.employerMatchPct  = matchPctEl.value.trim()   !== '' ? parseFloat(matchPctEl.value)   : undefined;
+      const paycheckLinkEl = card.querySelector(`.acct-paycheck-link[data-id="${id}"]`);
+      if (paycheckLinkEl) acct.linkedPaycheckAcctId = paycheckLinkEl.value || undefined;
       // Paycheck schedule (non-debt, non-retirement accounts)
       const payEnabledEl  = card.querySelector(`.acct-pay-enabled[data-id="${id}"]`);
       if (payEnabledEl) {
-        const payAmt  = parseFloat(card.querySelector(`.acct-pay-amount[data-id="${id}"]`)?.value || '0') || 0;
-        const payFreq = card.querySelector(`.acct-pay-freq[data-id="${id}"]`)?.value || 'biweekly';
-        const payDate = card.querySelector(`.acct-pay-nextdate[data-id="${id}"]`)?.value || '';
-        const payDesc = card.querySelector(`.acct-pay-desc[data-id="${id}"]`)?.value.trim() || 'Paycheck';
+        const payAmt   = parseFloat(card.querySelector(`.acct-pay-amount[data-id="${id}"]`)?.value || '0') || 0;
+        const payGross = parseFloat(card.querySelector(`.acct-pay-gross[data-id="${id}"]`)?.value  || '0') || 0;
+        const payFreq  = card.querySelector(`.acct-pay-freq[data-id="${id}"]`)?.value || 'biweekly';
+        const payDate  = card.querySelector(`.acct-pay-nextdate[data-id="${id}"]`)?.value || '';
+        const payDesc  = card.querySelector(`.acct-pay-desc[data-id="${id}"]`)?.value.trim() || 'Paycheck';
         acct.paySchedule = {
           ...(acct.paySchedule || {}),
           enabled:     payEnabledEl.checked,
           amount:      payAmt,
+          grossAmount: payGross || undefined,
           frequency:   payFreq,
           nextPayDate: payDate,
           description: payDesc,
