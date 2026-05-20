@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.6.4';
+const VERSION = '4.6.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1959,13 +1959,13 @@ function renderAccountPicker() {
     const balance  = isDebt ? Math.max(0, startBal + exp - inc) : startBal + inc - exp;
     const balColor = isDebt ? 'var(--danger)' : (balance >= 0 ? 'var(--success)' : 'var(--danger)');
     const balLabel = isDebt ? `Owes ${fmt(balance)}` : fmt(balance);
-    const icon     = { checking:'🏦', savings:'💰', credit:'💳', loan:'📋', cash:'💵' }[acct.type] || '🏦';
     const typeLbl  = acct.type.charAt(0).toUpperCase() + acct.type.slice(1);
     const stripe   = TYPE_COLORS[acct.type] || 'var(--accent)';
+    const icon     = _ACCT_SVG[acct.type] || _ACCT_SVG.checking;
     return `
       <div class="acct-row" data-id="${acct.id}">
         <div class="acct-row-stripe" style="background:${stripe}"></div>
-        <div class="acct-row-icon">${icon}</div>
+        <div class="acct-row-icon" style="color:${stripe}">${icon}</div>
         <div class="acct-row-info">
           <div class="acct-row-name">${acct.name}</div>
           <div class="acct-row-type">${typeLbl}</div>
