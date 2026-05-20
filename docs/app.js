@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.9.3';
+const VERSION = '4.9.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.9.4', date: '2026-05-20', changes: [
+    'Accounts overview page: top nav bar (hamburger / account pill / bell) now hides when the account picker is open',
+  ]},
   { version: '4.9.3', date: '2026-05-20', changes: [
     'Retirement accounts: add your contribution % and employer match % on the account card — shows a Contribution Split card on the dashboard with your rate, employer rate, and total effective rate',
     'Edit button (pencil icon) added to the dashboard balance card for every account type — taps through to Manage Accounts with that account\'s card pre-expanded and scrolled into view',

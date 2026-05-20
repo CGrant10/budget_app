@@ -1713,6 +1713,7 @@ body.light .section-title::before {
 /* ── account picker ── */
 #app.picker-mode .bottom-nav      { display:none !important; }
 #app.picker-mode #dawg-bottom-nav { display:none !important; }
+#app.picker-mode #dawg-topbar     { display:none !important; }
 #app.picker-mode .acct-switcher   { display:none !important; }
 #app.picker-mode .header          { display:none !important; }
 /* In side-nav mode the sidebar is hidden by picker-mode above — reset the margin so picker fills full width */
