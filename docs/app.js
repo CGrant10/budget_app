@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.9.2';
+const VERSION = '4.9.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.9.3', date: '2026-05-20', changes: [
+    'Retirement accounts: add your contribution % and employer match % on the account card — shows a Contribution Split card on the dashboard with your rate, employer rate, and total effective rate',
+    'Edit button (pencil icon) added to the dashboard balance card for every account type — taps through to Manage Accounts with that account\'s card pre-expanded and scrolled into view',
+  ]},
   { version: '4.9.2', date: '2026-05-20', changes: [
     'Retirement account dashboard: switching to a Roth IRA, 401(k), Traditional IRA, or HSA account now shows a clean retirement-only view instead of the standard budget dashboard',
     'Retirement dashboard shows: portfolio balance, total invested, YTD contributions vs IRS limit, projected value at age 65, and recent contribution history',
@@ -1487,6 +1491,7 @@ function calcHealthScore() {
 let currentTab = 'dashboard';
 let dashMonth = new Date().toISOString().slice(0, 7);
 let debtSubTab = 'credit'; // 'credit' | 'loan'
+let _pendingAccountExpand = null; // account id to auto-expand when Accounts tab renders
 let debtCalcMode = 'snowball'; // 'snowball' | 'avalanche'
 let debtMonthlyPay = '';
 let showingAccountPicker = false;
@@ -1501,6 +1506,11 @@ let ledgerDateTo = '';
 let _insightTimer = null;
 let _dawgSparkGlobal = null; // module-level ref so tab switches can destroy it
 let _splitRows    = []; // [{cat, amount}] for split-transaction mode
+
+function showAccountEdit(acctId) {
+  _pendingAccountExpand = acctId;
+  showTab('accounts');
+}
 
 function showTab(key) {
   if (currentTab === 'ledger' && key !== 'ledger') {
@@ -2467,8 +2477,34 @@ function renderRetirementDashboard(acct) {
       <span class="ret-dash-contrib-amt" style="color:var(--success)">+${fmt(t.amount)}</span>
     </div>`).join('');
 
+  // Employer match card
+  const hasMatch = acct.myContribPct != null || acct.employerMatchPct != null;
+  const myPct    = parseFloat(acct.myContribPct)     || 0;
+  const empPct   = parseFloat(acct.employerMatchPct) || 0;
+  const matchHtml = hasMatch ? `
+    <div class="ret-dash-card">
+      <div class="ret-dash-card-title">Contribution Split</div>
+      <div class="ret-dash-match-rows">
+        ${acct.myContribPct != null ? `<div class="ret-dash-match-row">
+          <span class="ret-dash-match-lbl">My Contribution</span>
+          <span class="ret-dash-match-val">${myPct}%</span>
+        </div>` : ''}
+        ${acct.employerMatchPct != null ? `<div class="ret-dash-match-row">
+          <span class="ret-dash-match-lbl">Employer Match</span>
+          <span class="ret-dash-match-val" style="color:var(--success)">${empPct}%</span>
+        </div>` : ''}
+        ${(acct.myContribPct != null && acct.employerMatchPct != null) ? `<div class="ret-dash-match-row ret-dash-match-total">
+          <span class="ret-dash-match-lbl">Total Effective Rate</span>
+          <span class="ret-dash-match-val">${(myPct + empPct).toFixed(1)}%</span>
+        </div>` : ''}
+      </div>
+    </div>` : '';
+
   return `<div class="dawg-page ret-dash-page">
-    <div class="ret-dash-hero" style="--ret-color:${color}">
+    <div class="ret-dash-hero" style="--ret-color:${color};position:relative">
+      <button class="dash-acct-edit-btn" id="dash-acct-edit" title="Edit account settings">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
       <div class="ret-dash-hero-glow"></div>
       <div class="ret-dash-acct-type" style="color:${color}">${typeName}</div>
       <div class="ret-dash-balance">${fmt(bal)}</div>
@@ -2497,6 +2533,8 @@ function renderRetirementDashboard(acct) {
         <div class="ret-dash-stat-lbl">Projected @ ${retAge}</div>
       </div>
     </div>
+
+    ${matchHtml}
 
     <div class="ret-dash-card">
       <div class="ret-dash-card-title">${curYear} IRS Limit</div>
@@ -2696,7 +2734,10 @@ function renderDashboardDawg() {
       </div>
     </div>
 
-    <div class="dawg-balance-card">
+    <div class="dawg-balance-card" style="position:relative">
+      <button class="dash-acct-edit-btn" id="dash-acct-edit" title="Edit account settings">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
       <div class="dawg-balance-label">${_isDebt ? (_curAcctD?.type==='loan' ? 'LOAN BALANCE' : 'BALANCE OWED') : 'TOTAL BALANCE'}</div>
       <div class="dawg-balance-amt" style="color:${balColor}">${fmt(balance)}</div>
       ${paymentDueStr ? `<div class="dawg-balance-due" style="color:${parseInt(_curAcctD?.payment_due_day)>0&&Math.round((new Date(new Date().getFullYear(),new Date().getMonth(),parseInt(_curAcctD.payment_due_day))-new Date())/86400000)<=3?'var(--warn)':'var(--muted)'}">${paymentDueStr}</div>` : ''}
@@ -4877,9 +4918,17 @@ function _buildAccountCards() {
           <label class="form-label" style="font-size:.72rem">Birth Year (for catch-up limits)</label>
           <input type="number" class="form-input acct-birth-year" data-id="${a.id}" value="${a.birthYear || ''}" placeholder="e.g. 1985" inputmode="numeric" min="1930" max="2006" step="1">
         </div>
-        <div class="form-row" style="margin-bottom:4px">
+        <div class="form-row" style="margin-bottom:8px">
           <label class="form-label" style="font-size:.72rem">Expected Annual Return (%)</label>
           <input type="number" class="form-input acct-exp-return" data-id="${a.id}" value="${a.expectedReturn != null ? a.expectedReturn : 7}" placeholder="7" inputmode="decimal" min="0" max="30" step="0.5">
+        </div>
+        <div class="form-row" style="margin-bottom:8px">
+          <label class="form-label" style="font-size:.72rem">My Contribution (% of salary)</label>
+          <input type="number" class="form-input acct-contrib-pct" data-id="${a.id}" value="${a.myContribPct != null ? a.myContribPct : ''}" placeholder="e.g. 6" inputmode="decimal" min="0" max="100" step="0.5">
+        </div>
+        <div class="form-row" style="margin-bottom:4px">
+          <label class="form-label" style="font-size:.72rem">Employer Match (% of salary)</label>
+          <input type="number" class="form-input acct-employer-match" data-id="${a.id}" value="${a.employerMatchPct != null ? a.employerMatchPct : ''}" placeholder="e.g. 3" inputmode="decimal" min="0" max="100" step="0.5">
         </div>
       </div>` : '';
     const paycheckSection = (!isDebtAcct && !isRetireAcct) ? `
@@ -5023,6 +5072,20 @@ function renderAccounts() {
 }
 
 function attachAccounts() {
+  // Auto-expand a specific account card (e.g. when navigating from dashboard edit button)
+  if (_pendingAccountExpand) {
+    const targetCard = document.querySelector(`.acct-settings-card .acct-card-header[data-id="${_pendingAccountExpand}"]`)?.closest('.acct-settings-card');
+    if (targetCard) {
+      targetCard.classList.remove('acct-card-collapsed');
+      const body   = targetCard.querySelector('.acct-card-body');
+      const toggle = targetCard.querySelector('.acct-card-toggle');
+      if (body)   body.style.display = '';
+      if (toggle) toggle.textContent = '∨';
+      setTimeout(() => targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    }
+    _pendingAccountExpand = null;
+  }
+
   document.getElementById('accounts-back-btn')?.addEventListener('click', () => {
     _pageTransition = 'slide-right';
     currentTab = 'settings';
@@ -5142,8 +5205,12 @@ function attachAccounts() {
       // Retirement fields
       const birthYearEl  = card.querySelector(`.acct-birth-year[data-id="${id}"]`);
       const expReturnEl  = card.querySelector(`.acct-exp-return[data-id="${id}"]`);
-      if (birthYearEl)  acct.birthYear     = birthYearEl.value.trim();
-      if (expReturnEl)  acct.expectedReturn = parseFloat(expReturnEl.value) || 7;
+      if (birthYearEl)  acct.birthYear      = birthYearEl.value.trim();
+      if (expReturnEl)  acct.expectedReturn  = parseFloat(expReturnEl.value) || 7;
+      const contribPctEl = card.querySelector(`.acct-contrib-pct[data-id="${id}"]`);
+      const matchPctEl   = card.querySelector(`.acct-employer-match[data-id="${id}"]`);
+      if (contribPctEl) acct.myContribPct     = contribPctEl.value.trim() !== '' ? parseFloat(contribPctEl.value) : undefined;
+      if (matchPctEl)   acct.employerMatchPct  = matchPctEl.value.trim()   !== '' ? parseFloat(matchPctEl.value)   : undefined;
       // Paycheck schedule (non-debt, non-retirement accounts)
       const payEnabledEl  = card.querySelector(`.acct-pay-enabled[data-id="${id}"]`);
       if (payEnabledEl) {
@@ -5618,6 +5685,8 @@ function toggleDawgBell() {
 }
 
 function attachDashboardDawg() {
+  // Dashboard edit account button (all account types)
+  document.getElementById('dash-acct-edit')?.addEventListener('click', () => showAccountEdit(currentAccountId));
   // Retirement dashboard: Add Contribution button
   document.getElementById('ret-dash-add-contrib')?.addEventListener('click', () => showTab('add'));
 

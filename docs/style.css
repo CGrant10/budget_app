@@ -3574,3 +3574,36 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
 .ret-dash-contrib-date { color: var(--muted); font-size: .75rem; flex-shrink: 0; }
 .ret-dash-contrib-desc { flex: 1; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ret-dash-contrib-amt  { font-weight: 700; flex-shrink: 0; }
+
+/* ── Dashboard account edit button ──────────────────────────────────────── */
+.dash-acct-edit-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(128,128,128,.15);
+  border: none;
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 7px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color .15s, background .15s;
+  z-index: 2;
+}
+.dash-acct-edit-btn:hover,
+.dash-acct-edit-btn:active {
+  color: var(--text);
+  background: rgba(128,128,128,.28);
+}
+
+/* ── Retirement contribution split card ─────────────────────────────────── */
+.ret-dash-match-rows { display: flex; flex-direction: column; gap: 10px; }
+.ret-dash-match-row  { display: flex; align-items: center; justify-content: space-between; }
+.ret-dash-match-row.ret-dash-match-total {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.ret-dash-match-lbl { font-size: .83rem; color: var(--muted); }
+.ret-dash-match-val { font-size: .95rem; font-weight: 800; color: var(--text); }
