@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.5.1';
+const VERSION = '4.5.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.5.2', date: '2026-05-20', changes: [
+    'Account cards fully rebuilt for mobile — dedicated CSS class, font-size 16px prevents iOS zoom, 2-column grid for debt fields, no more overflow clipping',
+    'Switch account in Settings now stays on the Settings page instead of jumping to the dashboard',
+    'Sparkline scanner — vertical sweep line with trailing glow moves continuously left to right across the chart',
+    'Biometric lock screen — a full-screen blocker now appears immediately while waiting for Face ID/fingerprint, hiding app content',
+  ]},
   { version: '4.5.1', date: '2026-05-20', changes: [
     'Account cards in Settings fixed — names and type dropdowns now display correctly; inputs no longer leak outside the card',
     'Sparkline pulse — a glowing dot with an expanding ring animates at the right edge of the balance chart',
@@ -3399,40 +3405,41 @@ function renderSettings() {
   const accountCards = state.accounts.map((a) => {
     const isDebtAcct = a.type === 'credit' || a.type === 'loan';
     const debtFields = isDebtAcct ? `
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <div class="acct-settings-debt">
         <input type="number" class="form-input acct-interest-input" data-id="${a.id}"
           value="${a.interest_rate || ''}" placeholder="APR %" step="0.01" min="0" max="100"
-          inputmode="decimal" style="width:90px;padding:5px 8px;font-size:12px" title="Annual interest rate %">
+          inputmode="decimal" title="Annual interest rate %">
         <input type="number" class="form-input acct-due-day-input" data-id="${a.id}"
           value="${a.payment_due_day || ''}" placeholder="Due day" min="1" max="28"
-          inputmode="numeric" style="width:80px;padding:5px 8px;font-size:12px" title="Payment due day of month">
+          inputmode="numeric" title="Payment due day of month">
         <input type="number" class="form-input acct-limit-input" data-id="${a.id}"
           value="${a.credit_limit || ''}" placeholder="Limit $" min="0" step="100"
-          inputmode="decimal" style="width:90px;padding:5px 8px;font-size:12px" title="Credit/loan limit">
+          inputmode="decimal" title="Credit/loan limit">
         <input type="number" class="form-input acct-payment-input" data-id="${a.id}"
           value="${a.monthly_payment || ''}" placeholder="Mo. payment $" min="0" step="10"
-          inputmode="decimal" style="width:115px;padding:5px 8px;font-size:12px" title="Fixed monthly payment amount">
-        <button class="btn-xs acct-debt-save-btn" data-id="${a.id}" style="align-self:center">Save</button>
+          inputmode="decimal" title="Fixed monthly payment amount">
+        <div class="acct-settings-debt-save">
+          <button class="btn-xs acct-debt-save-btn" data-id="${a.id}">Save</button>
+        </div>
       </div>` : '';
     return `
-    <div class="account-row" style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:10px">
-      <div style="margin-bottom:8px">
-        <input type="text" class="form-input acct-name-input" value="${a.name}" data-id="${a.id}"
-          style="width:100%;padding:8px 10px;font-size:14px;font-weight:600;box-sizing:border-box${a.id === currentAccountId ? ';border-color:var(--accent)' : ''}"
-          placeholder="Account name">
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <select class="form-input form-select acct-type-select" data-id="${a.id}"
-          style="flex:1;padding:6px 8px;font-size:12px">
-          ${['checking','savings','credit','loan','cash'].map(t =>
-            `<option value="${t}"${a.type === t ? ' selected' : ''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`
-          ).join('')}
-        </select>
+    <div class="acct-settings-card">
+      <div class="acct-settings-top">
+        <span class="acct-settings-type-lbl">${a.type}</span>
         ${a.id === currentAccountId
-          ? '<span class="acct-badge" style="font-size:9px;white-space:nowrap;flex-shrink:0">active</span>'
-          : `<button class="btn-xs acct-switch-btn" data-id="${a.id}" style="flex-shrink:0">Switch</button>`}
+          ? '<span class="acct-badge" style="font-size:9px">active</span>'
+          : `<button class="btn-xs acct-switch-btn" data-id="${a.id}">Switch</button>`}
       </div>
-      <div style="display:flex;gap:6px;justify-content:flex-end">
+      <input type="text" class="form-input acct-name-input" value="${a.name}" data-id="${a.id}"
+        style="width:100%;margin-bottom:8px;font-size:16px;font-weight:600;box-sizing:border-box${a.id === currentAccountId ? ';border-color:var(--accent)' : ''}"
+        placeholder="Account name">
+      <select class="form-input form-select acct-type-select" data-id="${a.id}"
+        style="width:100%;box-sizing:border-box;font-size:15px">
+        ${['checking','savings','credit','loan','cash'].map(t =>
+          `<option value="${t}"${a.type === t ? ' selected' : ''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`
+        ).join('')}
+      </select>
+      <div class="acct-settings-actions">
         <button class="btn-xs acct-edit-save-btn" data-id="${a.id}" style="background:var(--accent);color:var(--bg);border-color:var(--accent)">Save</button>
         ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">Delete</button>` : ''}
       </div>
@@ -3628,13 +3635,13 @@ function attachSettings() {
     });
   });
 
-  // Account edit save (name + type)
+  // Account edit save (name + type) — stays on settings page
   document.querySelectorAll('.acct-edit-save-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id   = btn.dataset.id;
       const acct = state.accounts.find(a => a.id === id);
       if (!acct) return;
-      const card    = btn.closest('.account-row');
+      const card    = btn.closest('.acct-settings-card');
       const newName = card.querySelector(`.acct-name-input[data-id="${id}"]`)?.value.trim();
       const newType = card.querySelector(`.acct-type-select[data-id="${id}"]`)?.value;
       if (!newName) { showStatus('acct-status', 'Account name cannot be empty.', 'error'); return; }
@@ -3643,13 +3650,17 @@ function attachSettings() {
       await api.saveAccounts(state.accounts);
       updateAccountSwitcher();
       showStatus('acct-status', '✓ Account saved.', 'success');
-      render();
+      render(); // stays on settings
     });
   });
 
+  // Switch account without leaving settings
   document.querySelectorAll('.acct-switch-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      await api.switchAccount(btn.dataset.id);
+    btn.addEventListener('click', () => {
+      currentAccountId = btn.dataset.id;
+      _loadAccountData(btn.dataset.id);
+      updateAccountSwitcher();
+      render(); // currentTab is still 'settings'
     });
   });
 
@@ -3658,7 +3669,7 @@ function attachSettings() {
       const id   = btn.dataset.id;
       const acct = state.accounts.find(a => a.id === id);
       if (!acct) return;
-      const card  = btn.closest('.account-row');
+      const card  = btn.closest('.acct-settings-card');
       const rate  = card.querySelector(`.acct-interest-input[data-id="${id}"]`)?.value.trim();
       const day   = card.querySelector(`.acct-due-day-input[data-id="${id}"]`)?.value.trim();
       const limit = card.querySelector(`.acct-limit-input[data-id="${id}"]`)?.value.trim();
@@ -4152,7 +4163,7 @@ function attachDashboardDawg() {
         chart._pulsePhase = 0;
         const tick = () => {
           if (!chart.canvas?.isConnected) return;
-          chart._pulsePhase = (chart._pulsePhase + 0.02) % 1;
+          chart._pulsePhase = (chart._pulsePhase + 0.004) % 1;
           chart.draw();
           chart._pulseRaf = requestAnimationFrame(tick);
         };
@@ -4161,28 +4172,29 @@ function attachDashboardDawg() {
       afterDraw(chart) {
         const ds = chart.data.datasets[0];
         if (!ds?.data?.length) return;
-        const meta = chart.getDatasetMeta(0);
-        const lastIdx = ds.data.length - 1;
-        const pt = meta.data?.[lastIdx];
-        if (!pt) return;
-        const { x, y } = pt.getProps(['x','y'], true);
-        const ctx = chart.ctx;
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return;
+        const { left, right, top, bottom } = chartArea;
         const clr = ds.borderColor || '#39ff14';
         const phase = chart._pulsePhase || 0;
+        const sweepX = left + phase * (right - left);
+        const trailW = (right - left) * 0.18; // trailing glow width
+
         ctx.save();
-        // Expanding ring
+        // Trailing glow behind the sweep line
+        const grad = ctx.createLinearGradient(sweepX - trailW, 0, sweepX, 0);
+        grad.addColorStop(0, `${clr}00`);
+        grad.addColorStop(1, `${clr}30`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(sweepX - trailW, top, trailW, bottom - top);
+        // Leading scan line
         ctx.beginPath();
-        ctx.arc(x, y, 4 + phase * 14, 0, Math.PI * 2);
+        ctx.moveTo(sweepX, top);
+        ctx.lineTo(sweepX, bottom);
         ctx.strokeStyle = clr;
-        ctx.globalAlpha = 1 - phase;
-        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.55;
+        ctx.lineWidth = 1.5;
         ctx.stroke();
-        // Solid dot
-        ctx.globalAlpha = 1;
-        ctx.beginPath();
-        ctx.arc(x, y, 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = clr;
-        ctx.fill();
         ctx.restore();
       },
       beforeDestroy(chart) {
@@ -5037,12 +5049,22 @@ function showPinLock(onSuccess) {
   if (!saved && !bioEnabled) { onSuccess(); return; }
 
   if (bioEnabled) {
+    // Block the UI immediately so the app content isn't visible while waiting
+    const blocker = document.createElement('div');
+    blocker.id = 'bio-lock-overlay';
+    blocker.style.cssText = 'position:fixed;inset:0;z-index:9998;background:var(--bg,#0f0f14);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px';
+    blocker.innerHTML = `
+      <img src="doberman.png" style="width:90px;opacity:.75;filter:drop-shadow(0 4px 20px rgba(0,0,0,.7))">
+      <div style="font-size:.9rem;color:var(--muted,#b0aec8);letter-spacing:.04em">Verifying identity…</div>`;
+    document.body.appendChild(blocker);
+
     verifyBiometric().then(ok => {
+      blocker.remove();
       if (ok) { onSuccess(); return; }
-      // Biometric failed or cancelled — fall back to PIN if set
       if (saved) showPinUI();
-      else onSuccess(); // no PIN fallback, let through
+      else onSuccess();
     }).catch(() => {
+      blocker.remove();
       if (saved) showPinUI();
       else onSuccess();
     });
