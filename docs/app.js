@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.5.7';
+const VERSION = '4.5.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.5.8', date: '2026-05-20', changes: [
+    'Accounts page now has a ← Back button to return directly to Settings',
+    'Account card expand/collapse button is larger and easier to tap',
+    'Eliminated the large gap above section title text inside cards (was 44px, now flush)',
+  ]},
   { version: '4.5.7', date: '2026-05-20', changes: [
     'Due date picker now shows the day with an ordinal suffix (e.g. 15th) instead of MM-DD',
     'Starting balance and payment fields now accept negative values (e.g. -$50.00)',
@@ -3781,7 +3786,12 @@ function renderAccounts() {
   const accountCards = _buildAccountCards();
   return `
     <div class="page">
-      <h1 class="page-title">Accounts</h1>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <button id="accounts-back-btn" style="background:none;border:none;color:var(--accent);font-size:.85rem;font-weight:700;cursor:pointer;padding:4px 0;font-family:var(--font-body);display:flex;align-items:center;gap:4px;letter-spacing:.04em">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="15 18 9 12 15 6"/></svg>Settings
+        </button>
+      </div>
+      <h1 class="page-title" style="margin-top:0">Accounts</h1>
 
       <div class="form-card">
         <h2 class="section-title" style="margin-bottom:4px">Starting Balance</h2>
@@ -3818,6 +3828,12 @@ function renderAccounts() {
 }
 
 function attachAccounts() {
+  document.getElementById('accounts-back-btn')?.addEventListener('click', () => {
+    _pageTransition = 'slide-right';
+    currentTab = 'settings';
+    render();
+  });
+
   // Starting balance blur/focus formatting
   const _startBalInp = document.getElementById('starting-bal-settings');
   if (_startBalInp) {
