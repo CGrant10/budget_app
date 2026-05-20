@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.3.7';
+const VERSION = '4.3.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,15 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.3.8', date: '2026-05-20', changes: [
+    'Recent transactions tile now shows the 5 most recent transactions with the newest at the top',
+    'What\'s New popup fixed — was silently skipping the popup when no changelog entry matched the current version',
+  ]},
+  { version: '4.3.7', date: '2026-05-20', changes: [
+    'Critical fix: missing closing brace in renderDashboard() was preventing all JavaScript from running — caused the splash screen to get permanently stuck',
+    'Transactions now store a timestamp (ts) for stable same-day sort ordering',
+    'Hero tagline updated to LOCK TF IN.',
+  ]},
   { version: '4.3.4', date: '2026-05-19', changes: [
     'Splash screen escape — tap anywhere on the splash to skip it; a "tap to continue" hint appears after 3.5s; hard 5s timeout removes splash regardless',
     'Init error handling — if the app fails to load after the splash, a clear error message and reload button are shown instead of a blank screen',
@@ -2086,9 +2095,8 @@ function renderDashboardDawg() {
   const yesterdayStr = new Date(Date.now()-86400000).toISOString().split('T')[0];
   const recentTxns = [...state.transactions]
     .filter(t => _isDebt ? t.type === 'income' : true)
-    .sort((a,b) => a.date.localeCompare(b.date) || (a.ts||0) - (b.ts||0))
-    .slice(0,5)
-    .reverse();
+    .sort((a,b) => b.date.localeCompare(a.date) || (b.ts||0) - (a.ts||0))
+    .slice(0,5);
   const txnHtml = recentTxns.length ? recentTxns.map(t => {
     const isInc  = t.type === 'income';
     const color  = isInc ? 'var(--success)' : 'var(--danger)';
