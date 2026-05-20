@@ -3608,3 +3608,104 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
 }
 .ret-dash-match-lbl { font-size: .83rem; color: var(--muted); }
 .ret-dash-match-val { font-size: .95rem; font-weight: 800; color: var(--text); }
+
+/* ── Paycheck Estimator ──────────────────────────────────────────────────── */
+.est-toggle-btn {
+  width: 100%;
+  background: none;
+  border: 1.5px dashed var(--border);
+  border-radius: 9px;
+  color: var(--accent);
+  font-size: .76rem;
+  font-weight: 600;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  text-align: center;
+  margin-bottom: 2px;
+  transition: background .15s, border-color .15s;
+}
+.est-toggle-btn:hover,
+.est-toggle-btn.est-toggle-open {
+  background: rgba(var(--accent-rgb, 78,203,141), .08);
+  border-style: solid;
+}
+.est-panel { margin-bottom: 8px; }
+.est-panel-inner {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 12px 10px;
+}
+.est-row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.est-field { display: flex; flex-direction: column; gap: 4px; }
+.est-lbl {
+  font-size: .66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--muted);
+}
+.est-input-wrap { position: relative; display: flex; align-items: center; }
+.est-prefix {
+  position: absolute;
+  left: 9px;
+  font-size: .84rem;
+  color: var(--muted);
+  pointer-events: none;
+  z-index: 1;
+}
+.est-suffix {
+  position: absolute;
+  right: 9px;
+  font-size: .84rem;
+  color: var(--muted);
+  pointer-events: none;
+}
+.est-pfx { padding-left: 22px !important; }
+.est-sfx { padding-right: 26px !important; }
+.est-hint {
+  font-size: .68rem;
+  color: var(--muted);
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+/* Result breakdown */
+.est-result {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+.est-result-rows { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.est-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: .78rem;
+  color: var(--text);
+}
+.est-deduct { color: var(--danger); }
+.est-row-net {
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+  font-weight: 800;
+  font-size: .86rem;
+}
+.est-use-btn {
+  width: 100%;
+  background: var(--success);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.est-use-btn:active { opacity: .85; }

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.9.4';
+const VERSION = '4.9.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.9.5', date: '2026-05-20', changes: [
+    'Paycheck Estimator: tap "Don\'t know your net pay? Estimate it" in the paycheck schedule to open a gross-to-net calculator — enter gross pay, filing status, state tax %, and pre-tax deductions to get an itemized breakdown (federal tax, FICA, state, deductions) with a one-tap "Use this amount" button',
+    'Federal tax estimate uses 2025 IRS brackets for single and married filers',
+  ]},
   { version: '4.9.4', date: '2026-05-20', changes: [
     'Accounts overview page: top nav bar (hamburger / account pill / bell) now hides when the account picker is open',
   ]},
@@ -948,6 +952,32 @@ function _nextPayDate(dateStr, frequency) {
 
 function _payMonthlyMultiplier(frequency) {
   return { weekly: 4.33, biweekly: 2.167, semimonthly: 2, monthly: 1 }[frequency] || 2.167;
+}
+
+// ── Gross-to-net paycheck estimator ────────────────────────────────────────
+function _estimateNetPay({ gross, frequency, filingStatus, stateTaxPct, pretaxDeductions }) {
+  const periods = { weekly:52, biweekly:26, semimonthly:24, monthly:12 }[frequency] || 26;
+  const annualGross   = gross * periods;
+  const annualPreTax  = pretaxDeductions * periods;
+  const stdDeduction  = filingStatus === 'married' ? 30000 : 15000;
+  const taxableIncome = Math.max(0, annualGross - stdDeduction - annualPreTax);
+
+  // 2025 US federal income tax brackets
+  const brackets = filingStatus === 'married'
+    ? [[23850,.10],[96950,.12],[206700,.22],[394600,.24],[501050,.32],[751600,.35],[Infinity,.37]]
+    : [[11925,.10],[48475,.12],[103350,.22],[197300,.24],[250525,.32],[626350,.35],[Infinity,.37]];
+  let annualFed = 0, prev = 0;
+  for (const [limit, rate] of brackets) {
+    if (taxableIncome <= prev) break;
+    annualFed += Math.min(taxableIncome - prev, limit - prev) * rate;
+    prev = limit;
+  }
+
+  const perCheckFed   = annualFed / periods;
+  const fica          = gross * 0.0765;           // SS 6.2% + Medicare 1.45%
+  const stateTax      = gross * (stateTaxPct / 100);
+  const net           = Math.max(0, gross - perCheckFed - fica - stateTax - pretaxDeductions);
+  return { gross, perCheckFed, fica, stateTax, pretaxDeductions, net };
 }
 
 function _showPaycheckToast(amount, nextDate) {
@@ -4947,11 +4977,46 @@ function _buildAccountCards() {
           </label>
         </div>
         <div class="acct-pay-fields" style="${ps.enabled?'':'display:none'}">
-          <div class="form-row" style="margin-bottom:8px">
-            <label class="form-label" style="font-size:.72rem">Amount per paycheck</label>
+          <div class="form-row" style="margin-bottom:6px">
+            <label class="form-label" style="font-size:.72rem">Amount per paycheck (net/take-home)</label>
             <input type="number" class="form-input acct-pay-amount" data-id="${a.id}" placeholder="e.g. 2500" value="${ps.amount||''}" inputmode="decimal" step="0.01" min="0">
           </div>
-          <div class="form-row" style="margin-bottom:8px">
+          <button type="button" class="est-toggle-btn" data-id="${a.id}">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Don't know your net pay? Estimate it
+          </button>
+          <div class="est-panel" id="est-panel-${a.id}" style="display:none">
+            <div class="est-panel-inner">
+              <div class="est-row2">
+                <div class="est-field">
+                  <label class="est-lbl">Gross pay / check</label>
+                  <div class="est-input-wrap"><span class="est-prefix">$</span><input type="number" class="form-input est-gross est-pfx" data-id="${a.id}" placeholder="3000" inputmode="decimal" step="0.01" min="0"></div>
+                </div>
+                <div class="est-field">
+                  <label class="est-lbl">Filing status</label>
+                  <select class="form-input form-select est-filing" data-id="${a.id}">
+                    <option value="single">Single</option>
+                    <option value="married">Married</option>
+                  </select>
+                </div>
+              </div>
+              <div class="est-row2">
+                <div class="est-field">
+                  <label class="est-lbl">State income tax %</label>
+                  <div class="est-input-wrap"><input type="number" class="form-input est-state-tax est-sfx" data-id="${a.id}" placeholder="5.0" inputmode="decimal" step="0.1" min="0" max="20"><span class="est-suffix">%</span></div>
+                </div>
+                <div class="est-field">
+                  <label class="est-lbl">Pre-tax deductions / check</label>
+                  <div class="est-input-wrap"><span class="est-prefix">$</span><input type="number" class="form-input est-pretax est-pfx" data-id="${a.id}" placeholder="0" inputmode="decimal" step="0.01" min="0"></div>
+                </div>
+              </div>
+              <div class="est-hint">Pre-tax deductions = 401(k), HSA, health insurance taken out before taxes</div>
+              <div class="est-result" id="est-result-${a.id}" style="display:none">
+                <div class="est-result-rows" id="est-result-rows-${a.id}"></div>
+                <button type="button" class="est-use-btn" id="est-use-${a.id}">Use estimated net as my paycheck amount</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:8px;margin-top:10px">
             <label class="form-label" style="font-size:.72rem">Pay frequency</label>
             <select class="form-input form-select acct-pay-freq" data-id="${a.id}">${freqOpts}</select>
           </div>
@@ -5170,6 +5235,90 @@ function attachAccounts() {
       card.classList.toggle('acct-card-collapsed', !opening);
       body.style.display = opening ? '' : 'none';
       if (toggle) toggle.textContent = opening ? '∨' : '›';
+    });
+  });
+
+  // Paycheck estimator — toggle panel
+  document.querySelectorAll('.est-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id    = btn.dataset.id;
+      const panel = document.getElementById(`est-panel-${id}`);
+      if (!panel) return;
+      const open = panel.style.display === 'none';
+      panel.style.display = open ? '' : 'none';
+      btn.classList.toggle('est-toggle-open', open);
+    });
+  });
+
+  // Paycheck estimator — live calculation
+  function _runEstimator(id) {
+    const card       = document.querySelector(`.acct-settings-card .acct-card-header[data-id="${id}"]`)?.closest('.acct-settings-card');
+    if (!card) return;
+    const grossEl    = card.querySelector(`.est-gross[data-id="${id}"]`);
+    const filingEl   = card.querySelector(`.est-filing[data-id="${id}"]`);
+    const stateEl    = card.querySelector(`.est-state-tax[data-id="${id}"]`);
+    const pretaxEl   = card.querySelector(`.est-pretax[data-id="${id}"]`);
+    const freqEl     = card.querySelector(`.acct-pay-freq[data-id="${id}"]`);
+    const resultEl   = document.getElementById(`est-result-${id}`);
+    const rowsEl     = document.getElementById(`est-result-rows-${id}`);
+    if (!grossEl || !resultEl || !rowsEl) return;
+    const gross = parseFloat(grossEl.value) || 0;
+    if (gross <= 0) { resultEl.style.display = 'none'; return; }
+    const result = _estimateNetPay({
+      gross,
+      frequency:      freqEl?.value || 'biweekly',
+      filingStatus:   filingEl?.value || 'single',
+      stateTaxPct:    parseFloat(stateEl?.value) || 0,
+      pretaxDeductions: parseFloat(pretaxEl?.value) || 0,
+    });
+    rowsEl.innerHTML = `
+      <div class="est-row"><span>Gross pay</span><span>${fmt(result.gross)}</span></div>
+      <div class="est-row"><span>Federal income tax (est.)</span><span class="est-deduct">−${fmt(result.perCheckFed)}</span></div>
+      <div class="est-row"><span>Social Security + Medicare</span><span class="est-deduct">−${fmt(result.fica)}</span></div>
+      ${result.stateTax > 0 ? `<div class="est-row"><span>State income tax</span><span class="est-deduct">−${fmt(result.stateTax)}</span></div>` : ''}
+      ${result.pretaxDeductions > 0 ? `<div class="est-row"><span>Pre-tax deductions</span><span class="est-deduct">−${fmt(result.pretaxDeductions)}</span></div>` : ''}
+      <div class="est-row est-row-net"><span>Estimated take-home</span><span style="color:var(--success)">${fmt(result.net)}</span></div>`;
+    resultEl.style.display = '';
+    const useBtn = document.getElementById(`est-use-${id}`);
+    if (useBtn) useBtn.dataset.net = result.net.toFixed(2);
+  }
+
+  document.querySelectorAll('.est-gross, .est-filing, .est-state-tax, .est-pretax').forEach(el => {
+    el.addEventListener('input', () => {
+      const id = el.dataset.id;
+      if (id) _runEstimator(id);
+    });
+    el.addEventListener('change', () => {
+      const id = el.dataset.id;
+      if (id) _runEstimator(id);
+    });
+  });
+  // Also re-run when frequency changes since it affects federal tax
+  document.querySelectorAll('.acct-pay-freq').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const id = sel.dataset.id;
+      if (id) _runEstimator(id);
+    });
+  });
+
+  // "Use this amount" button
+  document.querySelectorAll('[id^="est-use-"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id     = btn.id.replace('est-use-', '');
+      const net    = parseFloat(btn.dataset.net) || 0;
+      const card   = document.querySelector(`.acct-settings-card .acct-card-header[data-id="${id}"]`)?.closest('.acct-settings-card');
+      const amtInp = card?.querySelector(`.acct-pay-amount[data-id="${id}"]`);
+      if (amtInp && net > 0) {
+        amtInp.value = net.toFixed(2);
+        // Flash the input green briefly
+        amtInp.style.borderColor = 'var(--success)';
+        setTimeout(() => amtInp.style.borderColor = '', 1500);
+        // Collapse the estimator
+        const panel = document.getElementById(`est-panel-${id}`);
+        const toggleBtn = card?.querySelector(`.est-toggle-btn[data-id="${id}"]`);
+        if (panel) panel.style.display = 'none';
+        if (toggleBtn) toggleBtn.classList.remove('est-toggle-open');
+      }
     });
   });
 
