@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.7.3';
+const VERSION = '4.7.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,13 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.7.4', date: '2026-05-20', changes: [
+    'Theme picker redesigned: Dark / Light / Terminal mode toggle replaces the dropdown',
+    'Dark mode accent options: Green, OLED, Blue, Orange, Gold, Auto',
+    'Light mode accent options: Mint, Sky, Rose, Sand',
+    'Terminal section shows VS Code, PowerShell, CMD — settings unchanged',
+    'Removed Gengar, DAWG, and DAWG Light themes',
+  ]},
   { version: '4.7.3', date: '2026-05-20', changes: [
     'CSV import now has Append / Overwrite toggle — Append adds to existing data (default), Overwrite replaces all transactions with the imported file',
     'Overwrite mode shows a danger confirmation before wiping existing transactions',
@@ -696,14 +703,14 @@ const _D = { bg:'#111112', surface:'#1a1a1b', surface2:'#242425', card:'#1e1e1f'
 
 const THEMES = {
   dark: {
-    label:'Dark',
+    label:'Dark', shortLabel:'Green',
     ..._D,
     accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050',
     grad:'linear-gradient(135deg, #2d3830 0%, #4ecb8d 100%)',
     cats:{ Food:'#4ecb8d', Gas:'#c05858', Car:'#6888a8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#8890a8', Health:'#4090a8', Other:'#787880' },
   },
   oled: {
-    label:'OLED Black',
+    label:'OLED Black', shortLabel:'OLED',
     bg:'#000000', surface:'#0a0a0a', surface2:'#101010', card:'#0c0c0c',
     text:'#e2e2e4', muted:'#888890', border:'#1c1c1c',
     accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050',
@@ -739,7 +746,7 @@ const THEMES = {
     cats:{ Food:'#00c300', Gas:'#ff3333', Car:'#00aaff', Boat:'#00ffff', Tools:'#ffaa00', Home:'#aaff00', Entertainment:'#ff55ff', Health:'#00aaff', Other:'#888888' },
   },
   light: {
-    label:'Light',
+    label:'Light', shortLabel:'Mint',
     bg:'#f3f3f3', surface:'#ffffff', surface2:'#e8e8e8', card:'#efefef',
     accent:'#4ecb8d', accent2:'#a06838', success:'#2ea870', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #1a4030 0%, #4ecb8d 100%)',
@@ -747,47 +754,48 @@ const THEMES = {
     cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
   },
   denim: {
-    label:'Denim',
+    label:'Denim', shortLabel:'Blue',
     ..._D,
     accent:'#4080b0', accent2:'#b07840', success:'#52a872', warn:'#c0a038', danger:'#c05050',
     cats:{ Food:'#52a872', Gas:'#c05858', Car:'#4070b0', Boat:'#3898b8', Tools:'#b07840', Home:'#608898', Entertainment:'#6060a8', Health:'#3898b8', Other:'#607898' },
   },
   ember: {
-    label:'Ember',
+    label:'Ember', shortLabel:'Orange',
     ..._D,
     accent:'#c07830', accent2:'#c05030', success:'#52a872', warn:'#c0a038', danger:'#c05050',
     cats:{ Food:'#78a858', Gas:'#c85040', Car:'#b07830', Boat:'#509880', Tools:'#c86830', Home:'#a89840', Entertainment:'#b06070', Health:'#609878', Other:'#988060' },
   },
-  gengar: {
-    label:'Gengar 👻',
-    ..._D,
-    accent:'#a060c8', accent2:'#c06880', success:'#52a872', warn:'#c0a038', danger:'#c05050',
-    cats:{ Food:'#52a872', Gas:'#c06878', Car:'#9060c8', Boat:'#6080b8', Tools:'#c07060', Home:'#88a050', Entertainment:'#a850b8', Health:'#5880b0', Other:'#887898' },
-  },
   jurassicpark: {
-    label:'Jurassic Park 🦖',
+    label:'Gold', shortLabel:'Gold',
     ..._D,
     accent:'#c8a020', accent2:'#c84820', success:'#5aaa40', warn:'#c8a020', danger:'#c84030',
     cats:{ Food:'#5aaa40', Gas:'#c84030', Car:'#c8a020', Boat:'#409870', Tools:'#c86020', Home:'#80a830', Entertainment:'#a07020', Health:'#50a860', Other:'#788858' },
   },
-  auto: { label:'✨ Auto (System)', ..._D, accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050', grad:'linear-gradient(135deg, #2d3830 0%, #4ecb8d 100%)' },
-  dawg: {
-    label:'DAWG 🐕',
-    bg:'#080808', surface:'#101010', surface2:'#181818', card:'#121212',
-    text:'#ffffff', muted:'#707070', border:'#222222',
-    accent:'#39ff14', accent2:'#00cc00', success:'#39ff14', warn:'#ffd700', danger:'#ff4444',
-    grad:'linear-gradient(135deg, #000000 0%, #071a00 60%, #39ff14 100%)',
-    font:'default', dawg:true,
-    cats:{ Food:'#39ff14', Gas:'#ff4444', Car:'#00aaff', Boat:'#00e5ff', Tools:'#ffd700', Home:'#39ff14', Entertainment:'#cc44ff', Health:'#ff6699', Other:'#888888' },
+  auto: { label:'Auto (System)', shortLabel:'Auto', ..._D, accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050', grad:'linear-gradient(135deg, #2d3830 0%, #4ecb8d 100%)' },
+  // ── Light mode accent variants ──────────────────────────────────────────
+  lightsky: {
+    label:'Sky', shortLabel:'Sky',
+    bg:'#f3f3f3', surface:'#ffffff', surface2:'#e8e8e8', card:'#efefef',
+    accent:'#3a86c8', accent2:'#c07840', success:'#2e9a68', warn:'#b07800', danger:'#a84040',
+    grad:'linear-gradient(135deg, #1a304a 0%, #3a86c8 100%)',
+    text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
+    cats:{ Food:'#2e9a68', Gas:'#a84040', Car:'#3a86c8', Boat:'#2888a8', Tools:'#986030', Home:'#608038', Entertainment:'#7848a8', Health:'#3888a0', Other:'#606078' },
   },
-  dawglight: {
-    label:'DAWG Light ☀️',
-    bg:'#f4f4f4', surface:'#ffffff', surface2:'#e8e8e8', card:'#ffffff',
-    text:'#111111', muted:'#777777', border:'#e0e0e0',
-    accent:'#22aa22', accent2:'#007700', success:'#22aa22', warn:'#b87800', danger:'#cc2200',
-    grad:'linear-gradient(135deg, #d0ecd0 0%, #22aa22 100%)',
-    font:'default', dawg:true, light:true,
-    cats:{ Food:'#22aa22', Gas:'#cc2200', Car:'#0066cc', Boat:'#0099bb', Tools:'#b87800', Home:'#22aa22', Entertainment:'#8800cc', Health:'#cc0066', Other:'#888888' },
+  lightrose: {
+    label:'Rose', shortLabel:'Rose',
+    bg:'#f3f3f3', surface:'#ffffff', surface2:'#e8e8e8', card:'#efefef',
+    accent:'#c04870', accent2:'#987838', success:'#2ea870', warn:'#988018', danger:'#a84040',
+    grad:'linear-gradient(135deg, #4a1a2c 0%, #c04870 100%)',
+    text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
+    cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a8', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#c04870', Health:'#308898', Other:'#606078' },
+  },
+  lightsand: {
+    label:'Sand', shortLabel:'Sand',
+    bg:'#f3f3f3', surface:'#ffffff', surface2:'#e8e8e8', card:'#efefef',
+    accent:'#b07820', accent2:'#c05830', success:'#2ea870', warn:'#988018', danger:'#a84040',
+    grad:'linear-gradient(135deg, #4a3010 0%, #b07820 100%)',
+    text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
+    cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#b07820', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
   },
 };
 
@@ -1115,20 +1123,8 @@ function applyTheme(theme) {
     _fs.fontStyle = t.font;
     saveSettings(_fs);
   }
-  // All themes now use the DAWG layout — always enable dawg-mode
+  // All themes use the DAWG layout — always enable dawg-mode
   document.getElementById('app')?.classList.add('dawg-mode');
-  // Gengar ghost background overlay — lives inside #app so it's above body's solid bg
-  let gOverlay = document.getElementById('gengar-bg-overlay');
-  if (theme === 'gengar') {
-    if (!gOverlay) {
-      gOverlay = document.createElement('div');
-      gOverlay.id = 'gengar-bg-overlay';
-      const app = document.getElementById('app');
-      if (app) app.insertBefore(gOverlay, app.firstChild);
-    }
-  } else if (gOverlay) {
-    gOverlay.remove();
-  }
 }
 
 function _save() {
@@ -3828,9 +3824,34 @@ function renderSettings() {
       <button class="btn-xs custom-cat-del" data-idx="${i}" style="background:var(--danger);color:#fff;border-color:var(--danger)">✕</button>
     </div>`).join('') : '<p style="font-size:.8rem;color:var(--muted);margin-bottom:6px">No custom categories yet.</p>';
 
-  const themeDot = theme === 'light'
-    ? 'background:#ffffff;border:1.5px solid #bbb'
-    : `background:${THEMES[theme]?.accent || 'var(--accent)'}`;
+  const TERMINAL_KEYS = ['vscode','powershell','cmd'];
+  const isTerminal = TERMINAL_KEYS.includes(theme);
+  const isLight    = !isTerminal && !!THEMES[theme]?.light;
+  const activeMode = isTerminal ? 'terminal' : isLight ? 'light' : 'dark';
+
+  const DARK_ACCENTS  = ['dark','oled','denim','ember','jurassicpark','auto'];
+  const LIGHT_ACCENTS = ['light','lightsky','lightrose','lightsand'];
+
+  const accentChip = (key, active) => {
+    const t = THEMES[key];
+    if (!t) return '';
+    const lbl  = t.shortLabel || t.label;
+    const dot  = t.light
+      ? `border:2px solid ${t.accent};background:#fff`
+      : `background:${t.accent}`;
+    return `<button class="theme-accent-chip${active ? ' active' : ''}" data-theme="${key}" title="${t.label}">
+      <span class="theme-accent-dot" style="${dot}"></span>
+      <span class="theme-accent-lbl">${lbl}</span>
+    </button>`;
+  };
+
+  const terminalChip = key => {
+    const t = THEMES[key];
+    return `<button class="theme-terminal-chip${theme === key ? ' active' : ''}" data-theme="${key}">
+      <span class="theme-accent-dot" style="background:${t.accent}"></span>
+      ${t.label}
+    </button>`;
+  };
 
   return `
     <div class="page">
@@ -3847,14 +3868,38 @@ function renderSettings() {
       </div>
 
       <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:10px">Theme</h2>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span id="theme-swatch" style="width:20px;height:20px;border-radius:50%;flex-shrink:0;${themeDot}"></span>
-          <select id="theme-select" class="form-input form-select" style="flex:1">
-            ${Object.entries(THEMES).map(([key, t]) =>
-              `<option value="${key}"${theme === key ? ' selected' : ''}>${t.label}</option>`
-            ).join('')}
-          </select>
+        <h2 class="section-title" style="margin-bottom:12px">Theme</h2>
+
+        <div class="theme-mode-row">
+          <button class="theme-mode-btn${activeMode === 'dark'     ? ' active' : ''}" data-mode="dark">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            Dark
+          </button>
+          <button class="theme-mode-btn${activeMode === 'light'    ? ' active' : ''}" data-mode="light">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            Light
+          </button>
+          <button class="theme-mode-btn${activeMode === 'terminal' ? ' active' : ''}" data-mode="terminal">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            Terminal
+          </button>
+        </div>
+
+        <div id="theme-accent-section" style="${activeMode === 'terminal' ? 'display:none' : ''}">
+          <p class="code-hint" style="margin-bottom:8px">Accent color</p>
+          <div class="theme-accent-grid" id="theme-accent-grid">
+            ${activeMode === 'light'
+              ? LIGHT_ACCENTS.map(k => accentChip(k, k === theme)).join('')
+              : DARK_ACCENTS.map(k => accentChip(k, k === theme)).join('')
+            }
+          </div>
+        </div>
+
+        <div id="theme-terminal-section" style="${activeMode !== 'terminal' ? 'display:none' : ''}">
+          <p class="code-hint" style="margin-bottom:8px">Terminal style</p>
+          <div class="theme-terminal-chips">
+            ${TERMINAL_KEYS.map(terminalChip).join('')}
+          </div>
         </div>
       </div>
 
@@ -3944,21 +3989,37 @@ function attachSettings() {
     });
   });
 
-  // Theme dropdown
-  document.getElementById('theme-select')?.addEventListener('change', e => {
+  // Theme mode toggle (Dark / Light / Terminal)
+  const _applyThemeKey = key => {
     const s = loadSettings();
-    s.theme = e.target.value;
+    s.theme = key;
     saveSettings(s);
-    applyTheme(s.theme);
-    // Update swatch dot color
-    const swatch = document.getElementById('theme-swatch');
-    if (swatch) {
-      swatch.style.cssText = `width:20px;height:20px;border-radius:50%;flex-shrink:0;${
-        e.target.value === 'light'
-          ? 'background:#ffffff;border:1.5px solid #bbb'
-          : `background:${THEMES[e.target.value]?.accent || 'var(--accent)'}`
-      }`;
-    }
+    applyTheme(key);
+    render();
+  };
+
+  document.querySelectorAll('.theme-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      const cur  = loadSettings().theme || 'dark';
+      // If already in this mode, do nothing
+      const isTerminal = ['vscode','powershell','cmd'].includes(cur);
+      const curMode    = isTerminal ? 'terminal' : THEMES[cur]?.light ? 'light' : 'dark';
+      if (mode === curMode) return;
+      // Switch to default theme for new mode
+      const defaults = { dark:'dark', light:'light', terminal:'vscode' };
+      _applyThemeKey(defaults[mode] || 'dark');
+    });
+  });
+
+  // Accent swatches
+  document.querySelectorAll('.theme-accent-chip').forEach(chip => {
+    chip.addEventListener('click', () => _applyThemeKey(chip.dataset.theme));
+  });
+
+  // Terminal chips
+  document.querySelectorAll('.theme-terminal-chip').forEach(chip => {
+    chip.addEventListener('click', () => _applyThemeKey(chip.dataset.theme));
   });
 
   // Go to accounts page
