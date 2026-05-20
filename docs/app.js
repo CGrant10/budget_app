@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.9.6';
+const VERSION = '4.9.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.9.7', date: '2026-05-20', changes: [
+    'Retirement/IRA dashboards now show a balance history sparkline with 1W/1M/3M/6M/1Y/ALL range selector, matching the regular account dashboard graph',
+  ]},
   { version: '4.9.6', date: '2026-05-20', changes: [
     'Paycheck gross pay: add a "Gross pay per check" field to the paycheck schedule so retirement accounts can auto-calculate contributions from pre-tax income',
     'Retirement auto-contributions: link a retirement account to a paycheck account; when a paycheck fires, employee and employer contributions are automatically posted to the retirement account based on your contribution % and employer match %',
@@ -2582,6 +2585,15 @@ function renderRetirementDashboard(acct) {
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
         +${fmt(growth)} growth
       </div>` : ''}
+      <div class="dawg-sparkline-wrap ret-spark-wrap"><canvas id="dawg-sparkline"></canvas></div>
+      <div class="dawg-time-btns ret-time-btns">
+        <button class="dawg-tbtn" data-range="1w">1W</button>
+        <button class="dawg-tbtn dawg-tbtn-active" data-range="1m">1M</button>
+        <button class="dawg-tbtn" data-range="3m">3M</button>
+        <button class="dawg-tbtn" data-range="6m">6M</button>
+        <button class="dawg-tbtn" data-range="1y">1Y</button>
+        <button class="dawg-tbtn" data-range="all">ALL</button>
+      </div>
     </div>
 
     <div class="ret-dash-grid">

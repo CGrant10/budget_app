@@ -3609,6 +3609,20 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
 .ret-dash-match-lbl { font-size: .83rem; color: var(--muted); }
 .ret-dash-match-val { font-size: .95rem; font-weight: 800; color: var(--text); }
 
+/* ── Retirement hero sparkline ───────────────────────────────────────────── */
+.ret-spark-wrap {
+  height: 72px;
+  margin: 14px -4px 0;
+  position: relative;
+}
+.ret-time-btns {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  position: relative;
+}
+
 /* ── Paycheck Estimator ──────────────────────────────────────────────────── */
 .est-toggle-btn {
   width: 100%;
