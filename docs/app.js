@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.6.2';
+const VERSION = '4.6.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -3733,10 +3733,10 @@ function showNegativeBalancePopup() {
   el.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
   el.innerHTML = `
     <div style="background:var(--card);border:2px solid var(--danger);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.6)">
-      <div style="font-size:3rem;margin-bottom:10px">😤</div>
+      <img src="./newicon.png" alt="Budgeting Dawg" style="width:72px;height:72px;object-fit:contain;margin-bottom:12px;border-radius:14px">
       <div style="font-size:1rem;font-weight:900;color:var(--danger);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Get your shit together, man</div>
-      <p style="font-size:.83rem;color:var(--muted);margin:0 0 20px;line-height:1.55">Your balance just went negative. Time to lock tf in and get those finances right. 🐕</p>
-      <button id="neg-bal-dismiss" style="background:var(--danger);color:white;border:none;border-radius:10px;padding:10px 28px;font-size:.9rem;font-weight:800;cursor:pointer;font-family:var(--font-body);text-transform:uppercase;letter-spacing:.04em">I got it 💪</button>
+      <p style="font-size:.83rem;color:var(--muted);margin:0 0 20px;line-height:1.55">Your balance just went negative. Time to lock tf in and get those finances right.</p>
+      <button id="neg-bal-dismiss" style="background:var(--danger);color:white;border:none;border-radius:10px;padding:10px 28px;font-size:.9rem;font-weight:800;cursor:pointer;font-family:var(--font-body);text-transform:uppercase;letter-spacing:.04em">I got it</button>
     </div>`;
   document.body.appendChild(el);
   el.addEventListener('click', e => { if (e.target === el) el.remove(); });

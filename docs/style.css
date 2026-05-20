@@ -1977,19 +1977,13 @@ body.light .section-title::before {
 .dawg-nav-btn.dawg-nav-active { color:var(--accent); }
 .dawg-nav-icon { line-height:1; }
 .dawg-nav-icon svg { width:21px; height:21px; display:block; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; transition:fill .15s, stroke .15s; }
-/* Active: accent pill behind icon, white outline — inverted / still readable */
-.dawg-nav-btn.dawg-nav-active .dawg-nav-icon {
-  background: var(--accent);
-  border-radius: 10px;
-  padding: 5px;
-  line-height: 0;
-}
+/* Active: accent-colored stroke only, no background pill */
 .dawg-nav-btn.dawg-nav-active .dawg-nav-icon svg {
   fill: none;
-  stroke: #fff;
+  stroke: var(--accent);
   stroke-width: 2;
 }
-.dawg-nav-btn.dawg-nav-active .dawg-nav-icon svg .detail-dot { fill:#fff; stroke:none; }
+.dawg-nav-btn.dawg-nav-active .dawg-nav-icon svg .detail-dot { fill:var(--accent); stroke:none; }
 .dawg-nav-lbl { font-size:.67rem; font-weight:600; letter-spacing:.02em; }
 
 /* Center doberman button — rises out of nav with arc cutout */
