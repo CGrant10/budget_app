@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.0.0';
+const VERSION = '5.0.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.0.1', date: '2026-05-21', changes: [
+    'Android system back button now navigates within the app — goes back through tab history, account picker, and account switches before exiting',
+    'Back button also closes the side drawer or account dropdown if either is open',
+  ]},
   { version: '5.0.0', date: '2026-05-21', changes: [
     'Eliminated raw-layout flash on load: app is invisible until the first render completes, then fades in — no more glimpse of the old header/nav before content paints',
   ]},
@@ -1654,6 +1658,14 @@ let debtCalcMode = 'snowball'; // 'snowball' | 'avalanche'
 let debtMonthlyPay = '';
 let showingAccountPicker = false;
 let _pageTransition = 'fade'; // 'fade' | 'slide-left' | 'slide-right'
+// ── back-navigation stack ──────────────────────────────────────────────────
+let _navStack = [];        // [{tab, picker, accountId}]
+let _navigatingBack = false;
+function _navPush() {
+  if (_navigatingBack) return;
+  _navStack.push({ tab: currentTab, picker: showingAccountPicker, accountId: currentAccountId });
+  history.pushState({ dawgNav: true }, '');
+}
 let selectedLedgerIdx = null;
 let ledgerFilter = '';
 let ledgerSort = 'date-desc';
@@ -1671,6 +1683,7 @@ function showAccountEdit(acctId) {
 }
 
 function showTab(key) {
+  _navPush();
   if (currentTab === 'ledger' && key !== 'ledger') {
     ledgerFilter = ''; ledgerSort = 'date-desc'; ledgerTypeFilter = 'all';
     ledgerCatFilter = ''; ledgerDateFrom = ''; ledgerDateTo = '';
@@ -2495,6 +2508,7 @@ function render() {
     _applyPageTransition(main);
     document.querySelectorAll('.acct-row').forEach(tile => {
       tile.addEventListener('click', async () => {
+        _navPush();
         _pageTransition = 'zoom-in';
         showingAccountPicker = false;        // set BEFORE switchAccount so its render() sees correct state
         await api.switchAccount(tile.dataset.id); // internally calls render() — no extra call needed
@@ -6852,6 +6866,7 @@ function updateAccountSwitcher() {
     btn.textContent = '⊞';
     sel.insertAdjacentElement('beforebegin', btn);
     btn.addEventListener('click', () => {
+      _navPush();
       _pageTransition = 'zoom-out';
       showingAccountPicker = true;
       render();
@@ -7130,7 +7145,7 @@ document.getElementById('dawg-drawer-overlay')?.addEventListener('click', closeD
 document.querySelectorAll('.dawg-drawer-item').forEach(btn =>
   btn.addEventListener('click', () => {
     closeDawgDrawer();
-    if (btn.dataset.tab === '__accounts__') { showingAccountPicker = true; render(); }
+    if (btn.dataset.tab === '__accounts__') { _navPush(); showingAccountPicker = true; render(); }
     else showTab(btn.dataset.tab);
   }));
 
@@ -7141,11 +7156,40 @@ document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
   if (e.target === document.getElementById('tutorial-overlay')) closeTutorial();
 });
 
-// Re-push history state whenever back is pressed while a lock overlay is active
+// System back button — navigates within the app before exiting
 window.addEventListener('popstate', () => {
+  // Lock screens always block back navigation
   if (document.getElementById('pin-lock-overlay') || document.getElementById('bio-lock-overlay')) {
     history.pushState({ dawgLock: true }, '');
+    return;
   }
+  // Close any open modal/drawer first before actually going back
+  const drawer = document.getElementById('dawg-drawer');
+  if (drawer && !drawer.classList.contains('hidden')) { closeDawgDrawer(); history.pushState({ dawgNav: true }, ''); return; }
+  const dropdown = document.getElementById('dawg-acct-dropdown');
+  if (dropdown && !dropdown.classList.contains('hidden')) { dropdown.classList.add('hidden'); history.pushState({ dawgNav: true }, ''); return; }
+  // Navigate to previous app state
+  if (_navStack.length > 0) {
+    const prev = _navStack.pop();
+    _navigatingBack = true;
+    // Restore account if it changed
+    if (prev.accountId && prev.accountId !== currentAccountId) {
+      currentAccountId = prev.accountId;
+      _loadAccountData(prev.accountId);
+      updateAccountSwitcher();
+    }
+    showingAccountPicker = prev.picker;
+    currentTab = prev.tab;
+    _pageTransition = 'fade';
+    if (_dawgSparkGlobal) { _dawgSparkGlobal.destroy(); _dawgSparkGlobal = null; }
+    document.querySelectorAll('.nav-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.tab === prev.tab));
+    document.querySelectorAll('.dawg-nav-btn[data-tab]').forEach(b =>
+      b.classList.toggle('dawg-nav-active', b.dataset.tab === prev.tab));
+    render();
+    _navigatingBack = false;
+  }
+  // If stack is empty, fall through — browser exits the PWA (correct behaviour)
 });
 
 (async () => {
@@ -7174,6 +7218,8 @@ window.addEventListener('popstate', () => {
       await api.switchAccount(e.target.value);
     });
     if (state.accounts.length > 1) showingAccountPicker = true;
+    // Seed base history entry — back button will hit popstate with an empty stack and exit cleanly
+    history.replaceState({ dawgBase: true }, '');
     render();
     // Reveal the app now that the first frame is painted — eliminates the raw-HTML flash
     requestAnimationFrame(() => {
