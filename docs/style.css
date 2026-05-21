@@ -1573,35 +1573,165 @@ body.light .section-title::before {
 .pin-key-blank { background: transparent; border-color: transparent; pointer-events: none; }
 .pin-error { font-size: .8rem; color: var(--danger); min-height: 18px; }
 
-/* ── tutorial overlay ─────────────────────────────────────────────────────── */
-.tut-overlay {
-  position: fixed;
-  inset: 0;
+/* ── walkthrough tour ─────────────────────────────────────────────────────── */
+@keyframes wtGlow {
+  0%, 100% { box-shadow: 0 0 0 9999px rgba(0,0,0,.72), 0 0 0 2px rgba(78,203,141,.4), 0 0 20px 4px rgba(78,203,141,.2); }
+  50%       { box-shadow: 0 0 0 9999px rgba(0,0,0,.72), 0 0 0 3px rgba(78,203,141,.7), 0 0 32px 8px rgba(78,203,141,.35); }
+}
+@keyframes wtCardIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes wtCardInCenter {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+#wt-bd {
+  position: fixed; inset: 0;
   background: rgba(0,0,0,.72);
+  z-index: 9996;
+}
+#wt-hl {
+  position: fixed;
+  border-radius: 20px;
+  pointer-events: none;
+  z-index: 9998;
+  animation: wtGlow 2.5s ease-in-out infinite;
+}
+#wt-skip {
+  position: fixed;
+  top: max(env(safe-area-inset-top, 0px), 12px);
+  right: 16px;
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 20px;
+  color: rgba(255,255,255,.75);
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: 7px 14px;
+  cursor: pointer;
+  z-index: 10001;
+  font-family: var(--font-body);
+  backdrop-filter: blur(4px);
+  transition: background .15s, color .15s;
+}
+#wt-skip:hover { background: rgba(255,255,255,.2); color: #fff; }
+
+#wt-card {
+  position: fixed;
+  left: 50%;
+  width: min(92vw, 360px);
+  z-index: 10000;
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  padding: 24px 22px 18px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.07);
+  animation: wtCardIn .35s cubic-bezier(.22,1,.36,1) both;
+}
+#wt-card.wt-card--center {
+  top: 50%;
+  transform: translate(-50%, -50%);
+  animation: wtCardInCenter .35s cubic-bezier(.22,1,.36,1) both;
+}
+#wt-card.wt-card--bottom {
+  bottom: 16px;
+  transform: translateX(-50%);
+}
+#wt-card.wt-card--top {
+  top: 70px;
+  transform: translateX(-50%);
+}
+
+.wt-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
-  padding: 24px;
+  margin-bottom: 14px;
 }
-.tut-overlay.hidden { display: none; }
-.tut-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 32px 28px 24px;
-  max-width: 380px;
-  width: 100%;
+.wt-icon svg {
+  width: 42px; height: 42px;
+  stroke: var(--accent);
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.wt-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
   text-align: center;
+  margin-bottom: 8px;
+  letter-spacing: -.01em;
 }
-.tut-icon  { font-size: 2.6rem; margin-bottom: 14px; }
-.tut-title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 12px; }
-.tut-body  { font-size: .87rem; color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
-.tut-dots  { display: flex; justify-content: center; gap: 6px; margin-bottom: 22px; }
-.tut-dot   { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .2s; }
-.tut-dot.active { background: var(--accent); }
-.tut-btns  { display: flex; gap: 10px; justify-content: center; }
-.tut-btn-prev, .tut-btn-next { flex: 1; max-width: 140px; }
+.wt-body {
+  font-size: .84rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.6;
+  margin: 0 0 18px;
+}
+.wt-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+.wt-dots {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+}
+.wt-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background .2s, transform .2s;
+}
+.wt-dot--on {
+  background: var(--accent);
+  transform: scale(1.3);
+}
+.wt-btns {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+}
+.wt-back {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 600;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: border-color .15s, color .15s;
+}
+.wt-back:hover { border-color: var(--text); color: var(--text); }
+.wt-back--hidden { visibility: hidden; }
+.wt-next {
+  flex: 1;
+  background: var(--accent-gradient);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: .88rem;
+  font-weight: 800;
+  padding: 11px 20px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  letter-spacing: .02em;
+  box-shadow: 0 4px 14px rgba(0,0,0,.35);
+  transition: opacity .15s, transform .1s;
+}
+.wt-next:active { opacity: .85; transform: scale(.97); }
 
 /* ── dollar burst particles ───────────────────────────────────────────────── */
 @keyframes dollar-burst {

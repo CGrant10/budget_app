@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.4.3';
+const VERSION = '5.5.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.5.0', date: '2026-05-21', changes: [
+    'Guided walkthrough tour — tap the ? button to take a live tour of every section; the app navigates for you while a spotlight highlights each area',
+    'Tour uses smooth outline SVG icons throughout, a pulsing accent spotlight on each target, dot-step progress, and Back/Next navigation',
+    'Skip button always visible in the top-right; tapping Done or finishing the last step closes the tour cleanly',
+  ]},
   { version: '5.4.3', date: '2026-05-21', changes: [
     'Tile layout editor now shows half-width tiles side-by-side in a real 2-column preview so you can see exactly how cards will share a line',
     'Nav bar is now fully customizable — long-press the bottom nav bar to open the editor; drag any section into the top 4 slots to add it, drag below the line to remove it',
@@ -6481,51 +6486,184 @@ function renderAbout() {
     </div>`;
 }
 
-// ── tutorial ───────────────────────────────────────────────────────────────
-const TUTORIAL_SLIDES = [
-  { icon:'👋', title:'Welcome to Budget DAWGs',        body:'Your all-in-one budgeting companion. Track spending, plan your weeks, manage bills, crush debt, hit savings goals, and run multiple accounts — all offline, all yours. Tap Next for a quick tour.' },
-  { icon:'🏦', title:'Multiple Accounts',              body:'The app opens to a tile screen when you have 2+ accounts, showing each one with its current balance. Tap a tile to enter it. Tap the ⊞ button in the header to return to the account list at any time.' },
-  { icon:'➕', title:'Adding Transactions',            body:'Tap Add to log income, an expense, or a transfer between accounts. Pick a category, enter an amount, and choose a date. Hit ✓ Done on the keyboard to confirm without jumping to the next field.' },
-  { icon:'📊', title:'Dashboard',                     body:'See your balance, income, and expenses for any month. Use the ‹ › arrows to browse history — the balance card shows exactly what you had on the last day of that month. Swipe left or right anywhere to change tabs.' },
-  { icon:'📋', title:'Ledger',                        body:'Every transaction listed with a running balance — just like a bank statement. Tap ✏️ to edit inline, or swipe left to delete. Use the filter and sort controls at the top to narrow things down.' },
-  { icon:'🥧', title:'Charts & Spending Breakdown',   body:'Toggle between a bar chart and pie chart on the Dashboard. Tap any bar or slice to see every transaction in that category for the month. The breakdown below the chart shows budget progress per category.' },
-  { icon:'🎯', title:'Goals & Budgets',               body:'Goals tracks savings targets with a progress bar — contribute any amount anytime. Budgets sets a monthly spending limit per category; the breakdown turns amber or red when you are close to or over the limit.' },
-  { icon:'📑', title:'Bills',                         body:'Add recurring bills and the app tracks what is due, what is coming up, and what is overdue. Bills due within 3 days get a badge on the nav. Marking a bill paid can auto-log it as an expense.' },
-  { icon:'📅', title:'Weekly Planner',                body:'Enter your next paycheck date and the app calculates a safe daily and weekly spend budget after bills and an optional emergency buffer. Past weeks expand to show every transaction in that period.' },
-  { icon:'💳', title:'Debt Tracker',                  body:'Add credit cards or loans under Settings → Accounts and set the starting balance to what you owe. The Debt tab shows balance, payoff progress, and a Snowball vs Avalanche calculator if you enter a monthly payment budget.' },
-  { icon:'⚙️', title:'Settings & Themes',             body:'Choose from 10+ themes — including VS Code, PowerShell, and CMD which each apply their authentic monospace font automatically. Move the nav bar to any side, hide tabs you do not use, set a PIN lock, and tune your dashboard cards.' },
+// ── walkthrough tour ──────────────────────────────────────────────────────
+const WALKTHROUGH_STEPS = [
+  { tab: null, target: null,
+    title: 'Welcome to Budget DAWGs',
+    body: 'Your all-in-one personal finance companion. This quick tour navigates you through every section — takes about 2 minutes. Tap Next or tap anywhere dark to advance.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 4l3.1 6.3 7 1.1-5.1 4.9 1.2 7-6.2-3.3-6.2 3.3 1.2-7-5.1-4.9 7-1.1z"/><line x1="12" y1="28" x2="24" y2="28" stroke-width="1.5"/><line x1="15" y1="32" x2="21" y2="32" stroke-width="1.5"/></svg>`,
+  },
+  { tab: 'dashboard', target: '#main-content',
+    title: 'Dashboard',
+    body: 'Home base — your current balance, monthly income and expenses, and customizable tiles below. Tap ‹ › to browse any past month.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="13" rx="2"/><rect x="20" y="4" width="12" height="7" rx="2"/><rect x="20" y="15" width="12" height="13" rx="2"/><rect x="4" y="21" width="12" height="11" rx="2"/></svg>`,
+  },
+  { tab: 'dashboard', target: '.dawg-tile-grid',
+    title: 'Budget Tiles',
+    body: 'Ring tiles track weekly and daily spend vs your budget. Tap "Customize Layout" below the grid to reorder, resize, or swap any tile.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="12"/><circle cx="18" cy="18" r="6"/><line x1="18" y1="6" x2="18" y2="10"/><line x1="18" y1="26" x2="18" y2="30"/><line x1="6" y1="18" x2="10" y2="18"/><line x1="26" y1="18" x2="30" y2="18"/></svg>`,
+  },
+  { tab: 'add', target: '#main-content',
+    title: 'Tracking Transactions',
+    body: 'Log an expense, income, or transfer. The category field auto-completes from your history. Tap ✓ Done on your keyboard to save without jumping fields.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><line x1="18" y1="11" x2="18" y2="25"/><line x1="11" y1="18" x2="25" y2="18"/></svg>`,
+  },
+  { tab: 'ledger', target: '#main-content',
+    title: 'Ledger',
+    body: 'Every transaction in one list with a running balance, just like a bank statement. Tap a row to edit inline, or swipe left to delete. Use the filter bar to search by category or date.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h18a2 2 0 0 1 2 2v24a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><line x1="13" y1="12" x2="23" y2="12"/><line x1="13" y1="18" x2="23" y2="18"/><line x1="13" y1="24" x2="19" y2="24"/></svg>`,
+  },
+  { tab: 'weekly', target: '#main-content',
+    title: 'Weekly Planner',
+    body: 'Set your paycheck schedule and the app calculates a safe daily spend limit after bills and a savings buffer. Expand past weeks to see every transaction in that period.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="26" height="24" rx="2"/><line x1="5" y1="14" x2="31" y2="14"/><line x1="12" y1="4" x2="12" y2="10"/><line x1="24" y1="4" x2="24" y2="10"/><rect x="10" y="19" width="4" height="4" rx=".5"/><rect x="22" y="19" width="4" height="4" rx=".5"/></svg>`,
+  },
+  { tab: 'bills', target: '#main-content',
+    title: 'Bills',
+    body: 'Track recurring bills with due dates. Bills due within 3 days show a badge on the nav. Marking a bill paid can automatically log it as an expense.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h20a1 1 0 0 1 1 1v26l-4.5-3-3 3-3-3-3 3-3-3-4.5 3V5a1 1 0 0 1 1-1z"/><line x1="13" y1="14" x2="23" y2="14"/><line x1="13" y1="20" x2="23" y2="20"/><line x1="13" y1="26" x2="18" y2="26"/></svg>`,
+  },
+  { tab: 'debt', target: '#main-content',
+    title: 'Debt Tracker',
+    body: 'Credit cards and loans tracked with a payoff progress bar. Add a monthly payment to get Snowball vs Avalanche timelines and see exactly how much interest you\'ll save.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="28" height="19" rx="3"/><line x1="4" y1="16" x2="32" y2="16"/><rect x="8" y="21" width="7" height="3.5" rx="1.5"/><circle cx="28" cy="22.8" r="2" stroke-width="1.5"/></svg>`,
+  },
+  { tab: 'goals', target: '#main-content',
+    title: 'Savings Goals',
+    body: 'Set a target amount with an optional deadline. Contribute any amount anytime — the progress bar fills as you get closer. Perfect for emergency funds, trips, or big purchases.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="19" r="12"/><circle cx="18" cy="19" r="7"/><circle cx="18" cy="19" r="2.5" fill="currentColor" stroke="none"/><line x1="28" y1="6" x2="21.5" y2="13.5"/><polyline points="30.5 4.5 28 4.5 28 7.5"/></svg>`,
+  },
+  { tab: 'budgets', target: '#main-content',
+    title: 'Budgets',
+    body: 'Set monthly spending caps per category. The Spending Breakdown tile on your dashboard shows each category\'s bar — turns amber when you\'re close and red when you\'re over.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><line x1="18" y1="9" x2="18" y2="27"/><path d="M22.5 13.5a4 4 0 0 0-8 0c0 2.2 1.8 3.3 4 4.2 2.2.9 4 2 4 4.3a4 4 0 0 1-8 0"/></svg>`,
+  },
+  { tab: 'settings', target: '#main-content',
+    title: 'Settings',
+    body: 'Pick from 12+ themes (VS Code and PowerShell apply their real fonts automatically), reposition the nav, set a PIN lock, and manage multiple accounts — all here.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3.5"/><path d="M27 14.9l2-3.6-3-3-3.6 2a9.5 9.5 0 0 0-2.4-.9L19.2 6h-2.4l-.8 3.4a9.5 9.5 0 0 0-2.4.9L10 8.3l-3 3 2 3.6a9.5 9.5 0 0 0-.9 2.4L5 18l3.1.7a9.5 9.5 0 0 0 .9 2.4l-2 3.6 3 3 3.6-2a9.5 9.5 0 0 0 2.4.9L16.8 30h2.4l.8-3.4a9.5 9.5 0 0 0 2.4-.9l3.6 2 3-3-2-3.6a9.5 9.5 0 0 0 .9-2.4L31 18l-3.1-.7a9.5 9.5 0 0 0-.9-2.4z"/></svg>`,
+  },
+  { tab: null, target: null,
+    title: 'You\'re All Set!',
+    body: 'That\'s the full tour. Tap any section in the nav to jump right in. Long-press the nav bar to customize which sections appear. Come back to this tour from the About page anytime.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><polyline points="12 18 16.5 23 24 13"/></svg>`,
+  },
 ];
 
-let tutorialSlide = 0;
+let _wtStep = 0;
+let _wtOpen = false;
 
 function openTutorial() {
-  tutorialSlide = 0;
-  const overlay = document.getElementById('tutorial-overlay');
-  if (overlay) { renderTutorialSlide(); overlay.classList.remove('hidden'); }
+  if (_wtOpen) return;
+  _wtOpen = true;
+  _wtStep = 0;
+
+  // Backdrop — catches taps outside the card to advance
+  const bd = document.createElement('div');
+  bd.id = 'wt-bd';
+  bd.addEventListener('click', _advanceWalkthrough);
+
+  // Spotlight ring
+  const hl = document.createElement('div');
+  hl.id = 'wt-hl';
+  hl.style.display = 'none';
+
+  // Card
+  const card = document.createElement('div');
+  card.id = 'wt-card';
+
+  // Skip button
+  const skip = document.createElement('button');
+  skip.id = 'wt-skip';
+  skip.textContent = 'Skip tour';
+  skip.addEventListener('click', e => { e.stopPropagation(); _closeWalkthrough(); });
+
+  document.body.append(bd, hl, card, skip);
+  _renderWalkthroughStep(0);
 }
-function closeTutorial() {
-  document.getElementById('tutorial-overlay')?.classList.add('hidden');
+
+function _closeWalkthrough() {
+  _wtOpen = false;
+  ['wt-bd','wt-hl','wt-card','wt-skip'].forEach(id => document.getElementById(id)?.remove());
 }
-function renderTutorialSlide() {
-  const slide = TUTORIAL_SLIDES[tutorialSlide];
-  const el    = document.getElementById('tutorial-card');
-  if (!el || !slide) return;
-  const isLast = tutorialSlide === TUTORIAL_SLIDES.length - 1;
-  el.innerHTML = `
-    <div class="tut-icon">${slide.icon}</div>
-    <div class="tut-title">${slide.title}</div>
-    <p class="tut-body">${slide.body}</p>
-    <div class="tut-dots">${TUTORIAL_SLIDES.map((_,i)=>`<span class="tut-dot${i===tutorialSlide?' active':''}"></span>`).join('')}</div>
-    <div class="tut-btns">
-      <button class="btn-secondary tut-btn-prev" id="tut-prev" ${tutorialSlide===0?'style="visibility:hidden"':''}>← Back</button>
-      <button class="btn-primary tut-btn-next" id="tut-next">${isLast ? 'Done ✓' : 'Next →'}</button>
+
+function _advanceWalkthrough() {
+  if (!_wtOpen) return;
+  if (_wtStep < WALKTHROUGH_STEPS.length - 1) { _wtStep++; _renderWalkthroughStep(_wtStep); }
+  else _closeWalkthrough();
+}
+
+function _renderWalkthroughStep(i) {
+  const step = WALKTHROUGH_STEPS[i];
+  const card = document.getElementById('wt-card');
+  const hl   = document.getElementById('wt-hl');
+  const bd   = document.getElementById('wt-bd');
+  if (!card) return;
+
+  const isLast = i === WALKTHROUGH_STEPS.length - 1;
+
+  // Update card content
+  card.innerHTML = `
+    <div class="wt-icon">${step.icon}</div>
+    <div class="wt-title">${step.title}</div>
+    <p class="wt-body">${step.body}</p>
+    <div class="wt-footer">
+      <div class="wt-dots">${WALKTHROUGH_STEPS.map((_,j) => `<span class="wt-dot${j===i?' wt-dot--on':''}"></span>`).join('')}</div>
+      <div class="wt-btns">
+        <button class="wt-back${i===0?' wt-back--hidden':''}" id="wt-back">← Back</button>
+        <button class="wt-next" id="wt-next">${isLast ? 'Done' : 'Next →'}</button>
+      </div>
     </div>`;
-  document.getElementById('tut-prev')?.addEventListener('click', () => { tutorialSlide--; renderTutorialSlide(); });
-  document.getElementById('tut-next')?.addEventListener('click', () => {
-    if (tutorialSlide < TUTORIAL_SLIDES.length - 1) { tutorialSlide++; renderTutorialSlide(); }
-    else closeTutorial();
+
+  // Prevent card clicks from triggering backdrop advance
+  card.onclick = e => e.stopPropagation();
+
+  document.getElementById('wt-back')?.addEventListener('click', e => {
+    e.stopPropagation();
+    if (_wtStep > 0) { _wtStep--; _renderWalkthroughStep(_wtStep); }
   });
+  document.getElementById('wt-next')?.addEventListener('click', e => {
+    e.stopPropagation();
+    _advanceWalkthrough();
+  });
+
+  // Position helper — runs after tab navigation settles
+  function _place() {
+    if (!step.target) {
+      hl.style.display = 'none';
+      if (bd) bd.style.display = 'block';
+      card.className = 'wt-card--center';
+      return;
+    }
+    const el = document.querySelector(step.target);
+    if (!el) {
+      hl.style.display = 'none';
+      if (bd) bd.style.display = 'block';
+      card.className = 'wt-card--center';
+      return;
+    }
+    // Use box-shadow spread spotlight — no separate backdrop needed
+    if (bd) bd.style.display = 'none';
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    setTimeout(() => {
+      const r   = el.getBoundingClientRect();
+      const pad = 10;
+      hl.style.cssText = `display:block;position:fixed;left:${r.left-pad}px;top:${r.top-pad}px;width:${r.width+pad*2}px;height:${r.height+pad*2}px;border-radius:20px;z-index:9998;pointer-events:none;`;
+      // Card above or below the spotlight
+      card.className = (r.bottom > window.innerHeight * 0.52) ? 'wt-card--top' : 'wt-card--bottom';
+    }, 180);
+  }
+
+  if (step.tab && step.tab !== currentTab) {
+    showTab(step.tab);
+    setTimeout(_place, 400);
+  } else {
+    requestAnimationFrame(_place);
+  }
 }
+
+// Keep old name as alias for any external references
+function closeTutorial() { _closeWalkthrough(); }
 
 function attachAbout() {
   document.getElementById('open-tutorial-btn')?.addEventListener('click', openTutorial);
