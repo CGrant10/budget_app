@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.1.4';
+const VERSION = '5.1.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -2649,14 +2649,28 @@ const ANIM_CLASSES = ['anim-slide-right','anim-slide-left','anim-fade-up','anim-
 // covers all pages consistently.
 const STAGGER_SEL = [
   '.dawg-section-card',
+  '.dawg-balance-card',
+  '.dawg-overview-card',
+  '.dawg-breakdown-card',
+  '.dawg-due-tile',
+  '.dawg-txn-row',
+  '.dawg-goal-row',
   '.ledger-row',
   '.bill-card',
   '.goal-card',
   '.debt-acct-card',
   '.budget-row',
   '.ret-acct-card',
+  '.ret-dash-card',
+  '.ret-proj-card',
   '.pw-txn-row',
   '.acct-row',
+  '.challenge-card',
+  '.form-card',
+  '.acct-settings-card',
+  '.week-tracker',
+  '.ibp-card',
+  '.budget-suggest-banner',
 ].join(',');
 
 // Same cascade as the accounts page: fade + slide-in from left, staggered 50ms per item
@@ -2750,11 +2764,6 @@ function _applyPageTransition(main, oldHTML, transType) {
   main.style.overflow = 'hidden';
   main.appendChild(track);   // main now contains only the track (no bare innerHTML)
 
-  // Cascade items into place as the new panel slides in.
-  // Using transform-only (no opacity) so the incoming page is never blank —
-  // items are visible but offset left, and each slides to its resting position.
-  _applyStagger(newPanel);
-
   // ── Double-rAF: let the browser commit frame 1 (initial state) then animate ─
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
@@ -2763,20 +2772,16 @@ function _applyPageTransition(main, oldHTML, transType) {
     });
   });
 
-  // ── After animation: move nodes (not innerHTML) so in-progress stagger animations
-  //    continue uninterrupted and event listeners are preserved ─────────────────
+  // ── After animation: restore innerHTML so stagger fires exactly once on fresh nodes
   _slideCleanupTimer = setTimeout(() => {
     _slideCleanupTimer = null;
     _slidePendingHTML  = null;
-    // Lift nodes out of newPanel into a fragment before destroying the track
-    const frag = document.createDocumentFragment();
-    while (newPanel.firstChild) frag.appendChild(newPanel.firstChild);
-    // Clear the track structure and restore real content
-    main.innerHTML = '';
+    main.innerHTML = newHTML;
     main.style.overflow = '';
-    main.appendChild(frag);
-    // Handlers + badge were attached when render() called attachHandlers() on the
-    // same live nodes — no need to re-attach since nodes were moved, not recreated
+    attachHandlers();
+    updateBillBadge();
+    updateDawgTopbar();
+    _applyStagger();
   }, dur + 84); // 340ms anim + 2×rAF (~34ms) + 16ms buffer
 }
 
@@ -3996,7 +4001,10 @@ function renderAdd() {
         </div>
         <div class="form-row" id="add-cat-row">
           <label class="form-label">Category</label>
-          <select id="add-cat" class="form-input form-select">${catOptions}</select>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+            <select id="add-cat" class="form-input form-select">${catOptions}<option value="__custom__">+ Add new category…</option></select>
+            <input type="text" id="add-cat-custom" class="form-input" placeholder="New category name" style="display:none">
+          </div>
         </div>
         <div class="form-row" id="add-split-row">
           <label class="form-label" style="align-self:flex-start;padding-top:2px">Split</label>
@@ -5211,7 +5219,15 @@ function attachSettings() {
     showTab('accounts');
   });
 
-  // Custom categories
+  // Inline custom category toggle on Add Transaction form
+  document.getElementById('add-cat')?.addEventListener('change', e => {
+    const customInput = document.getElementById('add-cat-custom');
+    if (!customInput) return;
+    customInput.style.display = e.target.value === '__custom__' ? '' : 'none';
+    if (e.target.value === '__custom__') customInput.focus();
+  });
+
+  // Custom categories (Settings page)
   document.getElementById('add-cat-btn')?.addEventListener('click', () => {
     const input = document.getElementById('new-cat-input');
     const name = input.value.trim();
@@ -6694,11 +6710,25 @@ function attachAdd() {
     }
 
     const isRecurring = document.getElementById('add-recurring').checked;
+    // Inline custom category: if user chose "+ Add new category…", use the text input
+    let chosenCat = document.getElementById('add-cat').value;
+    if (chosenCat === '__custom__') {
+      const customVal = (document.getElementById('add-cat-custom')?.value || '').trim();
+      if (!customVal) { showStatus('add-status', 'Enter a category name first.', 'error'); return; }
+      const s = loadSettings();
+      const custom = s.customCategories || [];
+      if (!DEFAULT_CATEGORIES.includes(customVal) && !custom.includes(customVal)) {
+        custom.push(customVal);
+        s.customCategories = custom;
+        saveSettings(s);
+      }
+      chosenCat = customVal;
+    }
     const t = {
       type,
       amount,
       description: document.getElementById('add-desc').value.trim() || '—',
-      category:    document.getElementById('add-cat').value,
+      category:    chosenCat,
       account:     document.getElementById('add-acct').value,
       date,
       recurring:   isRecurring,
