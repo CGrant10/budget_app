@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.0.1';
+const VERSION = '5.0.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.0.2', date: '2026-05-21', changes: [
+    'Accounts overview: dead space at the top (reserved for the hidden topbar) is now removed — picker fills the full screen edge to edge',
+    'Account tile tap: brief scale + accent glow press animation before the dashboard zooms in, making the transition feel intentional',
+  ]},
   { version: '5.0.1', date: '2026-05-21', changes: [
     'Android system back button now navigates within the app — goes back through tab history, account picker, and account switches before exiting',
     'Back button also closes the side drawer or account dropdown if either is open',
@@ -2508,6 +2512,9 @@ function render() {
     _applyPageTransition(main);
     document.querySelectorAll('.acct-row').forEach(tile => {
       tile.addEventListener('click', async () => {
+        // Brief press glow on the tapped tile before transitioning
+        tile.classList.add('acct-row-tapped');
+        await new Promise(r => setTimeout(r, 110));
         _navPush();
         _pageTransition = 'zoom-in';
         showingAccountPicker = false;        // set BEFORE switchAccount so its render() sees correct state
