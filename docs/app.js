@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.1.5';
+const VERSION = '5.1.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -2612,7 +2612,15 @@ function renderAccountPicker() {
           <div>
             <div class="acct-picker-title">My Accounts</div>
             <div class="acct-picker-sub">${count} account${count !== 1 ? 's' : ''} · tap to open</div>
-            <div class="acct-picker-ver">v${VERSION}${_upToDate ? ' · <span style="color:var(--success)">up to date</span>' : ''}</div>
+            <div class="acct-picker-ver">v${VERSION}${
+              _latestVersion && _latestVersion !== VERSION
+                ? ` · <span style="color:var(--danger)">out of date</span>`
+                : _upToDate ? ` · <span style="color:var(--success)">up to date</span>` : ''
+            }</div>
+            ${_latestVersion && _latestVersion !== VERSION
+              ? `<button id="acct-force-update-btn" class="acct-update-pill">↑ v${_latestVersion} available — tap to update</button>`
+              : `<button id="acct-force-update-btn" class="acct-update-pill acct-update-pill--subtle">⟳ Check for update</button>`
+            }
           </div>
         </div>
       </div>
@@ -2762,9 +2770,13 @@ function _applyPageTransition(main, oldHTML, transType) {
   track.appendChild(isRight ? newPanel : oldPanel);
 
   main.style.overflow = 'hidden';
-  main.appendChild(track);   // main now contains only the track (no bare innerHTML)
+  main.appendChild(track);
 
-  // ── Double-rAF: let the browser commit frame 1 (initial state) then animate ─
+  // Stagger items in as the panel slides in — same cascade as accounts page.
+  // This fires once here. Cleanup will freeze (not restart) the animations.
+  _applyStagger(newPanel);
+
+  // ── Double-rAF: commit initial transform before CSS transition fires ────────
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       track.style.transition = `transform ${dur}ms ${ease}`;
@@ -2772,17 +2784,22 @@ function _applyPageTransition(main, oldHTML, transType) {
     });
   });
 
-  // ── After animation: restore innerHTML so stagger fires exactly once on fresh nodes
+  // ── After animation: freeze stagger styles then move nodes (no innerHTML flash) ─
   _slideCleanupTimer = setTimeout(() => {
     _slideCleanupTimer = null;
     _slidePendingHTML  = null;
-    main.innerHTML = newHTML;
+    // Clear inline animation so items stay at their final rendered state
+    // (animation:none removes fill-mode, leaving element at natural opacity:1)
+    newPanel.querySelectorAll(STAGGER_SEL).forEach(el => { el.style.animation = ''; });
+    const frag = document.createDocumentFragment();
+    while (newPanel.firstChild) frag.appendChild(newPanel.firstChild);
+    main.innerHTML = '';
     main.style.overflow = '';
+    main.appendChild(frag);
     attachHandlers();
     updateBillBadge();
     updateDawgTopbar();
-    _applyStagger();
-  }, dur + 84); // 340ms anim + 2×rAF (~34ms) + 16ms buffer
+  }, dur + 84);
 }
 
 function render() {
@@ -2809,6 +2826,7 @@ function render() {
         await api.switchAccount(tile.dataset.id); // internally calls render() — no extra call needed
       });
     });
+    document.getElementById('acct-force-update-btn')?.addEventListener('click', () => forceUpdate());
     document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="date"])').forEach(el => el.setAttribute('enterkeyhint', 'done'));
     updateDawgTopbar();
     return;
@@ -7201,29 +7219,34 @@ function updateAccountSwitcher() {
 }
 
 // ── version check ──────────────────────────────────────────────────────────
-let _reloading = false;
-let _upToDate  = false; // set true once version.txt confirms we're current
+let _upToDate     = false;  // true when version.txt confirms we're on latest
+let _latestVersion = null;  // set to the live version string if newer than ours
+
 async function checkForUpdate() {
-  if (_reloading) return;
   try {
     const res  = await fetch('./version.txt?_=' + Date.now(), { cache: 'no-cache' });
     const live = (await res.text()).trim();
-    if (live && live !== VERSION) {
-      // Guard against infinite reload loop: only reload once per session.
-      // If we already tried a reload and the version still doesn't match,
-      // the SW cache is stale — skip silently rather than looping forever.
-      if (sessionStorage.getItem('slawminyaw_reloaded') === live) return;
-      sessionStorage.setItem('slawminyaw_reloaded', live);
-      _reloading = true;
-      window.location.reload();
-    } else if (live === VERSION) {
-      // Confirmed up to date — refresh the account picker if it's visible
-      if (!_upToDate) {
-        _upToDate = true;
-        if (showingAccountPicker) render();
-      }
+    if (!live) return;
+    if (live !== VERSION) {
+      // A newer version is available — update state and refresh picker if open
+      const changed = _latestVersion !== live;
+      _upToDate      = false;
+      _latestVersion = live;
+      if (changed && showingAccountPicker) render();
+    } else {
+      // We are on the latest version
+      const changed = !_upToDate;
+      _upToDate      = true;
+      _latestVersion = VERSION;
+      if (changed && showingAccountPicker) render();
     }
   } catch(e) { /* offline — skip */ }
+}
+
+function forceUpdate() {
+  // Hard-reload bypassing the service worker cache
+  navigator.serviceWorker?.getRegistration?.()?.then?.(reg => reg?.unregister?.());
+  window.location.reload();
 }
 
 // ── what's new popup ──────────────────────────────────────────────────────
@@ -7633,9 +7656,10 @@ window.addEventListener('popstate', () => {
     _checkPaychecks();
     window.addEventListener('focus', _checkPaychecks);
 
-    // Check for a new version every open and every time the app is foregrounded
+    // Check for a new version on load, on focus, and every 2 minutes while open
     checkForUpdate();
     window.addEventListener('focus', checkForUpdate);
+    setInterval(checkForUpdate, 120_000);
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').then(reg => {
