@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.4.0';
+const VERSION = '5.4.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,27 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.4.1', date: '2026-05-21', changes: [
+    'Force Update now always shows the What\'s New popup after reloading — works from both the accounts page shortcut and the About page',
+    'Added changelog entries for v5.2.0 through v5.4.0 that were previously missing',
+  ]},
+  { version: '5.4.0', date: '2026-05-21', changes: [
+    'Dashboard tiles now show how much you\'ve spent (not your budget limit) as the main number — subtitle shows "spent / allowed" at a glance',
+    'Customize Layout is now a live edit mode: tap it and the dashboard enters edit state directly — tiles wiggle, drag them around the grid and watch the layout reorder in real time',
+    'Ghost + dashed placeholder highlight exactly where a tile will land as you drag',
+    'Per-tile size toggle and show/hide buttons overlay each card in edit mode — hidden tiles appear dimmed so you can drag them back',
+    'Preset layouts (Default, Budget, Compact, Spending) apply instantly from the inline bar below the grid',
+  ]},
+  { version: '5.3.0', date: '2026-05-21', changes: [
+    'Dashboard is now a fully customizable tile grid — tap Customize Layout to reorder, resize (half/full width), and show or hide each card',
+    'Four preset layouts: Default, Budget, Compact, and Spending focus',
+    'Transaction icons redesigned: clean red devil SVG for expenses, green happy face for income, gold coin for paychecks',
+  ]},
+  { version: '5.2.0', date: '2026-05-21', changes: [
+    'Category field is now a plain text input with autocomplete — type anything, new categories save automatically',
+    'Budget Overview card replaced with compact ring-progress tiles for per-week and per-day spending',
+    'Spending Breakdown promoted to a full-width card so the category bars are easier to read',
+  ]},
   { version: '5.1.4', date: '2026-05-21', changes: [
     'Every page now uses the exact same cascade animation as the accounts page — items fade and slide in from the left with staggered timing',
   ]},
@@ -6445,6 +6466,8 @@ function attachAbout() {
         const regs = await navigator.serviceWorker.getRegistrations();
         await Promise.all(regs.map(r => r.unregister()));
       }
+      // Clear seen-version so What's New popup fires after reload
+      localStorage.removeItem('slawminyaw_seen_version');
       btn.textContent = 'Reloading…';
       window.location.href = window.location.pathname + '?v=' + Date.now();
     } catch(e) {
@@ -7507,6 +7530,8 @@ async function checkForUpdate() {
 }
 
 function forceUpdate() {
+  // Clear the "seen version" flag so the What's New popup fires after reload
+  localStorage.removeItem('slawminyaw_seen_version');
   // Hard-reload bypassing the service worker cache
   navigator.serviceWorker?.getRegistration?.()?.then?.(reg => reg?.unregister?.());
   window.location.reload();
