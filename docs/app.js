@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.1.3';
+const VERSION = '5.1.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.1.4', date: '2026-05-21', changes: [
+    'Every page now uses the exact same cascade animation as the accounts page — items fade and slide in from the left with staggered timing',
+  ]},
   { version: '5.1.3', date: '2026-05-21', changes: [
     'Transaction animations: expenses trigger an evil red growling doberman, income brings a hype bounce with confetti — paycheck gets the full celebration treatment',
     'Animations fire for every theme, auto-dismiss with a depleting progress bar, and tap-to-skip',
@@ -2656,16 +2659,13 @@ const STAGGER_SEL = [
   '.acct-row',
 ].join(',');
 
-// slideMode = true  → acctRowSlideIn (transform only, no opacity fade)
-//             false → acctRowIn      (opacity + transform, for zoom/fade transitions)
-function _applyStagger(container, slideMode) {
+// Same cascade as the accounts page: fade + slide-in from left, staggered 50ms per item
+function _applyStagger(container) {
   const root = container || document.getElementById('main-content');
   if (!root) return;
-  const kf = slideMode ? 'acctRowSlideIn' : 'acctRowIn';
   root.querySelectorAll(STAGGER_SEL).forEach((el, i) => {
-    // 50 ms between each item, capped at 8 so long lists land together after the cascade
     const delay = (Math.min(i, 8) * 0.05).toFixed(2);
-    el.style.animation = `${kf} .28s cubic-bezier(.22,1,.36,1) ${delay}s both`;
+    el.style.animation = `acctRowIn .3s cubic-bezier(.22,1,.36,1) ${delay}s both`;
   });
 }
 
@@ -2753,7 +2753,7 @@ function _applyPageTransition(main, oldHTML, transType) {
   // Cascade items into place as the new panel slides in.
   // Using transform-only (no opacity) so the incoming page is never blank —
   // items are visible but offset left, and each slides to its resting position.
-  _applyStagger(newPanel, true);
+  _applyStagger(newPanel);
 
   // ── Double-rAF: let the browser commit frame 1 (initial state) then animate ─
   requestAnimationFrame(() => {

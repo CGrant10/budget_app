@@ -2356,12 +2356,6 @@ body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
   from { opacity: 0; transform: translateX(-14px); }
   to   { opacity: 1; transform: translateX(0); }
 }
-/* Slide-only (no opacity) — used inside slide page transitions so items
-   are always visible and just cascade into position as the page slides in */
-@keyframes acctRowSlideIn {
-  from { transform: translateX(-18px); }
-  to   { transform: translateX(0); }
-}
 
 /* ── rotating insights card ──────────────────────────────────────────────── */
 .insight-card {
