@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.1.8';
+const VERSION = '5.1.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -3292,12 +3292,30 @@ function renderDashboardDawg() {
         </div>
         <div class="dawg-budget-row">
           <div class="dawg-budget-stat"><span class="dawg-stat-val">${fmt(budgetSpent)}</span><span class="dawg-stat-lbl">spent</span></div>
-          <div class="dawg-budget-stat"><span class="dawg-stat-val">${fmt(totalBudget)}</span><span class="dawg-stat-lbl">${budgetLbl}</span></div>
-          ${dayBudget > 0 ? `<div class="dawg-budget-stat"><span class="dawg-stat-val" style="color:${daySpent>dayBudget?'var(--danger)':daySpent>dayBudget*.8?'var(--warn)':'var(--text)'}">${fmt(dayBudget)}</span><span class="dawg-stat-lbl">per day</span></div>` : ''}
-          ${dayBudget > 0 ? `<div class="dawg-budget-stat"><span class="dawg-stat-val" style="color:${daySpent>dayBudget?'var(--danger)':daySpent>0?'var(--text)':'var(--muted)'}">${fmt(daySpent)}</span><span class="dawg-stat-lbl">today</span></div>` : ''}
+          <div class="dawg-budget-stat"><span class="dawg-stat-val">${fmt(Math.max(0,totalBudget-budgetSpent))}</span><span class="dawg-stat-lbl">remaining</span></div>
         </div>
         <button class="dawg-view-btn" id="dawg-goto-budgets">VIEW BUDGET ›</button>
       </div>
+      ${dayBudget > 0 ? (() => {
+        const wkPct  = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
+        const wkColor = wkPct >= 90 ? 'var(--danger)' : wkPct >= 75 ? 'var(--warn)' : 'var(--accent)';
+        const dayPct  = Math.min(daySpent / dayBudget * 100, 100);
+        const dayColor = dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
+        return `<div class="dawg-budget-tiles">
+          <div class="dawg-budget-tile">
+            <div class="dawg-card-title">PER WEEK</div>
+            <div class="dawg-tile-amt" style="color:${wkColor}">${fmt(totalBudget)}</div>
+            <div class="dawg-tile-sub">${fmt(budgetSpent)} spent</div>
+            <div class="dawg-tile-bar-bg"><div class="dawg-tile-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div>
+          </div>
+          <div class="dawg-budget-tile">
+            <div class="dawg-card-title">PER DAY</div>
+            <div class="dawg-tile-amt" style="color:${dayColor}">${fmt(dayBudget)}</div>
+            <div class="dawg-tile-sub">${fmt(daySpent)} today</div>
+            <div class="dawg-tile-bar-bg"><div class="dawg-tile-bar-fill" style="width:${dayPct.toFixed(1)}%;background:${dayColor}"></div></div>
+          </div>
+        </div>`;
+      })() : ''}
       ${_showBreakdown ? `<div class="dawg-breakdown-card">
         <div class="dawg-card-title">SPENDING BREAKDOWN</div>
         <div class="dawg-cat-list dawg-cat-list--wide">${spendHtml}</div>
