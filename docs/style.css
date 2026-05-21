@@ -2310,11 +2310,11 @@ body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
 
 /* ── page transition animations ── */
 @keyframes pageSlideInRight {
-  from { opacity: 0; transform: translateX(40px); }
+  from { opacity: 0; transform: translateX(60px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 @keyframes pageSlideInLeft {
-  from { opacity: 0; transform: translateX(-40px); }
+  from { opacity: 0; transform: translateX(-60px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 @keyframes pageFadeUp {
@@ -2323,10 +2323,10 @@ body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
 }
 
 #main-content.anim-slide-right {
-  animation: pageSlideInRight .22s cubic-bezier(.25,.8,.35,1) both;
+  animation: pageSlideInRight .34s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 #main-content.anim-slide-left {
-  animation: pageSlideInLeft .22s cubic-bezier(.25,.8,.35,1) both;
+  animation: pageSlideInLeft .34s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 #main-content.anim-fade-up {
   animation: pageFadeUp .18s cubic-bezier(.25,.8,.35,1) both;

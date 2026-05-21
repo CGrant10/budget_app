@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.0.6';
+const VERSION = '5.0.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.0.7', date: '2026-05-21', changes: [
+    'Tab slide transition smoothed — longer duration (.34s), more travel (60px), and a spring ease-out curve so it glides in instead of snapping',
+  ]},
   { version: '5.0.6', date: '2026-05-21', changes: [
     'Directional slide transitions now only apply between bottom nav bar tabs — hamburger-only pages (About, Challenges, etc.) use a plain fade as before',
   ]},
