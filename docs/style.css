@@ -2478,6 +2478,16 @@ body.light .section-title::before {
   line-height: 1.1;
   color: var(--text);
 }
+.dawg-tile-period {
+  font-size: .55rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: .7;
+  margin-top: -2px;
+  margin-bottom: 2px;
+}
 .dawg-tile-sub {
   font-size: .63rem;
   color: var(--muted);

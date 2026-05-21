@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.5.0';
+const VERSION = '5.5.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.5.1', date: '2026-05-21', changes: [
+    'Long-press on the nav bar now works reliably on mobile — a movement threshold prevents tiny finger drift from cancelling the hold gesture',
+    'Budget Overview tiles now show "Budget Overview" as the card title with "Per Week" / "Per Day" as a subtitle label beneath it',
+    'Nav slide transitions now follow visual position: left-side nav items slide in from the left, right-side items from the right, and stay correct even after customizing which sections are in each slot',
+    'Added a dedicated Customize Your Nav Bar step to the guided tour; "You\'re All Set!" step updated to note the tour stays current with new features',
+  ]},
   { version: '5.5.0', date: '2026-05-21', changes: [
     'Guided walkthrough tour — tap the ? button to take a live tour of every section; the app navigates for you while a spotlight highlights each area',
     'Tour uses smooth outline SVG icons throughout, a pulsing accent spotlight on each target, dot-step progress, and Back/Next navigation',
@@ -1930,15 +1936,32 @@ function showTab(key) {
     applyTheme(activeTheme);
   }
   // Dashboard always zooms in; slide between other nav tabs; hamburger pages fade
-  const fromIdx = NAV_TABS.indexOf(currentTab);
-  const toIdx   = NAV_TABS.indexOf(key);
-  const bothInNav = fromIdx !== -1 && toIdx !== -1;
+  // In DAWG mode the visual order is: [slot0] [slot1] [🐕 dashboard] [slot2] [slot3]
+  // so we derive direction from visual position rather than NAV_TABS order.
   if (key === 'dashboard') {
     _pageTransition = 'zoom-in';
-  } else if (bothInNav && fromIdx !== toIdx) {
-    _pageTransition = toIdx > fromIdx ? 'slide-right' : 'slide-left';
+  } else if (document.getElementById('app')?.classList.contains('dawg-mode')) {
+    const layout = loadNavLayout(); // [slot0, slot1, slot2, slot3]
+    // visual positions: slot0→0, slot1→1, dashboard→2, slot2→3, slot3→4, unlisted→-1
+    const visPos = (k) => {
+      if (k === 'dashboard') return 2;
+      const li = layout.indexOf(k);
+      return li === 0 ? 0 : li === 1 ? 1 : li === 2 ? 3 : li === 3 ? 4 : -1;
+    };
+    const fv = visPos(currentTab);
+    const tv = visPos(key);
+    if (fv !== -1 && tv !== -1 && fv !== tv) {
+      _pageTransition = tv > fv ? 'slide-right' : 'slide-left';
+    } else {
+      _pageTransition = 'fade';
+    }
   } else {
-    _pageTransition = 'fade';
+    const fromIdx = NAV_TABS.indexOf(currentTab);
+    const toIdx   = NAV_TABS.indexOf(key);
+    const bothInNav = fromIdx !== -1 && toIdx !== -1;
+    _pageTransition = (bothInNav && fromIdx !== toIdx)
+      ? (toIdx > fromIdx ? 'slide-right' : 'slide-left')
+      : 'fade';
   }
   currentTab = key;
   document.querySelectorAll('.nav-btn').forEach(b =>
@@ -3655,7 +3678,8 @@ function renderDashboardDawg() {
         const C = 175.93;
         const wkDash  = (C * (1 - wkPct / 100)).toFixed(1);
         _tileHtml['budget-week'] = `
-          <div class="dawg-card-title">PER WEEK</div>
+          <div class="dawg-card-title">BUDGET OVERVIEW</div>
+          <div class="dawg-tile-period">PER WEEK</div>
           <div class="dawg-tile-ring-wrap">
             <svg class="dawg-tile-ring" viewBox="0 0 64 64">
               <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
@@ -3671,7 +3695,8 @@ function renderDashboardDawg() {
           const dayColor = dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
           const dayDash  = (C * (1 - dayPct / 100)).toFixed(1);
           _tileHtml['budget-day'] = `
-            <div class="dawg-card-title">PER DAY</div>
+            <div class="dawg-card-title">BUDGET OVERVIEW</div>
+            <div class="dawg-tile-period">PER DAY</div>
             <div class="dawg-tile-ring-wrap">
               <svg class="dawg-tile-ring" viewBox="0 0 64 64">
                 <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
@@ -6543,9 +6568,14 @@ const WALKTHROUGH_STEPS = [
     body: 'Pick from 12+ themes (VS Code and PowerShell apply their real fonts automatically), reposition the nav, set a PIN lock, and manage multiple accounts — all here.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3.5"/><path d="M27 14.9l2-3.6-3-3-3.6 2a9.5 9.5 0 0 0-2.4-.9L19.2 6h-2.4l-.8 3.4a9.5 9.5 0 0 0-2.4.9L10 8.3l-3 3 2 3.6a9.5 9.5 0 0 0-.9 2.4L5 18l3.1.7a9.5 9.5 0 0 0 .9 2.4l-2 3.6 3 3 3.6-2a9.5 9.5 0 0 0 2.4.9L16.8 30h2.4l.8-3.4a9.5 9.5 0 0 0 2.4-.9l3.6 2 3-3-2-3.6a9.5 9.5 0 0 0 .9-2.4L31 18l-3.1-.7a9.5 9.5 0 0 0-.9-2.4z"/></svg>`,
   },
+  { tab: null, target: '#dawg-bottom-nav',
+    title: 'Customize Your Nav Bar',
+    body: 'Hold the bottom nav bar for 1 second to open the editor. Drag any section into the top 4 slots to add it, drag below the divider to remove it — the live preview strip updates as you go.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="26" width="28" height="6" rx="2"/><line x1="10" y1="29" x2="26" y2="29"/><circle cx="14" cy="29" r="2" fill="currentColor" stroke="none"/><circle cx="22" cy="29" r="2" fill="currentColor" stroke="none"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="24" y1="4" x2="24" y2="20"/><polyline points="8 8 12 4 16 8"/><polyline points="20 16 24 20 28 16"/></svg>`,
+  },
   { tab: null, target: null,
     title: 'You\'re All Set!',
-    body: 'That\'s the full tour. Tap any section in the nav to jump right in. Long-press the nav bar to customize which sections appear. Come back to this tour from the About page anytime.',
+    body: 'That\'s the full tour. Tap any section in the nav to jump right in. Come back to this tour from the About page anytime — we\'ll keep it updated whenever new features land.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><polyline points="12 18 16.5 23 24 13"/></svg>`,
   },
 ];
@@ -8204,15 +8234,19 @@ document.getElementById('dawg-nav-accts')?.addEventListener('click', () => showT
 (function() {
   const _nav = document.getElementById('dawg-bottom-nav');
   if (!_nav) return;
-  let _lpt = null;
+  let _lpt = null, _sx = 0, _sy = 0;
   const _clear = () => { clearTimeout(_lpt); _lpt = null; };
   _nav.addEventListener('pointerdown', e => {
     if (e.target.closest('.dawg-nav-center-btn')) return;
+    _sx = e.clientX; _sy = e.clientY;
     _lpt = setTimeout(() => { _clear(); openNavEditSheet(); }, 600);
   });
   _nav.addEventListener('pointerup',     _clear);
   _nav.addEventListener('pointercancel', _clear);
-  _nav.addEventListener('pointermove',   _clear);
+  // Only cancel if the finger actually moved (8px threshold prevents phantom micro-moves)
+  _nav.addEventListener('pointermove', e => {
+    if (Math.abs(e.clientX - _sx) > 8 || Math.abs(e.clientY - _sy) > 8) _clear();
+  });
 })();
 // DAWG persistent topbar — hamburger, accounts grid, account pill (permanent HTML elements)
 document.getElementById('dawg-hamburger')?.addEventListener('click', openDawgDrawer);
