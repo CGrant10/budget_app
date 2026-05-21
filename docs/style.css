@@ -1915,10 +1915,13 @@ body.light .section-title::before {
 .dawg-tbtn-active { border-color:var(--accent) !important; color:var(--accent) !important; }
 
 .dawg-mid-row { display:flex; gap:10px; margin:10px 14px 0; }
+.dawg-mid-row .dawg-overview-card,
+.dawg-mid-row .dawg-breakdown-card { flex:1; min-width:0; margin:0; padding:10px; gap:6px; }
 .dawg-overview-card,.dawg-breakdown-card {
-  flex:1; min-width:0; background:var(--card); border-radius:16px;
-  padding:10px; border:1px solid var(--border);
-  display:flex; flex-direction:column; gap:6px;
+  background:var(--card); border-radius:16px;
+  padding:12px 14px; border:1px solid var(--border);
+  display:flex; flex-direction:column; gap:8px;
+  margin:8px 14px 0;
 }
 .dawg-card-title { font-size:.6rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
 
@@ -1940,6 +1943,12 @@ body.light .section-title::before {
 .dawg-cat-bar { height:100%; background:var(--accent); border-radius:4px; transition:width .4s cubic-bezier(.25,.8,.25,1); }
 .dawg-cat-amt { font-size:.62rem; color:var(--text); white-space:nowrap; min-width:36px; text-align:right; }
 .dawg-cat-pct { font-size:.6rem; color:var(--muted); min-width:24px; text-align:right; }
+/* Wide breakdown card — full-width, taller bars, more room for labels */
+.dawg-cat-list--wide { gap:7px; }
+.dawg-cat-list--wide .dawg-cat-name { min-width:72px; max-width:72px; font-size:.72rem; }
+.dawg-cat-list--wide .dawg-cat-bar-wrap { height:10px; margin:0 8px; }
+.dawg-cat-list--wide .dawg-cat-amt { font-size:.68rem; min-width:44px; }
+.dawg-cat-list--wide .dawg-cat-pct { font-size:.65rem; min-width:28px; }
 
 .dawg-section-card {
   background:var(--card); margin:8px 14px 0; border-radius:16px;

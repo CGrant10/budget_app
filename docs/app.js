@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.1.7';
+const VERSION = '5.1.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -3175,6 +3175,10 @@ function renderDashboardDawg() {
   const budgetPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
   const budgetColor = budgetPct >= 90 ? 'var(--danger)' : budgetPct >= 75 ? 'var(--warn)' : 'var(--accent)';
   const budgetLbl   = weekBudget ? 'weekly' : 'monthly';
+  // Per-day budget derived from the effective weekly budget
+  const dayBudget   = weekBudget > 0 && !isPastDash ? effectiveWeekBudget / 7 : 0;
+  const _todayStr2  = today();
+  const daySpent    = state.transactions.filter(t => t.type==='expense' && t.date===_todayStr2).reduce((s,t)=>s+t.amount,0);
   const _ds            = loadSettings();
   const _showBudget    = _ds.dawgBudget         !== false;
   const _showBreakdown = _ds.dawgBreakdown       !== false;
@@ -3184,7 +3188,7 @@ function renderDashboardDawg() {
   const _showInsights  = _ds.dawgInsights         === true;
 
   const totalMExp  = Object.values(bycat).reduce((s,v)=>s+v, 0);
-  const catEntries = Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const catEntries = Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,8);
   const catIcons   = { Food:'🍔', Gas:'⛽', Car:'🚗', Boat:'⛵', Tools:'🔧', Home:'🏠', Entertainment:'🎮', Health:'❤️', Shopping:'🛍️', Transport:'🚗', Housing:'🏠', Other:'💬' };
 
   const spendHtml = catEntries.length ? catEntries.map(([cat,amt]) => {
@@ -3276,7 +3280,7 @@ function renderDashboardDawg() {
       <button class="dawg-mnav-btn dawg-mnav-next${!isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
     </div>
 
-    ${_showBudget && !_isDebt ? `<div class="dawg-mid-row">
+    ${_showBudget && !_isDebt ? `
       <div class="dawg-overview-card">
         <div class="dawg-card-title">BUDGET OVERVIEW</div>
         <div class="dawg-donut-wrap">
@@ -3289,21 +3293,23 @@ function renderDashboardDawg() {
         <div class="dawg-budget-row">
           <div class="dawg-budget-stat"><span class="dawg-stat-val">${fmt(budgetSpent)}</span><span class="dawg-stat-lbl">spent</span></div>
           <div class="dawg-budget-stat"><span class="dawg-stat-val">${fmt(totalBudget)}</span><span class="dawg-stat-lbl">${budgetLbl}</span></div>
+          ${dayBudget > 0 ? `<div class="dawg-budget-stat"><span class="dawg-stat-val" style="color:${daySpent>dayBudget?'var(--danger)':daySpent>dayBudget*.8?'var(--warn)':'var(--text)'}">${fmt(dayBudget)}</span><span class="dawg-stat-lbl">per day</span></div>` : ''}
+          ${dayBudget > 0 ? `<div class="dawg-budget-stat"><span class="dawg-stat-val" style="color:${daySpent>dayBudget?'var(--danger)':daySpent>0?'var(--text)':'var(--muted)'}">${fmt(daySpent)}</span><span class="dawg-stat-lbl">today</span></div>` : ''}
         </div>
         <button class="dawg-view-btn" id="dawg-goto-budgets">VIEW BUDGET ›</button>
       </div>
       ${_showBreakdown ? `<div class="dawg-breakdown-card">
         <div class="dawg-card-title">SPENDING BREAKDOWN</div>
-        <div class="dawg-cat-list">${spendHtml}</div>
+        <div class="dawg-cat-list dawg-cat-list--wide">${spendHtml}</div>
         <button class="dawg-view-btn" id="dawg-goto-ledger">VIEW ANALYTICS ›</button>
       </div>` : ''}
-    </div>` : (_isDebt && _showBreakdown && _curAcctD?.type !== 'loan') ? `<div class="dawg-mid-row">
-      <div class="dawg-breakdown-card" style="flex:1">
+    ` : (_isDebt && _showBreakdown && _curAcctD?.type !== 'loan') ? `
+      <div class="dawg-breakdown-card">
         <div class="dawg-card-title">SPENDING BREAKDOWN</div>
-        <div class="dawg-cat-list">${spendHtml}</div>
+        <div class="dawg-cat-list dawg-cat-list--wide">${spendHtml}</div>
         <button class="dawg-view-btn" id="dawg-goto-ledger">VIEW ANALYTICS ›</button>
       </div>
-    </div>` : ''}
+    ` : ''}
 
     ${_isDebt ? (() => {
       const _payoff = calcDebtPayoff(balance, _curAcctD?.interest_rate, _curAcctD?.monthly_payment);
@@ -5237,14 +5243,6 @@ function attachSettings() {
     showTab('accounts');
   });
 
-  // Inline custom category toggle on Add Transaction form
-  document.getElementById('add-cat')?.addEventListener('change', e => {
-    const customInput = document.getElementById('add-cat-custom');
-    if (!customInput) return;
-    customInput.style.display = e.target.value === '__custom__' ? '' : 'none';
-    if (e.target.value === '__custom__') customInput.focus();
-  });
-
   // Custom categories (Settings page)
   document.getElementById('add-cat-btn')?.addEventListener('click', () => {
     const input = document.getElementById('new-cat-input');
@@ -6646,6 +6644,14 @@ function attachAdd() {
 
   document.getElementById('add-amount')?.addEventListener('input', () => {
     if (document.getElementById('split-toggle')?.checked) updateSplitSummary();
+  });
+
+  // Show/hide inline custom category text input
+  document.getElementById('add-cat')?.addEventListener('change', e => {
+    const customInput = document.getElementById('add-cat-custom');
+    if (!customInput) return;
+    customInput.style.display = e.target.value === '__custom__' ? '' : 'none';
+    if (e.target.value === '__custom__') customInput.focus();
   });
 
   // Show/hide transfer-specific fields
