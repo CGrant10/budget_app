@@ -1954,33 +1954,58 @@ body.light .section-title::before {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 12px 14px 10px;
+  padding: 12px 10px 12px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 4px;
+  text-align: center;
+}
+.dawg-tile-ring-wrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  margin: 6px 0 4px;
+}
+.dawg-tile-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.dawg-tile-ring-bg {
+  fill: none;
+  stroke: var(--surface2);
+  stroke-width: 5;
+}
+.dawg-tile-ring-fill {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset .7s cubic-bezier(.25,.8,.25,1);
+}
+.dawg-tile-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dawg-tile-ring-pct {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  line-height: 1;
 }
 .dawg-tile-amt {
-  font-size: 1.35rem;
+  font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: -.03em;
   line-height: 1.1;
+  color: var(--text);
 }
 .dawg-tile-sub {
-  font-size: .65rem;
+  font-size: .63rem;
   color: var(--muted);
-  margin-bottom: 4px;
-}
-.dawg-tile-bar-bg {
-  height: 5px;
-  background: var(--surface2);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-top: auto;
-}
-.dawg-tile-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width .4s cubic-bezier(.25,.8,.25,1);
 }
 
 /* Wide breakdown card — full-width, taller bars, more room for labels */
@@ -3864,43 +3889,45 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
   box-shadow: 0 -4px 32px rgba(255,214,10,.22), inset 0 1px 0 rgba(255,214,10,.14);
 }
 
-/* Doberman */
+/* SVG icon wrap */
 .txn-anim-dob-wrap {
   position: relative;
   flex-shrink: 0;
-  width: 62px;
-  height: 62px;
+  width: 58px;
+  height: 58px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.txn-anim-dob {
-  width: 62px;
-  height: 62px;
-  object-fit: contain;
+.txn-anim-icon {
+  width: 52px;
+  height: 52px;
   display: block;
 }
-/* Evil dob: twitchy shake */
-.txn-anim--expense .txn-anim-dob {
-  animation: dobEvil .5s cubic-bezier(.22,1,.36,1) .08s both;
+.txn-anim-icon--expense {
+  color: var(--danger, #ff453a);
+  animation: iconEvil .5s cubic-bezier(.22,1,.36,1) .08s both;
 }
-@keyframes dobEvil {
+.txn-anim-icon--income {
+  color: var(--success, #32d74b);
+  animation: iconHype .55s cubic-bezier(.22,1,.36,1) .08s both;
+}
+.txn-anim-icon--paycheck {
+  color: #ffd60a;
+  animation: iconHype .55s cubic-bezier(.22,1,.36,1) .08s both;
+}
+@keyframes iconEvil {
   0%   { transform: rotate(0) scale(1); }
-  20%  { transform: rotate(-7deg) scale(1.05); }
-  45%  { transform: rotate(6deg) scale(1.05); }
+  20%  { transform: rotate(-8deg) scale(1.08); }
+  45%  { transform: rotate(6deg) scale(1.06); }
   65%  { transform: rotate(-4deg) scale(1.02); }
   100% { transform: rotate(0) scale(1); }
 }
-/* Happy dob: bounce up */
-.txn-anim--income .txn-anim-dob,
-.txn-anim--paycheck .txn-anim-dob {
-  animation: dobHype .55s cubic-bezier(.22,1,.36,1) .08s both;
-}
-@keyframes dobHype {
+@keyframes iconHype {
   0%   { transform: translateY(0) scale(1); }
-  35%  { transform: translateY(-10px) scale(1.1); }
-  60%  { transform: translateY(-4px) scale(1.04); }
-  80%  { transform: translateY(-7px) scale(1.07); }
+  35%  { transform: translateY(-10px) scale(1.12); }
+  60%  { transform: translateY(-3px) scale(1.04); }
+  80%  { transform: translateY(-7px) scale(1.08); }
   100% { transform: translateY(0) scale(1); }
 }
 
@@ -3958,17 +3985,6 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
   text-overflow: ellipsis;
 }
 
-/* Emoji badge */
-.txn-anim-emoji {
-  font-size: 1.9rem;
-  flex-shrink: 0;
-  line-height: 1;
-  animation: emojiPop .45s cubic-bezier(.22,1,.36,1) .18s both;
-}
-@keyframes emojiPop {
-  from { transform: scale(0) rotate(-25deg); }
-  to   { transform: scale(1) rotate(0deg); }
-}
 
 /* Progress bar */
 .txn-anim-progress {

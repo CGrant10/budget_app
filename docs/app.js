@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.1.9';
+const VERSION = '5.2.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1094,13 +1094,31 @@ function _showTxnAnim(type, amount, desc) {
   const msgs    = isPaycheck ? _PAYCHECK_MSGS : (isExpense ? _EXPENSE_MSGS : _INCOME_MSGS);
   const headline = msgs[Math.floor(Math.random() * msgs.length)];
   const amtStr   = `${isExpense ? '-' : '+'}${fmt(amount)}`;
-  const emoji    = isPaycheck ? '💸' : (isExpense ? '😈' : '🎉');
 
-  const dobFilter = isExpense
-    ? 'brightness(0.65) sepia(1) saturate(6) hue-rotate(300deg)'   // evil red
-    : isPaycheck
-      ? 'sepia(0.4) hue-rotate(25deg) saturate(2) brightness(1.2)' // golden
-      : 'saturate(1.4) brightness(1.08)';                           // vibrant
+  // Clean outline SVG icons — red devil for expense, green happy for income, gold $ for paycheck
+  const iconSvg = isPaycheck
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="txn-anim-icon txn-anim-icon--paycheck">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 6v12"/>
+        <path d="M15.5 8.5a3.5 3.5 0 0 0-7 0c0 2.2 1.5 3.2 3.5 3.8s3.5 1.6 3.5 3.7a3.5 3.5 0 0 1-7 0"/>
+      </svg>`
+    : isExpense
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="txn-anim-icon txn-anim-icon--expense">
+        <path d="M7 3 L9.5 7.5"/>
+        <path d="M17 3 L14.5 7.5"/>
+        <path d="M6.5 3 L9.5 4.5 L9.5 7.5"/>
+        <path d="M17.5 3 L14.5 4.5 L14.5 7.5"/>
+        <circle cx="12" cy="14" r="7.5"/>
+        <circle cx="9.5" cy="13" r=".9" fill="currentColor" stroke="none"/>
+        <circle cx="14.5" cy="13" r=".9" fill="currentColor" stroke="none"/>
+        <path d="M9.5 17.5 Q12 15.5 14.5 17.5"/>
+      </svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="txn-anim-icon txn-anim-icon--income">
+        <circle cx="12" cy="12" r="9"/>
+        <circle cx="9" cy="10.5" r=".9" fill="currentColor" stroke="none"/>
+        <circle cx="15" cy="10.5" r=".9" fill="currentColor" stroke="none"/>
+        <path d="M8.5 14.5 Q10.5 17 12 17 Q13.5 17 15.5 14.5"/>
+      </svg>`;
 
   const el = document.createElement('div');
   el.id        = 'txn-anim';
@@ -1108,7 +1126,7 @@ function _showTxnAnim(type, amount, desc) {
   el.innerHTML = `
     <div class="txn-anim-card">
       <div class="txn-anim-dob-wrap">
-        <img src="./doberman.png" class="txn-anim-dob" style="filter:${dobFilter}" alt="">
+        ${iconSvg}
         <div class="txn-anim-confetti-host"></div>
       </div>
       <div class="txn-anim-body">
@@ -1116,7 +1134,6 @@ function _showTxnAnim(type, amount, desc) {
         <div class="txn-anim-amount">${amtStr}</div>
         ${desc && desc !== '—' ? `<div class="txn-anim-desc">${desc}</div>` : ''}
       </div>
-      <div class="txn-anim-emoji">${emoji}</div>
     </div>
     <div class="txn-anim-progress"><div class="txn-anim-progress-bar"></div></div>`;
 
@@ -3280,48 +3297,54 @@ function renderDashboardDawg() {
       <button class="dawg-mnav-btn dawg-mnav-next${!isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
     </div>
 
-    ${_showBudget && !_isDebt ? `
-      <div class="dawg-overview-card">
-        <div class="dawg-card-title">BUDGET OVERVIEW</div>
-        <div class="dawg-donut-wrap">
-          <canvas id="dawg-donut" width="120" height="120"></canvas>
-          <div class="dawg-donut-center">
-            <div class="dawg-donut-pct" style="color:${budgetColor}">${budgetPct.toFixed(0)}%</div>
-            <div class="dawg-donut-lbl">of budget<br>used</div>
-          </div>
-        </div>
-        <div class="dawg-budget-row">
-          <div class="dawg-budget-stat"><span class="dawg-stat-val">${fmt(budgetSpent)}</span><span class="dawg-stat-lbl">spent</span></div>
-          <div class="dawg-budget-stat"><span class="dawg-stat-val">${fmt(Math.max(0,totalBudget-budgetSpent))}</span><span class="dawg-stat-lbl">remaining</span></div>
-        </div>
-        <button class="dawg-view-btn" id="dawg-goto-budgets">VIEW BUDGET ›</button>
-      </div>
-      ${dayBudget > 0 ? (() => {
-        const wkPct  = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
+    ${_showBudget && !_isDebt ? (() => {
+        const wkPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
         const wkColor = wkPct >= 90 ? 'var(--danger)' : wkPct >= 75 ? 'var(--warn)' : 'var(--accent)';
-        const dayPct  = Math.min(daySpent / dayBudget * 100, 100);
-        const dayColor = dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
-        return `<div class="dawg-budget-tiles">
+        const C = 175.93; // 2π × 28
+        const wkDash  = (C * (1 - wkPct / 100)).toFixed(1);
+        const wkTiles = `<div class="dawg-budget-tiles">
           <div class="dawg-budget-tile">
             <div class="dawg-card-title">PER WEEK</div>
-            <div class="dawg-tile-amt" style="color:${wkColor}">${fmt(totalBudget)}</div>
+            <div class="dawg-tile-ring-wrap">
+              <svg class="dawg-tile-ring" viewBox="0 0 64 64">
+                <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
+                <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${wkColor};stroke-dasharray:${C};stroke-dashoffset:${wkDash}"/>
+              </svg>
+              <div class="dawg-tile-ring-center">
+                <div class="dawg-tile-ring-pct" style="color:${wkColor}">${wkPct.toFixed(0)}%</div>
+              </div>
+            </div>
+            <div class="dawg-tile-amt">${fmt(totalBudget)}</div>
             <div class="dawg-tile-sub">${fmt(budgetSpent)} spent</div>
-            <div class="dawg-tile-bar-bg"><div class="dawg-tile-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div>
-          </div>
-          <div class="dawg-budget-tile">
+          </div>` +
+        (dayBudget > 0 ? (() => {
+          const dayPct   = Math.min(daySpent / dayBudget * 100, 100);
+          const dayColor = dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
+          const dayDash  = (C * (1 - dayPct / 100)).toFixed(1);
+          return `<div class="dawg-budget-tile">
             <div class="dawg-card-title">PER DAY</div>
-            <div class="dawg-tile-amt" style="color:${dayColor}">${fmt(dayBudget)}</div>
+            <div class="dawg-tile-ring-wrap">
+              <svg class="dawg-tile-ring" viewBox="0 0 64 64">
+                <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
+                <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${dayColor};stroke-dasharray:${C};stroke-dashoffset:${dayDash}"/>
+              </svg>
+              <div class="dawg-tile-ring-center">
+                <div class="dawg-tile-ring-pct" style="color:${dayColor}">${dayPct.toFixed(0)}%</div>
+              </div>
+            </div>
+            <div class="dawg-tile-amt">${fmt(dayBudget)}</div>
             <div class="dawg-tile-sub">${fmt(daySpent)} today</div>
-            <div class="dawg-tile-bar-bg"><div class="dawg-tile-bar-fill" style="width:${dayPct.toFixed(1)}%;background:${dayColor}"></div></div>
-          </div>
-        </div>`;
-      })() : ''}
-      ${_showBreakdown ? `<div class="dawg-breakdown-card">
-        <div class="dawg-card-title">SPENDING BREAKDOWN</div>
-        <div class="dawg-cat-list dawg-cat-list--wide">${spendHtml}</div>
-        <button class="dawg-view-btn" id="dawg-goto-ledger">VIEW ANALYTICS ›</button>
-      </div>` : ''}
-    ` : (_isDebt && _showBreakdown && _curAcctD?.type !== 'loan') ? `
+          </div>`;
+        })() : '') +
+        `</div>`;
+        return wkTiles +
+          (_showBreakdown ? `<div class="dawg-breakdown-card">
+            <div class="dawg-card-title">SPENDING BREAKDOWN</div>
+            <div class="dawg-cat-list dawg-cat-list--wide">${spendHtml}</div>
+            <button class="dawg-view-btn" id="dawg-goto-ledger">VIEW ANALYTICS ›</button>
+          </div>` : '');
+      })()
+    : (_isDebt && _showBreakdown && _curAcctD?.type !== 'loan') ? `
       <div class="dawg-breakdown-card">
         <div class="dawg-card-title">SPENDING BREAKDOWN</div>
         <div class="dawg-cat-list dawg-cat-list--wide">${spendHtml}</div>
@@ -4043,9 +4066,9 @@ function renderAdd() {
         </div>
         <div class="form-row" id="add-cat-row">
           <label class="form-label">Category</label>
-          <div style="flex:1;display:flex;flex-direction:column;gap:6px">
-            <select id="add-cat" class="form-input form-select">${catOptions}<option value="__custom__">+ Add new category…</option></select>
-            <input type="text" id="add-cat-custom" class="form-input" placeholder="New category name" style="display:none">
+          <div style="flex:1">
+            <input type="text" id="add-cat" list="add-cat-list" class="form-input" placeholder="Type or choose a category…" autocomplete="off">
+            <datalist id="add-cat-list">${getCategories().map(c=>`<option value="${c}">`).join('')}</datalist>
           </div>
         </div>
         <div class="form-row" id="add-split-row">
@@ -6664,14 +6687,6 @@ function attachAdd() {
     if (document.getElementById('split-toggle')?.checked) updateSplitSummary();
   });
 
-  // Show/hide inline custom category text input
-  document.getElementById('add-cat')?.addEventListener('change', e => {
-    const customInput = document.getElementById('add-cat-custom');
-    if (!customInput) return;
-    customInput.style.display = e.target.value === '__custom__' ? '' : 'none';
-    if (e.target.value === '__custom__') customInput.focus();
-  });
-
   // Show/hide transfer-specific fields
   document.querySelectorAll('input[name="etype"]').forEach(radio => {
     radio.addEventListener('change', () => {
@@ -6752,19 +6767,13 @@ function attachAdd() {
     }
 
     const isRecurring = document.getElementById('add-recurring').checked;
-    // Inline custom category: if user chose "+ Add new category…", use the text input
-    let chosenCat = document.getElementById('add-cat').value;
-    if (chosenCat === '__custom__') {
-      const customVal = (document.getElementById('add-cat-custom')?.value || '').trim();
-      if (!customVal) { showStatus('add-status', 'Enter a category name first.', 'error'); return; }
+    // Category: free-text input with datalist autocomplete.
+    // If the user typed something that isn't a known category, auto-save it.
+    let chosenCat = (document.getElementById('add-cat')?.value || '').trim() || 'Other';
+    if (!getCategories().includes(chosenCat)) {
       const s = loadSettings();
       const custom = s.customCategories || [];
-      if (!DEFAULT_CATEGORIES.includes(customVal) && !custom.includes(customVal)) {
-        custom.push(customVal);
-        s.customCategories = custom;
-        saveSettings(s);
-      }
-      chosenCat = customVal;
+      if (!custom.includes(chosenCat)) { custom.push(chosenCat); s.customCategories = custom; saveSettings(s); }
     }
     const t = {
       type,
