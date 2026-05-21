@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.0.2';
+const VERSION = '5.0.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.0.3', date: '2026-05-21', changes: [
+    'Pages always open at the top — scroll position is reset on every navigation so you never land mid-page',
+    'Keyboard Done/checkmark now dismisses the keyboard without triggering Save — tap Save yourself when ready',
+  ]},
   { version: '5.0.2', date: '2026-05-21', changes: [
     'Accounts overview: dead space at the top (reserved for the hidden topbar) is now removed — picker fills the full screen edge to edge',
     'Account tile tap: brief scale + accent glow press animation before the dashboard zooms in, making the transition feel intentional',
@@ -2485,6 +2489,8 @@ function runSplash() {
 const ANIM_CLASSES = ['anim-slide-right','anim-slide-left','anim-fade-up','anim-zoom-in','anim-zoom-out'];
 
 function _applyPageTransition(main) {
+  // Always reset scroll to top on every navigation
+  main.scrollTop = 0;
   // Remove any existing animation classes so re-triggering works
   main.classList.remove(...ANIM_CLASSES);
   // Force reflow so removing + re-adding the class restarts the animation
@@ -7162,6 +7168,18 @@ document.getElementById('tut-float-btn')?.addEventListener('click', openTutorial
 document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
   if (e.target === document.getElementById('tutorial-overlay')) closeTutorial();
 });
+
+// Keyboard "Done" / checkmark — blur the focused input to dismiss the keyboard.
+// Prevents accidental form submission and lets the user review before hitting Save.
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const el = e.target;
+  if (el.tagName !== 'INPUT' && el.tagName !== 'SELECT') return;
+  // Let date inputs handle Enter natively
+  if (el.type === 'date') return;
+  e.preventDefault();
+  el.blur();
+}, { passive: false });
 
 // System back button — navigates within the app before exiting
 window.addEventListener('popstate', () => {
