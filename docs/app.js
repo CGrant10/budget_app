@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.4.1';
+const VERSION = '5.4.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.4.2', date: '2026-05-21', changes: [
+    'Customize Layout redesigned for mobile — opens a bottom sheet showing all tiles as a scrollable list you can drag to reorder',
+    'Each tile block shows its icon, name, a Half/Full size toggle, and a show/hide eye button — everything visible at a glance',
+    'Drag handle on each row makes reordering feel natural on a phone without accidentally triggering buttons',
+    'Hidden tiles stay visible in the editor (dimmed with a "Hidden" badge) so you can easily bring them back',
+  ]},
   { version: '5.4.1', date: '2026-05-21', changes: [
     'Force Update now always shows the What\'s New popup after reloading — works from both the accounts page shortcut and the About page',
     'Added changelog entries for v5.2.0 through v5.4.0 that were previously missing',
@@ -3116,12 +3122,12 @@ function renderRetirementDashboard(acct) {
 
 // ── Dashboard tile layout ──────────────────────────────────────────────────
 const DASH_TILE_META = {
-  'budget-week':  { label: 'Per Week Budget' },
-  'budget-day':   { label: 'Per Day Budget' },
-  'breakdown':    { label: 'Spending Breakdown' },
-  'goals':        { label: 'Savings Goals' },
-  'transactions': { label: 'Recent Transactions' },
-  'networth':     { label: 'Net Worth' },
+  'budget-week':  { label: 'Per Week Budget',      icon: '📅' },
+  'budget-day':   { label: 'Per Day Budget',        icon: '☀️' },
+  'breakdown':    { label: 'Spending Breakdown',    icon: '📊' },
+  'goals':        { label: 'Savings Goals',         icon: '🎯' },
+  'transactions': { label: 'Recent Transactions',   icon: '💳' },
+  'networth':     { label: 'Net Worth',             icon: '📈' },
 };
 const DEFAULT_DASH_LAYOUT = [
   { id: 'budget-week',  size: 'half', visible: true  },
@@ -3166,197 +3172,233 @@ function saveDashLayout(layout) {
   const s = loadSettings(); s.dashLayout = layout; saveSettings(s);
 }
 function enterDashEditMode() {
-  const grid = document.getElementById('dawg-tile-grid');
-  if (!grid || grid.classList.contains('dash-edit-active')) return;
+  if (document.getElementById('dash-edit-ov')) return;
 
-  const ac  = new AbortController();
-  const sig = ac.signal;
-
-  // ── Inject placeholder cards for hidden tiles so they appear in the grid ─
-  loadDashLayout().forEach(t => {
-    if (!t.visible && !grid.querySelector(`[data-id="${t.id}"]`)) {
-      const meta = DASH_TILE_META[t.id] || { label: t.id };
-      const isTile = (t.id === 'budget-week' || t.id === 'budget-day');
-      const wrap = document.createElement('div');
-      wrap.className = `dawg-tile-wrap ${isTile ? 'dawg-budget-tile' : 'dawg-section-card'} dash-tile-hidden`;
-      wrap.dataset.id   = t.id;
-      wrap.dataset.size = t.size;
-      wrap.innerHTML = `<div class="dawg-card-title">${meta.label || t.id}</div><div class="dash-tile-hidden-lbl">Hidden</div>`;
-      grid.appendChild(wrap);
-    }
+  // Working copy of layout — includes ALL tiles (visible + hidden)
+  let layout = loadDashLayout();
+  Object.keys(DASH_TILE_META).forEach(id => {
+    if (!layout.find(t => t.id === id))
+      layout.push({ id, size: 'full', visible: false });
   });
 
-  grid.classList.add('dash-edit-active');
+  // ── SVG helpers ───────────────────────────────────────────────────────────
+  const SVG_EXPAND   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`;
+  const SVG_COMPRESS = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`;
+  const SVG_EYE      = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+  const SVG_EYE_OFF  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+  const SVG_DRAG     = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>`;
 
-  // ── Overlay edit controls on every tile ──────────────────────────────────
-  function refreshOverlays() {
-    grid.querySelectorAll('.dawg-tile-wrap').forEach(wrap => {
-      wrap.querySelector('.tec')?.remove();
-      const id       = wrap.dataset.id;
-      const isHidden = wrap.classList.contains('dash-tile-hidden');
-      const isHalf   = wrap.dataset.size === 'half';
-      const ctrl = document.createElement('div');
-      ctrl.className = 'tec';
-      ctrl.innerHTML = `
-        <button class="tec-btn tec-size" data-id="${id}" title="Toggle size">
-          ${isHalf
-            ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`
-            : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`}
-        </button>
-        <button class="tec-btn tec-vis${isHidden ? ' tec-vis--off' : ''}" data-id="${id}" title="${isHidden ? 'Show' : 'Hide'}">
-          ${isHidden
-            ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
-            : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`}
-        </button>`;
-      wrap.appendChild(ctrl);
-    });
-  }
-  refreshOverlays();
+  // ── Overlay shell ─────────────────────────────────────────────────────────
+  const ov = document.createElement('div');
+  ov.id = 'dash-edit-ov';
+  ov.className = 'dash-edit-ov';
+  document.body.appendChild(ov);
 
-  // ── Inline edit bar below the grid ────────────────────────────────────────
-  const editBar = document.createElement('div');
-  editBar.id = 'dash-edit-bar';
-  editBar.innerHTML = `
-    <div class="deb-presets">
-      <span class="deb-label">PRESETS</span>
-      <button class="deb-preset" data-preset="default">Default</button>
-      <button class="deb-preset" data-preset="budget">Budget</button>
-      <button class="deb-preset" data-preset="compact">Compact</button>
-      <button class="deb-preset" data-preset="spending">Spending</button>
-    </div>
-    <button class="deb-done" id="deb-done">Done</button>`;
-  grid.after(editBar);
-  const layoutBtn = document.getElementById('dash-layout-btn');
-  if (layoutBtn) layoutBtn.style.display = 'none';
+  // ── Build / rebuild the sheet contents ───────────────────────────────────
+  function rebuild() {
+    const tilesHtml = layout.map(t => {
+      const meta   = DASH_TILE_META[t.id] || { label: t.id, icon: '' };
+      const isFull = t.size === 'full';
+      return `
+        <div class="dem-tile${t.visible ? '' : ' dem-hidden'}" data-id="${t.id}" data-size="${t.size}">
+          <div class="dem-drag-handle" title="Drag to reorder">${SVG_DRAG}</div>
+          <div class="dem-tile-body">
+            <span class="dem-tile-icon">${meta.icon || ''}</span>
+            <span class="dem-tile-name">${meta.label}</span>
+            ${!t.visible ? '<span class="dem-hidden-badge">Hidden</span>' : ''}
+          </div>
+          <div class="dem-tile-ctrls">
+            <button class="dem-btn dem-size-btn" data-id="${t.id}" title="${isFull ? 'Make half-width' : 'Make full-width'}">
+              ${isFull ? SVG_COMPRESS : SVG_EXPAND}
+              <span>${isFull ? 'Full' : 'Half'}</span>
+            </button>
+            <button class="dem-btn dem-vis-btn${t.visible ? '' : ' dem-vis-off'}" data-id="${t.id}" title="${t.visible ? 'Hide' : 'Show'}">
+              ${t.visible ? SVG_EYE : SVG_EYE_OFF}
+            </button>
+          </div>
+        </div>`;
+    }).join('');
 
-  // ── Size + visibility button clicks ──────────────────────────────────────
-  grid.addEventListener('click', e => {
-    const sBtn = e.target.closest('.tec-size');
-    const vBtn = e.target.closest('.tec-vis');
-    if (!sBtn && !vBtn) return;
-    e.stopPropagation();
-    const id   = (sBtn || vBtn).dataset.id;
-    const wrap = grid.querySelector(`.dawg-tile-wrap[data-id="${id}"]`);
-    if (!wrap) return;
-    if (sBtn) {
-      wrap.dataset.size = wrap.dataset.size === 'full' ? 'half' : 'full';
-    } else {
-      wrap.classList.toggle('dash-tile-hidden');
-    }
-    // update placeholder size css var
-    if (wrap.dataset.size === 'full') wrap.style.gridColumn = 'span 2';
-    else wrap.style.removeProperty('grid-column');
-    refreshOverlays();
-  }, { signal: sig });
+    ov.innerHTML = `
+      <div class="dash-edit-sheet" id="dash-edit-sheet">
+        <div class="dem-grabber"></div>
+        <div class="dem-hdr">
+          <span class="dem-title">Customize Layout</span>
+          <button class="dem-close" id="dem-close">✕</button>
+        </div>
+        <div class="dem-presets-row">
+          <button class="dem-preset" data-preset="default">Default</button>
+          <button class="dem-preset" data-preset="budget">Budget</button>
+          <button class="dem-preset" data-preset="compact">Compact</button>
+          <button class="dem-preset" data-preset="spending">Spending</button>
+        </div>
+        <p class="dem-hint">Drag to reorder · tap icons to resize or show/hide</p>
+        <div class="dem-mockup-grid" id="dem-mockup-grid">${tilesHtml}</div>
+        <div class="dem-footer">
+          <button class="dem-done" id="dem-done">Done</button>
+        </div>
+      </div>`;
 
-  // ── Preset + Done bar clicks ───────────────────────────────────────────────
-  editBar.addEventListener('click', e => {
-    const presetBtn = e.target.closest('.deb-preset');
-    if (presetBtn) {
-      const newLayout = (DASH_PRESETS[presetBtn.dataset.preset] || DEFAULT_DASH_LAYOUT).map(t => ({...t}));
-      saveDashLayout(newLayout);
-      exitEdit(true);
-      return;
-    }
-    if (e.target.closest('#deb-done')) exitEdit(true);
-  }, { signal: sig });
-
-  // ── Drag-to-reorder directly on the grid ─────────────────────────────────
-  let dragging = null, ghost = null, pholder = null, offX = 0, offY = 0;
-
-  grid.addEventListener('pointerdown', e => {
-    if (e.target.closest('.tec')) return;
-    const wrap = e.target.closest('.dawg-tile-wrap');
-    if (!wrap) return;
-    e.preventDefault();
-    dragging = wrap;
-
-    const r = wrap.getBoundingClientRect();
-    offX = e.clientX - r.left;
-    offY = e.clientY - r.top;
-
-    // Ghost: fixed clone that follows the pointer
-    ghost = wrap.cloneNode(true);
-    ghost.querySelectorAll('.tec').forEach(el => el.remove());
-    ghost.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;z-index:9999;pointer-events:none;opacity:.85;box-shadow:0 14px 44px rgba(0,0,0,.38);border-radius:16px;transform:scale(1.03);transition:transform .12s ease;`;
-    ghost.className = (ghost.className + ' dash-drag-ghost').trim();
-    document.body.appendChild(ghost);
-
-    // Placeholder: dashed slot in the grid showing where tile will land
-    pholder = document.createElement('div');
-    pholder.className = 'dash-drag-pholder';
-    pholder.style.gridColumn = wrap.dataset.size === 'full' ? 'span 2' : 'span 1';
-    wrap.after(pholder);
-
-    wrap.classList.add('dash-dragging');
-    grid.setPointerCapture(e.pointerId);
-  }, { signal: sig });
-
-  grid.addEventListener('pointermove', e => {
-    if (!dragging || !ghost) return;
-    ghost.style.left = (e.clientX - offX) + 'px';
-    ghost.style.top  = (e.clientY - offY) + 'px';
-
-    // Find the closest non-dragging tile and insert placeholder before/after it
-    const mx = e.clientX, my = e.clientY;
-    let best = null, bestDist = Infinity;
-    grid.querySelectorAll('.dawg-tile-wrap').forEach(w => {
-      if (w === dragging) return;
-      const r  = w.getBoundingClientRect();
-      const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
-      const d  = Math.hypot(mx - cx, my - cy);
-      if (d < bestDist) { bestDist = d; best = w; }
-    });
-    if (best) {
-      const r = best.getBoundingClientRect();
-      if (my < r.top + r.height / 2) best.before(pholder);
-      else best.after(pholder);
-    }
-  }, { signal: sig });
-
-  function dropDrag(commit) {
-    if (!dragging) return;
-    ghost?.remove(); ghost = null;
-    dragging.classList.remove('dash-dragging');
-    if (pholder) {
-      if (commit) pholder.replaceWith(dragging);
-      else pholder.remove();
-    }
-    pholder = null; dragging = null;
-  }
-  grid.addEventListener('pointerup',     () => dropDrag(true),  { signal: sig });
-  grid.addEventListener('pointercancel', () => dropDrag(false), { signal: sig });
-
-  // ── Collect layout from DOM order ────────────────────────────────────────
-  function getLayoutFromDOM() {
-    const known = new Set(Object.keys(DASH_TILE_META));
-    const out   = [...grid.querySelectorAll('.dawg-tile-wrap')].map(w => ({
-      id:      w.dataset.id,
-      size:    w.dataset.size,
-      visible: !w.classList.contains('dash-tile-hidden'),
-    }));
-    // Ensure any tiles not in the DOM are appended (shouldn't happen, but safety net)
-    loadDashLayout().forEach(t => {
-      if (!out.find(x => x.id === t.id)) out.push({...t});
-    });
-    return out;
+    attachHandlers();
   }
 
-  // ── Exit edit mode ───────────────────────────────────────────────────────
+  // ── Sync layout array from current DOM order ──────────────────────────────
+  function syncFromDOM() {
+    const grid = ov.querySelector('#dem-mockup-grid');
+    if (!grid) return;
+    const dom = [...grid.querySelectorAll('.dem-tile')].map(el => {
+      const id  = el.dataset.id;
+      const old = layout.find(t => t.id === id) || {};
+      return { id, size: el.dataset.size, visible: old.visible ?? true };
+    });
+    // Keep any tiles not rendered (safety net)
+    layout.forEach(t => { if (!dom.find(d => d.id === t.id)) dom.push({...t}); });
+    layout = dom;
+  }
+
+  // ── Event handlers ────────────────────────────────────────────────────────
+  function attachHandlers() {
+    // Backdrop close
+    ov.addEventListener('click', e => { if (e.target === ov) exitEdit(false); }, { once: true });
+
+    // X close
+    ov.querySelector('#dem-close')?.addEventListener('click', () => exitEdit(false));
+
+    // Preset pills
+    ov.querySelectorAll('.dem-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        layout = (DASH_PRESETS[btn.dataset.preset] || DEFAULT_DASH_LAYOUT).map(t => ({...t}));
+        rebuild();
+      });
+    });
+
+    // Size toggle — update data attribute + layout, then refresh just that tile block
+    ov.querySelectorAll('.dem-size-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        const t  = layout.find(x => x.id === id);
+        if (!t) return;
+        t.size = t.size === 'full' ? 'half' : 'full';
+        const tile = ov.querySelector(`.dem-tile[data-id="${id}"]`);
+        if (tile) {
+          tile.dataset.size = t.size;
+          // Refresh just the controls label without full rebuild
+          const isFull = t.size === 'full';
+          btn.innerHTML = `${isFull ? SVG_COMPRESS : SVG_EXPAND}<span>${isFull ? 'Full' : 'Half'}</span>`;
+          btn.title = isFull ? 'Make half-width' : 'Make full-width';
+        }
+      });
+    });
+
+    // Visibility toggle
+    ov.querySelectorAll('.dem-vis-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        const t  = layout.find(x => x.id === id);
+        if (!t) return;
+        t.visible = !t.visible;
+        const tile = ov.querySelector(`.dem-tile[data-id="${id}"]`);
+        if (tile) {
+          tile.classList.toggle('dem-hidden', !t.visible);
+          // Update badge
+          tile.querySelector('.dem-hidden-badge')?.remove();
+          if (!t.visible) {
+            const body = tile.querySelector('.dem-tile-body');
+            const badge = document.createElement('span');
+            badge.className = 'dem-hidden-badge';
+            badge.textContent = 'Hidden';
+            body.appendChild(badge);
+          }
+          btn.classList.toggle('dem-vis-off', !t.visible);
+          btn.innerHTML = t.visible ? SVG_EYE : SVG_EYE_OFF;
+          btn.title = t.visible ? 'Hide' : 'Show';
+        }
+      });
+    });
+
+    // Done
+    ov.querySelector('#dem-done')?.addEventListener('click', () => exitEdit(true));
+
+    // Drag to reorder
+    attachDrag(ov.querySelector('#dem-mockup-grid'));
+  }
+
+  // ── Drag-to-reorder within the mockup grid ───────────────────────────────
+  function attachDrag(grid) {
+    if (!grid) return;
+    let dragging = null, ghost = null, pholder = null, offX = 0, offY = 0;
+
+    grid.addEventListener('pointerdown', e => {
+      // Only initiate drag from the handle (makes accidental drags on buttons impossible)
+      const handle = e.target.closest('.dem-drag-handle');
+      const tile   = handle?.closest('.dem-tile');
+      if (!tile) return;
+      e.preventDefault();
+
+      dragging = tile;
+      const r = tile.getBoundingClientRect();
+      offX = e.clientX - r.left;
+      offY = e.clientY - r.top;
+
+      // Ghost — scaled clone that follows the pointer
+      ghost = tile.cloneNode(true);
+      ghost.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;z-index:10002;pointer-events:none;opacity:.9;box-shadow:0 16px 48px rgba(0,0,0,.55);border-radius:14px;transform:scale(1.04);transition:transform .12s ease;`;
+      document.body.appendChild(ghost);
+
+      // Placeholder — dashed drop-target slot
+      pholder = document.createElement('div');
+      pholder.className = 'dem-pholder';
+      tile.after(pholder);
+      tile.classList.add('dem-dragging');
+
+      grid.setPointerCapture(e.pointerId);
+    });
+
+    grid.addEventListener('pointermove', e => {
+      if (!dragging || !ghost) return;
+      ghost.style.left = (e.clientX - offX) + 'px';
+      ghost.style.top  = (e.clientY - offY) + 'px';
+
+      // Find closest sibling tile and insert placeholder before/after it
+      const my = e.clientY;
+      let best = null, bestDist = Infinity;
+      grid.querySelectorAll('.dem-tile').forEach(w => {
+        if (w === dragging) return;
+        const r  = w.getBoundingClientRect();
+        const cy = (r.top + r.bottom) / 2;
+        const d  = Math.abs(my - cy);
+        if (d < bestDist) { bestDist = d; best = w; }
+      });
+      if (best) {
+        const r = best.getBoundingClientRect();
+        if (my < r.top + r.height / 2) best.before(pholder);
+        else best.after(pholder);
+      }
+    });
+
+    function drop(commit) {
+      if (!dragging) return;
+      ghost?.remove(); ghost = null;
+      dragging.classList.remove('dem-dragging');
+      if (pholder) {
+        if (commit) { pholder.replaceWith(dragging); syncFromDOM(); }
+        else pholder.remove();
+      }
+      pholder = null; dragging = null;
+    }
+    grid.addEventListener('pointerup',     () => drop(true));
+    grid.addEventListener('pointercancel', () => drop(false));
+  }
+
+  // ── Exit ──────────────────────────────────────────────────────────────────
   function exitEdit(save) {
-    dropDrag(false);
-    ac.abort();
-    grid.classList.remove('dash-edit-active');
-    grid.querySelectorAll('.tec').forEach(el => el.remove());
-    // Remove the temporary hidden-tile placeholder cards
-    grid.querySelectorAll('.dash-tile-hidden').forEach(el => el.remove());
-    // Remove any inline grid-column overrides set during size toggle
-    grid.querySelectorAll('.dawg-tile-wrap').forEach(w => w.style.removeProperty('grid-column'));
-    document.getElementById('dash-edit-bar')?.remove();
-    const btn = document.getElementById('dash-layout-btn');
-    if (btn) btn.style.removeProperty('display');
-    if (save) { saveDashLayout(getLayoutFromDOM()); render(); }
+    ov.remove();
+    if (save) { syncFromDOM(); saveDashLayout(layout); render(); }
   }
+
+  rebuild();
 }
 
 // ── DAWG dashboard layout ──────────────────────────────────────────────────
