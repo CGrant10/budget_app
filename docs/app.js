@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.9.9';
+const VERSION = '5.0.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.0.0', date: '2026-05-21', changes: [
+    'Eliminated raw-layout flash on load: app is invisible until the first render completes, then fades in — no more glimpse of the old header/nav before content paints',
+  ]},
   { version: '4.9.9', date: '2026-05-21', changes: [
     'Projected @ 65 now uses a proper FV formula: compounds existing balance AND factors in estimated monthly contributions (from paycheck link settings, or annualised YTD if no paycheck is linked)',
     'Add Contribution opens a dedicated bottom-sheet modal — amount, date, type (My Contribution / Employer Match / Rollover / Other), and optional note — no longer navigates to the transactions page',
@@ -7172,6 +7175,11 @@ window.addEventListener('popstate', () => {
     });
     if (state.accounts.length > 1) showingAccountPicker = true;
     render();
+    // Reveal the app now that the first frame is painted — eliminates the raw-HTML flash
+    requestAnimationFrame(() => {
+      const appEl = document.getElementById('app');
+      if (appEl) appEl.style.opacity = '1';
+    });
     updateBillBadge();
     checkBillNotifications();
     maybeShowWhatsNew();
