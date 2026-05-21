@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.5.2';
+const VERSION = '5.5.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.5.3', date: '2026-05-21', changes: [
+    'Dashboard tile drag no longer creates a double empty space — the dragged tile is replaced by the placeholder (one slot, not two), and cancelling always restores it cleanly',
+    'Tile drag motion uses requestAnimationFrame for smooth updates and skips redundant DOM moves, so reordering feels fluid',
+    'Nav bar editor replaced with tap-to-swap: tap any of the 4 slots, then pick any section from the list to put it there — swaps automatically if it\'s already in another slot',
+    'Settings is now available as a nav bar option (was incorrectly locked out before)',
+  ]},
   { version: '5.5.2', date: '2026-05-21', changes: [
     'Tour card is now compact — icon and title in one row, skip × lives inside the card so it never floats over spotlighted tiles',
     'Card positions itself above or below the spotlight (measures available space, picks the side with room) so the highlighted element is always fully visible',
@@ -1487,7 +1493,7 @@ const NAV_ITEMS = [
   { key: 'goals',     label: 'Goals',     icon: '🎯' },
   { key: 'import',    label: 'Import',    icon: '📥' },
   { key: 'budgets',   label: 'Budgets',   icon: '💰' },
-  { key: 'settings',  label: 'Settings',  icon: '⚙️',  required: true },
+  { key: 'settings',  label: 'Settings',  icon: '⚙️' },
   { key: 'about',     label: 'About',     icon: 'ℹ️',  required: true },
 ];
 
@@ -3390,6 +3396,7 @@ function enterDashEditMode() {
   function attachDrag(grid) {
     if (!grid) return;
     let dragging = null, ghost = null, pholder = null, offX = 0, offY = 0;
+    let rafId = null, lastInsertKey = null;
 
     grid.addEventListener('pointerdown', e => {
       // Only initiate drag from the handle (makes accidental drags on buttons impossible)
@@ -3408,53 +3415,63 @@ function enterDashEditMode() {
       ghost.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;z-index:10002;pointer-events:none;opacity:.9;box-shadow:0 16px 48px rgba(0,0,0,.55);border-radius:14px;transform:scale(1.04);transition:transform .12s ease;`;
       document.body.appendChild(ghost);
 
-      // Placeholder — dashed drop-target slot
+      // Placeholder replaces the tile — only ONE slot used (no double-space)
       pholder = document.createElement('div');
       pholder.className = 'dem-pholder';
       pholder.dataset.size = tile.dataset.size;
-      tile.after(pholder);
-      tile.classList.add('dem-dragging');
+      tile.replaceWith(pholder);  // tile is detached from grid
 
+      lastInsertKey = null;
       grid.setPointerCapture(e.pointerId);
     });
 
     grid.addEventListener('pointermove', e => {
       if (!dragging || !ghost) return;
-      ghost.style.left = (e.clientX - offX) + 'px';
-      ghost.style.top  = (e.clientY - offY) + 'px';
+      const cx = e.clientX, cy = e.clientY;
 
-      // Find closest sibling tile and insert placeholder before/after it
-      const mx = e.clientX, my = e.clientY;
-      let best = null, bestDist = Infinity;
-      grid.querySelectorAll('.dem-tile').forEach(w => {
-        if (w === dragging) return;
-        const r  = w.getBoundingClientRect();
-        const cy = (r.top + r.bottom) / 2;
-        const d  = Math.abs(my - cy);
-        if (d < bestDist) { bestDist = d; best = w; }
-      });
-      if (best) {
-        const r  = best.getBoundingClientRect();
-        const cx = (r.left + r.right) / 2;
-        const cy = (r.top + r.bottom) / 2;
-        if (Math.abs(my - cy) < r.height * 0.45) {
-          // Same visual row — use X to decide before/after
-          if (mx < cx) best.before(pholder); else best.after(pholder);
-        } else {
-          if (my < cy) best.before(pholder); else best.after(pholder);
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (!ghost) return;
+        ghost.style.left = (cx - offX) + 'px';
+        ghost.style.top  = (cy - offY) + 'px';
+
+        // Find closest sibling tile and insert placeholder before/after it
+        let best = null, bestDist = Infinity;
+        grid.querySelectorAll('.dem-tile').forEach(w => {
+          const r  = w.getBoundingClientRect();
+          const my = (r.top + r.bottom) / 2;
+          const d  = Math.abs(cy - my);
+          if (d < bestDist) { bestDist = d; best = w; }
+        });
+        if (best) {
+          const r   = best.getBoundingClientRect();
+          const mcx = (r.left + r.right) / 2;
+          const mcy = (r.top + r.bottom) / 2;
+          let side;
+          if (Math.abs(cy - mcy) < r.height * 0.45) {
+            side = cx < mcx ? 'B' : 'A'; // same row — use X
+          } else {
+            side = cy < mcy ? 'B' : 'A';
+          }
+          const key = side + (best.dataset.key || best.dataset.tile || '');
+          if (key !== lastInsertKey) {
+            lastInsertKey = key;
+            if (side === 'B') best.before(pholder); else best.after(pholder);
+          }
         }
-      }
+      });
     });
 
     function drop(commit) {
       if (!dragging) return;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
       ghost?.remove(); ghost = null;
-      dragging.classList.remove('dem-dragging');
       if (pholder) {
-        if (commit) { pholder.replaceWith(dragging); syncFromDOM(); }
-        else pholder.remove();
+        pholder.replaceWith(dragging); // always restore tile to grid
+        if (commit) syncFromDOM();
       }
-      pholder = null; dragging = null;
+      pholder = null; dragging = null; lastInsertKey = null;
     }
     grid.addEventListener('pointerup',     () => drop(true));
     grid.addEventListener('pointercancel', () => drop(false));
@@ -8090,90 +8107,52 @@ function renderDawgNav() {
 function openNavEditSheet() {
   if (document.getElementById('nav-edit-ov')) return;
 
-  const NAV_SLOTS   = 4;
-  const allNonReq   = NAV_ITEMS.filter(n => !n.required);
-  const saved       = loadNavLayout();
-  // Build ordered list: nav items first (saved order), then remaining items
-  let itemOrder = [
-    ...saved.filter(k => allNonReq.find(n => n.key === k)),
-    ...allNonReq.map(n => n.key).filter(k => !saved.includes(k)),
-  ];
+  const NAV_SLOTS = 4;
+  let slots = [...loadNavLayout()]; // 4 keys currently in nav
+  let selectedSlot = null;          // index 0-3 of the slot being edited
 
   const ov = document.createElement('div');
   ov.id = 'nav-edit-ov';
   ov.className = 'dash-edit-ov';
   document.body.appendChild(ov);
 
-  const DRAG_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="5" r="1.2" fill="currentColor"/><circle cx="15" cy="5" r="1.2" fill="currentColor"/><circle cx="9" cy="12" r="1.2" fill="currentColor"/><circle cx="15" cy="12" r="1.2" fill="currentColor"/><circle cx="9" cy="19" r="1.2" fill="currentColor"/><circle cx="15" cy="19" r="1.2" fill="currentColor"/></svg>`;
+  function itemFor(key) { return NAV_ITEMS.find(n => n.key === key); }
 
-  function getNavBtnSvg(key) {
-    return document.querySelector(`.nav-btn[data-tab="${key}"] .nav-icon svg`)?.outerHTML || '';
-  }
-
-  function buildPreviewHtml() {
-    const slots = itemOrder.slice(0, NAV_SLOTS);
-    const slotEl = (i) => {
-      const key  = slots[i];
-      const item = NAV_ITEMS.find(n => n.key === key);
-      return `<div class="nem-prev-slot">
-        <span class="nem-prev-icon">${getNavBtnSvg(key)}</span>
-        <span class="nem-prev-lbl">${item?.label || key}</span>
+  function buildSlotsHtml() {
+    // Visual order mirrors the actual nav bar: slot0 slot1 [🐕] slot2 slot3
+    return `
+      <div class="nem-slots" id="nem-slots">
+        ${slots.map((key, i) => {
+          const item = itemFor(key);
+          const active = i === selectedSlot ? ' nem-slot-active' : '';
+          return `<button class="nem-slot-btn${active}" data-slot="${i}">
+            <span class="nem-slot-num">${i < 2 ? i + 1 : i + 2}</span>
+            <span class="nem-slot-icon">${item?.icon || ''}</span>
+            <span class="nem-slot-lbl">${item?.label || key}</span>
+          </button>`;
+        }).join('')}
       </div>`;
-    };
-    return `${slotEl(0)}${slotEl(1)}<div class="nem-prev-center"><img src="./doberman.png" class="nem-prev-dob" alt=""></div>${slotEl(2)}${slotEl(3)}`;
   }
 
-  function buildListHtml() {
-    return itemOrder.map((key, i) => {
-      const item  = NAV_ITEMS.find(n => n.key === key);
-      const inNav = i < NAV_SLOTS;
-      const divider = (i === NAV_SLOTS - 1)
-        ? `<div class="nem-cutoff" id="nem-cutoff"><span>↑ in nav bar &nbsp;·&nbsp; not shown ↓</span></div>`
-        : '';
-      return `<div class="nem-item${inNav ? '' : ' nem-item--avail'}" data-key="${key}">
-        <div class="nem-drag-handle" title="Drag to reorder">${DRAG_SVG}</div>
-        <span class="nem-item-svg">${getNavBtnSvg(key)}</span>
-        <span class="nem-item-label">${item?.label || key}</span>
-        ${inNav ? '<span class="nem-in-badge">In Nav</span>' : ''}
-      </div>${divider}`;
-    }).join('');
-  }
-
-  function syncFromDOM() {
-    const list = ov.querySelector('#nem-list');
-    if (list) itemOrder = [...list.querySelectorAll('.nem-item')].map(el => el.dataset.key);
-  }
-
-  function refreshAfterDrag() {
-    syncFromDOM();
-    const list = ov.querySelector('#nem-list');
-    if (!list) return;
-    // Update in-nav styles + badges
-    const allItems = [...list.querySelectorAll('.nem-item')];
-    allItems.forEach((el, i) => {
-      const inNav = i < NAV_SLOTS;
-      el.classList.toggle('nem-item--avail', !inNav);
-      let badge = el.querySelector('.nem-in-badge');
-      if (inNav && !badge) {
-        badge = document.createElement('span');
-        badge.className = 'nem-in-badge';
-        badge.textContent = 'In Nav';
-        el.appendChild(badge);
-      } else if (!inNav && badge) {
-        badge.remove();
-      }
-    });
-    // Reposition cutoff divider
-    ov.querySelector('#nem-cutoff')?.remove();
-    if (allItems[NAV_SLOTS - 1]) {
-      const cut = document.createElement('div');
-      cut.className = 'nem-cutoff'; cut.id = 'nem-cutoff';
-      cut.innerHTML = `<span>↑ in nav bar &nbsp;·&nbsp; not shown ↓</span>`;
-      allItems[NAV_SLOTS - 1].after(cut);
+  function buildPickerHtml() {
+    if (selectedSlot === null) {
+      return `<p class="nem-picker-hint">Tap a slot above to change it</p>`;
     }
-    // Refresh preview
-    const preview = ov.querySelector('#nem-preview');
-    if (preview) preview.innerHTML = buildPreviewHtml();
+    const currentKey = slots[selectedSlot];
+    const available  = NAV_ITEMS.filter(n => !n.required);
+    const options = available.map(item => {
+      const isCurrent    = item.key === currentKey;
+      const isOtherSlot  = !isCurrent && slots.includes(item.key);
+      return `<button class="nem-pick-btn${isCurrent ? ' nem-pick-current' : ''}" data-pick="${item.key}">
+        <span class="nem-pick-icon">${item.icon}</span>
+        <span class="nem-pick-lbl">${item.label}</span>
+        ${isCurrent    ? '<span class="nem-pick-check">✓</span>'  : ''}
+        ${isOtherSlot  ? '<span class="nem-pick-swap">⇄ swap</span>' : ''}
+      </button>`;
+    }).join('');
+    return `
+      <p class="nem-picker-label">Slot ${selectedSlot < 2 ? selectedSlot + 1 : selectedSlot + 2} — pick a section:</p>
+      <div class="nem-picker">${options}</div>`;
   }
 
   function rebuild() {
@@ -8184,9 +8163,9 @@ function openNavEditSheet() {
           <span class="dem-title">Customize Nav Bar</span>
           <button class="dem-close" id="nem-close">✕</button>
         </div>
-        <div class="nem-preview" id="nem-preview">${buildPreviewHtml()}</div>
-        <p class="dem-hint">Drag to reorder · top 4 appear in your nav bar</p>
-        <div class="nem-list" id="nem-list">${buildListHtml()}</div>
+        <p class="dem-hint">Tap a slot · pick a section to swap it in</p>
+        ${buildSlotsHtml()}
+        <div class="nem-picker-wrap" id="nem-picker-wrap">${buildPickerHtml()}</div>
         <div class="dem-footer">
           <button class="dem-done" id="nem-done">Done</button>
         </div>
@@ -8195,73 +8174,38 @@ function openNavEditSheet() {
   }
 
   function attachHandlers() {
-    ov.addEventListener('click', e => { if (e.target === ov) exitEdit(false); }, { once: true });
+    ov.addEventListener('click', e => { if (e.target === ov) exitEdit(false); });
     ov.querySelector('#nem-close')?.addEventListener('click', () => exitEdit(false));
     ov.querySelector('#nem-done')?.addEventListener('click',  () => exitEdit(true));
-    attachDragNem(ov.querySelector('#nem-list'));
-  }
 
-  function attachDragNem(list) {
-    if (!list) return;
-    let dragging = null, ghost = null, pholder = null, offX = 0, offY = 0;
-
-    list.addEventListener('pointerdown', e => {
-      const handle = e.target.closest('.nem-drag-handle');
-      const item   = handle?.closest('.nem-item');
-      if (!item) return;
-      e.preventDefault();
-      dragging = item;
-      const r  = item.getBoundingClientRect();
-      offX = e.clientX - r.left; offY = e.clientY - r.top;
-
-      ghost = item.cloneNode(true);
-      ghost.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;z-index:10002;pointer-events:none;opacity:.9;box-shadow:0 16px 48px rgba(0,0,0,.55);border-radius:13px;transform:scale(1.03);`;
-      document.body.appendChild(ghost);
-
-      pholder = document.createElement('div');
-      pholder.className = 'nem-pholder';
-      item.after(pholder);
-      item.classList.add('nem-dragging');
-      list.setPointerCapture(e.pointerId);
+    // Slot button taps — select or deselect
+    ov.querySelector('#nem-slots')?.addEventListener('click', e => {
+      const btn = e.target.closest('.nem-slot-btn');
+      if (!btn) return;
+      const idx = parseInt(btn.dataset.slot, 10);
+      selectedSlot = (selectedSlot === idx) ? null : idx;
+      rebuild();
     });
 
-    list.addEventListener('pointermove', e => {
-      if (!dragging || !ghost) return;
-      ghost.style.left = (e.clientX - offX) + 'px';
-      ghost.style.top  = (e.clientY - offY) + 'px';
-      const my = e.clientY;
-      let best = null, bestDist = Infinity;
-      list.querySelectorAll('.nem-item').forEach(w => {
-        if (w === dragging) return;
-        const r  = w.getBoundingClientRect();
-        const cy = (r.top + r.bottom) / 2;
-        const d  = Math.abs(my - cy);
-        if (d < bestDist) { bestDist = d; best = w; }
-      });
-      if (best) {
-        const r = best.getBoundingClientRect();
-        if (my < r.top + r.height / 2) best.before(pholder);
-        else best.after(pholder);
-      }
+    // Picker taps — assign or swap
+    ov.querySelector('#nem-picker-wrap')?.addEventListener('click', e => {
+      const btn = e.target.closest('.nem-pick-btn');
+      if (!btn || selectedSlot === null) return;
+      const pickedKey  = btn.dataset.pick;
+      const currentKey = slots[selectedSlot];
+      if (pickedKey === currentKey) { selectedSlot = null; rebuild(); return; }
+      // If picked key is in another slot, swap those two slots
+      const otherIdx = slots.indexOf(pickedKey);
+      if (otherIdx !== -1) slots[otherIdx] = currentKey;
+      slots[selectedSlot] = pickedKey;
+      selectedSlot = null;
+      rebuild();
     });
-
-    function drop(commit) {
-      if (!dragging) return;
-      ghost?.remove(); ghost = null;
-      dragging.classList.remove('nem-dragging');
-      if (pholder) {
-        if (commit) { pholder.replaceWith(dragging); refreshAfterDrag(); }
-        else pholder.remove();
-      }
-      pholder = null; dragging = null;
-    }
-    list.addEventListener('pointerup',     () => drop(true));
-    list.addEventListener('pointercancel', () => drop(false));
   }
 
   function exitEdit(save) {
     ov.remove();
-    if (save) { syncFromDOM(); saveNavLayout(itemOrder.slice(0, NAV_SLOTS)); renderDawgNav(); }
+    if (save) { saveNavLayout(slots); renderDawgNav(); }
   }
 
   rebuild();

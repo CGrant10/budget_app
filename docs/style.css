@@ -2317,111 +2317,86 @@ body.light .section-title::before {
 
 /* ── Nav bar editor ─────────────────────────────────────────────────────── */
 
-/* Live preview strip */
-.nem-preview {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  padding: 10px 14px;
-  background: var(--surface2);
-  border-radius: 16px;
-  margin: 0 14px 4px;
-  border: 1px solid var(--border);
+/* 4-slot row */
+.nem-slots {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 0 14px 4px;
   flex-shrink: 0;
 }
-.nem-prev-slot {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 5px 2px;
+.nem-slot-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 10px 4px 8px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .1s;
+  position: relative;
 }
-.nem-prev-icon svg {
-  width: 19px; height: 19px;
-  display: block; fill: none;
-  stroke: var(--accent); stroke-width: 1.8;
-  stroke-linecap: round; stroke-linejoin: round;
+.nem-slot-btn:active { transform: scale(.94); }
+.nem-slot-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--card));
 }
-.nem-prev-lbl {
-  font-size: .52rem; font-weight: 700;
-  color: var(--accent); text-align: center;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 46px;
+.nem-slot-num {
+  position: absolute; top: 5px; left: 7px;
+  font-size: .5rem; font-weight: 800; letter-spacing: .05em;
+  color: var(--muted); opacity: .7;
 }
-.nem-prev-center {
-  flex: 0 0 44px;
-  display: flex; align-items: center; justify-content: center;
+.nem-slot-icon { font-size: 1.3rem; line-height: 1; }
+.nem-slot-lbl {
+  font-size: .55rem; font-weight: 700; color: var(--text);
+  text-align: center; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; max-width: 100%;
 }
-.nem-prev-dob { width: 36px; height: 36px; object-fit: contain; }
+.nem-slot-active .nem-slot-lbl { color: var(--accent); }
 
-/* Item list */
-.nem-list {
+/* Picker area */
+.nem-picker-wrap {
   flex: 1; overflow-y: auto;
   padding: 4px 14px 8px;
   -webkit-overflow-scrolling: touch;
 }
-.nem-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 13px 12px;
-  background: var(--card);
-  border: 1.5px solid var(--accent);
-  border-radius: 13px;
-  margin-bottom: 7px;
-  touch-action: none;
-  transition: opacity .15s, border-color .15s;
+.nem-picker-hint {
+  font-size: .72rem; color: var(--muted); text-align: center;
+  margin: 18px 0; font-style: italic;
 }
-.nem-item--avail {
-  border-color: var(--border);
-  opacity: .55;
-}
-.nem-item.nem-dragging { opacity: 0; }
-.nem-drag-handle {
-  color: var(--muted); cursor: grab;
-  flex-shrink: 0; touch-action: none;
-  display: flex; align-items: center;
-}
-.nem-drag-handle:active { cursor: grabbing; color: var(--text); }
-.nem-item-svg { flex-shrink: 0; line-height: 1; display: flex; }
-.nem-item-svg svg {
-  width: 18px; height: 18px; display: block;
-  fill: none; stroke: currentColor;
-  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
-}
-.nem-item-label {
-  flex: 1; font-size: .83rem; font-weight: 700; color: var(--text);
-}
-.nem-in-badge {
-  font-size: .59rem; font-weight: 800; letter-spacing: .07em;
-  text-transform: uppercase; color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  border-radius: 6px; padding: 2px 7px; flex-shrink: 0;
-}
-
-/* Cutoff divider */
-.nem-cutoff {
-  text-align: center; position: relative;
-  padding: 6px 0 10px; pointer-events: none;
-}
-.nem-cutoff::before {
-  content: ''; position: absolute;
-  left: 0; right: 0; top: 50%;
-  height: 1px; background: var(--border);
-  transform: translateY(-50%);
-}
-.nem-cutoff span {
-  font-size: .6rem; font-weight: 800; letter-spacing: .07em;
+.nem-picker-label {
+  font-size: .65rem; font-weight: 800; letter-spacing: .06em;
   text-transform: uppercase; color: var(--muted);
-  background: var(--surface); padding: 0 10px; position: relative;
+  margin: 4px 0 8px;
 }
-
-/* Drop placeholder */
-.nem-pholder {
-  height: 52px; border-radius: 13px;
-  border: 2px dashed var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  margin-bottom: 7px;
+.nem-picker {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 7px;
+}
+.nem-pick-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 10px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 13px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .1s;
+  text-align: left;
+}
+.nem-pick-btn:active { transform: scale(.95); }
+.nem-pick-current {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--card));
+}
+.nem-pick-icon { font-size: 1.1rem; line-height: 1; flex-shrink: 0; }
+.nem-pick-lbl {
+  flex: 1; font-size: .76rem; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.nem-pick-check {
+  font-size: .75rem; font-weight: 800; color: var(--accent); flex-shrink: 0;
+}
+.nem-pick-swap {
+  font-size: .58rem; font-weight: 700; color: var(--muted);
+  flex-shrink: 0; white-space: nowrap;
 }
 
 /* Per-week / per-day side-by-side budget tiles */
