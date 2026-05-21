@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.0.7';
+const VERSION = '5.0.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.0.8', date: '2026-05-21', changes: [
+    'Slide direction now treats Dashboard as the centre: Add and Ledger slide in from the right (move left), Weekly/Bills/Settings etc. slide in from the left (move right)',
+  ]},
   { version: '5.0.7', date: '2026-05-21', changes: [
     'Tab slide transition smoothed — longer duration (.34s), more travel (60px), and a spring ease-out curve so it glides in instead of snapping',
   ]},
@@ -1688,9 +1691,11 @@ function _navPush() {
   _navStack.push({ tab: currentTab, picker: showingAccountPicker, accountId: currentAccountId });
   history.pushState({ dawgNav: true }, '');
 }
-// Bottom nav tabs in left-to-right order — only these get directional slide transitions.
-// Hamburger-only pages (about, challenges, accounts-settings, etc.) just fade.
-const NAV_TABS = ['dashboard','add','ledger','weekly','bills','debt','goals','import','budgets','retirement','settings'];
+// Logical order for slide direction — dashboard is the centre point.
+// Tabs to its LEFT slide left-to-right when selected from dashboard (content comes from left = "move right").
+// Tabs to its RIGHT slide right-to-left when selected from dashboard (content comes from right = "move left").
+// Only these tabs get directional slides; hamburger-only pages fade.
+const NAV_TABS = ['ledger','add','dashboard','weekly','bills','debt','goals','import','budgets','retirement','settings'];
 let selectedLedgerIdx = null;
 let ledgerFilter = '';
 let ledgerSort = 'date-desc';
