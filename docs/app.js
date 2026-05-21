@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.0.5';
+const VERSION = '5.0.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.0.6', date: '2026-05-21', changes: [
+    'Directional slide transitions now only apply between bottom nav bar tabs — hamburger-only pages (About, Challenges, etc.) use a plain fade as before',
+  ]},
   { version: '5.0.5', date: '2026-05-21', changes: [
     'Tab navigation now slides directionally — tapping a tab to the right of your current one slides in from the right; tapping left slides from the left',
     'System back button mirrors the same slide direction when navigating backwards through tab history',
@@ -1682,8 +1685,9 @@ function _navPush() {
   _navStack.push({ tab: currentTab, picker: showingAccountPicker, accountId: currentAccountId });
   history.pushState({ dawgNav: true }, '');
 }
-// Ordered list of tabs — used to pick slide direction (right = forward, left = back)
-const TAB_ORDER = ['dashboard','add','ledger','weekly','bills','debt','goals','import','budgets','retirement','challenges','accounts','settings','about'];
+// Bottom nav tabs in left-to-right order — only these get directional slide transitions.
+// Hamburger-only pages (about, challenges, accounts-settings, etc.) just fade.
+const NAV_TABS = ['dashboard','add','ledger','weekly','bills','debt','goals','import','budgets','retirement','settings'];
 let selectedLedgerIdx = null;
 let ledgerFilter = '';
 let ledgerSort = 'date-desc';
@@ -1718,10 +1722,11 @@ function showTab(key) {
   } else if (currentTab === 'about') {
     applyTheme(activeTheme);
   }
-  // Slide direction based on tab order — right = forward, left = back
-  const fromIdx = TAB_ORDER.indexOf(currentTab);
-  const toIdx   = TAB_ORDER.indexOf(key);
-  _pageTransition = (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx)
+  // Directional slide only between bottom nav tabs — hamburger pages just fade
+  const fromIdx = NAV_TABS.indexOf(currentTab);
+  const toIdx   = NAV_TABS.indexOf(key);
+  const bothInNav = fromIdx !== -1 && toIdx !== -1;
+  _pageTransition = (bothInNav && fromIdx !== toIdx)
     ? (toIdx > fromIdx ? 'slide-right' : 'slide-left')
     : 'fade';
   currentTab = key;
@@ -7227,11 +7232,12 @@ window.addEventListener('popstate', () => {
       updateAccountSwitcher();
     }
     showingAccountPicker = prev.picker;
-    const _bFromIdx = TAB_ORDER.indexOf(currentTab);
-    const _bToIdx   = TAB_ORDER.indexOf(prev.tab);
+    const _bFromIdx = NAV_TABS.indexOf(currentTab);
+    const _bToIdx   = NAV_TABS.indexOf(prev.tab);
+    const _bBothNav = _bFromIdx !== -1 && _bToIdx !== -1;
     _pageTransition = (prev.picker || showingAccountPicker)
       ? 'zoom-out'
-      : (_bFromIdx !== -1 && _bToIdx !== -1 && _bFromIdx !== _bToIdx)
+      : (_bBothNav && _bFromIdx !== _bToIdx)
         ? (_bToIdx < _bFromIdx ? 'slide-left' : 'slide-right')
         : 'fade';
     currentTab = prev.tab;
