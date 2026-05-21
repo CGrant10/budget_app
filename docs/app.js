@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.2.0';
+const VERSION = '5.3.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1104,15 +1104,15 @@ function _showTxnAnim(type, amount, desc) {
       </svg>`
     : isExpense
     ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="txn-anim-icon txn-anim-icon--expense">
-        <path d="M7 3 L9.5 7.5"/>
-        <path d="M17 3 L14.5 7.5"/>
-        <path d="M6.5 3 L9.5 4.5 L9.5 7.5"/>
-        <path d="M17.5 3 L14.5 4.5 L14.5 7.5"/>
-        <circle cx="12" cy="14" r="7.5"/>
-        <circle cx="9.5" cy="13" r=".9" fill="currentColor" stroke="none"/>
-        <circle cx="14.5" cy="13" r=".9" fill="currentColor" stroke="none"/>
-        <path d="M9.5 17.5 Q12 15.5 14.5 17.5"/>
-      </svg>`
+  <circle cx="12" cy="13" r="8"/>
+  <path d="M9 6.5 L7.5 1.5 L11.5 6"/>
+  <path d="M15 6.5 L16.5 1.5 L12.5 6"/>
+  <path d="M8.5 10.5 L11 11.5"/>
+  <path d="M13 11.5 L15.5 10.5"/>
+  <circle cx="9.8" cy="13" r="0.85" fill="currentColor" stroke="none"/>
+  <circle cx="14.2" cy="13" r="0.85" fill="currentColor" stroke="none"/>
+  <path d="M9 16.5 Q10 18.5 12 18 Q14 17.5 15 16.5"/>
+</svg>`
     : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="txn-anim-icon txn-anim-icon--income">
         <circle cx="12" cy="12" r="9"/>
         <circle cx="9" cy="10.5" r=".9" fill="currentColor" stroke="none"/>
@@ -3093,6 +3093,203 @@ function renderRetirementDashboard(acct) {
   </div>`;
 }
 
+// ── Dashboard tile layout ──────────────────────────────────────────────────
+const DASH_TILE_META = {
+  'budget-week':  { label: 'Per Week Budget' },
+  'budget-day':   { label: 'Per Day Budget' },
+  'breakdown':    { label: 'Spending Breakdown' },
+  'goals':        { label: 'Savings Goals' },
+  'transactions': { label: 'Recent Transactions' },
+  'networth':     { label: 'Net Worth' },
+};
+const DEFAULT_DASH_LAYOUT = [
+  { id: 'budget-week',  size: 'half', visible: true  },
+  { id: 'budget-day',   size: 'half', visible: true  },
+  { id: 'breakdown',    size: 'full', visible: true  },
+  { id: 'goals',        size: 'full', visible: true  },
+  { id: 'transactions', size: 'full', visible: true  },
+  { id: 'networth',     size: 'full', visible: false },
+];
+const DASH_PRESETS = {
+  default:  [
+    { id:'budget-week', size:'half', visible:true  }, { id:'budget-day',  size:'half', visible:true  },
+    { id:'breakdown',   size:'full', visible:true  }, { id:'goals',       size:'full', visible:true  },
+    { id:'transactions',size:'full', visible:true  }, { id:'networth',    size:'full', visible:false },
+  ],
+  budget: [
+    { id:'budget-week', size:'full', visible:true  }, { id:'budget-day',  size:'full', visible:true  },
+    { id:'breakdown',   size:'full', visible:true  }, { id:'transactions',size:'half', visible:true  },
+    { id:'goals',       size:'half', visible:true  }, { id:'networth',    size:'full', visible:false },
+  ],
+  compact: [
+    { id:'budget-week', size:'half', visible:true  }, { id:'budget-day',  size:'half', visible:true  },
+    { id:'transactions',size:'full', visible:true  }, { id:'breakdown',   size:'full', visible:false },
+    { id:'goals',       size:'full', visible:false }, { id:'networth',    size:'full', visible:false },
+  ],
+  spending: [
+    { id:'breakdown',   size:'full', visible:true  }, { id:'transactions',size:'full', visible:true  },
+    { id:'budget-week', size:'half', visible:true  }, { id:'budget-day',  size:'half', visible:true  },
+    { id:'goals',       size:'full', visible:false }, { id:'networth',    size:'full', visible:false },
+  ],
+};
+function loadDashLayout() {
+  const saved = loadSettings().dashLayout;
+  if (!saved || !Array.isArray(saved)) return DEFAULT_DASH_LAYOUT.map(t => ({...t}));
+  const out = saved.filter(t => DASH_TILE_META[t.id]);
+  Object.keys(DASH_TILE_META).forEach(id => {
+    if (!out.find(t => t.id === id)) out.push({...(DEFAULT_DASH_LAYOUT.find(d => d.id === id) || { id, size:'full', visible:false })});
+  });
+  return out;
+}
+function saveDashLayout(layout) {
+  const s = loadSettings(); s.dashLayout = layout; saveSettings(s);
+}
+function openDashEditOverlay() {
+  document.getElementById('dash-edit-ov')?.remove();
+  let layout = loadDashLayout();
+
+  function buildOverlay() {
+    const ov = document.createElement('div');
+    ov.id = 'dash-edit-ov';
+    ov.className = 'dash-edit-ov';
+    const itemsHtml = layout.map((t, i) => {
+      const meta = DASH_TILE_META[t.id] || { label: t.id };
+      const sizeLabel = t.size === 'full' ? 'Full' : 'Half';
+      const visIcon = t.visible ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>` : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+      return `<div class="dei-item${t.visible ? '' : ' dei-hidden'}" data-id="${t.id}" data-idx="${i}">
+        <div class="dei-handle" title="Drag to reorder">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/></svg>
+        </div>
+        <span class="dei-label">${meta.label}</span>
+        <div class="dei-controls">
+          <button class="dei-size-btn" data-id="${t.id}">${sizeLabel}</button>
+          <button class="dei-vis-btn ${t.visible ? 'dei-vis-on' : 'dei-vis-off'}" data-id="${t.id}">${visIcon}</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    ov.innerHTML = `
+      <div class="dash-edit-sheet" id="dash-edit-sheet">
+        <div class="dash-edit-hdr">
+          <span class="dash-edit-title">Customize Dashboard</span>
+          <button class="dash-edit-close" id="dash-edit-close">✕</button>
+        </div>
+        <div class="dash-preset-section">
+          <div class="dash-edit-sec-lbl">PRESETS</div>
+          <div class="dash-preset-row">
+            <button class="dash-preset-btn" data-preset="default">Default</button>
+            <button class="dash-preset-btn" data-preset="budget">Budget</button>
+            <button class="dash-preset-btn" data-preset="compact">Compact</button>
+            <button class="dash-preset-btn" data-preset="spending">Spending</button>
+          </div>
+        </div>
+        <div class="dash-edit-sec-lbl" style="margin-top:10px">TILES</div>
+        <div class="dei-list" id="dei-list">${itemsHtml}</div>
+        <button class="dash-edit-done" id="dash-edit-done">Done</button>
+      </div>`;
+    document.body.appendChild(ov);
+    return ov;
+  }
+
+  const ov = buildOverlay();
+
+  function refresh() {
+    ov.remove();
+    const newOv = buildOverlay();
+    _attachOverlayHandlers(newOv);
+  }
+
+  function _attachOverlayHandlers(ovEl) {
+    ovEl.querySelector('#dash-edit-close')?.addEventListener('click', () => ovEl.remove());
+    ovEl.addEventListener('click', e => { if (e.target === ovEl) ovEl.remove(); });
+
+    // Preset buttons
+    ovEl.querySelectorAll('.dash-preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        layout = (DASH_PRESETS[btn.dataset.preset] || DEFAULT_DASH_LAYOUT).map(t => ({...t}));
+        refresh();
+      });
+    });
+
+    // Size toggle
+    ovEl.querySelectorAll('.dei-size-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tile = layout.find(t => t.id === btn.dataset.id);
+        if (tile) { tile.size = tile.size === 'full' ? 'half' : 'full'; refresh(); }
+      });
+    });
+
+    // Visibility toggle
+    ovEl.querySelectorAll('.dei-vis-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tile = layout.find(t => t.id === btn.dataset.id);
+        if (tile) { tile.visible = !tile.visible; refresh(); }
+      });
+    });
+
+    // Done
+    ovEl.querySelector('#dash-edit-done')?.addEventListener('click', () => {
+      saveDashLayout(layout);
+      ovEl.remove();
+      render();
+    });
+
+    // Drag to reorder
+    const listEl = ovEl.querySelector('#dei-list');
+    if (!listEl) return;
+    let dragId = null, ghostEl = null, fromIdx = -1, toIdx = -1, startClientY = 0, ghostStartTop = 0;
+    const getItems = () => [...listEl.querySelectorAll('.dei-item')];
+
+    listEl.addEventListener('pointerdown', e => {
+      const handle = e.target.closest('.dei-handle');
+      if (!handle) return;
+      const item = handle.closest('.dei-item');
+      if (!item) return;
+      fromIdx = parseInt(item.dataset.idx);
+      dragId = item.dataset.id;
+      startClientY = e.clientY;
+      const rect = item.getBoundingClientRect();
+      ghostStartTop = rect.top;
+      ghostEl = item.cloneNode(true);
+      ghostEl.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;z-index:10001;opacity:.9;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.4)`;
+      ghostEl.className += ' dei-ghost';
+      document.body.appendChild(ghostEl);
+      item.classList.add('dei-dragging');
+      listEl.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+
+    listEl.addEventListener('pointermove', e => {
+      if (!dragId) return;
+      const dy = e.clientY - startClientY;
+      ghostEl.style.top = (ghostStartTop + dy) + 'px';
+      const midY = e.clientY;
+      toIdx = fromIdx;
+      getItems().forEach((it, i) => {
+        it.classList.remove('dei-drop-above', 'dei-drop-below');
+        if (i === fromIdx) return;
+        const r = it.getBoundingClientRect();
+        if (midY >= r.top && midY < r.top + r.height / 2) { toIdx = i; it.classList.add('dei-drop-above'); }
+        else if (midY >= r.top + r.height / 2 && midY <= r.bottom) { toIdx = i; it.classList.add('dei-drop-below'); }
+      });
+    });
+
+    listEl.addEventListener('pointerup', () => {
+      if (!dragId) return;
+      ghostEl?.remove(); ghostEl = null;
+      getItems().forEach(it => it.classList.remove('dei-dragging', 'dei-drop-above', 'dei-drop-below'));
+      if (toIdx !== fromIdx && toIdx >= 0) {
+        const [moved] = layout.splice(fromIdx, 1);
+        layout.splice(toIdx, 0, moved);
+        refresh();
+      }
+      dragId = null; fromIdx = -1; toIdx = -1;
+    });
+  }
+
+  _attachOverlayHandlers(ov);
+}
+
 // ── DAWG dashboard layout ──────────────────────────────────────────────────
 function renderDashboardDawg() {
   const _curAcctD = state.accounts.find(a => a.id === currentAccountId);
@@ -3297,124 +3494,138 @@ function renderDashboardDawg() {
       <button class="dawg-mnav-btn dawg-mnav-next${!isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
     </div>
 
-    ${_showBudget && !_isDebt ? (() => {
+    ${(() => {
+      // Build tile HTML map — only tiles that have content get included
+      const _tileHtml = {};
+
+      // Budget tiles (only if weekly plan exists and not debt account)
+      if (!_isDebt && _showBudget) {
         const wkPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
         const wkColor = wkPct >= 90 ? 'var(--danger)' : wkPct >= 75 ? 'var(--warn)' : 'var(--accent)';
-        const C = 175.93; // 2π × 28
+        const C = 175.93;
         const wkDash  = (C * (1 - wkPct / 100)).toFixed(1);
-        const wkTiles = `<div class="dawg-budget-tiles">
-          <div class="dawg-budget-tile">
-            <div class="dawg-card-title">PER WEEK</div>
-            <div class="dawg-tile-ring-wrap">
-              <svg class="dawg-tile-ring" viewBox="0 0 64 64">
-                <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
-                <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${wkColor};stroke-dasharray:${C};stroke-dashoffset:${wkDash}"/>
-              </svg>
-              <div class="dawg-tile-ring-center">
-                <div class="dawg-tile-ring-pct" style="color:${wkColor}">${wkPct.toFixed(0)}%</div>
-              </div>
-            </div>
-            <div class="dawg-tile-amt">${fmt(totalBudget)}</div>
-            <div class="dawg-tile-sub">${fmt(budgetSpent)} spent</div>
-          </div>` +
-        (dayBudget > 0 ? (() => {
+        _tileHtml['budget-week'] = `
+          <div class="dawg-card-title">PER WEEK</div>
+          <div class="dawg-tile-ring-wrap">
+            <svg class="dawg-tile-ring" viewBox="0 0 64 64">
+              <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
+              <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${wkColor};stroke-dasharray:${C};stroke-dashoffset:${wkDash}"/>
+            </svg>
+            <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${wkColor}">${wkPct.toFixed(0)}%</div></div>
+          </div>
+          <div class="dawg-tile-amt">${fmt(totalBudget)}</div>
+          <div class="dawg-tile-sub">${fmt(budgetSpent)} spent</div>`;
+
+        if (dayBudget > 0) {
           const dayPct   = Math.min(daySpent / dayBudget * 100, 100);
           const dayColor = dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
           const dayDash  = (C * (1 - dayPct / 100)).toFixed(1);
-          return `<div class="dawg-budget-tile">
+          _tileHtml['budget-day'] = `
             <div class="dawg-card-title">PER DAY</div>
             <div class="dawg-tile-ring-wrap">
               <svg class="dawg-tile-ring" viewBox="0 0 64 64">
                 <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
                 <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${dayColor};stroke-dasharray:${C};stroke-dashoffset:${dayDash}"/>
               </svg>
-              <div class="dawg-tile-ring-center">
-                <div class="dawg-tile-ring-pct" style="color:${dayColor}">${dayPct.toFixed(0)}%</div>
-              </div>
+              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${dayColor}">${dayPct.toFixed(0)}%</div></div>
             </div>
             <div class="dawg-tile-amt">${fmt(dayBudget)}</div>
-            <div class="dawg-tile-sub">${fmt(daySpent)} today</div>
-          </div>`;
-        })() : '') +
-        `</div>`;
-        return wkTiles +
-          (_showBreakdown ? `<div class="dawg-breakdown-card">
-            <div class="dawg-card-title">SPENDING BREAKDOWN</div>
-            <div class="dawg-cat-list dawg-cat-list--wide">${spendHtml}</div>
-            <button class="dawg-view-btn" id="dawg-goto-ledger">VIEW ANALYTICS ›</button>
-          </div>` : '');
-      })()
-    : (_isDebt && _showBreakdown && _curAcctD?.type !== 'loan') ? `
-      <div class="dawg-breakdown-card">
-        <div class="dawg-card-title">SPENDING BREAKDOWN</div>
-        <div class="dawg-cat-list dawg-cat-list--wide">${spendHtml}</div>
-        <button class="dawg-view-btn" id="dawg-goto-ledger">VIEW ANALYTICS ›</button>
-      </div>
-    ` : ''}
+            <div class="dawg-tile-sub">${fmt(daySpent)} today</div>`;
+        }
+      }
 
-    ${_isDebt ? (() => {
-      const _payoff = calcDebtPayoff(balance, _curAcctD?.interest_rate, _curAcctD?.monthly_payment);
-      const _noPayoff = _curAcctD?.monthly_payment && balance > 0 && !_payoff;
-      return `<div class="dawg-section-card dawg-due-tile">
-        <div class="dawg-section-hdr">
-          <span class="dawg-card-title">DEBT DETAILS</span>
-        </div>
-        <div class="dawg-due-body">
-          ${paymentDueStr ? `<span class="dawg-due-date" style="color:${paymentDueStr.startsWith('⚠️')?'var(--warn)':'var(--text)'}">${paymentDueStr}</span>` : ''}
-          ${_curAcctD?.interest_rate ? `<span class="dawg-due-apr">${_curAcctD.interest_rate}% APR</span>` : ''}
-          ${_curAcctD?.monthly_payment ? `<span class="dawg-due-apr">${fmt(_curAcctD.monthly_payment)}/mo payment</span>` : ''}
-        </div>
-        ${_payoff ? `<div class="dawg-payoff-est">
-          <span class="dawg-payoff-label">EST. PAYOFF</span>
-          <span class="dawg-payoff-date">${_payoff.label}</span>
-          <span class="dawg-payoff-sub">${_payoff.months} mo · ${fmt(_payoff.totalInterest)} in interest</span>
-        </div>` : ''}
-        ${_noPayoff ? `<div class="dawg-payoff-est" style="color:var(--warn)">⚠️ Payment doesn't cover interest — increase monthly payment</div>` : ''}
-        ${!_curAcctD?.monthly_payment ? `<div style="font-size:.75rem;color:var(--muted);margin-top:6px">Set a monthly payment in Settings → Accounts to see payoff estimate</div>` : ''}
-      </div>`;
-    })() : ''}
+      // Spending breakdown
+      if (_showBreakdown && (_isDebt ? _curAcctD?.type !== 'loan' : true)) {
+        _tileHtml['breakdown'] = `
+          <div class="dawg-card-title">SPENDING BREAKDOWN</div>
+          <div class="dawg-cat-list dawg-cat-list--wide">${spendHtml}</div>
+          <button class="dawg-view-btn" id="dawg-goto-ledger">VIEW ANALYTICS ›</button>`;
+      }
 
-    ${_showGoals && goals.length ? `<div class="dawg-section-card">
-      <div class="dawg-section-hdr">
-        <span class="dawg-card-title">SAVINGS GOALS</span>
-        <button class="dawg-view-all" id="dawg-goto-goals">VIEW ALL</button>
-      </div>
-      ${goalsHtml}
-    </div>` : ''}
+      // Debt details (always shown for debt accounts, not in layout grid — rendered separately below)
+      const debtHtml = _isDebt ? (() => {
+        const _payoff = calcDebtPayoff(balance, _curAcctD?.interest_rate, _curAcctD?.monthly_payment);
+        const _noPayoff = _curAcctD?.monthly_payment && balance > 0 && !_payoff;
+        return `<div class="dawg-section-card dawg-due-tile">
+          <div class="dawg-section-hdr"><span class="dawg-card-title">DEBT DETAILS</span></div>
+          <div class="dawg-due-body">
+            ${paymentDueStr ? `<span class="dawg-due-date" style="color:${paymentDueStr.startsWith('⚠️')?'var(--warn)':'var(--text)'}">${paymentDueStr}</span>` : ''}
+            ${_curAcctD?.interest_rate ? `<span class="dawg-due-apr">${_curAcctD.interest_rate}% APR</span>` : ''}
+            ${_curAcctD?.monthly_payment ? `<span class="dawg-due-apr">${fmt(_curAcctD.monthly_payment)}/mo payment</span>` : ''}
+          </div>
+          ${_payoff ? `<div class="dawg-payoff-est">
+            <span class="dawg-payoff-label">EST. PAYOFF</span>
+            <span class="dawg-payoff-date">${_payoff.label}</span>
+            <span class="dawg-payoff-sub">${_payoff.months} mo · ${fmt(_payoff.totalInterest)} in interest</span>
+          </div>` : ''}
+          ${_noPayoff ? `<div class="dawg-payoff-est" style="color:var(--warn)">⚠️ Payment doesn't cover interest — increase monthly payment</div>` : ''}
+          ${!_curAcctD?.monthly_payment ? `<div style="font-size:.75rem;color:var(--muted);margin-top:6px">Set a monthly payment in Settings → Accounts to see payoff estimate</div>` : ''}
+        </div>`;
+      })() : '';
 
-    ${_showTxns ? `<div class="dawg-section-card" style="margin-bottom:14px">
-      <div class="dawg-section-hdr">
-        <span class="dawg-card-title">${isPastDash ? dashMonthLabel.toUpperCase() + ' TRANSACTIONS' : 'RECENT TRANSACTIONS'}</span>
-        <button class="dawg-view-all" id="dawg-goto-txns">VIEW ALL</button>
-      </div>
-      ${recentTxns.length ? txnHtml : `<p class="dawg-empty">No transactions in ${dashMonthLabel}</p>`}
-    </div>` : ''}
+      // Goals
+      if (_showGoals && goals.length) {
+        _tileHtml['goals'] = `
+          <div class="dawg-section-hdr">
+            <span class="dawg-card-title">SAVINGS GOALS</span>
+            <button class="dawg-view-all" id="dawg-goto-goals">VIEW ALL</button>
+          </div>
+          ${goalsHtml}`;
+      }
 
-    ${(() => {
-      if (!_showNetWorth || _isDebt) return '';
-      const nw = getNetWorth();
-      if (state.accounts.length < 1) return '';
-      return `<div class="dawg-section-card" style="margin-bottom:14px">
-        <div class="dawg-section-hdr"><span class="dawg-card-title">NET WORTH</span></div>
-        <div style="font-size:1.4rem;font-weight:700;color:${nw.total >= 0 ? 'var(--success)' : 'var(--danger)'};margin-bottom:10px">${fmt(nw.total)}</div>
-        ${nw.accounts.map(a => {
-          const isDebtA = a.type === 'credit' || a.type === 'loan';
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:.82rem;color:var(--text)">${a.name}${isDebtA ? `<span style="font-size:.7rem;color:var(--muted);margin-left:4px">(${a.type})</span>` : ''}</span>
-            <span style="font-size:.82rem;font-weight:600;color:${a.balance >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(a.balance)}</span>
-          </div>`;
-        }).join('')}
-      </div>`;
-    })()}
+      // Transactions
+      if (_showTxns) {
+        _tileHtml['transactions'] = `
+          <div class="dawg-section-hdr">
+            <span class="dawg-card-title">${isPastDash ? dashMonthLabel.toUpperCase() + ' TRANSACTIONS' : 'RECENT TRANSACTIONS'}</span>
+            <button class="dawg-view-all" id="dawg-goto-txns">VIEW ALL</button>
+          </div>
+          ${recentTxns.length ? txnHtml : `<p class="dawg-empty">No transactions in ${dashMonthLabel}</p>`}`;
+      }
 
-    ${(() => {
-      if (!_showInsights || _isDebt) return '';
-      const ins = getSpendingInsights(dashMonth);
-      if (!ins.length) return '';
-      return `<div class="dawg-section-card" style="margin-bottom:14px">
-        <div class="dawg-section-hdr"><span class="dawg-card-title">SPENDING INSIGHTS</span></div>
-        ${ins.map(i => `<div style="font-size:.82rem;color:var(--text);padding:5px 0;border-bottom:1px solid var(--border);line-height:1.45">${i}</div>`).join('')}
-      </div>`;
+      // Net worth
+      if (_showNetWorth && !_isDebt) {
+        const nw = getNetWorth();
+        if (state.accounts.length >= 1) {
+          _tileHtml['networth'] = `
+            <div class="dawg-section-hdr"><span class="dawg-card-title">NET WORTH</span></div>
+            <div style="font-size:1.4rem;font-weight:700;color:${nw.total >= 0 ? 'var(--success)' : 'var(--danger)'};margin-bottom:10px">${fmt(nw.total)}</div>
+            ${nw.accounts.map(a => {
+              const isDebtA = a.type === 'credit' || a.type === 'loan';
+              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
+                <span style="font-size:.82rem;color:var(--text)">${a.name}${isDebtA ? `<span style="font-size:.7rem;color:var(--muted);margin-left:4px">(${a.type})</span>` : ''}</span>
+                <span style="font-size:.82rem;font-weight:600;color:${a.balance >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(a.balance)}</span>
+              </div>`;
+            }).join('')}`;
+        }
+      }
+
+      // Insights
+      const insHtml = (() => {
+        if (!_showInsights || _isDebt) return '';
+        const ins = getSpendingInsights(dashMonth);
+        if (!ins.length) return '';
+        return `<div class="dawg-section-card" style="margin-bottom:14px">
+          <div class="dawg-section-hdr"><span class="dawg-card-title">SPENDING INSIGHTS</span></div>
+          ${ins.map(i => `<div style="font-size:.82rem;color:var(--text);padding:5px 0;border-bottom:1px solid var(--border);line-height:1.45">${i}</div>`).join('')}
+        </div>`;
+      })();
+
+      // Build the tile grid from layout
+      const layout = loadDashLayout();
+      const gridHtml = layout.filter(t => t.visible && _tileHtml[t.id]).map(t => {
+        const isTile = (t.id === 'budget-week' || t.id === 'budget-day');
+        const cls = isTile ? 'dawg-budget-tile' : 'dawg-section-card';
+        return `<div class="dawg-tile-wrap ${cls}" data-id="${t.id}" data-size="${t.size}">${_tileHtml[t.id]}</div>`;
+      }).join('');
+
+      return `
+        ${debtHtml}
+        <div class="dawg-tile-grid" id="dawg-tile-grid">${gridHtml}</div>
+        <button class="dash-layout-btn" id="dash-layout-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Customize Layout
+        </button>
+        ${insHtml}`;
     })()}
   </div>`;
 }
@@ -6410,6 +6621,7 @@ function attachDashboardDawg() {
   // Retirement dashboard: Add Contribution button
   document.getElementById('ret-dash-add-contrib')?.addEventListener('click', () => showAddContribModal(currentAccountId));
 
+  document.getElementById('dash-layout-btn')?.addEventListener('click', openDashEditOverlay);
   document.getElementById('dawg-goto-budgets')?.addEventListener('click', () => showTab('weekly'));
   document.getElementById('dawg-goto-ledger')?.addEventListener('click',  () => showTab('ledger'));
   document.getElementById('dawg-goto-goals')?.addEventListener('click',   () => showTab('goals'));
@@ -6430,36 +6642,6 @@ function attachDashboardDawg() {
     dashMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0');
     render();
   });
-
-  // Donut chart — uses weekly planner per-week budget if available
-  const donutCanvas = document.getElementById('dawg-donut');
-  if (donutCanvas) {
-    const _wp2      = state.weekly_plan;
-    const _wb       = parseFloat(_wp2?.per_week || 0);
-    const _dn       = new Date(); _dn.setHours(0,0,0,0);
-    const _dm       = new Date(_dn); _dm.setDate(_dn.getDate() - (_dn.getDay()===0?6:_dn.getDay()-1));
-    const _wse      = state.transactions.filter(t=>t.type==='expense'&&t.date>=_dm.toISOString().split('T')[0]).reduce((s,t)=>s+t.amount,0);
-    const _wsi      = state.transactions.filter(t=>t.type==='income' &&t.date>=_dm.toISOString().split('T')[0]).reduce((s,t)=>s+t.amount,0);
-    const _ws       = Math.max(0, _wse - _wsi);
-    const _tm       = `${_dn.getFullYear()}-${String(_dn.getMonth()+1).padStart(2,'0')}`;
-    const { expense: _me } = monthTotals(_tm);
-    const _tb       = _wb || Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
-    const _bs       = _wb ? _ws : _me;
-    const _cs2      = getComputedStyle(document.documentElement);
-    const _accentC  = _cs2.getPropertyValue('--accent').trim();
-    const _warnC    = _cs2.getPropertyValue('--warn').trim();
-    const _dangerC  = _cs2.getPropertyValue('--danger').trim();
-    const _dp       = _tb > 0 ? _bs/_tb : 0;
-    const _dc       = _dp >= 0.9 ? _dangerC : _dp >= 0.75 ? _warnC : _accentC;
-    const _spent    = Math.min(_bs, _tb || _bs);
-    const _remain   = Math.max(0, (_tb||_bs) - _spent) || 0.001;
-    const _emptyClr = document.body.classList.contains('light') ? '#e0e0e0' : '#1e1e1e';
-    new Chart(donutCanvas, {
-      type:'doughnut',
-      data:{ datasets:[{ data:[_spent, _remain], backgroundColor:[_dc, _emptyClr], borderWidth:0 }] },
-      options:{ responsive:false, cutout:'74%', plugins:{ legend:{display:false}, tooltip:{enabled:false} }, animation:{duration:500} }
-    });
-  }
 
   // Sparkline — clip to end of browsed month when navigating past months
   const _isPastSpark = dashMonth < new Date().toISOString().slice(0,7);
