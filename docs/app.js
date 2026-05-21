@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.1.6';
+const VERSION = '5.1.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1818,7 +1818,7 @@ function _navPush() {
 // Tabs to its LEFT slide left-to-right when selected from dashboard (content comes from left = "move right").
 // Tabs to its RIGHT slide right-to-left when selected from dashboard (content comes from right = "move left").
 // Only these tabs get directional slides; hamburger-only pages fade.
-const NAV_TABS = ['ledger','add','dashboard','weekly','bills','debt','goals','import','budgets','retirement','settings'];
+const NAV_TABS = ['dashboard','add','ledger','weekly','bills','debt','goals','import','budgets','retirement','settings'];
 let selectedLedgerIdx = null;
 let ledgerFilter = '';
 let ledgerSort = 'date-desc';
