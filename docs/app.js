@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.0.3';
+const VERSION = '5.0.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.0.4', date: '2026-05-21', changes: [
+    'Notification bell replaced with an All Accounts grid button — taps open the account picker with a zoom-out transition; hidden on single-account setups',
+  ]},
   { version: '5.0.3', date: '2026-05-21', changes: [
     'Pages always open at the top — scroll position is reset on every navigation so you never land mid-page',
     'Keyboard Done/checkmark now dismisses the keyboard without triggering Save — tap Save yourself when ready',
@@ -5964,6 +5967,7 @@ function updateDawgTopbar() {
   const nameEl    = document.getElementById('dawg-topbar-acct-name');
   const iconEl    = document.getElementById('dawg-topbar-acct-icon');
   const pill      = document.getElementById('dawg-acct-switch');
+  const acctsBtn  = document.getElementById('dawg-accts-btn');
   if (nameEl) nameEl.textContent = name;
   if (iconEl) iconEl.innerHTML = _ACCT_SVG[acct?.type] || _ACCT_SVG.checking;
   if (pill) {
@@ -5976,6 +5980,8 @@ function updateDawgTopbar() {
       arrow.remove();
     }
   }
+  // Show accounts grid button only when there are multiple accounts
+  if (acctsBtn) acctsBtn.style.display = multiAcct ? '' : 'none';
   updateDawgBellBadge();
 }
 function toggleDawgAcctDropdown() {
@@ -7148,9 +7154,14 @@ document.querySelectorAll('.dawg-nav-btn[data-tab]').forEach(btn =>
     showTab(btn.dataset.tab);
   }));
 document.getElementById('dawg-nav-accts')?.addEventListener('click', () => showTab('dashboard'));
-// DAWG persistent topbar — hamburger, bell, account pill (permanent HTML elements)
+// DAWG persistent topbar — hamburger, accounts grid, account pill (permanent HTML elements)
 document.getElementById('dawg-hamburger')?.addEventListener('click', openDawgDrawer);
-document.getElementById('dawg-bell')?.addEventListener('click', toggleDawgBell);
+document.getElementById('dawg-accts-btn')?.addEventListener('click', () => {
+  _navPush();
+  _pageTransition = 'zoom-out';
+  showingAccountPicker = true;
+  render();
+});
 document.getElementById('dawg-acct-switch')?.addEventListener('click', () => toggleDawgAcctDropdown());
 // DAWG drawer close + item listeners (permanent HTML elements)
 document.getElementById('dawg-drawer-close')?.addEventListener('click', closeDawgDrawer);
