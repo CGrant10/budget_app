@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.0.8';
+const VERSION = '5.1.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,24 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.1.3', date: '2026-05-21', changes: [
+    'Transaction animations: expenses trigger an evil red growling doberman, income brings a hype bounce with confetti — paycheck gets the full celebration treatment',
+    'Animations fire for every theme, auto-dismiss with a depleting progress bar, and tap-to-skip',
+  ]},
+  { version: '5.1.2', date: '2026-05-21', changes: [
+    'Cascade slide-in now works on every page — tiles, rows, and cards animate into position with a staggered slide as each page loads',
+    'Accounts overview shows the app version; "up to date" appears in green once the version check confirms you\'re on the latest build',
+  ]},
+  { version: '5.1.1', date: '2026-05-21', changes: [
+    'Every page now staggers its cards and rows into view — the same sliding-tile effect as the accounts picker, applied universally to transactions, bills, goals, budget rows, debt cards, retirement accounts, and weekly entries',
+  ]},
+  { version: '5.1.0', date: '2026-05-21', changes: [
+    'Dashboard tab now uses a smooth zoom-in transition instead of a slide; back-navigating to Dashboard zooms out',
+    'Slide transition internal rewrite: node-moving + double requestAnimationFrame eliminates the flash-of-new-content and ensures the animation always starts from a committed painted frame',
+  ]},
+  { version: '5.0.9', date: '2026-05-21', changes: [
+    'True dual-panel page slide: both the outgoing and incoming pages animate simultaneously, giving a natural "physically sliding between pages" feel instead of an abrupt snap',
+  ]},
   { version: '5.0.8', date: '2026-05-21', changes: [
     'Slide direction now treats Dashboard as the centre: Add and Ledger slide in from the right (move left), Weekly/Bills/Settings etc. slide in from the left (move right)',
   ]},
@@ -1029,12 +1047,112 @@ function _estimateNetPay({ gross, frequency, filingStatus, stateTaxPct, pretaxDe
   return { gross, perCheckFed, fica, stateTax, pretaxDeductions, net };
 }
 
-function _showPaycheckToast(amount, nextDate) {
-  const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:calc(var(--nav-h) + 12px);left:50%;transform:translateX(-50%);background:var(--success);color:#000;padding:10px 18px;border-radius:12px;font-size:.82rem;font-weight:700;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);animation:fadeSlideIn .2s ease';
-  t.textContent = `💵 Paycheck of ${fmt(amount)} added!`;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3800);
+// ── Transaction animations ─────────────────────────────────────────────────
+// Expense = evil doberman, Income = hype doberman, Paycheck = extra hype
+const _EXPENSE_MSGS = [
+  "Woof. Wallet just got bitten.",
+  "Ruff. Another one gone.",
+  "Budget took damage. Oof.",
+  "The dawg is not pleased.",
+  "Money out. Dawg growling.",
+  "Another bite out of the bag.",
+];
+const _INCOME_MSGS = [
+  "Ka-ching! Secured.",
+  "Dawg eatin' good!",
+  "Money in the bag!",
+  "The dawg gets paid.",
+  "Secured. No cap.",
+  "Stack it up, dawg.",
+];
+const _PAYCHECK_MSGS = [
+  "PAYDAY DROPPED!",
+  "THE CHECK CLEARED!",
+  "GET PAID, DAWG.",
+  "PAYCHECK HIT DIFFERENT.",
+  "DIRECT DEPOSIT SECURED.",
+];
+
+function showRobbery(amount, desc) { _showTxnAnim('expense', amount, desc); }
+function showPayday(amount, desc)   { _showTxnAnim('income',  amount, desc); }
+
+function _showPaycheckToast(amount) {
+  // Auto-paycheck fires from _checkPaychecks — reuse the full anim
+  _showTxnAnim('income', amount, 'Paycheck');
+}
+
+function _showTxnAnim(type, amount, desc) {
+  document.getElementById('txn-anim')?.remove();
+
+  const isExpense  = type === 'expense';
+  const isPaycheck = /paycheck|pay.?check|direct.?deposit|payday|salary|wages|payroll/i.test(desc || '');
+  const variant    = isPaycheck ? 'paycheck' : type;
+
+  const msgs    = isPaycheck ? _PAYCHECK_MSGS : (isExpense ? _EXPENSE_MSGS : _INCOME_MSGS);
+  const headline = msgs[Math.floor(Math.random() * msgs.length)];
+  const amtStr   = `${isExpense ? '-' : '+'}${fmt(amount)}`;
+  const emoji    = isPaycheck ? '💸' : (isExpense ? '😈' : '🎉');
+
+  const dobFilter = isExpense
+    ? 'brightness(0.65) sepia(1) saturate(6) hue-rotate(300deg)'   // evil red
+    : isPaycheck
+      ? 'sepia(0.4) hue-rotate(25deg) saturate(2) brightness(1.2)' // golden
+      : 'saturate(1.4) brightness(1.08)';                           // vibrant
+
+  const el = document.createElement('div');
+  el.id        = 'txn-anim';
+  el.className = `txn-anim txn-anim--${variant}`;
+  el.innerHTML = `
+    <div class="txn-anim-card">
+      <div class="txn-anim-dob-wrap">
+        <img src="./doberman.png" class="txn-anim-dob" style="filter:${dobFilter}" alt="">
+        <div class="txn-anim-confetti-host"></div>
+      </div>
+      <div class="txn-anim-body">
+        <div class="txn-anim-headline">${headline}</div>
+        <div class="txn-anim-amount">${amtStr}</div>
+        ${desc && desc !== '—' ? `<div class="txn-anim-desc">${desc}</div>` : ''}
+      </div>
+      <div class="txn-anim-emoji">${emoji}</div>
+    </div>
+    <div class="txn-anim-progress"><div class="txn-anim-progress-bar"></div></div>`;
+
+  document.body.appendChild(el);
+
+  // Confetti burst for income/paycheck
+  if (!isExpense) {
+    const host   = el.querySelector('.txn-anim-confetti-host');
+    const colors = ['#ffd60a','#32d74b','var(--accent)','#ff453a','#7c6fff','#2dd4bf','#ff9f0a'];
+    for (let i = 0; i < 14; i++) {
+      const dot   = document.createElement('div');
+      dot.className = 'txn-confetti-dot';
+      const angle = (i / 14) * 360;
+      const dist  = 26 + Math.random() * 32;
+      const x     = Math.round(Math.cos(angle * Math.PI / 180) * dist);
+      const y     = Math.round(Math.sin(angle * Math.PI / 180) * dist);
+      const sz    = (3.5 + Math.random() * 4.5).toFixed(1);
+      dot.style.cssText = `--x:${x}px;--y:${y}px;--delay:${(i * 0.032).toFixed(3)}s;`
+        + `background:${colors[i % colors.length]};width:${sz}px;height:${sz}px;`
+        + `border-radius:${Math.random() > .5 ? '50%' : '2px'};`;
+      host.appendChild(dot);
+    }
+  }
+
+  // Kick off the depleting progress bar on the next frame
+  const dur = isPaycheck ? 3600 : 2700;
+  requestAnimationFrame(() => {
+    const bar = el.querySelector('.txn-anim-progress-bar');
+    if (bar) { bar.style.transition = `width ${dur}ms linear`; bar.style.width = '0%'; }
+  });
+
+  const timer = setTimeout(() => _dismissTxnAnim(el), dur);
+  el.addEventListener('click', () => { clearTimeout(timer); _dismissTxnAnim(el); }, { once: true });
+}
+
+function _dismissTxnAnim(el) {
+  if (!el?.isConnected) return;
+  el.classList.add('txn-anim--out');
+  setTimeout(() => el?.remove(), 380);
 }
 
 async function _checkPaychecks() {
@@ -1683,6 +1801,8 @@ let debtCalcMode = 'snowball'; // 'snowball' | 'avalanche'
 let debtMonthlyPay = '';
 let showingAccountPicker = false;
 let _pageTransition = 'fade'; // 'fade' | 'slide-left' | 'slide-right'
+let _slideCleanupTimer  = null;  // tracks in-flight slide animation cleanup
+let _slidePendingHTML  = null;  // newHTML of the currently-animating slide (used to recover on rapid re-nav)
 // ── back-navigation stack ──────────────────────────────────────────────────
 let _navStack = [];        // [{tab, picker, accountId}]
 let _navigatingBack = false;
@@ -1730,13 +1850,17 @@ function showTab(key) {
   } else if (currentTab === 'about') {
     applyTheme(activeTheme);
   }
-  // Directional slide only between bottom nav tabs — hamburger pages just fade
+  // Dashboard always zooms in; slide between other nav tabs; hamburger pages fade
   const fromIdx = NAV_TABS.indexOf(currentTab);
   const toIdx   = NAV_TABS.indexOf(key);
   const bothInNav = fromIdx !== -1 && toIdx !== -1;
-  _pageTransition = (bothInNav && fromIdx !== toIdx)
-    ? (toIdx > fromIdx ? 'slide-right' : 'slide-left')
-    : 'fade';
+  if (key === 'dashboard') {
+    _pageTransition = 'zoom-in';
+  } else if (bothInNav && fromIdx !== toIdx) {
+    _pageTransition = toIdx > fromIdx ? 'slide-right' : 'slide-left';
+  } else {
+    _pageTransition = 'fade';
+  }
   currentTab = key;
   document.querySelectorAll('.nav-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.tab === key));
@@ -2485,6 +2609,7 @@ function renderAccountPicker() {
           <div>
             <div class="acct-picker-title">My Accounts</div>
             <div class="acct-picker-sub">${count} account${count !== 1 ? 's' : ''} · tap to open</div>
+            <div class="acct-picker-ver">v${VERSION}${_upToDate ? ' · <span style="color:var(--success)">up to date</span>' : ''}</div>
           </div>
         </div>
       </div>
@@ -2516,23 +2641,143 @@ function runSplash() {
 // ── render ─────────────────────────────────────────────────────────────────
 const ANIM_CLASSES = ['anim-slide-right','anim-slide-left','anim-fade-up','anim-zoom-in','anim-zoom-out'];
 
-function _applyPageTransition(main) {
+// Selectors for every "card / row" element that should stagger in on page load.
+// Delays are injected as inline animation styles so a single @keyframes (acctRowIn)
+// covers all pages consistently.
+const STAGGER_SEL = [
+  '.dawg-section-card',
+  '.ledger-row',
+  '.bill-card',
+  '.goal-card',
+  '.debt-acct-card',
+  '.budget-row',
+  '.ret-acct-card',
+  '.pw-txn-row',
+  '.acct-row',
+].join(',');
+
+// slideMode = true  → acctRowSlideIn (transform only, no opacity fade)
+//             false → acctRowIn      (opacity + transform, for zoom/fade transitions)
+function _applyStagger(container, slideMode) {
+  const root = container || document.getElementById('main-content');
+  if (!root) return;
+  const kf = slideMode ? 'acctRowSlideIn' : 'acctRowIn';
+  root.querySelectorAll(STAGGER_SEL).forEach((el, i) => {
+    // 50 ms between each item, capped at 8 so long lists land together after the cascade
+    const delay = (Math.min(i, 8) * 0.05).toFixed(2);
+    el.style.animation = `${kf} .28s cubic-bezier(.22,1,.36,1) ${delay}s both`;
+  });
+}
+
+function _applyPageTransition(main, oldHTML, transType) {
   // Always reset scroll to top on every navigation
   main.scrollTop = 0;
-  // Remove any existing animation classes so re-triggering works
-  main.classList.remove(...ANIM_CLASSES);
-  // Force reflow so removing + re-adding the class restarts the animation
-  void main.offsetWidth;
-  if      (_pageTransition === 'slide-right') main.classList.add('anim-slide-right');
-  else if (_pageTransition === 'slide-left')  main.classList.add('anim-slide-left');
-  else if (_pageTransition === 'zoom-in')     main.classList.add('anim-zoom-in');
-  else if (_pageTransition === 'zoom-out')    main.classList.add('anim-zoom-out');
-  else                                        main.classList.add('anim-fade-up');
-  // Reset to default after each render
+  // Reset global flag immediately so re-entrant calls default to fade
   _pageTransition = 'fade';
-  // *** Critical: strip the class once the animation ends so overflow:hidden
-  // from anim-zoom-in/out never persists and blocks scrolling ***
-  main.addEventListener('animationend', () => main.classList.remove(...ANIM_CLASSES), { once: true });
+
+  // Cancel any still-running slide cleanup from a previous transition.
+  // Restore real content so _oldHTML isn't the track wrapper on rapid re-nav.
+  if (_slideCleanupTimer) {
+    clearTimeout(_slideCleanupTimer);
+    _slideCleanupTimer = null;
+    if (_slidePendingHTML !== null) {
+      const _m = document.getElementById('main-content');
+      if (_m) { _m.style.overflow = ''; _m.innerHTML = _slidePendingHTML; }
+      _slidePendingHTML = null;
+    }
+  }
+
+  const isSlide = (transType === 'slide-right' || transType === 'slide-left') && oldHTML && oldHTML.trim();
+
+  if (!isSlide) {
+    // Non-slide: use existing CSS animation class approach
+    main.classList.remove(...ANIM_CLASSES);
+    void main.offsetWidth;
+    if      (transType === 'zoom-in')  main.classList.add('anim-zoom-in');
+    else if (transType === 'zoom-out') main.classList.add('anim-zoom-out');
+    else                               main.classList.add('anim-fade-up');
+    // *** Critical: strip the class once the animation ends so overflow:hidden
+    // from anim-zoom-in/out never persists and blocks scrolling ***
+    main.addEventListener('animationend', () => main.classList.remove(...ANIM_CLASSES), { once: true });
+    // Stagger cards/rows in — runs in same JS task so browser paints initial
+    // opacity:0 state before the animation begins (no flash)
+    _applyStagger();
+    return;
+  }
+
+  // ── True dual-panel slide ──────────────────────────────────────────────────
+  // Two root problems with naive approaches:
+  //   1. Setting main.innerHTML = newHTML fires a paint of the new page before
+  //      the track is built → user sees a flash of the new content.
+  //   2. void offsetWidth doesn't guarantee the browser commits a frame with the
+  //      initial transform before the transition starts → abrupt snap.
+  //
+  // Fix:
+  //   • Move the already-rendered new-content nodes (don't copy via innerHTML)
+  //     into the incoming panel so the browser never paints new content solo.
+  //   • Use double-rAF so frame 1 commits old-content-visible initial state,
+  //     frame 2 kicks off the CSS transition → guaranteed smooth start.
+
+  const isRight = transType === 'slide-right';
+  const dur     = 340;
+  const ease    = 'cubic-bezier(0.22, 1, 0.36, 1)';
+  const newHTML = main.innerHTML;           // capture for cleanup restore
+  _slidePendingHTML = newHTML;
+  // Use clientHeight without forcing a reflow via offsetHeight;
+  // fall back to window.innerHeight if main hasn't painted yet
+  const trackH  = main.clientHeight || window.innerHeight;
+
+  // ── Build the incoming (new) panel by MOVING live nodes out of main ────────
+  // This means the browser never gets a chance to paint main.innerHTML = newHTML
+  // directly — those nodes go straight into the panel without an intermediate paint.
+  const newPanel = document.createElement('div');
+  newPanel.style.cssText = 'width:50%;flex-shrink:0;height:100%;overflow:hidden;';
+  while (main.firstChild) newPanel.appendChild(main.firstChild);
+
+  // ── Build the outgoing (old) panel from the captured HTML string ───────────
+  const oldPanel = document.createElement('div');
+  oldPanel.style.cssText = 'width:50%;flex-shrink:0;height:100%;overflow:hidden;';
+  oldPanel.innerHTML = oldHTML;
+
+  // ── Assemble 200%-wide flex track ─────────────────────────────────────────
+  // isRight: [old | new], initial translateX(0)   → final translateX(-50%)
+  // isLeft:  [new | old], initial translateX(-50%) → final translateX(0)
+  const track = document.createElement('div');
+  track.style.cssText = `display:flex;width:200%;height:${trackH}px;will-change:transform;transform:${isRight ? 'translateX(0)' : 'translateX(-50%)'};`;
+  track.appendChild(isRight ? oldPanel : newPanel);
+  track.appendChild(isRight ? newPanel : oldPanel);
+
+  main.style.overflow = 'hidden';
+  main.appendChild(track);   // main now contains only the track (no bare innerHTML)
+
+  // Cascade items into place as the new panel slides in.
+  // Using transform-only (no opacity) so the incoming page is never blank —
+  // items are visible but offset left, and each slides to its resting position.
+  _applyStagger(newPanel, true);
+
+  // ── Double-rAF: let the browser commit frame 1 (initial state) then animate ─
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      track.style.transition = `transform ${dur}ms ${ease}`;
+      track.style.transform  = isRight ? 'translateX(-50%)' : 'translateX(0)';
+    });
+  });
+
+  // ── After animation: move nodes (not innerHTML) so in-progress stagger animations
+  //    continue uninterrupted and event listeners are preserved ─────────────────
+  _slideCleanupTimer = setTimeout(() => {
+    _slideCleanupTimer = null;
+    _slidePendingHTML  = null;
+    // Lift nodes out of newPanel into a fragment before destroying the track
+    const frag = document.createDocumentFragment();
+    while (newPanel.firstChild) frag.appendChild(newPanel.firstChild);
+    // Clear the track structure and restore real content
+    main.innerHTML = '';
+    main.style.overflow = '';
+    main.appendChild(frag);
+    // Handlers + badge were attached when render() called attachHandlers() on the
+    // same live nodes — no need to re-attach since nodes were moved, not recreated
+  }, dur + 84); // 340ms anim + 2×rAF (~34ms) + 16ms buffer
 }
 
 function render() {
@@ -2540,10 +2785,14 @@ function render() {
   const main = document.getElementById('main-content');
   const appEl = document.getElementById('app');
 
+  // Capture old content + transition type BEFORE overwriting innerHTML
+  const _oldHTML   = main ? main.innerHTML : '';
+  const _transType = _pageTransition;
+
   if (showingAccountPicker) {
     appEl?.classList.add('picker-mode');
     main.innerHTML = renderAccountPicker();
-    _applyPageTransition(main);
+    _applyPageTransition(main, _oldHTML, _transType);
     document.querySelectorAll('.acct-row').forEach(tile => {
       tile.addEventListener('click', async () => {
         // Brief press glow on the tapped tile before transitioning
@@ -2561,6 +2810,11 @@ function render() {
   }
 
   appEl?.classList.remove('picker-mode');
+
+  // For slide transitions _applyPageTransition will move the live nodes out of
+  // main into the sliding track — so main.innerHTML must already contain the
+  // new content when it's called, but the browser must NOT have painted it yet.
+  // All of this is synchronous JS, so no intermediate paint occurs.
   switch (currentTab) {
     case 'dashboard': main.innerHTML = renderDashboard(); break;
     case 'add':       main.innerHTML = renderAdd();       break;
@@ -2577,7 +2831,7 @@ function render() {
     case 'settings':  main.innerHTML = renderSettings();  break;
     case 'about':     main.innerHTML = renderAbout();     break;
   }
-  _applyPageTransition(main);
+  _applyPageTransition(main, _oldHTML, _transType);
   attachHandlers();
   updateBillBadge();
   updateDawgTopbar();
@@ -6462,10 +6716,8 @@ function attachAdd() {
     document.getElementById('add-recurring').checked = false;
     playSound(t.type);
     haptic(t.type === 'income' ? [20, 50, 20] : [30]);
-    if (localStorage.getItem('sounds') !== 'off') {
-      if (t.type === 'expense') showRobbery(t.amount);
-      else if (t.type === 'income') showPayday(t.amount);
-    }
+    if (t.type === 'expense') showRobbery(t.amount, t.description);
+    else if (t.type === 'income') showPayday(t.amount, t.description);
     if (t.type === 'expense') { checkRoast(t.category); checkSpendingAlert(t.category); }
     checkMilestones(prevBal, newBal);
     checkWeekMilestone();
@@ -6920,6 +7172,7 @@ function updateAccountSwitcher() {
 
 // ── version check ──────────────────────────────────────────────────────────
 let _reloading = false;
+let _upToDate  = false; // set true once version.txt confirms we're current
 async function checkForUpdate() {
   if (_reloading) return;
   try {
@@ -6933,6 +7186,12 @@ async function checkForUpdate() {
       sessionStorage.setItem('slawminyaw_reloaded', live);
       _reloading = true;
       window.location.reload();
+    } else if (live === VERSION) {
+      // Confirmed up to date — refresh the account picker if it's visible
+      if (!_upToDate) {
+        _upToDate = true;
+        if (showingAccountPicker) render();
+      }
     }
   } catch(e) { /* offline — skip */ }
 }
@@ -7245,9 +7504,11 @@ window.addEventListener('popstate', () => {
     const _bBothNav = _bFromIdx !== -1 && _bToIdx !== -1;
     _pageTransition = (prev.picker || showingAccountPicker)
       ? 'zoom-out'
-      : (_bBothNav && _bFromIdx !== _bToIdx)
-        ? (_bToIdx < _bFromIdx ? 'slide-left' : 'slide-right')
-        : 'fade';
+      : (prev.tab === 'dashboard')
+        ? 'zoom-out'
+        : (_bBothNav && _bFromIdx !== _bToIdx)
+          ? (_bToIdx < _bFromIdx ? 'slide-left' : 'slide-right')
+          : 'fade';
     currentTab = prev.tab;
     if (_dawgSparkGlobal) { _dawgSparkGlobal.destroy(); _dawgSparkGlobal = null; }
     document.querySelectorAll('.nav-btn').forEach(b =>

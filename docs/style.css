@@ -1737,6 +1737,7 @@ body.light .section-title::before {
 .acct-picker-header { padding: 0 0 22px; }
 .acct-picker-title { font-size: 2rem; font-weight: 800; letter-spacing: -.04em; color: var(--text); line-height: 1.1; }
 .acct-picker-sub { font-size: .72rem; color: var(--muted); margin-top: 6px; letter-spacing: .06em; }
+.acct-picker-ver { font-size: .65rem; color: var(--muted); margin-top: 5px; letter-spacing: .04em; opacity: .7; }
 .acct-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
 .acct-list-scroll {
   flex: 1;
@@ -2349,20 +2350,18 @@ body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
   overflow: hidden;
 }
 
-/* ── staggered account row entrance ── */
+/* ── staggered item entrance (delays injected by JS _applyStagger) ── */
+/* Full fade+slide — used on zoom/fade page transitions */
 @keyframes acctRowIn {
   from { opacity: 0; transform: translateX(-14px); }
   to   { opacity: 1; transform: translateX(0); }
 }
-.acct-row {
-  animation: acctRowIn .3s cubic-bezier(.22,1,.36,1) both;
+/* Slide-only (no opacity) — used inside slide page transitions so items
+   are always visible and just cascade into position as the page slides in */
+@keyframes acctRowSlideIn {
+  from { transform: translateX(-18px); }
+  to   { transform: translateX(0); }
 }
-.acct-row:nth-child(1) { animation-delay: .00s; }
-.acct-row:nth-child(2) { animation-delay: .05s; }
-.acct-row:nth-child(3) { animation-delay: .10s; }
-.acct-row:nth-child(4) { animation-delay: .15s; }
-.acct-row:nth-child(5) { animation-delay: .20s; }
-.acct-row:nth-child(6) { animation-delay: .25s; }
 
 /* ── rotating insights card ──────────────────────────────────────────────── */
 .insight-card {
@@ -2590,7 +2589,6 @@ body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
   margin-top: 2px;
   text-align: center;
 }
-.acct-row:nth-child(n+7) { animation-delay: .30s; }
 
 /* ── Dashboard month navigator ──────────────────────────────────────────── */
 .dawg-month-nav {
@@ -3749,3 +3747,178 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
   font-family: var(--font-body);
 }
 .est-use-btn:active { opacity: .85; }
+
+/* ── Transaction animations (expense = evil, income = hype, paycheck = 🔥) ── */
+.txn-anim {
+  position: fixed;
+  bottom: calc(var(--nav-h, 58px) + 14px);
+  left: 50%;
+  transform: translateX(-50%) translateY(calc(100% + 24px));
+  z-index: 10010;
+  width: calc(100% - 28px);
+  max-width: 440px;
+  animation: txnAnimIn .42s cubic-bezier(.22,1,.36,1) forwards;
+  cursor: pointer;
+  user-select: none;
+}
+@keyframes txnAnimIn {
+  to { transform: translateX(-50%) translateY(0); }
+}
+.txn-anim--out {
+  animation: txnAnimOut .36s cubic-bezier(.4,0,1,1) forwards !important;
+}
+@keyframes txnAnimOut {
+  to { transform: translateX(-50%) translateY(calc(100% + 24px)); opacity: 0; }
+}
+
+/* Card shell */
+.txn-anim-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card, #1c1c1e);
+  border-radius: 18px 18px 0 0;
+  padding: 14px 14px 14px 12px;
+  border: 1.5px solid var(--glass-border, rgba(255,255,255,.08));
+  border-bottom: none;
+  position: relative;
+  overflow: hidden;
+}
+/* Evil red glow */
+.txn-anim--expense .txn-anim-card {
+  border-color: rgba(255,69,58,.35);
+  box-shadow: 0 -4px 28px rgba(255,69,58,.18), inset 0 1px 0 rgba(255,69,58,.12);
+}
+/* Income green glow */
+.txn-anim--income .txn-anim-card {
+  border-color: rgba(50,215,75,.35);
+  box-shadow: 0 -4px 28px rgba(50,215,75,.15), inset 0 1px 0 rgba(50,215,75,.1);
+}
+/* Paycheck gold glow */
+.txn-anim--paycheck .txn-anim-card {
+  border-color: rgba(255,214,10,.4);
+  box-shadow: 0 -4px 32px rgba(255,214,10,.22), inset 0 1px 0 rgba(255,214,10,.14);
+}
+
+/* Doberman */
+.txn-anim-dob-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.txn-anim-dob {
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+  display: block;
+}
+/* Evil dob: twitchy shake */
+.txn-anim--expense .txn-anim-dob {
+  animation: dobEvil .5s cubic-bezier(.22,1,.36,1) .08s both;
+}
+@keyframes dobEvil {
+  0%   { transform: rotate(0) scale(1); }
+  20%  { transform: rotate(-7deg) scale(1.05); }
+  45%  { transform: rotate(6deg) scale(1.05); }
+  65%  { transform: rotate(-4deg) scale(1.02); }
+  100% { transform: rotate(0) scale(1); }
+}
+/* Happy dob: bounce up */
+.txn-anim--income .txn-anim-dob,
+.txn-anim--paycheck .txn-anim-dob {
+  animation: dobHype .55s cubic-bezier(.22,1,.36,1) .08s both;
+}
+@keyframes dobHype {
+  0%   { transform: translateY(0) scale(1); }
+  35%  { transform: translateY(-10px) scale(1.1); }
+  60%  { transform: translateY(-4px) scale(1.04); }
+  80%  { transform: translateY(-7px) scale(1.07); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* Confetti host (income/paycheck) */
+.txn-anim-confetti-host {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+}
+.txn-confetti-dot {
+  position: absolute;
+  top: 0; left: 0;
+  margin: -2px 0 0 -2px;
+  animation: confettiShoot .7s ease-out var(--delay, 0s) both;
+}
+@keyframes confettiShoot {
+  from { opacity: 1; transform: translate(0,0) scale(1) rotate(0deg); }
+  to   { opacity: 0; transform: translate(var(--x,0px),var(--y,0px)) scale(.35) rotate(180deg); }
+}
+
+/* Text */
+.txn-anim-body {
+  flex: 1;
+  min-width: 0;
+}
+.txn-anim-headline {
+  font-size: .88rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.25;
+  letter-spacing: -.01em;
+}
+.txn-anim--paycheck .txn-anim-headline {
+  font-size: .96rem;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.txn-anim-amount {
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1.15;
+  margin-top: 1px;
+  letter-spacing: -.03em;
+}
+.txn-anim--expense  .txn-anim-amount { color: var(--danger, #ff453a); }
+.txn-anim--income   .txn-anim-amount { color: var(--success, #32d74b); }
+.txn-anim--paycheck .txn-anim-amount { color: #ffd60a; }
+.txn-anim-desc {
+  font-size: .7rem;
+  color: var(--muted);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Emoji badge */
+.txn-anim-emoji {
+  font-size: 1.9rem;
+  flex-shrink: 0;
+  line-height: 1;
+  animation: emojiPop .45s cubic-bezier(.22,1,.36,1) .18s both;
+}
+@keyframes emojiPop {
+  from { transform: scale(0) rotate(-25deg); }
+  to   { transform: scale(1) rotate(0deg); }
+}
+
+/* Progress bar */
+.txn-anim-progress {
+  height: 4px;
+  background: rgba(128,128,128,.15);
+  border-radius: 0 0 18px 18px;
+  overflow: hidden;
+}
+.txn-anim-progress-bar {
+  height: 100%;
+  width: 100%;
+  border-radius: 0 0 18px 18px;
+  transition: none;
+}
+.txn-anim--expense  .txn-anim-progress-bar { background: var(--danger,  #ff453a); }
+.txn-anim--income   .txn-anim-progress-bar { background: var(--success, #32d74b); }
+.txn-anim--paycheck .txn-anim-progress-bar { background: #ffd60a; }
