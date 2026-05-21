@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.5.1';
+const VERSION = '5.5.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.5.2', date: '2026-05-21', changes: [
+    'Tour card is now compact — icon and title in one row, skip × lives inside the card so it never floats over spotlighted tiles',
+    'Card positions itself above or below the spotlight (measures available space, picks the side with room) so the highlighted element is always fully visible',
+    'Dark overlay now comes entirely from the spotlight ring\'s box-shadow; backdrop is transparent during spotlight steps so clicks anywhere advance the tour',
+    'Finishing or skipping the tour drops you back on the dashboard',
+  ]},
   { version: '5.5.1', date: '2026-05-21', changes: [
     'Long-press on the nav bar now works reliably on mobile — a movement threshold prevents tiny finger drift from cancelling the hold gesture',
     'Budget Overview tiles now show "Budget Overview" as the card title with "Per Week" / "Per Day" as a subtitle label beneath it',
@@ -6588,33 +6594,29 @@ function openTutorial() {
   _wtOpen = true;
   _wtStep = 0;
 
-  // Backdrop — catches taps outside the card to advance
+  // Backdrop — transparent click-capture layer; background toggled per step
   const bd = document.createElement('div');
   bd.id = 'wt-bd';
   bd.addEventListener('click', _advanceWalkthrough);
 
-  // Spotlight ring
+  // Spotlight ring (box-shadow provides the dark overlay)
   const hl = document.createElement('div');
   hl.id = 'wt-hl';
   hl.style.display = 'none';
 
-  // Card
+  // Compact card — skip × is now inside the card header
   const card = document.createElement('div');
   card.id = 'wt-card';
 
-  // Skip button
-  const skip = document.createElement('button');
-  skip.id = 'wt-skip';
-  skip.textContent = 'Skip tour';
-  skip.addEventListener('click', e => { e.stopPropagation(); _closeWalkthrough(); });
-
-  document.body.append(bd, hl, card, skip);
+  document.body.append(bd, hl, card);
   _renderWalkthroughStep(0);
 }
 
 function _closeWalkthrough() {
   _wtOpen = false;
   ['wt-bd','wt-hl','wt-card','wt-skip'].forEach(id => document.getElementById(id)?.remove());
+  // Always land back on the dashboard after the tour
+  showTab('dashboard');
 }
 
 function _advanceWalkthrough() {
@@ -6631,56 +6633,101 @@ function _renderWalkthroughStep(i) {
   if (!card) return;
 
   const isLast = i === WALKTHROUGH_STEPS.length - 1;
+  const total  = WALKTHROUGH_STEPS.length;
 
-  // Update card content
+  // Compact card: icon + title + × in one header row; skip lives inside the card
   card.innerHTML = `
-    <div class="wt-icon">${step.icon}</div>
-    <div class="wt-title">${step.title}</div>
+    <div class="wt-hdr">
+      <span class="wt-icon-sm">${step.icon}</span>
+      <span class="wt-title">${step.title}</span>
+      <button class="wt-skip-x" id="wt-skip-x" title="Skip tour">✕</button>
+    </div>
     <p class="wt-body">${step.body}</p>
     <div class="wt-footer">
-      <div class="wt-dots">${WALKTHROUGH_STEPS.map((_,j) => `<span class="wt-dot${j===i?' wt-dot--on':''}"></span>`).join('')}</div>
+      <div class="wt-dots">${Array.from({length:total},(_,j)=>`<span class="wt-dot${j===i?' wt-dot--on':''}"></span>`).join('')}</div>
       <div class="wt-btns">
         <button class="wt-back${i===0?' wt-back--hidden':''}" id="wt-back">← Back</button>
-        <button class="wt-next" id="wt-next">${isLast ? 'Done' : 'Next →'}</button>
+        <button class="wt-next" id="wt-next">${isLast ? 'Done ✓' : 'Next →'}</button>
       </div>
     </div>`;
 
-  // Prevent card clicks from triggering backdrop advance
+  // Card clicks must not bubble to backdrop
   card.onclick = e => e.stopPropagation();
 
+  document.getElementById('wt-skip-x')?.addEventListener('click', e => {
+    e.stopPropagation(); _closeWalkthrough();
+  });
   document.getElementById('wt-back')?.addEventListener('click', e => {
     e.stopPropagation();
     if (_wtStep > 0) { _wtStep--; _renderWalkthroughStep(_wtStep); }
   });
   document.getElementById('wt-next')?.addEventListener('click', e => {
-    e.stopPropagation();
-    _advanceWalkthrough();
+    e.stopPropagation(); _advanceWalkthrough();
   });
 
-  // Position helper — runs after tab navigation settles
+  // Positioning: place the card so it never overlaps the spotlight
   function _place() {
     if (!step.target) {
+      // No spotlight — solid backdrop + centered card
       hl.style.display = 'none';
-      if (bd) bd.style.display = 'block';
-      card.className = 'wt-card--center';
+      if (bd) bd.style.background = 'rgba(0,0,0,.72)';
+      card.style.top    = '';
+      card.style.bottom = '';
+      card.className    = 'wt-card--center';
       return;
     }
+
     const el = document.querySelector(step.target);
     if (!el) {
       hl.style.display = 'none';
-      if (bd) bd.style.display = 'block';
-      card.className = 'wt-card--center';
+      if (bd) bd.style.background = 'rgba(0,0,0,.72)';
+      card.style.top    = '';
+      card.style.bottom = '';
+      card.className    = 'wt-card--center';
       return;
     }
-    // Use box-shadow spread spotlight — no separate backdrop needed
-    if (bd) bd.style.display = 'none';
+
+    // Spotlight mode: #wt-hl's box-shadow provides the dark overlay
+    if (bd) bd.style.background = 'transparent';
     el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
     setTimeout(() => {
       const r   = el.getBoundingClientRect();
       const pad = 10;
-      hl.style.cssText = `display:block;position:fixed;left:${r.left-pad}px;top:${r.top-pad}px;width:${r.width+pad*2}px;height:${r.height+pad*2}px;border-radius:20px;z-index:9998;pointer-events:none;`;
-      // Card above or below the spotlight
-      card.className = (r.bottom > window.innerHeight * 0.52) ? 'wt-card--top' : 'wt-card--bottom';
+      hl.style.cssText = `display:block;position:fixed;`
+        + `left:${r.left - pad}px;top:${r.top - pad}px;`
+        + `width:${r.width + pad * 2}px;height:${r.height + pad * 2}px;`
+        + `border-radius:20px;z-index:9998;pointer-events:none;`;
+
+      // Assign class first so the card renders at its real size
+      card.className = 'wt-card--placed';
+      card.style.top    = '';
+      card.style.bottom = '';
+
+      // Measure after browser lays out the card
+      requestAnimationFrame(() => {
+        const vh       = window.innerHeight;
+        const cardH    = card.offsetHeight || 190;
+        const margin   = 14;
+        const spotTop  = r.top  - pad;
+        const spotBot  = r.bottom + pad;
+        const spaceBel = vh - spotBot - margin;
+        const spaceAbo = spotTop  - margin;
+
+        if (spaceBel >= cardH + margin) {
+          // Fits below the spotlight
+          card.style.top    = (spotBot + margin) + 'px';
+          card.style.bottom = '';
+        } else if (spaceAbo >= cardH + margin) {
+          // Fits above the spotlight
+          card.style.top    = '';
+          card.style.bottom = (vh - spotTop + margin) + 'px';
+        } else {
+          // Tight screen — anchor to bottom edge, spotlight still visible above
+          card.style.top    = '';
+          card.style.bottom = margin + 'px';
+        }
+      });
     }, 180);
   }
 
