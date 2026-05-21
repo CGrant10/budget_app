@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.0.4';
+const VERSION = '5.0.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.0.5', date: '2026-05-21', changes: [
+    'Tab navigation now slides directionally — tapping a tab to the right of your current one slides in from the right; tapping left slides from the left',
+    'System back button mirrors the same slide direction when navigating backwards through tab history',
+    'All Accounts button fixed — was hidden for single-account setups, now always visible',
+  ]},
   { version: '5.0.4', date: '2026-05-21', changes: [
     'Notification bell replaced with an All Accounts grid button — taps open the account picker with a zoom-out transition; hidden on single-account setups',
   ]},
@@ -1677,6 +1682,8 @@ function _navPush() {
   _navStack.push({ tab: currentTab, picker: showingAccountPicker, accountId: currentAccountId });
   history.pushState({ dawgNav: true }, '');
 }
+// Ordered list of tabs — used to pick slide direction (right = forward, left = back)
+const TAB_ORDER = ['dashboard','add','ledger','weekly','bills','debt','goals','import','budgets','retirement','challenges','accounts','settings','about'];
 let selectedLedgerIdx = null;
 let ledgerFilter = '';
 let ledgerSort = 'date-desc';
@@ -1711,7 +1718,12 @@ function showTab(key) {
   } else if (currentTab === 'about') {
     applyTheme(activeTheme);
   }
-  _pageTransition = 'fade';
+  // Slide direction based on tab order — right = forward, left = back
+  const fromIdx = TAB_ORDER.indexOf(currentTab);
+  const toIdx   = TAB_ORDER.indexOf(key);
+  _pageTransition = (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx)
+    ? (toIdx > fromIdx ? 'slide-right' : 'slide-left')
+    : 'fade';
   currentTab = key;
   document.querySelectorAll('.nav-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.tab === key));
@@ -5980,8 +5992,8 @@ function updateDawgTopbar() {
       arrow.remove();
     }
   }
-  // Show accounts grid button only when there are multiple accounts
-  if (acctsBtn) acctsBtn.style.display = multiAcct ? '' : 'none';
+  // Always show the accounts grid button — useful even with one account
+  if (acctsBtn) acctsBtn.style.display = '';
   updateDawgBellBadge();
 }
 function toggleDawgAcctDropdown() {
@@ -7215,8 +7227,14 @@ window.addEventListener('popstate', () => {
       updateAccountSwitcher();
     }
     showingAccountPicker = prev.picker;
+    const _bFromIdx = TAB_ORDER.indexOf(currentTab);
+    const _bToIdx   = TAB_ORDER.indexOf(prev.tab);
+    _pageTransition = (prev.picker || showingAccountPicker)
+      ? 'zoom-out'
+      : (_bFromIdx !== -1 && _bToIdx !== -1 && _bFromIdx !== _bToIdx)
+        ? (_bToIdx < _bFromIdx ? 'slide-left' : 'slide-right')
+        : 'fade';
     currentTab = prev.tab;
-    _pageTransition = 'fade';
     if (_dawgSparkGlobal) { _dawgSparkGlobal.destroy(); _dawgSparkGlobal = null; }
     document.querySelectorAll('.nav-btn').forEach(b =>
       b.classList.toggle('active', b.dataset.tab === prev.tab));
