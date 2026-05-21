@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '4.9.8';
+const VERSION = '4.9.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '4.9.9', date: '2026-05-21', changes: [
+    'Projected @ 65 now uses a proper FV formula: compounds existing balance AND factors in estimated monthly contributions (from paycheck link settings, or annualised YTD if no paycheck is linked)',
+    'Add Contribution opens a dedicated bottom-sheet modal — amount, date, type (My Contribution / Employer Match / Rollover / Other), and optional note — no longer navigates to the transactions page',
+    'Accounts overview: header (logo + My Accounts title) stays fixed at the top; only the account tiles scroll',
+  ]},
   { version: '4.9.8', date: '2026-05-20', changes: [
     'Retirement contributions now accept a flat dollar amount per paycheck (in addition to or instead of a percentage) — both fields shown side-by-side for My Contribution and Employer Match',
     'Flat dollar contributions fire automatically even when no gross pay is set — no longer requires a gross amount to auto-contribute',
@@ -1056,6 +1061,83 @@ async function _checkPaychecks() {
     }
   }
   if (changed) { await api.saveAccounts(state.accounts); render(); }
+}
+
+// ── Add Contribution modal ─────────────────────────────────────────────────
+function showAddContribModal(acctId) {
+  const acct    = state.accounts.find(a => a.id === acctId);
+  const typeName = (RETIRE_LIMITS[acct?.type] || {}).label || 'Retirement';
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.75);display:flex;align-items:flex-end;justify-content:center;padding:0';
+  ov.innerHTML = `
+    <div style="background:var(--card);border:1.5px solid var(--border);border-radius:22px 22px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;box-shadow:0 -8px 40px rgba(0,0,0,.6)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <span style="font-size:1rem;font-weight:800;color:var(--text)">Add Contribution</span>
+        <button id="_ac-close" style="background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:0 2px">&times;</button>
+      </div>
+      <p style="font-size:.78rem;color:var(--muted);margin:0 0 16px">${acct?.name} · ${typeName}</p>
+      <div style="margin-bottom:12px">
+        <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:5px">Amount</label>
+        <div style="position:relative">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span>
+          <input id="_ac-amount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"
+            style="width:100%;box-sizing:border-box;padding:11px 12px 11px 26px;background:var(--surface2);border:1.5px solid var(--border);border-radius:11px;color:var(--text);font-size:1rem;font-weight:700;font-family:var(--font-body);outline:none">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:5px">Date</label>
+          <input id="_ac-date" type="date" value="${todayStr}"
+            style="width:100%;box-sizing:border-box;padding:11px 10px;background:var(--surface2);border:1.5px solid var(--border);border-radius:11px;color:var(--text);font-size:.88rem;font-family:var(--font-body);outline:none">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:5px">Type</label>
+          <select id="_ac-type"
+            style="width:100%;box-sizing:border-box;padding:11px 10px;background:var(--surface2);border:1.5px solid var(--border);border-radius:11px;color:var(--text);font-size:.88rem;font-family:var(--font-body);outline:none;cursor:pointer">
+            <option value="contribution">My Contribution</option>
+            <option value="match">Employer Match</option>
+            <option value="rollover">Rollover</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:5px">Note <span style="font-weight:400">(optional)</span></label>
+        <input id="_ac-note" type="text" placeholder="e.g. Bi-weekly contribution"
+          style="width:100%;box-sizing:border-box;padding:11px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:11px;color:var(--text);font-size:.88rem;font-family:var(--font-body);outline:none">
+      </div>
+      <button id="_ac-save" style="width:100%;padding:14px;background:var(--accent);color:var(--bg);border:none;border-radius:13px;font-size:.95rem;font-weight:800;cursor:pointer;font-family:var(--font-body)">Add Contribution</button>
+      <div id="_ac-err" style="color:var(--danger);font-size:.78rem;text-align:center;margin-top:8px;display:none"></div>
+    </div>`;
+  document.body.appendChild(ov);
+  const amtEl  = ov.querySelector('#_ac-amount');
+  const dateEl = ov.querySelector('#_ac-date');
+  const typeEl = ov.querySelector('#_ac-type');
+  const noteEl = ov.querySelector('#_ac-note');
+  const errEl  = ov.querySelector('#_ac-err');
+  const saveBtn = ov.querySelector('#_ac-save');
+  setTimeout(() => amtEl.focus(), 80);
+  ov.querySelector('#_ac-close').addEventListener('click', () => ov.remove());
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  saveBtn.addEventListener('click', async () => {
+    const amount = parseFloat(amtEl.value);
+    if (!amount || amount <= 0) {
+      errEl.textContent = 'Please enter a valid amount.';
+      errEl.style.display = '';
+      return;
+    }
+    const typeLabels = { contribution: 'My Contribution', match: 'Employer Match', rollover: 'Rollover', other: 'Contribution' };
+    const desc = noteEl.value.trim() || typeLabels[typeEl.value] || 'Contribution';
+    const savedId = currentAccountId;
+    currentAccountId = acctId;
+    _loadAccountData(acctId);
+    await api.addTransaction({ type: 'income', amount, description: desc, category: 'Income', date: dateEl.value, account: acctId });
+    currentAccountId = savedId;
+    _loadAccountData(savedId);
+    ov.remove();
+    render();
+  });
 }
 
 // ── utilities ──────────────────────────────────────────────────────────────
@@ -2354,7 +2436,7 @@ function renderAccountPicker() {
           </div>
         </div>
       </div>
-      <div class="acct-list">${rows}</div>
+      <div class="acct-list acct-list-scroll">${rows}</div>
     </div>`;
 }
 
@@ -2526,16 +2608,34 @@ function renderRetirementDashboard(acct) {
   const totalInvested   = startBal + allTimeContribs;
   const growth          = Math.max(0, bal - totalInvested);
 
-  // Simple projection using account's expectedReturn (default 7%)
+  // Projection using FV formula: compounds existing balance + ongoing contributions
   const rate    = (acct.expectedReturn != null ? acct.expectedReturn : 7) / 100 / 12;
   const retAge  = 65;
   const curAge  = age || 35;
   const months  = Math.max(0, (retAge - curAge) * 12);
+  // Estimate monthly contribution from paycheck settings, falling back to annualised YTD
+  let monthlyContrib = 0;
+  const linkedAcct = state.accounts.find(a => a.id === acct.linkedPaycheckAcctId);
+  if (linkedAcct?.paySchedule?.enabled) {
+    const ps = linkedAcct.paySchedule;
+    const gross = ps.grossAmount || 0;
+    const periodsPerYear = { weekly:52, biweekly:26, semimonthly:24, monthly:12 }[ps.frequency] || 26;
+    const empPerCheck   = (gross * (acct.myContribPct    || 0) / 100) + (acct.myContribAmt    || 0);
+    const matchPerCheck = (gross * (acct.employerMatchPct || 0) / 100) + (acct.employerMatchAmt || 0);
+    monthlyContrib = (empPerCheck + matchPerCheck) * periodsPerYear / 12;
+  } else if (ytd > 0) {
+    // Annualise YTD: divide by months elapsed so far this year
+    const monthsElapsed = new Date().getMonth() + 1;
+    monthlyContrib = (ytd / monthsElapsed);
+  }
   let projected = bal;
-  if (rate > 0 && months > 0) {
-    projected = bal * Math.pow(1 + rate, months);
-  } else if (months > 0) {
-    projected = bal;
+  if (months > 0) {
+    if (rate > 0) {
+      const growth = Math.pow(1 + rate, months);
+      projected = bal * growth + monthlyContrib * (growth - 1) / rate;
+    } else {
+      projected = bal + monthlyContrib * months;
+    }
   }
 
   // Recent contributions (last 5 income txns)
@@ -4506,24 +4606,9 @@ function attachRetirement() {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'accounts'));
   });
 
-  // Add Contribution buttons — switch account + go to Add tab
+  // Add Contribution buttons — open dedicated contribution modal
   document.querySelectorAll('.ret-add-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.id;
-      if (id !== currentAccountId) {
-        currentAccountId = id;
-        _loadAccountData(id);
-        updateAccountSwitcher();
-        const sw = document.getElementById('account-switcher');
-        if (sw) sw.value = id;
-        const acct = state.accounts.find(a => a.id === id);
-        const nameEl = document.getElementById('dawg-topbar-acct-name');
-        if (nameEl && acct) nameEl.textContent = acct.name;
-      }
-      currentTab = 'add';
-      render();
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'add'));
-    });
+    btn.addEventListener('click', () => showAddContribModal(btn.dataset.id));
   });
 
   // Growth Projector
@@ -5935,7 +6020,7 @@ function attachDashboardDawg() {
   // Dashboard edit account button (all account types)
   document.getElementById('dash-acct-edit')?.addEventListener('click', () => showAccountEdit(currentAccountId));
   // Retirement dashboard: Add Contribution button
-  document.getElementById('ret-dash-add-contrib')?.addEventListener('click', () => showTab('add'));
+  document.getElementById('ret-dash-add-contrib')?.addEventListener('click', () => showAddContribModal(currentAccountId));
 
   document.getElementById('dawg-goto-budgets')?.addEventListener('click', () => showTab('weekly'));
   document.getElementById('dawg-goto-ledger')?.addEventListener('click',  () => showTab('ledger'));
