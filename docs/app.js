@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.9.0';
+const VERSION = '5.10.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,14 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.10.0', date: '2026-05-22', changes: [
+    'Layout editor scroll fixed — tile list now scrolls correctly when there are many tiles',
+    'Net Worth tile now shows when unhidden in Customize Layout — removed the duplicate settings-toggle gate',
+    'Half-width tiles no longer clip their content — added overflow protection',
+    'Customize Layout tile icons replaced with themed SVG icons that follow the accent color',
+    'Removed the "Dashboard Tiles" settings section — Customize Layout is the single place to show/hide tiles',
+    'Removed dead _showBudget/_showBreakdown/_showGoals/_showTxns/_showNetWorth settings gates — layout editor handles visibility',
+  ]},
   { version: '5.9.0', date: '2026-05-22', changes: [
     'App tutorial completely rebuilt — each step now shows a looping CSS animation demonstrating how to use the feature, independent of the user\'s actual data',
     'Removed spotlight dependency on user data — tour works perfectly on empty accounts or first launch',
@@ -3252,19 +3260,19 @@ function renderRetirementDashboard(acct) {
 
 // ── Dashboard tile layout ──────────────────────────────────────────────────
 const DASH_TILE_META = {
-  'budget-week':    { label: 'Per Week Budget',      icon: '📅' },
-  'budget-day':     { label: 'Per Day Budget',       icon: '☀️' },
-  'daily-history':  { label: 'Daily History',        icon: '📆' },
-  'breakdown':      { label: 'Spending Breakdown',   icon: '📊' },
-  'goals':          { label: 'Savings Goals',        icon: '🎯' },
-  'transactions':   { label: 'Recent Transactions',  icon: '💳' },
-  'networth':       { label: 'Net Worth',            icon: '📈' },
-  'bills-upcoming': { label: 'Upcoming Bills',       icon: '🗓️' },
-  'debt-summary':   { label: 'Debt Summary',         icon: '💳' },
-  'weekly-plan':    { label: 'Weekly Plan Snapshot', icon: '📋' },
-  'budgets-cats':   { label: 'Category Budgets',     icon: '🎛️' },
-  'monthly-stats':  { label: 'Monthly Stats',        icon: '📉' },
-  'quick-add':      { label: 'Quick Add',            icon: '➕' },
+  'budget-week':    { label: 'Per Week Budget',      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="3"/></svg>` },
+  'budget-day':     { label: 'Per Day Budget',       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>` },
+  'daily-history':  { label: 'Daily History',        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>` },
+  'breakdown':      { label: 'Spending Breakdown',   icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="15" y2="6"/><line x1="3" y1="18" x2="9" y2="18"/></svg>` },
+  'goals':          { label: 'Savings Goals',        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>` },
+  'transactions':   { label: 'Recent Transactions',  icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>` },
+  'networth':       { label: 'Net Worth',            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>` },
+  'bills-upcoming': { label: 'Upcoming Bills',       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>` },
+  'debt-summary':   { label: 'Debt Summary',         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>` },
+  'weekly-plan':    { label: 'Weekly Plan Snapshot', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>` },
+  'budgets-cats':   { label: 'Category Budgets',     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>` },
+  'monthly-stats':  { label: 'Monthly Stats',        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>` },
+  'quick-add':      { label: 'Quick Add',            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>` },
 };
 const DEFAULT_DASH_LAYOUT = [
   { id: 'budget-week',    size: 'half', visible: true  },
@@ -3705,13 +3713,8 @@ function renderDashboardDawg() {
       });
     }
   }
-  const _ds            = loadSettings();
-  const _showBudget    = _ds.dawgBudget         !== false;
-  const _showBreakdown = _ds.dawgBreakdown       !== false;
-  const _showGoals     = _ds.dawgGoals           !== false;
-  const _showTxns      = _ds.dawgTransactions    !== false;
-  const _showNetWorth  = _ds.dawgNetWorth         === true;
-  const _showInsights  = _ds.dawgInsights         === true;
+  const _ds           = loadSettings();
+  const _showInsights = _ds.dawgInsights === true;
 
   const totalMExp  = Object.values(bycat).reduce((s,v)=>s+v, 0);
   const catEntries = Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,8);
@@ -3811,7 +3814,7 @@ function renderDashboardDawg() {
       const _tileHtml = {};
 
       // Budget tiles (only if weekly plan exists and not debt account)
-      if (!_isDebt && _showBudget) {
+      if (!_isDebt) {
         const wkPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
         const wkColor = wkPct >= 90 ? 'var(--danger)' : wkPct >= 75 ? 'var(--warn)' : 'var(--accent)';
         const C = 175.93;
@@ -3876,7 +3879,7 @@ function renderDashboardDawg() {
       }
 
       // Spending breakdown
-      if (_showBreakdown && (_isDebt ? _curAcctD?.type !== 'loan' : true)) {
+      if (_isDebt ? _curAcctD?.type !== 'loan' : true) {
         _tileHtml['breakdown'] = `
           <div class="dawg-card-title">SPENDING BREAKDOWN</div>
           <div class="dawg-cat-list dawg-cat-list--wide">${spendHtml}</div>
@@ -3905,7 +3908,7 @@ function renderDashboardDawg() {
       })() : '';
 
       // Goals
-      if (_showGoals && goals.length) {
+      if (goals.length) {
         _tileHtml['goals'] = `
           <div class="dawg-section-hdr">
             <span class="dawg-card-title">SAVINGS GOALS</span>
@@ -3915,7 +3918,7 @@ function renderDashboardDawg() {
       }
 
       // Transactions
-      if (_showTxns) {
+      {
         _tileHtml['transactions'] = `
           <div class="dawg-section-hdr">
             <span class="dawg-card-title">${isPastDash ? dashMonthLabel.toUpperCase() + ' TRANSACTIONS' : 'RECENT TRANSACTIONS'}</span>
@@ -3925,7 +3928,7 @@ function renderDashboardDawg() {
       }
 
       // Net worth
-      if (_showNetWorth && !_isDebt) {
+      if (!_isDebt) {
         const nw = getNetWorth();
         if (state.accounts.length >= 1) {
           _tileHtml['networth'] = `
@@ -5935,26 +5938,6 @@ function renderSettings() {
         </div>
       </div>
 
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Dashboard Tiles</h2>
-        <p class="code-hint" style="margin-bottom:12px">Show or hide tiles on the main dashboard.</p>
-        <div class="tab-toggles">
-          ${[
-            { key:'dawgBudget',       label:'Budget Overview',    defaultOff: false },
-            { key:'dawgBreakdown',    label:'Spending Breakdown',  defaultOff: false },
-            { key:'dawgGoals',        label:'Savings Goals',       defaultOff: false },
-            { key:'dawgTransactions', label:'Recent Transactions',  defaultOff: false },
-            { key:'dawgNetWorth',     label:'Net Worth',            defaultOff: true  },
-            { key:'dawgInsights',     label:'Spending Insights',    defaultOff: true  },
-          ].map(item => `
-            <label class="tab-toggle">
-              <span class="tab-toggle-label">${item.label}</span>
-              <input type="checkbox" class="tab-toggle-input dawg-tile-toggle" data-tile="${item.key}"
-                ${item.defaultOff ? (s[item.key] === true ? 'checked' : '') : (s[item.key] !== false ? 'checked' : '')}>
-              <span class="tab-toggle-switch"></span>
-            </label>`).join('')}
-        </div>
-      </div>
     </div>`;
 }
 
@@ -6085,15 +6068,6 @@ function attachSettings() {
     });
   });
 
-  const _tileRender = _debounce(() => render(), 150);
-  document.querySelectorAll('.dawg-tile-toggle').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const s = loadSettings();
-      s[cb.dataset.tile] = cb.checked;
-      saveSettings(s);
-      _tileRender();
-    });
-  });
 }
 
 // ── accounts management page ──────────────────────────────────────────────
