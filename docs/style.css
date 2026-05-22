@@ -2781,6 +2781,42 @@ body.light .section-title::before {
 .dawg-nav-btn.dawg-nav-active .dawg-nav-icon svg .detail-dot { fill:var(--accent); stroke:none; }
 .dawg-nav-lbl { font-size:.67rem; font-weight:600; letter-spacing:.02em; }
 
+/* Nav icon glitch — idle: active tab glitches occasionally */
+.dawg-nav-btn.dawg-nav-active .dawg-nav-icon {
+  animation: nav-idle-glitch 9s steps(1, end) 3.5s infinite;
+}
+@keyframes nav-idle-glitch {
+  0%   { filter: none; transform: none; }
+  8%   { filter: brightness(1.6) drop-shadow(3px 0 0 rgba(255,48,48,.9)) drop-shadow(-3px 0 0 rgba(0,216,255,.9));
+         transform: translateX(-2px) skewX(-6deg); }
+  9%   { filter: brightness(1.8) drop-shadow(-4px 0 0 rgba(255,48,48,.7)) drop-shadow(4px 0 0 rgba(0,216,255,.7));
+         transform: translateX(2px); }
+  10%  { filter: none; transform: none; }
+  62%  { filter: brightness(1.5) drop-shadow(4px 0 0 rgba(0,216,255,.85)) drop-shadow(-4px 0 0 rgba(255,48,48,.85));
+         transform: translateX(-1px) skewX(5deg); }
+  63%  { filter: brightness(1.7) drop-shadow(-3px 0 0 rgba(255,48,48,.6)) drop-shadow(3px 0 0 rgba(0,216,255,.6));
+         transform: translateX(2px); }
+  64%  { filter: none; transform: none; }
+  100% { filter: none; transform: none; }
+}
+/* Nav icon glitch — tap: one-shot on press (declared after idle so it wins when both classes are active) */
+.dawg-nav-btn.nav-glitch-tap .dawg-nav-icon {
+  animation: nav-tap-glitch 0.22s steps(1, end) both;
+}
+@keyframes nav-tap-glitch {
+  0%   { filter: none; transform: none; }
+  18%  { filter: brightness(1.7) drop-shadow(4px 0 0 rgba(255,48,48,.95)) drop-shadow(-4px 0 0 rgba(0,216,255,.95));
+         transform: translateX(-3px) skewX(-10deg); }
+  36%  { filter: brightness(1.9) drop-shadow(-5px 0 0 rgba(255,48,48,.8)) drop-shadow(5px 0 0 rgba(0,216,255,.8));
+         transform: translateX(2px) skewX(6deg); }
+  54%  { filter: brightness(1.5) drop-shadow(3px 0 0 rgba(0,216,255,.9)) drop-shadow(-3px 0 0 rgba(255,48,48,.9));
+         transform: translateX(-1px); }
+  72%  { filter: brightness(1.3) drop-shadow(-2px 0 0 rgba(255,48,48,.5)) drop-shadow(2px 0 0 rgba(0,216,255,.5));
+         transform: translateX(1px); }
+  88%  { filter: none; transform: none; }
+  100% { filter: none; transform: none; }
+}
+
 /* Center doberman button — rises out of nav with arc cutout */
 .dawg-nav-center-btn {
   flex:0 0 60px !important; width:60px !important; height:60px;

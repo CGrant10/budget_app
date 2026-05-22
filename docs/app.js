@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.11.0';
+const VERSION = '5.11.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -8808,6 +8808,14 @@ function spawnDollarBurst(originEl) {
   }
 }
 
+// ── nav icon glitch ────────────────────────────────────────────────────────
+function triggerNavGlitch(btn) {
+  btn.classList.remove('nav-glitch-tap');
+  void btn.offsetWidth; // force reflow to restart animation
+  btn.classList.add('nav-glitch-tap');
+  btn.addEventListener('animationend', () => btn.classList.remove('nav-glitch-tap'), { once: true });
+}
+
 // ── biometric helpers ──────────────────────────────────────────────────────
 function _b64ToUint8(b64) {
   const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
@@ -8945,7 +8953,7 @@ function makeDawgNavBtn(key) {
   btn.className    = 'dawg-nav-btn';
   btn.dataset.tab  = key;
   btn.innerHTML    = `<span class="dawg-nav-icon">${srcSvg ? srcSvg.outerHTML : ''}</span><span class="dawg-nav-lbl">${item.label}</span>`;
-  btn.addEventListener('click', () => { spawnDollarBurst(btn); showTab(btn.dataset.tab); });
+  btn.addEventListener('click', () => { triggerNavGlitch(btn); showTab(btn.dataset.tab); });
   return btn;
 }
 
@@ -9079,7 +9087,7 @@ function openNavEditSheet() {
 // ── init ───────────────────────────────────────────────────────────────────
 document.querySelectorAll('.nav-btn').forEach(btn =>
   btn.addEventListener('click', () => {
-    spawnDollarBurst(btn);
+    triggerNavGlitch(btn);
     showTab(btn.dataset.tab);
   }));
 
