@@ -2469,6 +2469,63 @@ body.light .section-title::before {
   color: var(--muted);
 }
 
+/* Rolling daily limit adjustment notice */
+.dawg-tile-adj {
+  font-size: .58rem; font-weight: 700; letter-spacing: .04em;
+  margin-top: 4px; text-align: center;
+}
+.dawg-tile-adj--warn { color: var(--warn); }
+.dawg-tile-adj--good { color: var(--success); }
+
+/* ── Daily History tile ──────────────────────────────────────────────────── */
+.dh-list {
+  display: flex; flex-direction: column; gap: 5px;
+  width: 100%; margin-top: 4px;
+}
+.dh-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 0;
+}
+.dh-row--today {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border-radius: 8px; padding: 5px 6px; margin: 0 -6px;
+}
+.dh-day {
+  font-size: .68rem; font-weight: 700; color: var(--muted);
+  min-width: 28px; flex-shrink: 0; text-transform: uppercase;
+}
+.dh-row--today .dh-day { color: var(--accent); }
+.dh-bar-wrap {
+  flex: 1; height: 8px; background: var(--surface2);
+  border-radius: 4px; overflow: hidden; position: relative;
+}
+.dh-bar {
+  height: 100%; border-radius: 4px;
+  transition: width .3s ease;
+}
+/* Vertical tick at the 100% mark to show the limit line */
+.dh-bar-mark {
+  position: absolute; top: 0; right: 0;
+  width: 2px; height: 100%;
+  background: var(--danger); opacity: .5;
+}
+.dh-amt {
+  font-size: .68rem; font-weight: 700;
+  min-width: 48px; text-align: right; flex-shrink: 0;
+}
+.dh-badge {
+  font-size: .55rem; font-weight: 800; letter-spacing: .04em;
+  border-radius: 6px; padding: 2px 5px; flex-shrink: 0;
+}
+.dh-badge--over {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+}
+.dh-badge--ok {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
 /* Wide breakdown card — full-width, taller bars, more room for labels */
 .dawg-cat-list--wide { gap:7px; }
 .dawg-cat-list--wide .dawg-cat-name { min-width:72px; max-width:72px; font-size:.72rem; }
