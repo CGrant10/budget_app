@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.5.9';
+const VERSION = '5.6.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.6.0', date: '2026-05-22', changes: [
+    'Add to Home Screen button in the menu drawer — on Android/Chrome it triggers the native install prompt; on iOS it shows a one-tap tip explaining the Share → Add to Home Screen flow',
+    'Text selection disabled app-wide so long-pressing nav labels, tile titles, and other UI text no longer triggers the copy menu; re-enabled on all input fields and text you\'d actually want to copy',
+  ]},
   { version: '5.5.9', date: '2026-05-22', changes: [
     'Walkthrough tour spotlight now actually highlights what it\'s describing — steps were targeting #main-content (the whole page) so the dark overlay had nowhere to show',
     'Spotlight box-shadow is now set directly in JS so it appears immediately, not dependent on the CSS animation timing',
@@ -8362,6 +8366,60 @@ document.querySelectorAll('.dawg-drawer-item').forEach(btn =>
     if (btn.dataset.tab === '__accounts__') { _navPush(); showingAccountPicker = true; render(); }
     else showTab(btn.dataset.tab);
   }));
+
+// ── PWA install prompt ────────────────────────────────────────────────────
+let _pwaInstallPrompt = null;
+
+// Chrome/Edge/Android: browser fires this when the app is installable
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _pwaInstallPrompt = e;
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) {
+    btn.classList.remove('hidden');
+    const lbl = document.getElementById('pwa-install-lbl');
+    if (lbl) lbl.textContent = 'Add to Home Screen';
+  }
+});
+
+// Hide the button once the app has been installed
+window.addEventListener('appinstalled', () => {
+  _pwaInstallPrompt = null;
+  document.getElementById('pwa-install-btn')?.classList.add('hidden');
+});
+
+// iOS/Safari doesn't fire beforeinstallprompt — detect it and show a tip button instead
+(function() {
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isInStandaloneMode = window.navigator.standalone === true;
+  if (isIos && !isInStandaloneMode) {
+    const btn = document.getElementById('pwa-install-btn');
+    if (btn) {
+      btn.classList.remove('hidden');
+      const lbl = document.getElementById('pwa-install-lbl');
+      if (lbl) lbl.textContent = 'Add to Home Screen (iOS tip)';
+    }
+  }
+})();
+
+document.getElementById('pwa-install-btn')?.addEventListener('click', async () => {
+  // iOS: show a tip since the browser handles installation manually
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (isIos || !_pwaInstallPrompt) {
+    closeDawgDrawer();
+    setTimeout(() => {
+      alert('To install: tap the Share button (the box with an arrow) at the bottom of Safari, then tap "Add to Home Screen".');
+    }, 300);
+    return;
+  }
+  closeDawgDrawer();
+  _pwaInstallPrompt.prompt();
+  const { outcome } = await _pwaInstallPrompt.userChoice;
+  if (outcome === 'accepted') {
+    _pwaInstallPrompt = null;
+    document.getElementById('pwa-install-btn')?.classList.add('hidden');
+  }
+});
 
 // Floating tutorial button
 document.getElementById('tut-float-btn')?.addEventListener('click', openTutorial);

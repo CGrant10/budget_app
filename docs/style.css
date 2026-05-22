@@ -53,6 +53,21 @@ body::before {
 /* #app sits above the body::before ambient glow; splash-screen is fixed/9999 via .splash-screen — don't touch it here */
 #app { position: relative; z-index: 1; }
 
+/* Block text selection everywhere in the app — prevents accidental copy on long-press */
+#app, #app * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* Re-enable selection only where the user actually types or reads data */
+#app input, #app textarea, #app select,
+#app [contenteditable],
+#app .ledger-row-inner,
+#app .dawg-txn-desc,
+#app .wt-body {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* ── app shell — nav position ─────────────────────────────────────────────── */
 #app {
   display: flex;
@@ -2774,6 +2789,19 @@ body.light #dawg-bottom-nav { background:rgba(255,255,255,.92); }
 @media (hover:hover) { .dawg-drawer-item:hover { background:var(--surface2); } }
 .dawg-di-icon { width:26px; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text); }
 .dawg-di-lbl  { font-size:.9rem; font-weight:600; color:var(--text); }
+
+/* Install button — accent-coloured so it stands out */
+.dawg-drawer-item--install .dawg-di-icon { color: var(--accent); }
+.dawg-drawer-item--install .dawg-di-lbl  { color: var(--accent); font-weight: 700; }
+.dawg-drawer-item--install:active { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+@media (hover:hover) { .dawg-drawer-item--install:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); } }
+
+/* Thin divider between sections in the drawer */
+.dawg-drawer-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 16px;
+}
 
 /* DAWG notification bell panel */
 .dawg-bell-panel {
