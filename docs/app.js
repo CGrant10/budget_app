@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.10.0';
+const VERSION = '5.10.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -976,7 +976,7 @@ const THEMES = {
   },
   light: {
     label:'Light', shortLabel:'Mint',
-    bg:'#f3f3f3', surface:'#ffffff', surface2:'#e8e8e8', card:'#efefef',
+    bg:'#e9e9e7', surface:'#f3f3f0', surface2:'#deded9', card:'#e3e3e0',
     accent:'#4ecb8d', accent2:'#a06838', success:'#2ea870', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #1a4030 0%, #4ecb8d 100%)',
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
@@ -1004,7 +1004,7 @@ const THEMES = {
   // ── Light mode accent variants ──────────────────────────────────────────
   lightsky: {
     label:'Sky', shortLabel:'Sky',
-    bg:'#f3f3f3', surface:'#ffffff', surface2:'#e8e8e8', card:'#efefef',
+    bg:'#e9e9e7', surface:'#f3f3f0', surface2:'#deded9', card:'#e3e3e0',
     accent:'#3a86c8', accent2:'#c07840', success:'#2e9a68', warn:'#b07800', danger:'#a84040',
     grad:'linear-gradient(135deg, #1a304a 0%, #3a86c8 100%)',
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
@@ -1012,7 +1012,7 @@ const THEMES = {
   },
   lightrose: {
     label:'Rose', shortLabel:'Rose',
-    bg:'#f3f3f3', surface:'#ffffff', surface2:'#e8e8e8', card:'#efefef',
+    bg:'#e9e9e7', surface:'#f3f3f0', surface2:'#deded9', card:'#e3e3e0',
     accent:'#c04870', accent2:'#987838', success:'#2ea870', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #4a1a2c 0%, #c04870 100%)',
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
@@ -1020,7 +1020,7 @@ const THEMES = {
   },
   lightsand: {
     label:'Sand', shortLabel:'Sand',
-    bg:'#f3f3f3', surface:'#ffffff', surface2:'#e8e8e8', card:'#efefef',
+    bg:'#e9e9e7', surface:'#f3f3f0', surface2:'#deded9', card:'#e3e3e0',
     accent:'#b07820', accent2:'#c05830', success:'#2ea870', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #4a3010 0%, #b07820 100%)',
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
@@ -5837,6 +5837,65 @@ function renderSettings() {
     </button>`;
   };
 
+  const _termFonts = {
+    vscode:     "'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace",
+    powershell: "'Cascadia Code', 'Cascadia Mono', 'Consolas', 'Courier New', monospace",
+    cmd:        "'Lucida Console', 'Consolas', 'Courier New', monospace",
+  };
+  const terminalCodePreview = key => {
+    const CC = {
+      vscode:     { cm:'#6a9955', kw:'#569cd6', ty:'#4ec9b0', st:'#ce9178', fn:'#dcdcaa', vr:'#9cdcfe', nm:'#b5cea8', tx:'#d4d4d4', bg:'#1e1e1e', br:'#3e3e42' },
+      powershell: { cm:'#8ab8d0', kw:'#26c6da', ty:'#4fc1ff',  st:'#f1e05a', fn:'#26c6da',  vr:'#eeedf0', nm:'#29b6f6', tx:'#eeedf0', bg:'#012456', br:'#1255a0' },
+      cmd:        { cm:'#2d9a2d', kw:'#00c300', ty:'#00ff41',  st:'#00ff41', fn:'#00c300',  vr:'#00c300', nm:'#00c300', tx:'#00c300', bg:'#0c0c0c', br:'#1e4a1e' },
+    };
+    const c  = CC[key] || CC.vscode;
+    const ff = _termFonts[key] || _termFonts.vscode;
+    const kw = t => `<span style="color:${c.kw}">${t}</span>`;
+    const ty = t => `<span style="color:${c.ty}">${t}</span>`;
+    const st = t => `<span style="color:${c.st}">${t}</span>`;
+    const fn = t => `<span style="color:${c.fn}">${t}</span>`;
+    const vr = t => `<span style="color:${c.vr}">${t}</span>`;
+    const nm = t => `<span style="color:${c.nm}">${t}</span>`;
+    const cm = t => `<span style="color:${c.cm}">${t}</span>`;
+    const tx = t => `<span style="color:${c.tx}">${t}</span>`;
+    const javaLines = [
+      cm('// Monthly budget tracker'),
+      `${kw('public class')} ${ty('BudgetCalc')} ${tx('{')}`,
+      `  ${kw('private double')} ${vr('limit')}${tx(',')} ${vr('spent')}${tx(';')}`,
+      `  ${kw('private')} ${ty('String')} ${vr('name')} ${tx('=')} ${st('"Checking"')}${tx(';')}`,
+      ``,
+      `  ${kw('public double')} ${fn('remaining')}${tx('()')} ${tx('{')}`,
+      `    ${kw('return')} ${vr('limit')} ${tx('-')} ${vr('spent')}${tx(';')}`,
+      `  ${tx('}')}`,
+      tx('}'),
+    ].join('\n');
+    const pyLines = [
+      cm('# Monthly budget tracker'),
+      `${kw('class')} ${ty('BudgetCalc')}${tx(':')}`,
+      `  ${kw('def')} ${fn('__init__')}${tx('(')}${vr('self')}${tx(',')} ${vr('limit')}${tx(')')}${tx(':')}`,
+      `    ${vr('self')}${tx('.')}${vr('name')} ${tx('=')} ${st('"Checking"')}`,
+      `    ${vr('self')}${tx('.')}${vr('limit')} ${tx('=')} ${vr('limit')}`,
+      `    ${vr('self')}${tx('.')}${vr('spent')} ${tx('=')} ${nm('0.0')}`,
+      ``,
+      `  ${kw('def')} ${fn('remaining')}${tx('(')}${vr('self')}${tx(')')}${tx(':')}`,
+      `    ${kw('return')} ${vr('self')}${tx('.')}${vr('limit')} ${tx('-')} ${vr('self')}${tx('.')}${vr('spent')}`,
+    ].join('\n');
+    const hdrStyle = `background:${c.bg};border:1px solid ${c.br};border-bottom:none;border-radius:8px 8px 0 0;padding:3px 12px;font-family:${ff};font-size:.63rem;color:${c.cm};letter-spacing:.04em`;
+    const preStyle = `background:${c.bg};border:1px solid ${c.br};padding:10px 12px;margin:0;font-family:${ff};font-size:.72rem;line-height:1.65;overflow-x:auto;white-space:pre;border-radius:0 0 8px 8px;-webkit-user-select:text;user-select:text`;
+    return `
+      <div class="term-code-preview" style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+        <p class="code-hint" style="margin-bottom:2px">Syntax preview</p>
+        <div>
+          <div style="${hdrStyle}">java</div>
+          <pre style="${preStyle}">${javaLines}</pre>
+        </div>
+        <div>
+          <div style="${hdrStyle}">python</div>
+          <pre style="${preStyle}">${pyLines}</pre>
+        </div>
+      </div>`;
+  };
+
   return `
     <div class="page">
       <h1 class="page-title">Settings</h1>
@@ -5884,6 +5943,7 @@ function renderSettings() {
           <div class="theme-terminal-chips">
             ${TERMINAL_KEYS.map(terminalChip).join('')}
           </div>
+          ${isTerminal ? terminalCodePreview(theme) : ''}
         </div>
       </div>
 
@@ -7472,6 +7532,18 @@ function attachDashboardDawg() {
         _sparkClrRgb = document.body.classList.contains('light') ? '34,170,34' : '57,255,20';
         _sparkClr    = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
       }
+    }
+    // VS Code theme: multi-color horizontal gradient line
+    const _vsTheme = (loadSettings().theme) || 'dark';
+    if (_vsTheme === 'vscode' && !_spIsDebt) {
+      const _vsW = canvas.offsetWidth || 300;
+      const _vsGrad = ctx.createLinearGradient(0, 0, _vsW, 0);
+      _vsGrad.addColorStop(0,    '#569cd6');
+      _vsGrad.addColorStop(0.35, '#4ec9b0');
+      _vsGrad.addColorStop(0.7,  '#c586c0');
+      _vsGrad.addColorStop(1,    '#9cdcfe');
+      _sparkClr    = _vsGrad;
+      _sparkClrRgb = '86,156,214';
     }
     grad.addColorStop(0, `rgba(${_sparkClrRgb},.28)`);
     grad.addColorStop(1, `rgba(${_sparkClrRgb},0)`);

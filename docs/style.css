@@ -1250,21 +1250,21 @@ body.light .week-tracker,
 body.light .ledger-row-inner,
 body.light .wkb-row,
 body.light .pw-week-row {
-  background: #ffffff;
-  border-color: rgba(0,0,0,.07);
-  box-shadow: 0 2px 16px rgba(0,0,0,.07), 0 0 0 1px rgba(0,0,0,.03);
+  background: #f3f3f0;
+  border-color: rgba(0,0,0,.08);
+  box-shadow: 0 2px 14px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.04);
 }
 body.light .cards-grid .card:first-child {
-  background: linear-gradient(170deg, rgba(255,255,255,1) 0%, rgba(245,246,250,1) 100%);
-  border-color: rgba(0,0,0,.1);
-  box-shadow: 0 4px 24px rgba(0,0,0,.1), inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(0,0,0,.06);
+  background: linear-gradient(170deg, rgba(248,248,245,1) 0%, rgba(236,236,232,1) 100%);
+  border-color: rgba(0,0,0,.09);
+  box-shadow: 0 4px 20px rgba(0,0,0,.09), inset 0 1px 0 rgba(255,255,255,.7), inset 0 -1px 0 rgba(0,0,0,.05);
 }
 body.light .header {
-  background: #ffffff;
+  background: #f3f3f0;
   border-bottom: 1px solid rgba(0,0,0,.1);
 }
 body.light .bottom-nav {
-  background: rgba(255,255,255,.94);
+  background: rgba(243,243,240,.96);
   border-top: 1px solid rgba(0,0,0,.1);
 }
 body.light .nav-btn.active {
