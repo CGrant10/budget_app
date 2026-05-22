@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.8.0';
+const VERSION = '5.9.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.9.0', date: '2026-05-22', changes: [
+    'App tutorial completely rebuilt — each step now shows a looping CSS animation demonstrating how to use the feature, independent of the user\'s actual data',
+    'Removed spotlight dependency on user data — tour works perfectly on empty accounts or first launch',
+    'Simplified from 23 steps to 14 focused steps covering every key feature with action-oriented instructions',
+  ]},
   { version: '5.8.0', date: '2026-05-22', changes: [
     '6 new dashboard tiles — every section of the app is now available on the dashboard: Upcoming Bills, Debt Summary, Weekly Plan snapshot, Category Budgets, Monthly Stats, and Quick Add',
     'Upcoming Bills tile: shows next unpaid bills sorted by due date with color-coded urgency and a running total',
@@ -6848,141 +6853,241 @@ function renderAbout() {
 const WALKTHROUGH_STEPS = [
   // ── 1. Welcome ────────────────────────────────────────────────────────────
   { tab: null, target: null,
-    title: 'Welcome to Budget DAWGs 🐾',
-    body: 'Your all-in-one personal finance companion. This tour walks you through every section and shows you exactly how to use each feature. Tap Next to begin — use ← Back to revisit any step.',
+    title: 'Welcome to Budget DAWGs',
+    body: 'Your all-in-one personal finance companion. This tour shows you every key feature with a quick animation. Tap Next to begin — use ← Back to revisit any step.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 4l3.1 6.3 7 1.1-5.1 4.9 1.2 7-6.2-3.3-6.2 3.3 1.2-7-5.1-4.9 7-1.1z"/><line x1="12" y1="28" x2="24" y2="28" stroke-width="1.5"/><line x1="15" y1="32" x2="21" y2="32" stroke-width="1.5"/></svg>`,
+    anim: `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:18px 0;">
+  <svg viewBox="0 0 36 36" fill="none" stroke="#4ecb8d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="52" height="52" style="animation:wt-pulse 2s ease-in-out infinite;filter:drop-shadow(0 0 8px #4ecb8d55);">
+    <path d="M18 4l3.1 6.3 7 1.1-5.1 4.9 1.2 7-6.2-3.3-6.2 3.3 1.2-7-5.1-4.9 7-1.1z"/>
+    <line x1="12" y1="28" x2="24" y2="28" stroke-width="1.5"/>
+    <line x1="15" y1="32" x2="21" y2="32" stroke-width="1.5"/>
+  </svg>
+  <span style="color:#4ecb8d;font-size:.85rem;font-weight:700;letter-spacing:.06em;animation:wt-count 2.4s ease-in-out infinite;">Budget DAWGs</span>
+</div>`,
   },
-  // ── 2. Hamburger / Drawer ─────────────────────────────────────────────────
-  { tab: 'dashboard', target: '#dawg-hamburger',
-    title: 'The Menu',
-    body: 'Tap the ☰ menu button (top-left) to open the drawer. Inside you\'ll find quick links to every page, an Install App button to add Budget DAWGs to your home screen, and more.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="10" x2="30" y2="10"/><line x1="6" y1="18" x2="30" y2="18"/><line x1="6" y1="26" x2="30" y2="26"/></svg>`,
-  },
-  // ── 3. Account pill ───────────────────────────────────────────────────────
-  { tab: 'dashboard', target: '#dawg-acct-switch',
-    title: 'Account Switcher',
-    body: 'Tap your account name in the top bar to quickly switch between accounts — great if you manage personal and business finances separately. Each account has its own data.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="13" r="5"/><path d="M4 30c0-5.5 4.5-10 10-10"/><circle cx="26" cy="20" r="5"/><path d="M21 30h10"/><line x1="26" y1="25" x2="26" y2="35"/></svg>`,
-  },
-  // ── 4. All Accounts overview ──────────────────────────────────────────────
-  { tab: 'dashboard', target: '#dawg-accts-btn',
-    title: 'All Accounts Overview',
-    body: 'Tap the grid icon (top-right) to see all your accounts side-by-side — balances, net worth, and totals at a glance. To add or set up accounts, tap it and then open Settings → Accounts.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="12" rx="2"/><rect x="20" y="4" width="12" height="12" rx="2"/><rect x="4" y="20" width="12" height="12" rx="2"/><rect x="20" y="20" width="12" height="12" rx="2"/></svg>`,
-  },
-  // ── 5. Dashboard balance card ─────────────────────────────────────────────
-  { tab: 'dashboard', target: '.dawg-balance-card',
-    title: 'Your Balance Card',
-    body: 'This card shows your current account balance, this month\'s income vs expenses, and a sparkline of your recent trend. Tap the ‹ › arrows to browse previous months.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="13" rx="2"/><rect x="20" y="4" width="12" height="7" rx="2"/><rect x="20" y="15" width="12" height="13" rx="2"/><rect x="4" y="21" width="12" height="11" rx="2"/></svg>`,
-  },
-  // ── 6. Dashboard tiles ────────────────────────────────────────────────────
-  { tab: 'dashboard', target: '#dawg-tile-grid',
-    title: 'Budget Tiles',
-    body: 'The ring tiles below show your weekly and daily spend vs budget. The bar charts track spending by category and day. Hold any tile and drag it to reorder the grid.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="12"/><circle cx="18" cy="18" r="6"/><line x1="18" y1="6" x2="18" y2="10"/><line x1="18" y1="26" x2="18" y2="30"/><line x1="6" y1="18" x2="10" y2="18"/><line x1="26" y1="18" x2="30" y2="18"/></svg>`,
-  },
-  // ── 7. Customize Layout ───────────────────────────────────────────────────
-  { tab: 'dashboard', target: '#dash-layout-btn',
-    title: 'Customize Your Layout',
-    body: 'Tap "Customize Layout" to enter edit mode — tiles will wiggle. Drag them into any order, tap a tile to change its size (small, medium, large), or hide tiles you don\'t need.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="12" rx="2"/><rect x="20" y="4" width="12" height="12" rx="2"/><rect x="4" y="20" width="12" height="12" rx="2"/><rect x="20" y="20" width="12" height="12" rx="2"/><line x1="18" y1="2" x2="18" y2="34"/><line x1="2" y1="18" x2="34" y2="18"/></svg>`,
-  },
-  // ── 8. Add Transaction ────────────────────────────────────────────────────
-  { tab: 'add', target: '.form-card',
-    title: 'Adding a Transaction',
-    body: 'Enter an amount, pick Expense / Income / Transfer, and type a description. Tap the Category field — it auto-suggests from your history. Hit the ✓ checkmark or "Done" on your keyboard to save.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><line x1="18" y1="11" x2="18" y2="25"/><line x1="11" y1="18" x2="25" y2="18"/></svg>`,
-  },
-  // ── 9. Ledger ─────────────────────────────────────────────────────────────
-  { tab: 'ledger', target: '.ledger-filter-bar',
-    title: 'Ledger',
-    body: 'Every transaction with a running balance. Use the search bar to filter by description or category. Tap the date chips to set a date range. Tap any row to expand and edit it inline — change amount, date, or category, then tap Save.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h18a2 2 0 0 1 2 2v24a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><line x1="13" y1="12" x2="23" y2="12"/><line x1="13" y1="18" x2="23" y2="18"/><line x1="13" y1="24" x2="19" y2="24"/></svg>`,
-  },
-  // ── 10. Weekly Planner ────────────────────────────────────────────────────
-  { tab: 'weekly', target: '.form-card',
-    title: 'Weekly Planner — Setup',
-    body: 'Fill in your current balance, the amount of any upcoming bills, and your next paydate. Tap "Calculate" and the planner figures out a safe daily spending limit. This feeds the Per Day tile on your dashboard.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="26" height="24" rx="2"/><line x1="5" y1="14" x2="31" y2="14"/><line x1="12" y1="4" x2="12" y2="10"/><line x1="24" y1="4" x2="24" y2="10"/><rect x="10" y="19" width="4" height="4" rx=".5"/><rect x="22" y="19" width="4" height="4" rx=".5"/></svg>`,
-  },
-  // ── 11. Bills — add ───────────────────────────────────────────────────────
-  { tab: 'bills', target: '#bill-add-btn',
-    title: 'Adding a Bill',
-    body: 'Tap "Add Bill" to create a recurring bill — enter the name, amount, due date, and how often it repeats. Bills due within 3 days will show a red badge on your nav icon as a reminder.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h20a1 1 0 0 1 1 1v26l-4.5-3-3 3-3-3-3 3-3-3-4.5 3V5a1 1 0 0 1 1-1z"/><circle cx="18" cy="16" r="1.5" fill="currentColor" stroke="none"/><line x1="18" y1="10" x2="18" y2="14"/><line x1="13" y1="23" x2="23" y2="23"/></svg>`,
-  },
-  // ── 12. Bills — list ──────────────────────────────────────────────────────
-  { tab: 'bills', target: '.bills-list',
-    title: 'Marking Bills Paid',
-    body: 'Each bill card shows the amount, due date, and a "Mark Paid" button. Tapping it logs the payment as an expense in your ledger automatically — no double-entry needed. Tap the bill name to edit it.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h20a1 1 0 0 1 1 1v26l-4.5-3-3 3-3-3-3 3-3-3-4.5 3V5a1 1 0 0 1 1-1z"/><line x1="13" y1="14" x2="23" y2="14"/><line x1="13" y1="20" x2="23" y2="20"/><line x1="13" y1="26" x2="18" y2="26"/></svg>`,
-  },
-  // ── 13. Debt Tracker — subnav ─────────────────────────────────────────────
-  { tab: 'debt', target: '.debt-subnav',
-    title: 'Debt Tracker',
-    body: 'Switch between 💳 Credit Cards and 🏦 Loans using the tabs above. Each debt account is linked from the Accounts page — add a debt account there first, then it appears here with a progress bar.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="28" height="19" rx="3"/><line x1="4" y1="16" x2="32" y2="16"/><rect x="8" y="21" width="7" height="3.5" rx="1.5"/><circle cx="28" cy="22.8" r="2" stroke-width="1.5"/></svg>`,
-  },
-  // ── 14. Debt Tracker — payoff ─────────────────────────────────────────────
-  { tab: 'debt', target: null,
-    title: 'Debt Payoff Planner',
-    body: 'Tap any debt card to expand it. Enter a monthly payment and the app calculates your payoff date, total interest, and compares Snowball vs Avalanche strategies — showing how much time and money each approach saves.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 24 13 14 19 20 27 10"/><line x1="30" y1="10" x2="27" y2="10"/><line x1="27" y1="10" x2="27" y2="13"/><line x1="5" y1="30" x2="31" y2="30"/></svg>`,
-  },
-  // ── 15. Goals — add ───────────────────────────────────────────────────────
-  { tab: 'goals', target: '#goal-add-btn',
-    title: 'Creating a Savings Goal',
-    body: 'Tap "Add Goal" and give it a name, a target amount, and an optional deadline — for example, "Emergency Fund · $2,000 · Dec 2025." The app shows how much to save per week to hit your deadline.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="19" r="12"/><circle cx="18" cy="19" r="7"/><circle cx="18" cy="19" r="2.5" fill="currentColor" stroke="none"/><line x1="28" y1="6" x2="21.5" y2="13.5"/><polyline points="30.5 4.5 28 4.5 28 7.5"/></svg>`,
-  },
-  // ── 16. Goals — contribute ────────────────────────────────────────────────
-  { tab: 'goals', target: '.goals-list',
-    title: 'Contributing to a Goal',
-    body: 'Each goal card has an "Add" button — tap it, type in any amount, and it adds to your progress bar. Contributions are logged as transfers so they show up in your ledger too.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="19" r="12"/><circle cx="18" cy="19" r="7"/><line x1="18" y1="15" x2="18" y2="23"/><line x1="14" y1="19" x2="22" y2="19"/></svg>`,
-  },
-  // ── 17. Budgets ───────────────────────────────────────────────────────────
-  { tab: 'budgets', target: '.form-card',
-    title: 'Setting a Budget',
-    body: 'Pick a category (e.g. Food) and enter a monthly dollar cap. Once you save it, the Spending Breakdown tile on your dashboard turns amber when you\'re near the limit and red when you\'re over.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><line x1="18" y1="9" x2="18" y2="27"/><path d="M22.5 13.5a4 4 0 0 0-8 0c0 2.2 1.8 3.3 4 4.2 2.2.9 4 2 4 4.3a4 4 0 0 1-8 0"/></svg>`,
-  },
-  // ── 18. Settings — Accounts ───────────────────────────────────────────────
-  { tab: 'settings', target: '#goto-accounts-card',
-    title: 'Settings — Accounts',
-    body: 'Tap "Accounts" at the top of Settings to add, rename, or delete accounts. Create checking, savings, credit card, or loan accounts here — they show up in the account switcher and the Debt Tracker.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="13" r="7"/><path d="M4 32c0-7.7 6.3-14 14-14s14 6.3 14 14"/></svg>`,
-  },
-  // ── 19. Settings — Theme ──────────────────────────────────────────────────
-  { tab: 'settings', target: '.theme-mode-row',
-    title: 'Settings — Theme',
-    body: 'Choose Dark, Light, or Terminal mode, then pick an accent color below. Terminal themes (VS Code, PowerShell, CMD) also change the font to match the real editor. Changes apply instantly.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="7"/><circle cx="18" cy="18" r="13" stroke-dasharray="3 3"/><line x1="18" y1="5" x2="18" y2="2"/><line x1="18" y1="31" x2="18" y2="34"/><line x1="5" y1="18" x2="2" y2="18"/><line x1="31" y1="18" x2="34" y2="18"/></svg>`,
-  },
-  // ── 20. Settings — Privacy ────────────────────────────────────────────────
-  { tab: 'settings', target: null,
-    title: 'Settings — Privacy & PIN',
-    body: 'Scroll down to the Privacy section to set a 4-digit PIN or enable Phone Lock (Face ID / fingerprint). Once set, the app prompts for your PIN or biometric every time it opens — keeping your finances private.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="16" width="20" height="16" rx="3"/><path d="M12 16v-4a6 6 0 0 1 12 0v4"/><circle cx="18" cy="24" r="2" fill="currentColor" stroke="none"/></svg>`,
-  },
-  // ── 21. About — Force Update ──────────────────────────────────────────────
-  { tab: 'about', target: '#force-update-btn',
-    title: 'Force Update',
-    body: 'If the app ever feels stale or a new feature isn\'t appearing, scroll to the bottom of the About page and tap "Force Update." It clears the cache and reloads the latest version instantly.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 9 7 14 12"/><path d="M9 7v10a12 12 0 0 0 21.9 6.8"/><polyline points="32 24 27 29 22 24"/><path d="M27 29V19A12 12 0 0 0 5.1 12.2"/></svg>`,
-  },
-  // ── 22. Nav Bar ───────────────────────────────────────────────────────────
-  { tab: null, target: '#dawg-bottom-nav',
-    title: 'Customize Your Nav Bar',
-    body: 'Hold the bottom nav bar for 1 second to open the editor. Tap any slot to select it, then pick a different page to put in that spot. Put the sections you use most one tap away.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="26" width="28" height="6" rx="2"/><line x1="10" y1="29" x2="26" y2="29"/><circle cx="14" cy="29" r="2" fill="currentColor" stroke="none"/><circle cx="22" cy="29" r="2" fill="currentColor" stroke="none"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="24" y1="4" x2="24" y2="20"/><polyline points="8 8 12 4 16 8"/><polyline points="20 16 24 20 28 16"/></svg>`,
-  },
-  // ── 23. Done ──────────────────────────────────────────────────────────────
+  // ── 2. Dashboard ──────────────────────────────────────────────────────────
   { tab: null, target: null,
-    title: "You're All Set! 🎉",
-    body: "That's the full tour. You now know how to log transactions, plan your week, track bills and debt, set goals, and customize the whole app. Come back to this tour from the About page anytime — it updates as new features land.",
+    title: 'Dashboard',
+    body: 'Your home screen shows your balance and a sparkline of recent spending. Tap the ‹ › arrows to browse past months. Scroll down to see all your tiles.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="13" rx="2"/><rect x="20" y="4" width="12" height="7" rx="2"/><rect x="20" y="15" width="12" height="13" rx="2"/><rect x="4" y="21" width="12" height="11" rx="2"/></svg>`,
+    anim: `<div style="padding:12px 16px;width:100%;box-sizing:border-box;">
+  <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:10px 14px;">
+    <div style="font-size:.68rem;color:rgba(255,255,255,.42);margin-bottom:2px;">BALANCE</div>
+    <div style="font-size:1.35rem;font-weight:700;color:rgba(255,255,255,.88);animation:wt-count 2.8s ease-in-out infinite;">$2,418.50</div>
+    <div style="display:flex;gap:16px;margin-top:6px;">
+      <div><span style="font-size:.65rem;color:#32d74b;">▲ Income</span><br><span style="font-size:.8rem;color:rgba(255,255,255,.88);">$3,200</span></div>
+      <div><span style="font-size:.65rem;color:#ff453a;">▼ Expenses</span><br><span style="font-size:.8rem;color:rgba(255,255,255,.88);">$781</span></div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:3px;margin-top:8px;height:26px;">
+      ${[40,55,35,62,48,70,52].map((h,i)=>`<div style="flex:1;height:${h}%;background:#4ecb8d;border-radius:2px 2px 0 0;opacity:.7;transform-origin:bottom;animation:wt-bar-fill 2.8s ${i*.12}s ease-in-out infinite;"></div>`).join('')}
+    </div>
+  </div>
+</div>`,
+  },
+  // ── 3. Budget Tiles ───────────────────────────────────────────────────────
+  { tab: null, target: null,
+    title: 'Budget Tiles',
+    body: 'Ring tiles show your weekly and daily spend vs budget at a glance. Scroll the dashboard to see all your tiles — each section of the app has one.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="12"/><circle cx="18" cy="18" r="6"/><line x1="18" y1="6" x2="18" y2="10"/><line x1="18" y1="26" x2="18" y2="30"/><line x1="6" y1="18" x2="10" y2="18"/><line x1="26" y1="18" x2="30" y2="18"/></svg>`,
+    anim: `<div style="display:flex;justify-content:center;gap:24px;padding:10px 0;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+    <svg viewBox="0 0 64 64" width="60" height="60">
+      <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="5"/>
+      <circle cx="32" cy="32" r="28" fill="none" stroke="#4ecb8d" stroke-width="5" stroke-linecap="round" stroke-dasharray="176" stroke-dashoffset="176" transform="rotate(-90 32 32)" style="animation:wt-ring-75 2.8s ease-in-out infinite;"/>
+      <text x="32" y="37" text-anchor="middle" fill="rgba(255,255,255,.88)" font-size="13" font-weight="700">75%</text>
+    </svg>
+    <span style="font-size:.65rem;color:rgba(255,255,255,.42);">Per Week</span>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+    <svg viewBox="0 0 64 64" width="60" height="60">
+      <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="5"/>
+      <circle cx="32" cy="32" r="28" fill="none" stroke="#ffa040" stroke-width="5" stroke-linecap="round" stroke-dasharray="176" stroke-dashoffset="176" transform="rotate(-90 32 32)" style="animation:wt-ring-83 2.8s ease-in-out infinite;"/>
+      <text x="32" y="37" text-anchor="middle" fill="rgba(255,255,255,.88)" font-size="13" font-weight="700">83%</text>
+    </svg>
+    <span style="font-size:.65rem;color:rgba(255,255,255,.42);">Per Day</span>
+  </div>
+</div>`,
+  },
+  // ── 4. Customize Layout ───────────────────────────────────────────────────
+  { tab: null, target: null,
+    title: 'Customize Your Layout',
+    body: 'Tap "Customize Layout" on the dashboard to enter edit mode. Tiles wiggle — drag them to reorder, tap to resize, or hide tiles you don\'t need.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="12" rx="2"/><rect x="20" y="4" width="12" height="12" rx="2"/><rect x="4" y="20" width="12" height="12" rx="2"/><rect x="20" y="20" width="12" height="12" rx="2"/><line x1="18" y1="2" x2="18" y2="34"/><line x1="2" y1="18" x2="34" y2="18"/></svg>`,
+    anim: `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:12px 16px;width:100%;box-sizing:border-box;">
+  ${['Balance','Budgets','Bills','Goals'].map((label,i)=>`
+  <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:8px;padding:8px;text-align:center;font-size:.7rem;color:rgba(255,255,255,.88);animation:wt-wiggle 1.2s ${i*.18}s ease-in-out infinite;">${label}</div>`).join('')}
+</div>
+<div style="position:absolute;bottom:14px;right:22px;width:18px;height:18px;border-radius:50%;background:#4ecb8d;opacity:.7;animation:wt-tap 1.8s .4s ease-in-out infinite;pointer-events:none;"></div>`,
+  },
+  // ── 5. Add Transaction ────────────────────────────────────────────────────
+  { tab: null, target: null,
+    title: 'Adding a Transaction',
+    body: 'Tap the + tab, enter an amount, pick Expense / Income, add a description and category. Tap the ✓ checkmark to save. The category field auto-suggests from your history.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><line x1="18" y1="11" x2="18" y2="25"/><line x1="11" y1="18" x2="25" y2="18"/></svg>`,
+    anim: `<div style="padding:10px 16px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:7px;">
+  <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:8px;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-size:.68rem;color:rgba(255,255,255,.42);">Amount</span>
+    <span style="font-size:1rem;font-weight:700;color:rgba(255,255,255,.88);animation:wt-count 2.4s ease-in-out infinite;">$42.50</span>
+  </div>
+  <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:8px;padding:7px 10px;">
+    <span style="font-size:.68rem;color:rgba(255,255,255,.42);">Description</span>
+    <div style="font-size:.78rem;color:rgba(255,255,255,.88);margin-top:1px;animation:wt-count 2.4s .3s ease-in-out infinite;">Grocery run</div>
+  </div>
+  <button style="background:#4ecb8d;color:#000;border:none;border-radius:8px;padding:8px;font-size:.78rem;font-weight:700;width:100%;animation:wt-tap 2s 1s ease-in-out infinite;">Save ✓</button>
+</div>`,
+  },
+  // ── 6. Ledger ─────────────────────────────────────────────────────────────
+  { tab: null, target: null,
+    title: 'Ledger',
+    body: 'Every transaction with a running balance. Search and filter by date or category. Tap any row to expand and edit it inline — change amount, date, or category, then tap Save.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h18a2 2 0 0 1 2 2v24a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><line x1="13" y1="12" x2="23" y2="12"/><line x1="13" y1="18" x2="23" y2="18"/><line x1="13" y1="24" x2="19" y2="24"/></svg>`,
+    anim: `<div style="padding:8px 14px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:5px;">
+  ${[['Coffee','Food','-$4.20','#ff453a'],['Paycheck','Income','+$1,600','#32d74b'],['Gas','Gas','-$52.00','#ff453a']].map(([desc,cat,amt,color],i)=>`
+  <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:8px;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;animation:wt-row-in .5s ${i*.35}s both;">
+    <div>
+      <div style="font-size:.78rem;color:rgba(255,255,255,.88);">${desc}</div>
+      <div style="font-size:.65rem;color:rgba(255,255,255,.42);">${cat}</div>
+    </div>
+    <span style="font-size:.82rem;font-weight:700;color:${color};">${amt}</span>
+  </div>`).join('')}
+</div>`,
+  },
+  // ── 7. Weekly Planner ─────────────────────────────────────────────────────
+  { tab: null, target: null,
+    title: 'Weekly Planner',
+    body: 'Enter your balance, upcoming bills, and next paydate. Tap "Calculate" to get a safe daily spending limit. This limit feeds the Per Day ring tile on your dashboard.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="26" height="24" rx="2"/><line x1="5" y1="14" x2="31" y2="14"/><line x1="12" y1="4" x2="12" y2="10"/><line x1="24" y1="4" x2="24" y2="10"/><rect x="10" y="19" width="4" height="4" rx=".5"/><rect x="22" y="19" width="4" height="4" rx=".5"/></svg>`,
+    anim: `<div style="padding:10px 16px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;">
+  <div style="display:flex;gap:6px;">
+    <div style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:8px;padding:6px 8px;font-size:.68rem;color:rgba(255,255,255,.42);">Balance<br><span style="color:rgba(255,255,255,.88);font-size:.8rem;">$1,240</span></div>
+    <div style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:8px;padding:6px 8px;font-size:.68rem;color:rgba(255,255,255,.42);">Bills<br><span style="color:rgba(255,255,255,.88);font-size:.8rem;">$340</span></div>
+  </div>
+  <button style="background:rgba(78,203,141,.18);color:#4ecb8d;border:1px solid #4ecb8d55;border-radius:8px;padding:7px;font-size:.78rem;font-weight:700;animation:wt-tap 2.2s .6s ease-in-out infinite;">Calculate →</button>
+  <div style="background:rgba(78,203,141,.08);border:1px solid #4ecb8d33;border-radius:8px;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;animation:wt-appear .5s .9s both;">
+    <span style="font-size:.68rem;color:rgba(255,255,255,.42);">Daily Limit</span>
+    <span style="font-size:1rem;font-weight:700;color:#4ecb8d;">$64 / day</span>
+  </div>
+</div>`,
+  },
+  // ── 8. Bills ──────────────────────────────────────────────────────────────
+  { tab: null, target: null,
+    title: 'Bills',
+    body: 'Add recurring bills with a name, amount, due date, and repeat schedule. Tap "Mark Paid" on a bill card to log it as an expense automatically. Bills due soon show a red badge on the nav icon.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h20a1 1 0 0 1 1 1v26l-4.5-3-3 3-3-3-3 3-3-3-4.5 3V5a1 1 0 0 1 1-1z"/><circle cx="18" cy="16" r="1.5" fill="currentColor" stroke="none"/><line x1="18" y1="10" x2="18" y2="14"/><line x1="13" y1="23" x2="23" y2="23"/></svg>`,
+    anim: `<div style="padding:10px 16px;width:100%;box-sizing:border-box;">
+  <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:10px 12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div>
+        <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.88);">Netflix</div>
+        <div style="font-size:.68rem;color:rgba(255,255,255,.42);">Monthly · $17.99</div>
+      </div>
+      <span style="background:#ff453a22;color:#ff453a;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:20px;border:1px solid #ff453a44;">Due in 2d</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button style="flex:1;background:rgba(50,215,75,.15);color:#32d74b;border:1px solid #32d74b44;border-radius:7px;padding:6px;font-size:.72rem;font-weight:700;animation:wt-tap 2s .5s ease-in-out infinite;">Mark Paid</button>
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#4ecb8d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="animation:wt-pulse 2s ease-in-out infinite;opacity:.7;"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+  </div>
+</div>`,
+  },
+  // ── 9. Debt Tracker ───────────────────────────────────────────────────────
+  { tab: null, target: null,
+    title: 'Debt Tracker',
+    body: 'Add debt accounts in Settings → Accounts, then track them here. Tap a card to expand it, enter a monthly payment, and see your payoff date plus Snowball vs Avalanche comparison.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="28" height="19" rx="3"/><line x1="4" y1="16" x2="32" y2="16"/><rect x="8" y="21" width="7" height="3.5" rx="1.5"/><circle cx="28" cy="22.8" r="2" stroke-width="1.5"/></svg>`,
+    anim: `<div style="padding:10px 16px;width:100%;box-sizing:border-box;">
+  <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:10px 12px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <svg viewBox="0 0 36 36" width="28" height="28" fill="none" stroke="#ffa040" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="28" height="19" rx="3"/><line x1="4" y1="16" x2="32" y2="16"/><rect x="8" y="21" width="7" height="3.5" rx="1.5"/></svg>
+      <div>
+        <div style="font-size:.8rem;font-weight:700;color:rgba(255,255,255,.88);">Visa Card</div>
+        <div style="font-size:.65rem;color:rgba(255,255,255,.42);">$2,400 of $8,000</div>
+      </div>
+    </div>
+    <div style="background:rgba(255,255,255,.10);border-radius:4px;height:7px;overflow:hidden;">
+      <div style="height:100%;background:#4ecb8d;border-radius:4px;width:30%;transform-origin:left;animation:wt-bar-fill 2.8s ease-in-out infinite;"></div>
+    </div>
+    <div style="font-size:.65rem;color:rgba(255,255,255,.42);margin-top:4px;">Paid off 30% · Payoff: Mar 2027</div>
+  </div>
+</div>`,
+  },
+  // ── 10. Savings Goals ─────────────────────────────────────────────────────
+  { tab: null, target: null,
+    title: 'Savings Goals',
+    body: 'Tap "Add Goal" and enter a name, target amount, and optional deadline. Tap the "Add" button on any goal card to contribute. Contributions appear in your ledger as transfers.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="19" r="12"/><circle cx="18" cy="19" r="7"/><circle cx="18" cy="19" r="2.5" fill="currentColor" stroke="none"/><line x1="28" y1="6" x2="21.5" y2="13.5"/><polyline points="30.5 4.5 28 4.5 28 7.5"/></svg>`,
+    anim: `<div style="display:flex;flex-direction:column;align-items:center;padding:10px 0;">
+  <svg viewBox="0 0 64 64" width="68" height="68">
+    <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="5"/>
+    <circle cx="32" cy="32" r="28" fill="none" stroke="#4ecb8d" stroke-width="5" stroke-linecap="round" stroke-dasharray="176" stroke-dashoffset="176" transform="rotate(-90 32 32)" style="animation:wt-ring-60 2.8s ease-in-out infinite;"/>
+    <text x="32" y="30" text-anchor="middle" fill="rgba(255,255,255,.88)" font-size="11" font-weight="700">60%</text>
+    <text x="32" y="43" text-anchor="middle" fill="rgba(255,255,255,.42)" font-size="8">$1,200/$2,000</text>
+  </svg>
+  <div style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.88);margin-top:4px;animation:wt-count 2.8s ease-in-out infinite;">Emergency Fund</div>
+</div>`,
+  },
+  // ── 11. Category Budgets ──────────────────────────────────────────────────
+  { tab: null, target: null,
+    title: 'Category Budgets',
+    body: 'Go to Budgets, pick a category, and enter a monthly cap. The dashboard tile turns amber when you\'re near the limit and red when you\'re over. Set budgets for every category you track.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><line x1="18" y1="9" x2="18" y2="27"/><path d="M22.5 13.5a4 4 0 0 0-8 0c0 2.2 1.8 3.3 4 4.2 2.2.9 4 2 4 4.3a4 4 0 0 1-8 0"/></svg>`,
+    anim: `<div style="padding:8px 16px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;">
+  ${[['Food','62%','#4ecb8d',.62],['Gas','89%','#ffa040',.89],['Entertainment','34%','#4ecb8d',.34]].map(([cat,pct,color,w],i)=>`
+  <div style="animation:wt-row-in .5s ${i*.28}s both;">
+    <div style="display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:3px;">
+      <span style="color:rgba(255,255,255,.88);">${cat}</span>
+      <span style="color:${color};font-weight:700;">${pct}</span>
+    </div>
+    <div style="background:rgba(255,255,255,.10);border-radius:4px;height:6px;overflow:hidden;">
+      <div style="height:100%;background:${color};border-radius:4px;width:${pct};transform-origin:left;animation:wt-bar-fill 2.8s ${i*.22}s ease-in-out infinite;"></div>
+    </div>
+  </div>`).join('')}
+</div>`,
+  },
+  // ── 12. Settings ──────────────────────────────────────────────────────────
+  { tab: null, target: null,
+    title: 'Settings',
+    body: 'Choose Dark / Light / Terminal theme and pick an accent color — changes apply instantly. Scroll down to set a PIN or enable Face ID / fingerprint to keep your finances private.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="7"/><circle cx="18" cy="18" r="13" stroke-dasharray="3 3"/><line x1="18" y1="5" x2="18" y2="2"/><line x1="18" y1="31" x2="18" y2="34"/><line x1="5" y1="18" x2="2" y2="18"/><line x1="31" y1="18" x2="34" y2="18"/></svg>`,
+    anim: `<div style="padding:10px 16px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;">
+  <div style="display:flex;gap:7px;justify-content:center;">
+    ${[['#4ecb8d',true],['#ffa040',false],['#0a84ff',false],['#bf5af2',false]].map(([color,active])=>`
+    <div style="width:28px;height:28px;border-radius:50%;background:${color};border:2px solid ${active?'#fff':'transparent'};box-shadow:${active?`0 0 0 1px ${color}`:'none'};animation:${active?'wt-pulse 2s ease-in-out infinite':'none'};"></div>`).join('')}
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:8px;padding:7px 12px;">
+    <span style="font-size:.75rem;color:rgba(255,255,255,.88);">PIN Lock</span>
+    <svg viewBox="0 0 36 36" width="20" height="20" fill="none" stroke="#4ecb8d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="animation:wt-pulse 2.5s 1s ease-in-out infinite;"><rect x="8" y="16" width="20" height="16" rx="3"/><path d="M12 16v-4a6 6 0 0 1 12 0v4"/><circle cx="18" cy="24" r="2" fill="#4ecb8d" stroke="none"/></svg>
+  </div>
+</div>`,
+  },
+  // ── 13. Nav Bar ───────────────────────────────────────────────────────────
+  { tab: null, target: null,
+    title: 'Customize Your Nav Bar',
+    body: 'Hold the bottom nav bar for 1 second to open the editor. Tap any slot to select it, then pick a different page for that spot. Put the sections you use most one tap away.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="26" width="28" height="6" rx="2"/><line x1="10" y1="29" x2="26" y2="29"/><circle cx="14" cy="29" r="2" fill="currentColor" stroke="none"/><circle cx="22" cy="29" r="2" fill="currentColor" stroke="none"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="24" y1="4" x2="24" y2="20"/><polyline points="8 8 12 4 16 8"/><polyline points="20 16 24 20 28 16"/></svg>`,
+    anim: `<div style="padding:8px 12px;width:100%;box-sizing:border-box;">
+  <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:10px;display:flex;justify-content:space-around;padding:8px 4px;">
+    ${[['🏠','Home',false],['➕','Add',false],['📒','Ledger',true],['📅','Weekly',false]].map(([icon,label,active])=>`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;opacity:${active?'1':'.5'};">
+      <span style="font-size:1.1rem;">${icon}</span>
+      <span style="font-size:.6rem;color:${active?'#4ecb8d':'rgba(255,255,255,.42)'};font-weight:${active?'700':'400'};animation:${active?'wt-nav-swap 3s ease-in-out infinite':'none'};display:block;">${label}</span>
+    </div>`).join('')}
+  </div>
+</div>`,
+  },
+  // ── 14. All Set ───────────────────────────────────────────────────────────
+  { tab: null, target: null,
+    title: "You're All Set!",
+    body: "That's the full tour. Log transactions, plan your week, track bills and debt, set goals, and customize the app to fit your life. Find this tour again anytime on the About page.",
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><polyline points="12 18 16.5 23 24 13"/></svg>`,
+    anim: `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 0;">
+  <svg viewBox="0 0 56 56" width="70" height="70" fill="none">
+    <circle cx="28" cy="28" r="24" stroke="#4ecb8d" stroke-width="2.5" opacity=".25"/>
+    <circle cx="28" cy="28" r="24" stroke="#4ecb8d" stroke-width="2.5" stroke-dasharray="150" stroke-dashoffset="150" style="animation:wt-ring-60 2.8s ease-in-out infinite;opacity:.6;" transform="rotate(-90 28 28)"/>
+    <polyline points="16,29 23,37 40,19" fill="none" stroke="#4ecb8d" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="60" stroke-dashoffset="60" style="animation:wt-check-draw 1.6s .4s ease-out infinite;"/>
+  </svg>
+  <span style="font-size:.88rem;font-weight:700;color:#4ecb8d;animation:wt-count 2.8s ease-in-out infinite;">Ready to budget!</span>
+</div>`,
   },
 ];
 
@@ -7044,13 +7149,12 @@ function _renderWalkthroughStep(i) {
   const isLast = i === WALKTHROUGH_STEPS.length - 1;
   const total  = WALKTHROUGH_STEPS.length;
 
-  // Compact card: icon + title + × in one header row; skip lives inside the card
   card.innerHTML = `
     <div class="wt-hdr">
-      <span class="wt-icon-sm">${step.icon}</span>
       <span class="wt-title">${step.title}</span>
       <button class="wt-skip-x" id="wt-skip-x" title="Skip tour">✕</button>
     </div>
+    ${step.anim ? `<div class="wt-anim-box" style="position:relative;">${step.anim}</div>` : ''}
     <p class="wt-body">${step.body}</p>
     <div class="wt-footer">
       <div class="wt-dots">${Array.from({length:total},(_,j)=>`<span class="wt-dot${j===i?' wt-dot--on':''}"></span>`).join('')}</div>
@@ -7074,86 +7178,12 @@ function _renderWalkthroughStep(i) {
     e.stopPropagation(); _advanceWalkthrough();
   });
 
-  // Positioning: find target, place spotlight, position card away from it
-  function _center() {
-    hl.style.cssText = 'display:none';
-    if (bd) bd.style.background = 'rgba(0,0,0,.72)';
-    card.style.top = ''; card.style.bottom = '';
-    card.className = 'wt-card--center';
-  }
-
-  function _place(retry) {
-    if (!step.target) { _center(); return; }
-
-    const el = document.querySelector(step.target);
-    if (!el) {
-      // Target not in DOM yet — retry once more after a short wait
-      if (retry !== false) { setTimeout(() => _place(false), 350); return; }
-      _center(); return;
-    }
-
-    // Scroll target into view instantly so getBoundingClientRect is accurate
-    el.scrollIntoView({ behavior: 'instant', block: 'center' });
-
-    // Use rAF to read layout after scroll settles
-    requestAnimationFrame(() => {
-      const r   = el.getBoundingClientRect();
-      const pad = 10;
-
-      // Clamp spotlight to viewport so the box-shadow overlay always has room
-      const sleft = Math.max(4, r.left - pad);
-      const stop  = Math.max(4, r.top  - pad);
-      const sw    = Math.min(window.innerWidth  - sleft - 4, r.width  + pad * 2);
-      const sh    = Math.min(window.innerHeight - stop  - 4, r.height + pad * 2);
-
-      // Set box-shadow inline (not relying solely on CSS animation) so overlay appears immediately
-      hl.style.cssText = `display:block;position:fixed;`
-        + `left:${sleft}px;top:${stop}px;width:${sw}px;height:${sh}px;`
-        + `border-radius:16px;z-index:9998;pointer-events:none;`
-        + `box-shadow:0 0 0 9999px rgba(0,0,0,.72),`
-        +            `0 0 0 2px rgba(78,203,141,.55),`
-        +            `0 0 24px 6px rgba(78,203,141,.28);`
-        + `animation:wtGlow 2.5s ease-in-out infinite;`;
-
-      if (bd) bd.style.background = 'transparent';
-
-      // Place card above or below the spotlight — pick the side with more room
-      card.className    = 'wt-card--placed';
-      card.style.top    = '';
-      card.style.bottom = '';
-
-      requestAnimationFrame(() => {
-        const vh      = window.innerHeight;
-        const cardH   = card.offsetHeight || 180;
-        const margin  = 12;
-        const spotTop = stop;
-        const spotBot = stop + sh;
-        const below   = vh - spotBot - margin;
-        const above   = spotTop - margin;
-
-        if (below >= cardH + margin) {
-          card.style.top    = (spotBot + margin) + 'px';
-          card.style.bottom = '';
-        } else if (above >= cardH + margin) {
-          card.style.top    = '';
-          card.style.bottom = (vh - spotTop + margin) + 'px';
-        } else {
-          // Not enough room either side — float above bottom nav
-          card.style.top    = '';
-          card.style.bottom = margin + 'px';
-        }
-      });
-    });
-  }
-
-  if (step.tab && step.tab !== currentTab) {
-    showTab(step.tab);
-    // Wait for tab transition + initial render before measuring
-    setTimeout(() => _place(true), 550);
-  } else {
-    // Already on correct tab — wait one frame for any pending re-renders
-    setTimeout(() => _place(true), 80);
-  }
+  // All steps are self-contained — always use centered overlay, no spotlight needed
+  hl.style.cssText = 'display:none';
+  if (bd) bd.style.background = 'rgba(0,0,0,.80)';
+  card.style.top = '';
+  card.style.bottom = '';
+  card.className = 'wt-card--center';
 }
 
 // Keep old name as alias for any external references

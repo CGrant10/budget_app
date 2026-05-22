@@ -4659,3 +4659,31 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
   background: rgba(50,215,75,.13);
   color: var(--success, #32d74b);
 }
+
+/* ── Walkthrough animation system ──────────────────────────────────────── */
+.wt-anim-box {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 2px 0 9px;
+  min-height: 104px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Widen card to fit animations */
+#wt-card { width: min(94vw, 360px); }
+
+@keyframes wt-pulse    { 0%,100%{transform:scale(1);opacity:.85} 50%{transform:scale(1.12);opacity:1} }
+@keyframes wt-count    { 0%,5%{opacity:0;transform:translateY(5px)} 20%,75%{opacity:1;transform:none} 92%,100%{opacity:0;transform:translateY(-4px)} }
+@keyframes wt-bar-fill { 0%,15%{transform:scaleX(0)} 55%,85%{transform:scaleX(1)} 100%{transform:scaleX(0)} }
+@keyframes wt-ring-75  { 0%,15%{stroke-dashoffset:176} 55%,85%{stroke-dashoffset:44} 100%{stroke-dashoffset:176} }
+@keyframes wt-ring-83  { 0%,15%{stroke-dashoffset:176} 55%,85%{stroke-dashoffset:30} 100%{stroke-dashoffset:176} }
+@keyframes wt-ring-60  { 0%,15%{stroke-dashoffset:176} 55%,85%{stroke-dashoffset:70} 100%{stroke-dashoffset:176} }
+@keyframes wt-row-in   { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:none} }
+@keyframes wt-appear   { from{opacity:0;transform:translateY(7px)} to{opacity:1;transform:none} }
+@keyframes wt-check-draw { 0%{stroke-dashoffset:60;opacity:0} 15%{opacity:1} 100%{stroke-dashoffset:0} }
+@keyframes wt-nav-swap { 0%,100%{opacity:1;transform:none} 20%{opacity:0;transform:translateY(-7px)} 50%{opacity:0;transform:translateY(7px)} 75%,100%{opacity:1;transform:none} }
+@keyframes wt-tap      { 0%,55%,100%{transform:scale(1)} 70%,85%{transform:scale(.91)} }
+@keyframes wt-wiggle   { 0%,100%{transform:rotate(0deg) translate(0,0)} 25%{transform:rotate(-2deg) translate(-1px,1px)} 75%{transform:rotate(2deg) translate(1px,-1px)} }
