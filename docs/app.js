@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.10.2';
+const VERSION = '5.10.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.10.3', date: '2026-05-22', changes: [
+    'Terminal themes (VS Code, PowerShell, CMD) now style every page title and section header in code syntax — VS Code uses def/(): Python style, PowerShell uses $var = style, CMD uses @/:: style',
+    'Per Day budget tile now dynamically adjusts — if you overspend one day the remaining budget is divided across days left in the week instead of using the static plan rate',
+    'Fixed ledger swipe-to-delete conflicting with tab navigation — swiping left on a ledger row no longer jumps to the next section',
+  ]},
   { version: '5.10.0', date: '2026-05-22', changes: [
     'Layout editor scroll fixed — tile list now scrolls correctly when there are many tiles',
     'Net Worth tile now shows when unhidden in Customize Layout — removed the duplicate settings-toggle gate',
@@ -1698,6 +1703,11 @@ function applyTheme(theme) {
   root.style.setProperty('--muted',    t.muted);
   root.style.setProperty('--border',   t.border);
   document.body.classList.toggle('light', !!t.light);
+  // Terminal theme body classes — used for code-syntax styled titles in CSS
+  document.body.classList.remove('theme-vscode', 'theme-powershell', 'theme-cmd');
+  if (['vscode', 'powershell', 'cmd'].includes(theme)) {
+    document.body.classList.add('theme-' + theme);
+  }
   // Update category colors to match theme
   if (t.cats) Object.assign(CAT_COLORS, t.cats);
   // Auto-apply bundled font for terminal-style themes
@@ -3706,10 +3716,12 @@ function renderDashboardDawg() {
   const budgetPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
   const budgetColor = budgetPct >= 90 ? 'var(--danger)' : budgetPct >= 75 ? 'var(--warn)' : 'var(--accent)';
   const budgetLbl   = weekBudget ? 'weekly' : 'monthly';
-  // Per-day budget: use the saved per_day from the weekly planner (available ÷ days-until-paycheck)
-  // so it matches what the weekly planner page shows. Fall back to per_week/7 for old saved plans.
-  const dayBudget   = weekBudget > 0 && !isPastDash
-    ? (parseFloat(_wp?.per_day || 0) || effectiveWeekBudget / 7)
+  // Per-day budget: dynamically adjusted — remaining weekly budget ÷ days left this week (including today).
+  // If you overspend on a day, the shortfall is automatically spread across the remaining days.
+  const _todayDayIdx = Math.round((_wkNow - _wkMon) / 86400000); // 0 = Mon … 6 = Sun
+  const _daysLeft    = Math.max(1, 7 - _todayDayIdx);            // days remaining including today
+  const dayBudget    = weekBudget > 0 && !isPastDash
+    ? Math.max(0, effectiveWeekBudget - weekSpent) / _daysLeft
     : 0;
   const _todayStr2  = today();
   const daySpent    = state.transactions.filter(t => t.type==='expense' && t.date===_todayStr2).reduce((s,t)=>s+t.amount,0);
@@ -5857,65 +5869,6 @@ function renderSettings() {
     </button>`;
   };
 
-  const _termFonts = {
-    vscode:     "'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace",
-    powershell: "'Cascadia Code', 'Cascadia Mono', 'Consolas', 'Courier New', monospace",
-    cmd:        "'Lucida Console', 'Consolas', 'Courier New', monospace",
-  };
-  const terminalCodePreview = key => {
-    const CC = {
-      vscode:     { cm:'#6a9955', kw:'#569cd6', ty:'#4ec9b0', st:'#ce9178', fn:'#dcdcaa', vr:'#9cdcfe', nm:'#b5cea8', tx:'#d4d4d4', bg:'#1e1e1e', br:'#3e3e42' },
-      powershell: { cm:'#8ab8d0', kw:'#26c6da', ty:'#4fc1ff',  st:'#f1e05a', fn:'#26c6da',  vr:'#eeedf0', nm:'#29b6f6', tx:'#eeedf0', bg:'#012456', br:'#1255a0' },
-      cmd:        { cm:'#2d9a2d', kw:'#00c300', ty:'#00ff41',  st:'#00ff41', fn:'#00c300',  vr:'#00c300', nm:'#00c300', tx:'#00c300', bg:'#0c0c0c', br:'#1e4a1e' },
-    };
-    const c  = CC[key] || CC.vscode;
-    const ff = _termFonts[key] || _termFonts.vscode;
-    const kw = t => `<span style="color:${c.kw}">${t}</span>`;
-    const ty = t => `<span style="color:${c.ty}">${t}</span>`;
-    const st = t => `<span style="color:${c.st}">${t}</span>`;
-    const fn = t => `<span style="color:${c.fn}">${t}</span>`;
-    const vr = t => `<span style="color:${c.vr}">${t}</span>`;
-    const nm = t => `<span style="color:${c.nm}">${t}</span>`;
-    const cm = t => `<span style="color:${c.cm}">${t}</span>`;
-    const tx = t => `<span style="color:${c.tx}">${t}</span>`;
-    const javaLines = [
-      cm('// Monthly budget tracker'),
-      `${kw('public class')} ${ty('BudgetCalc')} ${tx('{')}`,
-      `  ${kw('private double')} ${vr('limit')}${tx(',')} ${vr('spent')}${tx(';')}`,
-      `  ${kw('private')} ${ty('String')} ${vr('name')} ${tx('=')} ${st('"Checking"')}${tx(';')}`,
-      ``,
-      `  ${kw('public double')} ${fn('remaining')}${tx('()')} ${tx('{')}`,
-      `    ${kw('return')} ${vr('limit')} ${tx('-')} ${vr('spent')}${tx(';')}`,
-      `  ${tx('}')}`,
-      tx('}'),
-    ].join('\n');
-    const pyLines = [
-      cm('# Monthly budget tracker'),
-      `${kw('class')} ${ty('BudgetCalc')}${tx(':')}`,
-      `  ${kw('def')} ${fn('__init__')}${tx('(')}${vr('self')}${tx(',')} ${vr('limit')}${tx(')')}${tx(':')}`,
-      `    ${vr('self')}${tx('.')}${vr('name')} ${tx('=')} ${st('"Checking"')}`,
-      `    ${vr('self')}${tx('.')}${vr('limit')} ${tx('=')} ${vr('limit')}`,
-      `    ${vr('self')}${tx('.')}${vr('spent')} ${tx('=')} ${nm('0.0')}`,
-      ``,
-      `  ${kw('def')} ${fn('remaining')}${tx('(')}${vr('self')}${tx(')')}${tx(':')}`,
-      `    ${kw('return')} ${vr('self')}${tx('.')}${vr('limit')} ${tx('-')} ${vr('self')}${tx('.')}${vr('spent')}`,
-    ].join('\n');
-    const hdrStyle = `background:${c.bg};border:1px solid ${c.br};border-bottom:none;border-radius:8px 8px 0 0;padding:3px 12px;font-family:${ff};font-size:.63rem;color:${c.cm};letter-spacing:.04em`;
-    const preStyle = `background:${c.bg};border:1px solid ${c.br};padding:10px 12px;margin:0;font-family:${ff};font-size:.72rem;line-height:1.65;overflow-x:auto;white-space:pre;border-radius:0 0 8px 8px;-webkit-user-select:text;user-select:text`;
-    return `
-      <div class="term-code-preview" style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
-        <p class="code-hint" style="margin-bottom:2px">Syntax preview</p>
-        <div>
-          <div style="${hdrStyle}">java</div>
-          <pre style="${preStyle}">${javaLines}</pre>
-        </div>
-        <div>
-          <div style="${hdrStyle}">python</div>
-          <pre style="${preStyle}">${pyLines}</pre>
-        </div>
-      </div>`;
-  };
-
   return `
     <div class="page">
       <h1 class="page-title">Settings</h1>
@@ -5963,7 +5916,6 @@ function renderSettings() {
           <div class="theme-terminal-chips">
             ${TERMINAL_KEYS.map(terminalChip).join('')}
           </div>
-          ${isTerminal ? terminalCodePreview(theme) : ''}
         </div>
       </div>
 
@@ -8938,6 +8890,8 @@ window.addEventListener('popstate', () => {
         swipeTouchTarget = e.target;
       }, { passive: true });
       mc.addEventListener('touchend', e => {
+        // Never swipe tabs when the gesture started on a ledger row (has its own swipe-to-delete)
+        if (swipeTouchTarget?.closest('.ledger-row')) return;
         // Never swipe tabs when the gesture started on a range slider
         if (swipeTouchTarget && (
           (swipeTouchTarget.tagName === 'INPUT' && swipeTouchTarget.type === 'range') ||

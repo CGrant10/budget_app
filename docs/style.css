@@ -4808,3 +4808,83 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
 @keyframes wt-nav-swap { 0%,100%{opacity:1;transform:none} 20%{opacity:0;transform:translateY(-7px)} 50%{opacity:0;transform:translateY(7px)} 75%,100%{opacity:1;transform:none} }
 @keyframes wt-tap      { 0%,55%,100%{transform:scale(1)} 70%,85%{transform:scale(.91)} }
 @keyframes wt-wiggle   { 0%,100%{transform:rotate(0deg) translate(0,0)} 25%{transform:rotate(-2deg) translate(-1px,1px)} 75%{transform:rotate(2deg) translate(1px,-1px)} }
+
+/* ── terminal theme: code-syntax styled titles ───────────────────────────── */
+
+/* VS Code — Python style: def sectionName(): */
+body.theme-vscode .page-title::before {
+  content: '// ';
+  color: #6a9955;
+}
+body.theme-vscode .section-title {
+  padding-left: 0;
+  text-transform: none;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: #dcdcaa;
+}
+body.theme-vscode .section-title::before {
+  content: 'def ';
+  color: #569cd6;
+  position: static;
+  transform: none;
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  display: inline;
+}
+body.theme-vscode .section-title::after {
+  content: '():';
+  color: #d4d4d4;
+}
+
+/* PowerShell — $variable = style */
+body.theme-powershell .page-title::before {
+  content: '# ';
+  color: #8ab8d0;
+}
+body.theme-powershell .section-title {
+  padding-left: 0;
+  text-transform: none;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: #eeedf0;
+}
+body.theme-powershell .section-title::before {
+  content: '$';
+  color: #4fc1ff;
+  position: static;
+  transform: none;
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  display: inline;
+}
+body.theme-powershell .section-title::after {
+  content: ' =';
+  color: #eeedf0;
+}
+
+/* CMD — @LABEL style */
+body.theme-cmd .page-title::before {
+  content: ':: ';
+  color: #2d9a2d;
+}
+body.theme-cmd .section-title {
+  padding-left: 0;
+  letter-spacing: .06em;
+  color: #00c300;
+}
+body.theme-cmd .section-title::before {
+  content: '@';
+  color: #00ff41;
+  position: static;
+  transform: none;
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  display: inline;
+}
