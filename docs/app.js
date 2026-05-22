@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.10.5';
+const VERSION = '5.10.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.10.6', date: '2026-05-22', changes: [
+    'Splash screen glitch effect — faint money symbol field with periodic RGB-split glitch bursts instead of matrix rain; toggle off with ✦ hide effects',
+    'Income/expense/transfer animations completely rebuilt — centered fullscreen overlay with large draw-in SVG icons, big amount text, and professional card pop animation',
+    'Tutorial dashboard step now shows an animated sparkline chart instead of bar columns — matches the actual dashboard chart style',
+    'Fixed muted text contrast on Kali Linux and Ubuntu themes for better readability',
+  ]},
   { version: '5.10.5', date: '2026-05-22', changes: [
     'Weekly planner now shows Adjusted Per Day card — dynamically recalculates your daily rate based on what\'s left of this week\'s budget divided by days remaining',
     'Custom accent color wheel — pick any color in Settings > Theme to override the preset accent on any dark or light theme; tap Reset to revert',
@@ -992,7 +998,7 @@ const THEMES = {
   kali: {
     label: 'Kali Linux',
     bg: '#1a1a2e', surface: '#16213e', surface2: '#0f3460', card: '#16213e',
-    text: '#e0e0e0', muted: '#4a6a7a', border: '#1e3a5e',
+    text: '#e0e0e0', muted: '#7a9aae', border: '#1e3a5e',
     accent: '#00d4ff', accent2: '#267bf0', success: '#00ff88', warn: '#f1c40f', danger: '#e74c3c',
     grad: 'linear-gradient(135deg, #0f3460 0%, #00d4ff 100%)',
     font: 'kali',
@@ -1010,7 +1016,7 @@ const THEMES = {
   ubuntu: {
     label: 'Ubuntu',
     bg: '#300a24', surface: '#2c0a20', surface2: '#3a1035', card: '#350c28',
-    text: '#eeeeee', muted: '#a08898', border: '#5a1a40',
+    text: '#eeeeee', muted: '#c0a8b8', border: '#5a1a40',
     accent: '#e95420', accent2: '#77216f', success: '#6cc644', warn: '#f1c40f', danger: '#e74c3c',
     grad: 'linear-gradient(135deg, #300a24 0%, #e95420 100%)',
     font: 'ubuntu',
@@ -1259,54 +1265,51 @@ function _showTxnAnim(type, amount, desc) {
 
   const msgs     = isTransfer ? _TRANSFER_MSGS : isPaycheck ? _PAYCHECK_MSGS : (isExpense ? _EXPENSE_MSGS : _INCOME_MSGS);
   const headline = msgs[Math.floor(Math.random() * msgs.length)];
-  const amtStr   = isTransfer ? fmt(amount) : `${isExpense ? '-' : '+'}${fmt(amount)}`;
+  const amtStr   = isTransfer ? fmt(amount) : `${isExpense ? '−' : '+'}${fmt(amount)}`;
 
-  // ── CSS-animated scene — matches tutorial animation quality ───────────────
-  let scene;
+  // ── Large centered SVG icons — draw-in via stroke-dashoffset ─────────────
+  let iconSvg, ringColor, particles;
+
   if (isExpense) {
-    scene = `<div class="txn-scene txn-scene--expense">
-      <div class="txn-ring txn-ring--a"></div>
-      <div class="txn-ring txn-ring--b"></div>
-      <svg class="txn-main-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-        <line x1="16" y1="6" x2="16" y2="22" class="txn-sd txn-sd--1" style="--dl:16"/>
-        <polyline points="9,16 16,23 23,16" class="txn-sd txn-sd--2" style="--dl:20"/>
-        <rect x="8" y="4" width="16" height="10" rx="2" class="txn-sd txn-sd--3" style="--dl:56"/>
-        <line x1="8" y1="8" x2="24" y2="8" class="txn-sd txn-sd--4" style="--dl:16"/>
-      </svg>
-      <span class="txn-p txn-p-exp--1">$</span>
-      <span class="txn-p txn-p-exp--2">$</span>
-      <span class="txn-p txn-p-exp--3">$</span>
-    </div>`;
+    ringColor = 'var(--danger)';
+    iconSvg = `<svg viewBox="0 0 64 64" fill="none" stroke="var(--danger)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="68" height="68">
+      <circle cx="32" cy="32" r="28" stroke="rgba(255,69,58,.15)" stroke-width="1" fill="rgba(255,69,58,.07)" class="txn-sd txn-sd--1" style="--dl:176"/>
+      <line x1="32" y1="17" x2="32" y2="39" class="txn-sd txn-sd--2" style="--dl:22"/>
+      <polyline points="21,31 32,42 43,31" class="txn-sd txn-sd--3" style="--dl:30"/>
+      <line x1="22" y1="49" x2="42" y2="49" class="txn-sd txn-sd--4" style="--dl:20"/>
+    </svg>`;
+    particles = `<span class="txn-p txn-p-exp--1">$</span><span class="txn-p txn-p-exp--2">$</span><span class="txn-p txn-p-exp--3">$</span>`;
   } else if (isTransfer) {
-    scene = `<div class="txn-scene txn-scene--transfer">
-      <div class="txn-ring txn-ring--a"></div>
-      <svg class="txn-main-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-        <path d="M6 11 A10 10 0 0 1 26 11" class="txn-sd txn-sd--1" style="--dl:34"/>
-        <polyline points="22,7 26,11 22,15" class="txn-sd txn-sd--2" style="--dl:12"/>
-        <path d="M26 21 A10 10 0 0 1 6 21" class="txn-sd txn-sd--3" style="--dl:34"/>
-        <polyline points="10,17 6,21 10,25" class="txn-sd txn-sd--4" style="--dl:12"/>
-      </svg>
-    </div>`;
+    ringColor = 'var(--accent)';
+    iconSvg = `<svg viewBox="0 0 64 64" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="68" height="68">
+      <circle cx="32" cy="32" r="28" stroke="rgba(78,203,141,.15)" stroke-width="1" fill="rgba(78,203,141,.07)" class="txn-sd txn-sd--1" style="--dl:176"/>
+      <path d="M16 23 Q32 13 48 23" class="txn-sd txn-sd--2" style="--dl:46"/>
+      <polyline points="42,17 48,23 42,29" class="txn-sd txn-sd--3" style="--dl:14"/>
+      <path d="M48 41 Q32 51 16 41" class="txn-sd txn-sd--4" style="--dl:46"/>
+      <polyline points="22,35 16,41 22,47" class="txn-sd txn-sd--3" style="--dl:14"/>
+    </svg>`;
+    particles = '';
+  } else if (isPaycheck) {
+    ringColor = '#ffd60a';
+    iconSvg = `<svg viewBox="0 0 64 64" fill="none" stroke="#ffd60a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="68" height="68">
+      <circle cx="32" cy="32" r="28" stroke="rgba(255,214,10,.15)" stroke-width="1" fill="rgba(255,214,10,.07)" class="txn-sd txn-sd--1" style="--dl:176"/>
+      <circle cx="32" cy="32" r="10" class="txn-sd txn-sd--2" style="--dl:63"/>
+      <line x1="32" y1="10" x2="32" y2="17" class="txn-sd txn-sd--3" style="--dl:7"/>
+      <line x1="32" y1="47" x2="32" y2="54" class="txn-sd txn-sd--3" style="--dl:7"/>
+      <line x1="10" y1="32" x2="17" y2="32" class="txn-sd txn-sd--3" style="--dl:7"/>
+      <line x1="47" y1="32" x2="54" y2="32" class="txn-sd txn-sd--3" style="--dl:7"/>
+    </svg>`;
+    particles = `<span class="txn-p txn-p-inc--1">✦</span><span class="txn-p txn-p-inc--2">✦</span><span class="txn-p txn-p-inc--3">✦</span><span class="txn-p txn-p-inc--4">$</span><span class="txn-p txn-p-inc--5">$</span>`;
   } else {
-    // income / paycheck
-    const extraP = isPaycheck
-      ? `<span class="txn-p txn-p-inc--4">$</span><span class="txn-p txn-p-inc--5">$</span>`
-      : '';
-    scene = `<div class="txn-scene txn-scene--${isPaycheck ? 'paycheck' : 'income'}">
-      <div class="txn-ring txn-ring--a"></div>
-      <div class="txn-ring txn-ring--b"></div>
-      <svg class="txn-main-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-        <line x1="16" y1="26" x2="16" y2="10" class="txn-sd txn-sd--1" style="--dl:16"/>
-        <polyline points="9,16 16,9 23,16" class="txn-sd txn-sd--2" style="--dl:20"/>
-        ${isPaycheck
-          ? `<line x1="8" y1="27" x2="24" y2="27" stroke-width="2.5" class="txn-sd txn-sd--3" style="--dl:16"/>`
-          : `<path d="M11 22 Q16 26 21 22" class="txn-sd txn-sd--3" style="--dl:14"/>`}
-      </svg>
-      <span class="txn-p txn-p-inc--1">✦</span>
-      <span class="txn-p txn-p-inc--2">✦</span>
-      <span class="txn-p txn-p-inc--3">✦</span>
-      ${extraP}
-    </div>`;
+    // income
+    ringColor = 'var(--success)';
+    iconSvg = `<svg viewBox="0 0 64 64" fill="none" stroke="var(--success)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="68" height="68">
+      <circle cx="32" cy="32" r="28" stroke="rgba(50,215,75,.15)" stroke-width="1" fill="rgba(50,215,75,.07)" class="txn-sd txn-sd--1" style="--dl:176"/>
+      <line x1="32" y1="47" x2="32" y2="25" class="txn-sd txn-sd--2" style="--dl:22"/>
+      <polyline points="21,33 32,22 43,33" class="txn-sd txn-sd--3" style="--dl:30"/>
+      <path d="M23 41 Q27.5 46 32 41 Q36.5 36 41 41" class="txn-sd txn-sd--4" style="--dl:28"/>
+    </svg>`;
+    particles = `<span class="txn-p txn-p-inc--1">✦</span><span class="txn-p txn-p-inc--2">✦</span><span class="txn-p txn-p-inc--3">✦</span>`;
   }
 
   const el = document.createElement('div');
@@ -1314,14 +1317,17 @@ function _showTxnAnim(type, amount, desc) {
   el.className = `txn-anim txn-anim--${variant}`;
   el.innerHTML = `
     <div class="txn-anim-card">
-      <div class="txn-anim-dob-wrap">${scene}</div>
-      <div class="txn-anim-body">
-        <div class="txn-anim-headline">${headline}</div>
-        <div class="txn-anim-amount">${amtStr}</div>
-        ${desc && desc !== '—' ? `<div class="txn-anim-desc">${desc}</div>` : ''}
+      <div class="txn-anim-icon-wrap">
+        <div class="txn-ring txn-ring--a" style="color:${ringColor}"></div>
+        <div class="txn-ring txn-ring--b" style="color:${ringColor}"></div>
+        ${iconSvg}
+        ${particles}
       </div>
-    </div>
-    <div class="txn-anim-progress"><div class="txn-anim-progress-bar"></div></div>`;
+      <div class="txn-anim-headline">${headline}</div>
+      <div class="txn-anim-amount">${amtStr}</div>
+      ${desc && desc !== '—' ? `<div class="txn-anim-desc">${desc}</div>` : ''}
+      <div class="txn-anim-progress"><div class="txn-anim-progress-bar"></div></div>
+    </div>`;
 
   document.body.appendChild(el);
 
@@ -2908,32 +2914,73 @@ function runSplash() {
       canvas.height = el.offsetHeight || window.innerHeight;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const CHARS = '$¥€£₿01$10¢₩¥$0110₿€$';
-      const colW  = 18;
-      const cols  = Math.ceil(canvas.width / colW);
-      const drops = Array.from({ length: cols }, () => Math.random() * -40);
       const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#4ecb8d';
-      const bg     = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()     || '#1a1a1a';
 
-      const tick = () => {
-        if (done) return;
-        ctx.fillStyle   = bg;
-        ctx.globalAlpha = 0.09;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.globalAlpha = 0.42;
-        ctx.fillStyle   = accent;
-        ctx.font        = `13px 'Consolas','Menlo',monospace`;
-        for (let i = 0; i < cols; i++) {
-          if (drops[i] < 0) { drops[i] += 0.4; continue; }
-          const ch = CHARS[Math.floor(Math.random() * CHARS.length)];
-          ctx.fillText(ch, i * colW + 2, drops[i] * 15);
-          if (drops[i] * 15 > canvas.height && Math.random() > 0.975) drops[i] = 0;
-          drops[i] += 0.65;
+      // Static scattered money-symbol field (drawn once, very faint)
+      const symbols = ['$', '¥', '€', '£', '₿', '¢', '$', '$'];
+      const cells   = [];
+      for (let y = 28; y < canvas.height; y += 34) {
+        for (let x = 10; x < canvas.width; x += 28) {
+          if (Math.random() > 0.42) {
+            cells.push({ x, y, ch: symbols[Math.floor(Math.random() * symbols.length)], a: 0.025 + Math.random() * 0.045 });
+          }
         }
-        ctx.globalAlpha = 1;
-        animFrame = requestAnimationFrame(tick);
+      }
+
+      // Glitch slice state
+      let glitchSlices = [];
+      let glitching    = false;
+
+      const scheduleGlitch = () => {
+        setTimeout(() => {
+          if (done) return;
+          glitchSlices = Array.from({ length: 3 + Math.floor(Math.random() * 5) }, () => ({
+            y:  Math.floor(Math.random() * canvas.height),
+            h:  1 + Math.floor(Math.random() * 5),
+            dx: (Math.random() - 0.5) * 32,
+          }));
+          glitching = true;
+          setTimeout(() => {
+            if (done) return;
+            glitching    = false;
+            glitchSlices = [];
+            scheduleGlitch();
+          }, 80 + Math.random() * 80);
+        }, 700 + Math.random() * 1400);
       };
-      tick();
+
+      const draw = () => {
+        if (done) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Faint $ field
+        ctx.font = '13px Consolas, monospace';
+        cells.forEach(({ x, y, ch, a }) => {
+          ctx.globalAlpha = a;
+          ctx.fillStyle   = accent;
+          ctx.fillText(ch, x, y);
+        });
+
+        // Glitch slices (RGB split bands)
+        if (glitching && glitchSlices.length) {
+          glitchSlices.forEach(({ y, h, dx }) => {
+            ctx.globalAlpha = 0.25;
+            ctx.fillStyle   = 'rgba(255,40,40,0.8)';
+            ctx.fillRect(dx + 3, y, canvas.width, h);
+            ctx.fillStyle   = 'rgba(40,40,255,0.8)';
+            ctx.fillRect(dx - 3, y + 1, canvas.width, h);
+            ctx.globalAlpha = 0.10;
+            ctx.fillStyle   = accent;
+            ctx.fillRect(dx, y, canvas.width, h);
+          });
+        }
+
+        ctx.globalAlpha = 1;
+        animFrame = requestAnimationFrame(draw);
+      };
+
+      scheduleGlitch();
+      draw();
       canvas.style.display = '';
     };
 
@@ -7047,8 +7094,22 @@ const WALKTHROUGH_STEPS = [
       <div><span style="font-size:.65rem;color:#32d74b;">▲ Income</span><br><span style="font-size:.8rem;color:rgba(255,255,255,.88);">$3,200</span></div>
       <div><span style="font-size:.65rem;color:#ff453a;">▼ Expenses</span><br><span style="font-size:.8rem;color:rgba(255,255,255,.88);">$781</span></div>
     </div>
-    <div style="display:flex;align-items:flex-end;gap:3px;margin-top:8px;height:26px;">
-      ${[40,55,35,62,48,70,52].map((h,i)=>`<div style="flex:1;height:${h}%;background:#4ecb8d;border-radius:2px 2px 0 0;opacity:.7;transform-origin:bottom;animation:wt-bar-fill 2.8s ${i*.12}s ease-in-out infinite;"></div>`).join('')}
+    <div style="margin-top:8px;height:30px;width:100%;">
+      <svg viewBox="0 0 120 28" width="100%" height="28" fill="none" style="overflow:visible">
+        <defs>
+          <linearGradient id="wt-spark-grad" x1="0" y1="0" x2="120" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#4ecb8d" stop-opacity=".35"/>
+            <stop offset="100%" stop-color="#4ecb8d"/>
+          </linearGradient>
+        </defs>
+        <path d="M0 22 L15 20 L30 24 L45 17 L60 21 L75 13 L90 15 L105 9 L120 7 L120 28 L0 28 Z" fill="rgba(78,203,141,.08)"/>
+        <polyline points="0,22 15,20 30,24 45,17 60,21 75,13 90,15 105,9 120,7"
+          stroke="url(#wt-spark-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          fill="none" stroke-dasharray="210" stroke-dashoffset="210"
+          style="animation:wt-spark-draw 2.8s ease-in-out infinite;"/>
+        <circle cx="120" cy="7" r="2.5" fill="#4ecb8d"
+          style="animation:wt-spark-dot 2.8s ease-in-out infinite;"/>
+      </svg>
     </div>
   </div>
 </div>`,

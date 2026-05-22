@@ -4431,272 +4431,177 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
 }
 .est-use-btn:active { opacity: .85; }
 
-/* ── Transaction animations (CSS scene-based, tutorial quality) ─────────── */
+/* ── Transaction animations ─────────────────────────────────────────────── */
 .txn-anim {
   position: fixed;
-  bottom: calc(var(--nav-h, 58px) + 14px);
-  left: 50%;
-  transform: translateX(-50%) translateY(calc(100% + 24px));
-  z-index: 10010;
-  width: calc(100% - 28px);
-  max-width: 440px;
-  animation: txnAnimIn .42s cubic-bezier(.22,1,.36,1) forwards;
-  cursor: pointer;
-  user-select: none;
-}
-@keyframes txnAnimIn {
-  to { transform: translateX(-50%) translateY(0); }
-}
-.txn-anim--out {
-  animation: txnAnimOut .36s cubic-bezier(.4,0,1,1) forwards !important;
-}
-@keyframes txnAnimOut {
-  to { transform: translateX(-50%) translateY(calc(100% + 24px)); opacity: 0; }
-}
-
-/* Card shell */
-.txn-anim-card {
+  inset: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  z-index: 10010;
+  cursor: pointer;
+  user-select: none;
+  background: rgba(0, 0, 0, .45);
+  animation: txnOverlayIn .22s ease both;
+}
+@keyframes txnOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.txn-anim--out {
+  animation: txnOverlayOut .32s ease forwards !important;
+  pointer-events: none;
+}
+@keyframes txnOverlayOut {
+  to { opacity: 0; }
+}
+
+/* Centered card */
+.txn-anim-card {
   background: var(--card, #1c1c1e);
-  border-radius: 18px 18px 0 0;
-  padding: 14px 14px 14px 12px;
-  border: 1.5px solid var(--glass-border, rgba(255,255,255,.08));
-  border-bottom: none;
+  border-radius: 24px;
+  padding: 32px 32px 0;
+  width: min(88vw, 300px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   position: relative;
   overflow: hidden;
+  animation: txnCardPop .42s cubic-bezier(.22,1,.36,1) both;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .75), 0 0 0 1px var(--glass-border, rgba(255,255,255,.08));
 }
-.txn-anim--expense .txn-anim-card {
-  border-color: rgba(255,69,58,.35);
-  box-shadow: 0 -4px 28px rgba(255,69,58,.18), inset 0 1px 0 rgba(255,69,58,.12);
+@keyframes txnCardPop {
+  from { opacity: 0; transform: scale(.82) translateY(18px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0); }
 }
-.txn-anim--income .txn-anim-card {
-  border-color: rgba(50,215,75,.35);
-  box-shadow: 0 -4px 28px rgba(50,215,75,.15), inset 0 1px 0 rgba(50,215,75,.1);
-}
-.txn-anim--paycheck .txn-anim-card {
-  border-color: rgba(255,214,10,.4);
-  box-shadow: 0 -4px 32px rgba(255,214,10,.22), inset 0 1px 0 rgba(255,214,10,.14);
-}
-.txn-anim--transfer .txn-anim-card {
-  border-color: rgba(var(--accent-rgb, 78,203,141),.35);
-  box-shadow: 0 -4px 28px rgba(var(--accent-rgb, 78,203,141),.14), inset 0 1px 0 rgba(var(--accent-rgb, 78,203,141),.1);
-}
+.txn-anim--expense  .txn-anim-card { box-shadow: 0 28px 80px rgba(0,0,0,.75), 0 0 0 1px rgba(255,69,58,.4),  0 0 50px rgba(255,69,58,.14); }
+.txn-anim--income   .txn-anim-card { box-shadow: 0 28px 80px rgba(0,0,0,.75), 0 0 0 1px rgba(50,215,75,.4),  0 0 50px rgba(50,215,75,.12); }
+.txn-anim--paycheck .txn-anim-card { box-shadow: 0 28px 80px rgba(0,0,0,.75), 0 0 0 1px rgba(255,214,10,.45), 0 0 60px rgba(255,214,10,.18); }
+.txn-anim--transfer .txn-anim-card { box-shadow: 0 28px 80px rgba(0,0,0,.75), 0 0 0 1px rgba(78,203,141,.4),  0 0 50px rgba(78,203,141,.12); }
+
 /* Card shine sweep */
 .txn-anim-card::after {
   content: '';
-  position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
-  animation: txn-shine .7s ease-out .15s both;
+  position: absolute; top: 0; left: -100%; width: 55%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.07), transparent);
+  animation: txn-shine .65s ease-out .12s both;
   pointer-events: none;
 }
-@keyframes txn-shine {
-  from { left: -60%; }
-  to   { left: 120%; }
-}
+@keyframes txn-shine { from { left: -55%; } to { left: 120%; } }
 
-/* Icon wrap */
-.txn-anim-dob-wrap {
-  flex-shrink: 0;
-  width: 64px; height: 64px;
-  display: flex; align-items: center; justify-content: center;
-}
-
-/* ── Scene container ──────────────────────────────────────────────────────── */
-.txn-scene {
+/* Icon wrap — rings + svg live here */
+.txn-anim-icon-wrap {
   position: relative;
-  width: 60px; height: 60px;
-  border-radius: 50%;
+  width: 88px; height: 88px;
   display: flex; align-items: center; justify-content: center;
-  animation: txn-scene-in .4s cubic-bezier(.22,1,.36,1) both;
+  margin-bottom: 8px;
 }
-@keyframes txn-scene-in {
-  from { transform: scale(.5); opacity: 0; }
-  to   { transform: scale(1);  opacity: 1; }
-}
-
-/* Background glow disk */
-.txn-scene::before {
-  content: '';
-  position: absolute; inset: 0;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: .12;
-}
-
-/* Per-type colors */
-.txn-scene--expense  { color: var(--danger,  #ff453a); }
-.txn-scene--income   { color: var(--success, #32d74b); }
-.txn-scene--paycheck { color: #ffd60a; }
-.txn-scene--transfer { color: var(--accent,  #4ecb8d); }
-
-/* Pulsing rings */
-.txn-ring {
+.txn-anim-icon-wrap .txn-ring {
   position: absolute; border-radius: 50%;
   border: 1.5px solid currentColor;
   pointer-events: none;
-  animation: txn-ring-expand 1.6s ease-out infinite;
+  animation: txn-ring-expand 1.7s ease-out infinite;
 }
-.txn-ring--a { width: 48px; height: 48px; }
-.txn-ring--b { width: 62px; height: 62px; animation-delay: .5s; }
+.txn-anim-icon-wrap .txn-ring--a { width: 66px; height: 66px; }
+.txn-anim-icon-wrap .txn-ring--b { width: 84px; height: 84px; animation-delay: .55s; }
 @keyframes txn-ring-expand {
-  0%   { transform: scale(.7); opacity: .65; }
-  100% { transform: scale(1.5); opacity: 0;  }
+  0%   { transform: scale(.7); opacity: .6; }
+  100% { transform: scale(1.4); opacity: 0; }
 }
 
-/* Main SVG */
-.txn-main-svg {
-  width: 36px; height: 36px;
-  display: block; position: relative; z-index: 1;
-}
-
-/* Stroke draw-in animation — each path uses --dl (dashLength) custom prop */
+/* Stroke draw-in — shared with tutorial animations */
 .txn-sd {
   stroke-dasharray: var(--dl, 60);
   stroke-dashoffset: var(--dl, 60);
 }
-.txn-sd--1 { animation: txn-draw .5s cubic-bezier(.22,1,.36,1) .12s both; }
-.txn-sd--2 { animation: txn-draw .5s cubic-bezier(.22,1,.36,1) .28s both; }
-.txn-sd--3 { animation: txn-draw .5s cubic-bezier(.22,1,.36,1) .42s both; }
-.txn-sd--4 { animation: txn-draw .5s cubic-bezier(.22,1,.36,1) .55s both; }
-@keyframes txn-draw {
-  to { stroke-dashoffset: 0; }
-}
-
-/* Expense: arrow + wallet bounce down */
-.txn-scene--expense .txn-main-svg {
-  animation: txn-svg-drop .55s cubic-bezier(.22,1,.36,1) .08s both;
-}
-@keyframes txn-svg-drop {
-  0%   { transform: translateY(-10px) scale(.75); opacity: 0; }
-  65%  { transform: translateY(4px)  scale(1.06); opacity: 1; }
-  100% { transform: translateY(0)    scale(1);    opacity: 1; }
-}
-
-/* Income/paycheck: arrow bounce up */
-.txn-scene--income .txn-main-svg,
-.txn-scene--paycheck .txn-main-svg {
-  animation: txn-svg-rise .55s cubic-bezier(.22,1,.36,1) .08s both;
-}
-@keyframes txn-svg-rise {
-  0%   { transform: translateY(10px) scale(.75); opacity: 0; }
-  65%  { transform: translateY(-4px) scale(1.08); opacity: 1; }
-  100% { transform: translateY(0)    scale(1);    opacity: 1; }
-}
-
-/* Transfer: spin in */
-.txn-scene--transfer .txn-main-svg {
-  animation: txn-svg-spin .7s cubic-bezier(.22,1,.36,1) .05s both;
-}
-@keyframes txn-svg-spin {
-  from { transform: rotate(-120deg) scale(.5); opacity: 0; }
-  to   { transform: rotate(0deg)   scale(1);   opacity: 1; }
-}
-
-/* Flying particles */
-.txn-p {
-  position: absolute;
-  font-size: .6rem; font-weight: 900;
-  pointer-events: none;
-  z-index: 2;
-}
-/* Expense: $ signs scatter outward */
-.txn-p.txn-p-exp--1 { color:#ffd60a; animation: txn-exp-1 .9s ease-out .2s both; }
-.txn-p.txn-p-exp--2 { color:#ff9f0a; animation: txn-exp-2 .9s ease-out .32s both; }
-.txn-p.txn-p-exp--3 { color:var(--danger,#ff453a); animation: txn-exp-3 .9s ease-out .44s both; }
-@keyframes txn-exp-1 {
-  0%   { opacity:1; transform:translate(0,0) scale(1); }
-  100% { opacity:0; transform:translate(-24px,-30px) scale(.35) rotate(-40deg); }
-}
-@keyframes txn-exp-2 {
-  0%   { opacity:1; transform:translate(0,0) scale(1); }
-  100% { opacity:0; transform:translate(20px,-34px) scale(.35) rotate(30deg); }
-}
-@keyframes txn-exp-3 {
-  0%   { opacity:1; transform:translate(0,0) scale(1); }
-  100% { opacity:0; transform:translate(30px,-8px) scale(.35) rotate(15deg); }
-}
-/* Income/paycheck: sparkles shoot upward */
-.txn-p.txn-p-inc--1 { color:#ffd60a; animation: txn-inc-1 .9s ease-out .18s both; }
-.txn-p.txn-p-inc--2 { color:var(--success,#32d74b); animation: txn-inc-2 .9s ease-out .30s both; }
-.txn-p.txn-p-inc--3 { color:#ffd60a; animation: txn-inc-3 .9s ease-out .44s both; }
-.txn-p.txn-p-inc--4 { color:#ffd60a; animation: txn-inc-4 .9s ease-out .22s both; }
-.txn-p.txn-p-inc--5 { color:var(--success,#32d74b); animation: txn-inc-5 .9s ease-out .38s both; }
-@keyframes txn-inc-1 {
-  0%   { opacity:1; transform:translate(0,0) scale(1); }
-  100% { opacity:0; transform:translate(-20px,-36px) scale(.3) rotate(-20deg); }
-}
-@keyframes txn-inc-2 {
-  0%   { opacity:1; transform:translate(0,0) scale(1); }
-  100% { opacity:0; transform:translate(2px,-40px) scale(.3); }
-}
-@keyframes txn-inc-3 {
-  0%   { opacity:1; transform:translate(0,0) scale(1); }
-  100% { opacity:0; transform:translate(22px,-32px) scale(.3) rotate(25deg); }
-}
-@keyframes txn-inc-4 {
-  0%   { opacity:1; transform:translate(0,0) scale(1); }
-  100% { opacity:0; transform:translate(-30px,-20px) scale(.35); }
-}
-@keyframes txn-inc-5 {
-  0%   { opacity:1; transform:translate(0,0) scale(1); }
-  100% { opacity:0; transform:translate(28px,-18px) scale(.35) rotate(45deg); }
-}
+.txn-sd--1 { animation: txn-draw .55s cubic-bezier(.22,1,.36,1) .08s both; }
+.txn-sd--2 { animation: txn-draw .52s cubic-bezier(.22,1,.36,1) .22s both; }
+.txn-sd--3 { animation: txn-draw .50s cubic-bezier(.22,1,.36,1) .36s both; }
+.txn-sd--4 { animation: txn-draw .48s cubic-bezier(.22,1,.36,1) .50s both; }
+@keyframes txn-draw { to { stroke-dashoffset: 0; } }
 
 /* Text */
-.txn-anim-body {
-  flex: 1;
-  min-width: 0;
-}
 .txn-anim-headline {
-  font-size: .88rem;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.25;
-  letter-spacing: -.01em;
-}
-.txn-anim--paycheck .txn-anim-headline {
-  font-size: .96rem;
-  letter-spacing: .02em;
+  font-size: .62rem;
+  letter-spacing: .14em;
+  font-weight: 700;
+  color: var(--muted);
   text-transform: uppercase;
+  opacity: 0;
+  animation: txn-text-up .3s ease .4s both;
 }
 .txn-anim-amount {
-  font-size: 1.4rem;
+  font-size: 2.1rem;
   font-weight: 900;
-  line-height: 1.15;
-  margin-top: 1px;
   letter-spacing: -.03em;
+  line-height: 1;
+  opacity: 0;
+  animation: txn-text-up .3s ease .48s both;
 }
-.txn-anim--expense  .txn-anim-amount { color: var(--danger, #ff453a); }
+.txn-anim--expense  .txn-anim-amount { color: var(--danger,  #ff453a); }
 .txn-anim--income   .txn-anim-amount { color: var(--success, #32d74b); }
 .txn-anim--paycheck .txn-anim-amount { color: #ffd60a; }
+.txn-anim--transfer .txn-anim-amount { color: var(--accent); }
 .txn-anim-desc {
-  font-size: .7rem;
+  font-size: .78rem;
   color: var(--muted);
-  margin-top: 3px;
+  max-width: 220px;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  opacity: 0;
+  animation: txn-text-up .3s ease .56s both;
+}
+@keyframes txn-text-up {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-
-/* Progress bar */
+/* Progress bar (inside card at bottom) */
 .txn-anim-progress {
-  height: 4px;
-  background: rgba(128,128,128,.15);
-  border-radius: 0 0 18px 18px;
+  width: calc(100% + 64px);
+  height: 3px;
+  background: rgba(128,128,128,.12);
+  border-radius: 0 0 24px 24px;
   overflow: hidden;
+  margin-top: 20px;
+  margin-left: -32px;
 }
 .txn-anim-progress-bar {
   height: 100%;
   width: 100%;
-  border-radius: 0 0 18px 18px;
   transition: none;
 }
 .txn-anim--expense  .txn-anim-progress-bar { background: var(--danger,  #ff453a); }
 .txn-anim--income   .txn-anim-progress-bar { background: var(--success, #32d74b); }
 .txn-anim--paycheck .txn-anim-progress-bar { background: #ffd60a; }
+.txn-anim--transfer .txn-anim-progress-bar { background: var(--accent); }
+
+/* Flying particles — positioned relative to icon-wrap */
+.txn-p {
+  position: absolute;
+  font-size: .65rem; font-weight: 900;
+  pointer-events: none;
+  z-index: 2;
+}
+.txn-p.txn-p-exp--1 { color:#ffd60a; animation: txn-exp-1 1s ease-out .22s both; }
+.txn-p.txn-p-exp--2 { color:#ff9f0a; animation: txn-exp-2 1s ease-out .34s both; }
+.txn-p.txn-p-exp--3 { color:var(--danger,#ff453a); animation: txn-exp-3 1s ease-out .46s both; }
+@keyframes txn-exp-1 { 0%{opacity:1;transform:translate(0,0) scale(1)} 100%{opacity:0;transform:translate(-30px,-40px) scale(.3) rotate(-40deg)} }
+@keyframes txn-exp-2 { 0%{opacity:1;transform:translate(0,0) scale(1)} 100%{opacity:0;transform:translate(26px,-44px) scale(.3) rotate(30deg)} }
+@keyframes txn-exp-3 { 0%{opacity:1;transform:translate(0,0) scale(1)} 100%{opacity:0;transform:translate(38px,-14px) scale(.3) rotate(15deg)} }
+.txn-p.txn-p-inc--1 { color:#ffd60a; animation: txn-inc-1 1s ease-out .20s both; }
+.txn-p.txn-p-inc--2 { color:var(--success,#32d74b); animation: txn-inc-2 1s ease-out .32s both; }
+.txn-p.txn-p-inc--3 { color:#ffd60a; animation: txn-inc-3 1s ease-out .46s both; }
+.txn-p.txn-p-inc--4 { color:#ffd60a; animation: txn-inc-4 1s ease-out .24s both; }
+.txn-p.txn-p-inc--5 { color:var(--success,#32d74b); animation: txn-inc-5 1s ease-out .40s both; }
+@keyframes txn-inc-1 { 0%{opacity:1;transform:translate(0,0) scale(1)} 100%{opacity:0;transform:translate(-26px,-44px) scale(.25) rotate(-20deg)} }
+@keyframes txn-inc-2 { 0%{opacity:1;transform:translate(0,0) scale(1)} 100%{opacity:0;transform:translate(2px,-50px) scale(.25)} }
+@keyframes txn-inc-3 { 0%{opacity:1;transform:translate(0,0) scale(1)} 100%{opacity:0;transform:translate(28px,-40px) scale(.25) rotate(25deg)} }
+@keyframes txn-inc-4 { 0%{opacity:1;transform:translate(0,0) scale(1)} 100%{opacity:0;transform:translate(-38px,-24px) scale(.3)} }
+@keyframes txn-inc-5 { 0%{opacity:1;transform:translate(0,0) scale(1)} 100%{opacity:0;transform:translate(36px,-22px) scale(.3) rotate(45deg)} }
 
 /* ── New dashboard tiles ────────────────────────────────────────────────── */
 
@@ -4836,6 +4741,16 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
 @keyframes wt-nav-swap { 0%,100%{opacity:1;transform:none} 20%{opacity:0;transform:translateY(-7px)} 50%{opacity:0;transform:translateY(7px)} 75%,100%{opacity:1;transform:none} }
 @keyframes wt-tap      { 0%,55%,100%{transform:scale(1)} 70%,85%{transform:scale(.91)} }
 @keyframes wt-wiggle   { 0%,100%{transform:rotate(0deg) translate(0,0)} 25%{transform:rotate(-2deg) translate(-1px,1px)} 75%{transform:rotate(2deg) translate(1px,-1px)} }
+@keyframes wt-spark-draw {
+  0%,8%   { stroke-dashoffset: 210; }
+  50%,82% { stroke-dashoffset: 0; }
+  100%    { stroke-dashoffset: 210; }
+}
+@keyframes wt-spark-dot {
+  0%,48%  { opacity: 0; transform: scale(0); }
+  58%,82% { opacity: 1; transform: scale(1); }
+  95%,100%{ opacity: 0; transform: scale(0); }
+}
 
 /* ── terminal theme: code-syntax styled titles ───────────────────────────── */
 
