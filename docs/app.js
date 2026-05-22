@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.10.6';
+const VERSION = '5.10.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,13 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.10.7', date: '2026-05-22', changes: [
+    'Custom theme is now its own standalone theme — picking a color via the color wheel no longer modifies your current theme; it switches to the dedicated Custom theme entry',
+    'Color picker upgraded to a full canvas HSL color wheel — no more sliders; tap any point on the wheel to choose hue/saturation, use the brightness bar for lightness',
+    'Preset accent colors softened across all themes for a less harsh look',
+    'Light mode dimmed further — background and surface tones reduced so whites are easier on the eyes',
+    'Dashboard hero background art — faint currency symbols ($ ¥ € £ ₿) layer behind the doberman and Lock TF In tagline for a subtle money-themed atmosphere',
+  ]},
   { version: '5.10.6', date: '2026-05-22', changes: [
     'Splash screen glitch effect — faint money symbol field with periodic RGB-split glitch bursts instead of matrix rain; toggle off with ✦ hide effects',
     'Income/expense/transfer animations completely rebuilt — centered fullscreen overlay with large draw-in SVG icons, big amount text, and professional card pop animation',
@@ -955,18 +962,18 @@ const THEMES = {
   dark: {
     label:'Dark', shortLabel:'Green',
     ..._D,
-    accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050',
-    grad:'linear-gradient(135deg, #2d3830 0%, #4ecb8d 100%)',
-    cats:{ Food:'#4ecb8d', Gas:'#c05858', Car:'#6888a8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#8890a8', Health:'#4090a8', Other:'#787880' },
+    accent:'#62b898', accent2:'#997060', success:'#62b898', warn:'#c0a038', danger:'#c05050',
+    grad:'linear-gradient(135deg, #283530 0%, #62b898 100%)',
+    cats:{ Food:'#62b898', Gas:'#c05858', Car:'#6888a8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#8890a8', Health:'#4090a8', Other:'#787880' },
   },
   oled: {
     label:'OLED Black', shortLabel:'OLED',
     bg:'#000000', surface:'#0a0a0a', surface2:'#101010', card:'#0c0c0c',
     text:'#e2e2e4', muted:'#888890', border:'#1c1c1c',
-    accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050',
-    grad:'linear-gradient(135deg, #000a04 0%, #4ecb8d 100%)',
+    accent:'#62b898', accent2:'#997060', success:'#62b898', warn:'#c0a038', danger:'#c05050',
+    grad:'linear-gradient(135deg, #000a04 0%, #62b898 100%)',
     font:'default',
-    cats:{ Food:'#4ecb8d', Gas:'#c05858', Car:'#6888a8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#8890a8', Health:'#4090a8', Other:'#787880' },
+    cats:{ Food:'#62b898', Gas:'#c05858', Car:'#6888a8', Boat:'#4898a8', Tools:'#b87840', Home:'#7ca048', Entertainment:'#8890a8', Health:'#4090a8', Other:'#787880' },
   },
   vscode: {
     label:'VS Code',
@@ -1024,55 +1031,61 @@ const THEMES = {
   },
   light: {
     label:'Light', shortLabel:'Mint',
-    bg:'#e9e9e7', surface:'#f3f3f0', surface2:'#deded9', card:'#e3e3e0',
-    accent:'#4ecb8d', accent2:'#a06838', success:'#2ea870', warn:'#988018', danger:'#a84040',
-    grad:'linear-gradient(135deg, #1a4030 0%, #4ecb8d 100%)',
+    bg:'#d4d4d1', surface:'#dededb', surface2:'#c9c9c6', card:'#cececa',
+    accent:'#5ab592', accent2:'#9a7850', success:'#4aaa80', warn:'#988018', danger:'#a84040',
+    grad:'linear-gradient(135deg, #1a4030 0%, #5ab592 100%)',
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
-    cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
+    cats:{ Food:'#4aaa80', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
   },
   denim: {
     label:'Denim', shortLabel:'Blue',
     ..._D,
-    accent:'#4080b0', accent2:'#b07840', success:'#52a872', warn:'#c0a038', danger:'#c05050',
+    accent:'#6090b4', accent2:'#a88050', success:'#62a880', warn:'#c0a038', danger:'#c05050',
     cats:{ Food:'#52a872', Gas:'#c05858', Car:'#4070b0', Boat:'#3898b8', Tools:'#b07840', Home:'#608898', Entertainment:'#6060a8', Health:'#3898b8', Other:'#607898' },
   },
   ember: {
     label:'Ember', shortLabel:'Orange',
     ..._D,
-    accent:'#c07830', accent2:'#c05030', success:'#52a872', warn:'#c0a038', danger:'#c05050',
+    accent:'#b88252', accent2:'#b06248', success:'#52a872', warn:'#c0a038', danger:'#c05050',
     cats:{ Food:'#78a858', Gas:'#c85040', Car:'#b07830', Boat:'#509880', Tools:'#c86830', Home:'#a89840', Entertainment:'#b06070', Health:'#609878', Other:'#988060' },
   },
   jurassicpark: {
     label:'Gold', shortLabel:'Gold',
     ..._D,
-    accent:'#c8a020', accent2:'#c84820', success:'#5aaa40', warn:'#c8a020', danger:'#c84030',
+    accent:'#b8a048', accent2:'#b06040', success:'#5aaa40', warn:'#c8a020', danger:'#c84030',
     cats:{ Food:'#5aaa40', Gas:'#c84030', Car:'#c8a020', Boat:'#409870', Tools:'#c86020', Home:'#80a830', Entertainment:'#a07020', Health:'#50a860', Other:'#788858' },
   },
-  auto: { label:'Auto (System)', shortLabel:'Auto', ..._D, accent:'#4ecb8d', accent2:'#a07858', success:'#4ecb8d', warn:'#c0a038', danger:'#c05050', grad:'linear-gradient(135deg, #2d3830 0%, #4ecb8d 100%)' },
+  auto: { label:'Auto (System)', shortLabel:'Auto', ..._D, accent:'#62b898', accent2:'#a07858', success:'#62b898', warn:'#c0a038', danger:'#c05050', grad:'linear-gradient(135deg, #283530 0%, #62b898 100%)' },
+  custom: {
+    label:'Custom', shortLabel:'Custom',
+    ..._D,
+    accent:'#62b898', accent2:'#62b898', success:'#62b898', warn:'#c0a038', danger:'#c05050',
+    grad:'linear-gradient(135deg, #242425 0%, #62b898 100%)',
+  },
   // ── Light mode accent variants ──────────────────────────────────────────
   lightsky: {
     label:'Sky', shortLabel:'Sky',
-    bg:'#e9e9e7', surface:'#f3f3f0', surface2:'#deded9', card:'#e3e3e0',
-    accent:'#3a86c8', accent2:'#c07840', success:'#2e9a68', warn:'#b07800', danger:'#a84040',
-    grad:'linear-gradient(135deg, #1a304a 0%, #3a86c8 100%)',
+    bg:'#d4d4d1', surface:'#dededb', surface2:'#c9c9c6', card:'#cececa',
+    accent:'#5492bc', accent2:'#c07840', success:'#2e9a68', warn:'#b07800', danger:'#a84040',
+    grad:'linear-gradient(135deg, #1a304a 0%, #5492bc 100%)',
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
-    cats:{ Food:'#2e9a68', Gas:'#a84040', Car:'#3a86c8', Boat:'#2888a8', Tools:'#986030', Home:'#608038', Entertainment:'#7848a8', Health:'#3888a0', Other:'#606078' },
+    cats:{ Food:'#2e9a68', Gas:'#a84040', Car:'#5492bc', Boat:'#2888a8', Tools:'#986030', Home:'#608038', Entertainment:'#7848a8', Health:'#3888a0', Other:'#606078' },
   },
   lightrose: {
     label:'Rose', shortLabel:'Rose',
-    bg:'#e9e9e7', surface:'#f3f3f0', surface2:'#deded9', card:'#e3e3e0',
-    accent:'#c04870', accent2:'#987838', success:'#2ea870', warn:'#988018', danger:'#a84040',
-    grad:'linear-gradient(135deg, #4a1a2c 0%, #c04870 100%)',
+    bg:'#d4d4d1', surface:'#dededb', surface2:'#c9c9c6', card:'#cececa',
+    accent:'#b05878', accent2:'#987838', success:'#2ea870', warn:'#988018', danger:'#a84040',
+    grad:'linear-gradient(135deg, #4a1a2c 0%, #b05878 100%)',
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
-    cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a8', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#c04870', Health:'#308898', Other:'#606078' },
+    cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a8', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#b05878', Health:'#308898', Other:'#606078' },
   },
   lightsand: {
     label:'Sand', shortLabel:'Sand',
-    bg:'#e9e9e7', surface:'#f3f3f0', surface2:'#deded9', card:'#e3e3e0',
-    accent:'#b07820', accent2:'#c05830', success:'#2ea870', warn:'#988018', danger:'#a84040',
-    grad:'linear-gradient(135deg, #4a3010 0%, #b07820 100%)',
+    bg:'#d4d4d1', surface:'#dededb', surface2:'#c9c9c6', card:'#cececa',
+    accent:'#a8843c', accent2:'#c05830', success:'#2ea870', warn:'#988018', danger:'#a84040',
+    grad:'linear-gradient(135deg, #4a3010 0%, #a8843c 100%)',
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
-    cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#b07820', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
+    cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#a8843c', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
   },
 };
 
@@ -1753,15 +1766,15 @@ function applyTheme(theme) {
   if (['vscode', 'powershell', 'cmd', 'kali', 'mintlinux', 'ubuntu'].includes(theme)) {
     document.body.classList.add('theme-' + theme);
   }
-  // Custom accent color override (color wheel) — skipped for terminal/linux themes
-  const _caS = loadSettings();
-  const _termThemes = ['vscode','powershell','cmd','kali','mintlinux','ubuntu'];
-  if (_caS.customAccent && !_termThemes.includes(theme)) {
-    const _ca = _caS.customAccent;
-    root.style.setProperty('--accent',          _ca);
-    root.style.setProperty('--accent2',         _ca);
-    root.style.setProperty('--success',         _ca);
-    root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${t.surface2} 0%, ${_ca} 100%)`);
+  // Custom theme: apply the saved custom accent color
+  if (theme === 'custom') {
+    const _cc = loadSettings().customAccent;
+    if (_cc) {
+      root.style.setProperty('--accent',          _cc);
+      root.style.setProperty('--accent2',         _cc);
+      root.style.setProperty('--success',         _cc);
+      root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${t.surface2} 0%, ${_cc} 100%)`);
+    }
   }
   // Update category colors to match theme
   if (t.cats) Object.assign(CAT_COLORS, t.cats);
@@ -2895,6 +2908,181 @@ function renderAccountPicker() {
     </div>`;
 }
 
+// ── Color utility functions ────────────────────────────────────────────────
+function _hslToRgb(h, s, l) {
+  s /= 100; l /= 100;
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
+}
+function _rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+}
+function _hexToHsl(hex) {
+  if (!hex || hex.length < 7) return [160, 55, 55];
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return _rgbToHsl(r, g, b);
+}
+function _hslToHex(h, s, l) {
+  const [r, g, b] = _hslToRgb(h, s, l);
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+function _drawColorWheel(canvas, lightness) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const cx = w / 2, cy = h / 2, r = Math.min(cx, cy) - 1;
+  const img = ctx.createImageData(w, h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const dx = x - cx, dy = y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > r) { img.data[(y * w + x) * 4 + 3] = 0; continue; }
+      const hue = ((Math.atan2(dy, dx) * 180 / Math.PI) + 360) % 360;
+      const sat = (dist / r) * 100;
+      const [rv, gv, bv] = _hslToRgb(hue, sat, lightness);
+      const i = (y * w + x) * 4;
+      img.data[i] = rv; img.data[i + 1] = gv; img.data[i + 2] = bv; img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+}
+function _openColorPicker(currentHex, onApply) {
+  document.getElementById('_cw')?.remove();
+  const [initH, initS, initL] = _hexToHsl(currentHex || '#62b898');
+  let pickH = initH, pickS = initS, pickL = Math.max(18, Math.min(82, initL));
+  const WS = 220;
+
+  const overlay = document.createElement('div');
+  overlay.id = '_cw';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:11000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(6px)';
+
+  const panel = document.createElement('div');
+  panel.style.cssText = 'background:var(--card);border-radius:22px;padding:22px;width:264px;box-shadow:0 24px 80px rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;gap:14px';
+
+  const titleEl = document.createElement('div');
+  titleEl.style.cssText = 'font-size:.7rem;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;align-self:flex-start';
+  titleEl.textContent = 'Custom Accent Color';
+
+  const wheelWrap = document.createElement('div');
+  wheelWrap.style.cssText = 'position:relative;width:220px;height:220px;flex-shrink:0';
+
+  const wheelCanvas = document.createElement('canvas');
+  wheelCanvas.width = wheelCanvas.height = WS;
+  wheelCanvas.style.cssText = 'width:220px;height:220px;display:block;border-radius:50%;cursor:crosshair;touch-action:none';
+  wheelWrap.appendChild(wheelCanvas);
+
+  const dot = document.createElement('div');
+  dot.style.cssText = 'position:absolute;width:14px;height:14px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.7);pointer-events:none;transform:translate(-50%,-50%);transition:none';
+  wheelWrap.appendChild(dot);
+
+  const brightRow = document.createElement('div');
+  brightRow.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%';
+  const brightLbl = document.createElement('span');
+  brightLbl.style.cssText = 'font-size:.66rem;color:var(--muted);white-space:nowrap;min-width:64px';
+  brightLbl.textContent = 'Brightness';
+  const brightInput = document.createElement('input');
+  brightInput.type = 'range'; brightInput.min = '18'; brightInput.max = '82';
+  brightInput.value = String(pickL); brightInput.className = 'slider'; brightInput.style.flex = '1';
+  brightRow.appendChild(brightLbl); brightRow.appendChild(brightInput);
+
+  const previewRow = document.createElement('div');
+  previewRow.style.cssText = 'display:flex;align-items:center;gap:14px;width:100%';
+  const preview = document.createElement('div');
+  preview.style.cssText = `width:52px;height:52px;border-radius:50%;background:${currentHex || '#62b898'};box-shadow:0 4px 20px rgba(0,0,0,.4);flex-shrink:0`;
+  const hexLbl = document.createElement('div');
+  hexLbl.style.cssText = 'font-size:.88rem;font-weight:700;color:var(--text);letter-spacing:.06em';
+  hexLbl.textContent = (currentHex || '#62b898').toUpperCase();
+  previewRow.appendChild(preview); previewRow.appendChild(hexLbl);
+
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:10px;width:100%';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.style.cssText = 'flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)';
+  cancelBtn.textContent = 'Cancel';
+  const applyBtn = document.createElement('button');
+  applyBtn.style.cssText = `flex:2;padding:12px;border-radius:12px;border:none;background:${currentHex || '#62b898'};color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)`;
+  applyBtn.textContent = 'Apply';
+  btnRow.appendChild(cancelBtn); btnRow.appendChild(applyBtn);
+
+  panel.append(titleEl, wheelWrap, brightRow, previewRow, btnRow);
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  let curHex = currentHex || '#62b898';
+
+  const updatePreview = () => {
+    curHex = _hslToHex(pickH, pickS, pickL);
+    preview.style.background = curHex;
+    hexLbl.textContent = curHex.toUpperCase();
+    applyBtn.style.background = curHex;
+  };
+
+  const positionDot = () => {
+    const r2 = (WS / 2) - 1;
+    const scale = 220 / WS;
+    const dx = Math.cos(pickH * Math.PI / 180) * (pickS / 100) * r2;
+    const dy = Math.sin(pickH * Math.PI / 180) * (pickS / 100) * r2;
+    dot.style.left = ((WS / 2 + dx) * scale) + 'px';
+    dot.style.top  = ((WS / 2 + dy) * scale) + 'px';
+  };
+
+  const pickFromPoint = (clientX, clientY) => {
+    const rect = wheelCanvas.getBoundingClientRect();
+    const scale = WS / rect.width;
+    const cx = WS / 2, cy = WS / 2, r2 = cx - 1;
+    let px = (clientX - rect.left) * scale;
+    let py = (clientY - rect.top)  * scale;
+    const ddx = px - cx, ddy = py - cy;
+    const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+    if (dist > r2) { px = cx + (ddx / dist) * r2; py = cy + (ddy / dist) * r2; }
+    pickH = ((Math.atan2(py - cy, px - cx) * 180 / Math.PI) + 360) % 360;
+    pickS = Math.min((Math.sqrt((px - cx) ** 2 + (py - cy) ** 2) / r2) * 100, 100);
+    positionDot();
+    updatePreview();
+  };
+
+  let dragging = false;
+  const onMouseDown = e => { dragging = true; pickFromPoint(e.clientX, e.clientY); };
+  const onMouseMove = e => { if (dragging) pickFromPoint(e.clientX, e.clientY); };
+  const onMouseUp   = () => { dragging = false; };
+  const onTouch = e => { e.preventDefault(); const t = e.touches[0] || e.changedTouches[0]; if (t) pickFromPoint(t.clientX, t.clientY); };
+  wheelCanvas.addEventListener('mousedown', onMouseDown);
+  window.addEventListener('mousemove', onMouseMove);
+  window.addEventListener('mouseup', onMouseUp);
+  wheelCanvas.addEventListener('touchstart', onTouch, { passive: false });
+  wheelCanvas.addEventListener('touchmove',  onTouch, { passive: false });
+
+  brightInput.addEventListener('input', () => {
+    pickL = parseInt(brightInput.value);
+    _drawColorWheel(wheelCanvas, pickL);
+    updatePreview();
+  });
+
+  cancelBtn.addEventListener('click', () => { window.removeEventListener('mousemove', onMouseMove); window.removeEventListener('mouseup', onMouseUp); overlay.remove(); });
+  applyBtn.addEventListener('click',  () => { window.removeEventListener('mousemove', onMouseMove); window.removeEventListener('mouseup', onMouseUp); overlay.remove(); onApply(curHex); });
+  overlay.addEventListener('click', e => { if (e.target === overlay) { window.removeEventListener('mousemove', onMouseMove); window.removeEventListener('mouseup', onMouseUp); overlay.remove(); } });
+
+  _drawColorWheel(wheelCanvas, pickL);
+  positionDot();
+  updatePreview();
+}
+
 // ── splash screen ──────────────────────────────────────────────────────────
 function runSplash() {
   return new Promise(resolve => {
@@ -3973,6 +4161,7 @@ function renderDashboardDawg() {
   return `<div class="dawg-page">
     <div class="dawg-hero">
       <div class="dawg-hero-glow"></div>
+      <div class="dawg-hero-bg-art"></div>
       <div class="dawg-hero-inner">
         <div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin">LOCK TF IN.</em></div>
         <img src="./doberman.png" class="dawg-hero-dob" alt="">
@@ -6022,17 +6211,22 @@ function renderSettings() {
   const isLight    = !isTerminal && !!THEMES[theme]?.light;
   const activeMode = isTerminal ? 'terminal' : isLight ? 'light' : 'dark';
 
-  const DARK_ACCENTS  = ['dark','oled','denim','ember','jurassicpark','auto'];
+  const DARK_ACCENTS  = ['dark','oled','denim','ember','jurassicpark','auto','custom'];
   const LIGHT_ACCENTS = ['light','lightsky','lightrose','lightsand'];
 
   const accentChip = (key, active) => {
     const t = THEMES[key];
     if (!t) return '';
-    const lbl  = t.shortLabel || t.label;
-    const dot  = t.light
-      ? `border:2px solid ${t.accent};background:#fff`
-      : `background:${t.accent}`;
-    return `<button class="theme-accent-chip${active ? ' active' : ''}" data-theme="${key}" title="${t.label}">
+    const lbl = t.shortLabel || t.label;
+    let dot;
+    if (key === 'custom') {
+      dot = customAccent
+        ? `background:${customAccent}`
+        : `background:conic-gradient(#e05858,#d4a030,#62b898,#5492bc,#8868c0,#e05858)`;
+    } else {
+      dot = t.light ? `border:2px solid ${t.accent};background:var(--surface)` : `background:${t.accent}`;
+    }
+    return `<button class="theme-accent-chip${active ? ' active' : ''}" data-theme="${key}" title="${t.label}"${key === 'custom' ? ' id="custom-theme-chip"' : ''}>
       <span class="theme-accent-dot" style="${dot}"></span>
       <span class="theme-accent-lbl">${lbl}</span>
     </button>`;
@@ -6085,18 +6279,6 @@ function renderSettings() {
               ? LIGHT_ACCENTS.map(k => accentChip(k, k === theme)).join('')
               : DARK_ACCENTS.map(k => accentChip(k, k === theme)).join('')
             }
-          </div>
-          <div style="display:flex;align-items:center;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
-            <div style="position:relative;flex-shrink:0">
-              <input type="color" id="custom-accent-input"
-                value="${customAccent || THEMES[theme]?.accent || '#4ecb8d'}"
-                style="width:42px;height:42px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;padding:3px;box-sizing:border-box;-webkit-appearance:none">
-            </div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:.82rem;font-weight:600;color:var(--text)">Custom color</div>
-              <div style="font-size:.7rem;color:var(--muted);margin-top:2px">${customAccent ? `Active: ${customAccent}` : 'Pick any accent — overrides the preset'}</div>
-            </div>
-            ${customAccent ? `<button id="reset-accent-btn" class="btn-xs" style="flex-shrink:0">Reset</button>` : ''}
           </div>
         </div>
 
@@ -6211,21 +6393,19 @@ function attachSettings() {
     chip.addEventListener('click', () => _applyThemeKey(chip.dataset.theme));
   });
 
-  // Custom accent color wheel
-  document.getElementById('custom-accent-input')?.addEventListener('input', e => {
-    const color = e.target.value;
-    const _s = loadSettings(); _s.customAccent = color; saveSettings(_s);
-    const root = document.documentElement;
-    root.style.setProperty('--accent',          color);
-    root.style.setProperty('--accent2',         color);
-    root.style.setProperty('--success',         color);
-    const surf2 = root.style.getPropertyValue('--surface2') || getComputedStyle(root).getPropertyValue('--surface2').trim();
-    root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${surf2} 0%, ${color} 100%)`);
-  });
-  document.getElementById('custom-accent-input')?.addEventListener('change', () => render());
-  document.getElementById('reset-accent-btn')?.addEventListener('click', () => {
-    const _s = loadSettings(); delete _s.customAccent; saveSettings(_s);
-    applyTheme(_s.theme || 'dark'); render();
+  // Custom accent color wheel (opens picker)
+  document.getElementById('custom-theme-chip')?.addEventListener('click', e => {
+    e.stopPropagation();
+    const _s = loadSettings();
+    const initial = _s.customAccent || THEMES[_s.theme === 'custom' ? 'dark' : (_s.theme || 'dark')]?.accent || '#62b898';
+    _openColorPicker(initial, hex => {
+      const _s2 = loadSettings();
+      _s2.customAccent = hex;
+      _s2.theme = 'custom';
+      saveSettings(_s2);
+      applyTheme('custom');
+      render();
+    });
   });
 
   // Go to accounts page
