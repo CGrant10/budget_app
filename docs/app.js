@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.10.8';
+const VERSION = '5.10.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.10.9', date: '2026-05-22', changes: [
+    'Removed currency symbol background art from the dashboard hero — cleaner look',
+    'LOCK TF IN. text now occasionally glitches with an RGB-split burst (red/cyan channel layers) matching the splash screen style',
+    'Custom color wheel is now available in Light mode — appears as the last chip in the Light accent row and applies your chosen color over the light theme base',
+  ]},
   { version: '5.10.8', date: '2026-05-22', changes: [
     'Swipe-to-delete confirmation now responds on first tap every time — fixed layout shift caused by row slide-back animation interfering with modal button',
     'Splash screen text glitch — Budget DAWGs title now glitches with RGB-split channel layers (red/cyan pseudo-elements, clip-path burst effect); canvas glitch removed',
@@ -1069,6 +1074,13 @@ const THEMES = {
     accent:'#62b898', accent2:'#62b898', success:'#62b898', warn:'#c0a038', danger:'#c05050',
     grad:'linear-gradient(135deg, #242425 0%, #62b898 100%)',
   },
+  customlight: {
+    label:'Custom', shortLabel:'Custom',
+    bg:'#d4d4d1', surface:'#dededb', surface2:'#c9c9c6', card:'#cececa',
+    text:'#1e1e20', muted:'#606068', border:'#c0c0bc', light:true, font:'default',
+    accent:'#5ab592', accent2:'#5ab592', success:'#5ab592', warn:'#a08030', danger:'#c05050',
+    grad:'linear-gradient(135deg, #c9c9c6 0%, #5ab592 100%)',
+  },
   // ── Light mode accent variants ──────────────────────────────────────────
   lightsky: {
     label:'Sky', shortLabel:'Sky',
@@ -1773,8 +1785,8 @@ function applyTheme(theme) {
   if (['vscode', 'powershell', 'cmd', 'kali', 'mintlinux', 'ubuntu'].includes(theme)) {
     document.body.classList.add('theme-' + theme);
   }
-  // Custom theme: apply the saved custom accent color
-  if (theme === 'custom') {
+  // Custom / Customlight themes: apply the saved custom accent color
+  if (theme === 'custom' || theme === 'customlight') {
     const _cc = loadSettings().customAccent;
     if (_cc) {
       root.style.setProperty('--accent',          _cc);
@@ -4086,9 +4098,8 @@ function renderDashboardDawg() {
   return `<div class="dawg-page">
     <div class="dawg-hero">
       <div class="dawg-hero-glow"></div>
-      <div class="dawg-hero-bg-art"></div>
       <div class="dawg-hero-inner">
-        <div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin">LOCK TF IN.</em></div>
+        <div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin" data-glitch="LOCK TF IN.">LOCK TF IN.</em></div>
         <img src="./doberman.png" class="dawg-hero-dob" alt="">
       </div>
     </div>
@@ -6137,21 +6148,22 @@ function renderSettings() {
   const activeMode = isTerminal ? 'terminal' : isLight ? 'light' : 'dark';
 
   const DARK_ACCENTS  = ['dark','oled','denim','ember','jurassicpark','auto','custom'];
-  const LIGHT_ACCENTS = ['light','lightsky','lightrose','lightsand'];
+  const LIGHT_ACCENTS = ['light','lightsky','lightrose','lightsand','customlight'];
 
   const accentChip = (key, active) => {
     const t = THEMES[key];
     if (!t) return '';
     const lbl = t.shortLabel || t.label;
     let dot;
-    if (key === 'custom') {
+    if (key === 'custom' || key === 'customlight') {
       dot = customAccent
         ? `background:${customAccent}`
         : `background:conic-gradient(#e05858,#d4a030,#62b898,#5492bc,#8868c0,#e05858)`;
     } else {
       dot = t.light ? `border:2px solid ${t.accent};background:var(--surface)` : `background:${t.accent}`;
     }
-    return `<button class="theme-accent-chip${active ? ' active' : ''}" data-theme="${key}" title="${t.label}"${key === 'custom' ? ' id="custom-theme-chip"' : ''}>
+    const chipId = key === 'custom' ? ' id="custom-theme-chip"' : key === 'customlight' ? ' id="customlight-theme-chip"' : '';
+    return `<button class="theme-accent-chip${active ? ' active' : ''}" data-theme="${key}" title="${t.label}"${chipId}>
       <span class="theme-accent-dot" style="${dot}"></span>
       <span class="theme-accent-lbl">${lbl}</span>
     </button>`;
@@ -6318,7 +6330,7 @@ function attachSettings() {
     chip.addEventListener('click', () => _applyThemeKey(chip.dataset.theme));
   });
 
-  // Custom accent color wheel (opens picker)
+  // Custom accent color wheel — dark variant
   document.getElementById('custom-theme-chip')?.addEventListener('click', e => {
     e.stopPropagation();
     const _s = loadSettings();
@@ -6329,6 +6341,20 @@ function attachSettings() {
       _s2.theme = 'custom';
       saveSettings(_s2);
       applyTheme('custom');
+      render();
+    });
+  });
+  // Custom accent color wheel — light variant
+  document.getElementById('customlight-theme-chip')?.addEventListener('click', e => {
+    e.stopPropagation();
+    const _s = loadSettings();
+    const initial = _s.customAccent || THEMES.light?.accent || '#5ab592';
+    _openColorPicker(initial, hex => {
+      const _s2 = loadSettings();
+      _s2.customAccent = hex;
+      _s2.theme = 'customlight';
+      saveSettings(_s2);
+      applyTheme('customlight');
       render();
     });
   });
