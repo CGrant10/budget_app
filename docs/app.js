@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.6.0';
+const VERSION = '5.7.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.7.0', date: '2026-05-22', changes: [
+    'App tutorial massively expanded — 23 steps covering every feature with instructions on how to use each one, not just descriptions',
+    'New tour steps: hamburger menu, account switcher pill, all-accounts overview button, customize layout button, debt payoff planner usage, goals contribution flow, settings accounts / theme / privacy walk-through, force update button',
+    'Each step now tells you what to tap or fill in, not just what the section is',
+  ]},
   { version: '5.6.0', date: '2026-05-22', changes: [
     'Add to Home Screen button in the menu drawer — on Android/Chrome it triggers the native install prompt; on iOS it shows a one-tap tip explaining the Share → Add to Home Screen flow',
     'Text selection disabled app-wide so long-pressing nav labels, tile titles, and other UI text no longer triggers the copy menu; re-enabled on all input fields and text you\'d actually want to copy',
@@ -6635,69 +6640,142 @@ function renderAbout() {
 
 // ── walkthrough tour ──────────────────────────────────────────────────────
 const WALKTHROUGH_STEPS = [
+  // ── 1. Welcome ────────────────────────────────────────────────────────────
   { tab: null, target: null,
-    title: 'Welcome to Budget DAWGs',
-    body: 'Your all-in-one personal finance companion. This quick tour navigates you through every section — takes about 2 minutes. Tap Next to advance.',
+    title: 'Welcome to Budget DAWGs 🐾',
+    body: 'Your all-in-one personal finance companion. This tour walks you through every section and shows you exactly how to use each feature. Tap Next to begin — use ← Back to revisit any step.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 4l3.1 6.3 7 1.1-5.1 4.9 1.2 7-6.2-3.3-6.2 3.3 1.2-7-5.1-4.9 7-1.1z"/><line x1="12" y1="28" x2="24" y2="28" stroke-width="1.5"/><line x1="15" y1="32" x2="21" y2="32" stroke-width="1.5"/></svg>`,
   },
+  // ── 2. Hamburger / Drawer ─────────────────────────────────────────────────
+  { tab: 'dashboard', target: '#dawg-hamburger',
+    title: 'The Menu',
+    body: 'Tap the ☰ menu button (top-left) to open the drawer. Inside you\'ll find quick links to every page, an Install App button to add Budget DAWGs to your home screen, and more.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="10" x2="30" y2="10"/><line x1="6" y1="18" x2="30" y2="18"/><line x1="6" y1="26" x2="30" y2="26"/></svg>`,
+  },
+  // ── 3. Account pill ───────────────────────────────────────────────────────
+  { tab: 'dashboard', target: '#dawg-acct-switch',
+    title: 'Account Switcher',
+    body: 'Tap your account name in the top bar to quickly switch between accounts — great if you manage personal and business finances separately. Each account has its own data.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="13" r="5"/><path d="M4 30c0-5.5 4.5-10 10-10"/><circle cx="26" cy="20" r="5"/><path d="M21 30h10"/><line x1="26" y1="25" x2="26" y2="35"/></svg>`,
+  },
+  // ── 4. All Accounts overview ──────────────────────────────────────────────
+  { tab: 'dashboard', target: '#dawg-accts-btn',
+    title: 'All Accounts Overview',
+    body: 'Tap the grid icon (top-right) to see all your accounts side-by-side — balances, net worth, and totals at a glance. To add or set up accounts, tap it and then open Settings → Accounts.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="12" rx="2"/><rect x="20" y="4" width="12" height="12" rx="2"/><rect x="4" y="20" width="12" height="12" rx="2"/><rect x="20" y="20" width="12" height="12" rx="2"/></svg>`,
+  },
+  // ── 5. Dashboard balance card ─────────────────────────────────────────────
   { tab: 'dashboard', target: '.dawg-balance-card',
-    title: 'Dashboard',
-    body: 'Home base — your current balance, monthly net, and a sparkline showing your trend. Tap ‹ › to browse any past month.',
+    title: 'Your Balance Card',
+    body: 'This card shows your current account balance, this month\'s income vs expenses, and a sparkline of your recent trend. Tap the ‹ › arrows to browse previous months.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="13" rx="2"/><rect x="20" y="4" width="12" height="7" rx="2"/><rect x="20" y="15" width="12" height="13" rx="2"/><rect x="4" y="21" width="12" height="11" rx="2"/></svg>`,
   },
+  // ── 6. Dashboard tiles ────────────────────────────────────────────────────
   { tab: 'dashboard', target: '#dawg-tile-grid',
     title: 'Budget Tiles',
-    body: 'Ring tiles show weekly and daily spend vs your budget. Hold any tile to drag it. Tap "Customize Layout" below the grid to resize or swap tiles.',
+    body: 'The ring tiles below show your weekly and daily spend vs budget. The bar charts track spending by category and day. Hold any tile and drag it to reorder the grid.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="12"/><circle cx="18" cy="18" r="6"/><line x1="18" y1="6" x2="18" y2="10"/><line x1="18" y1="26" x2="18" y2="30"/><line x1="6" y1="18" x2="10" y2="18"/><line x1="26" y1="18" x2="30" y2="18"/></svg>`,
   },
+  // ── 7. Customize Layout ───────────────────────────────────────────────────
+  { tab: 'dashboard', target: '#dash-layout-btn',
+    title: 'Customize Your Layout',
+    body: 'Tap "Customize Layout" to enter edit mode — tiles will wiggle. Drag them into any order, tap a tile to change its size (small, medium, large), or hide tiles you don\'t need.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="12" rx="2"/><rect x="20" y="4" width="12" height="12" rx="2"/><rect x="4" y="20" width="12" height="12" rx="2"/><rect x="20" y="20" width="12" height="12" rx="2"/><line x1="18" y1="2" x2="18" y2="34"/><line x1="2" y1="18" x2="34" y2="18"/></svg>`,
+  },
+  // ── 8. Add Transaction ────────────────────────────────────────────────────
   { tab: 'add', target: '.form-card',
-    title: 'Add a Transaction',
-    body: 'Log an expense, income, or transfer. Category auto-completes from your history. Hit ✓ Done on your keyboard to save fast.',
+    title: 'Adding a Transaction',
+    body: 'Enter an amount, pick Expense / Income / Transfer, and type a description. Tap the Category field — it auto-suggests from your history. Hit the ✓ checkmark or "Done" on your keyboard to save.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><line x1="18" y1="11" x2="18" y2="25"/><line x1="11" y1="18" x2="25" y2="18"/></svg>`,
   },
+  // ── 9. Ledger ─────────────────────────────────────────────────────────────
   { tab: 'ledger', target: '.ledger-filter-bar',
     title: 'Ledger',
-    body: 'Every transaction in one list with a running balance. Use the filter bar above to search by description, category, or date range. Tap a row to edit inline.',
+    body: 'Every transaction with a running balance. Use the search bar to filter by description or category. Tap the date chips to set a date range. Tap any row to expand and edit it inline — change amount, date, or category, then tap Save.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h18a2 2 0 0 1 2 2v24a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><line x1="13" y1="12" x2="23" y2="12"/><line x1="13" y1="18" x2="23" y2="18"/><line x1="13" y1="24" x2="19" y2="24"/></svg>`,
   },
+  // ── 10. Weekly Planner ────────────────────────────────────────────────────
   { tab: 'weekly', target: '.form-card',
-    title: 'Weekly Planner',
-    body: 'Enter your balance, upcoming bills, and next paydate. The planner calculates a safe per-day spend limit after bills and your savings buffer.',
+    title: 'Weekly Planner — Setup',
+    body: 'Fill in your current balance, the amount of any upcoming bills, and your next paydate. Tap "Calculate" and the planner figures out a safe daily spending limit. This feeds the Per Day tile on your dashboard.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="26" height="24" rx="2"/><line x1="5" y1="14" x2="31" y2="14"/><line x1="12" y1="4" x2="12" y2="10"/><line x1="24" y1="4" x2="24" y2="10"/><rect x="10" y="19" width="4" height="4" rx=".5"/><rect x="22" y="19" width="4" height="4" rx=".5"/></svg>`,
   },
+  // ── 11. Bills — add ───────────────────────────────────────────────────────
+  { tab: 'bills', target: '#bill-add-btn',
+    title: 'Adding a Bill',
+    body: 'Tap "Add Bill" to create a recurring bill — enter the name, amount, due date, and how often it repeats. Bills due within 3 days will show a red badge on your nav icon as a reminder.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h20a1 1 0 0 1 1 1v26l-4.5-3-3 3-3-3-3 3-3-3-4.5 3V5a1 1 0 0 1 1-1z"/><circle cx="18" cy="16" r="1.5" fill="currentColor" stroke="none"/><line x1="18" y1="10" x2="18" y2="14"/><line x1="13" y1="23" x2="23" y2="23"/></svg>`,
+  },
+  // ── 12. Bills — list ──────────────────────────────────────────────────────
   { tab: 'bills', target: '.bills-list',
-    title: 'Bills',
-    body: 'Track recurring bills with due dates. Bills due within 3 days show a badge on the nav icon. Marking a bill paid can automatically log it as an expense.',
+    title: 'Marking Bills Paid',
+    body: 'Each bill card shows the amount, due date, and a "Mark Paid" button. Tapping it logs the payment as an expense in your ledger automatically — no double-entry needed. Tap the bill name to edit it.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h20a1 1 0 0 1 1 1v26l-4.5-3-3 3-3-3-3 3-3-3-4.5 3V5a1 1 0 0 1 1-1z"/><line x1="13" y1="14" x2="23" y2="14"/><line x1="13" y1="20" x2="23" y2="20"/><line x1="13" y1="26" x2="18" y2="26"/></svg>`,
   },
-  { tab: 'debt', target: null,
+  // ── 13. Debt Tracker — subnav ─────────────────────────────────────────────
+  { tab: 'debt', target: '.debt-subnav',
     title: 'Debt Tracker',
-    body: 'Credit cards and loans tracked with a payoff progress bar. Add a monthly payment to see Snowball vs Avalanche timelines and how much interest you\'ll save.',
+    body: 'Switch between 💳 Credit Cards and 🏦 Loans using the tabs above. Each debt account is linked from the Accounts page — add a debt account there first, then it appears here with a progress bar.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="28" height="19" rx="3"/><line x1="4" y1="16" x2="32" y2="16"/><rect x="8" y="21" width="7" height="3.5" rx="1.5"/><circle cx="28" cy="22.8" r="2" stroke-width="1.5"/></svg>`,
   },
-  { tab: 'goals', target: '.goals-list',
-    title: 'Savings Goals',
-    body: 'Set a target amount with an optional deadline. Contribute anytime — the progress bar fills as you get closer. Great for emergency funds, trips, or big purchases.',
+  // ── 14. Debt Tracker — payoff ─────────────────────────────────────────────
+  { tab: 'debt', target: null,
+    title: 'Debt Payoff Planner',
+    body: 'Tap any debt card to expand it. Enter a monthly payment and the app calculates your payoff date, total interest, and compares Snowball vs Avalanche strategies — showing how much time and money each approach saves.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 24 13 14 19 20 27 10"/><line x1="30" y1="10" x2="27" y2="10"/><line x1="27" y1="10" x2="27" y2="13"/><line x1="5" y1="30" x2="31" y2="30"/></svg>`,
+  },
+  // ── 15. Goals — add ───────────────────────────────────────────────────────
+  { tab: 'goals', target: '#goal-add-btn',
+    title: 'Creating a Savings Goal',
+    body: 'Tap "Add Goal" and give it a name, a target amount, and an optional deadline — for example, "Emergency Fund · $2,000 · Dec 2025." The app shows how much to save per week to hit your deadline.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="19" r="12"/><circle cx="18" cy="19" r="7"/><circle cx="18" cy="19" r="2.5" fill="currentColor" stroke="none"/><line x1="28" y1="6" x2="21.5" y2="13.5"/><polyline points="30.5 4.5 28 4.5 28 7.5"/></svg>`,
   },
+  // ── 16. Goals — contribute ────────────────────────────────────────────────
+  { tab: 'goals', target: '.goals-list',
+    title: 'Contributing to a Goal',
+    body: 'Each goal card has an "Add" button — tap it, type in any amount, and it adds to your progress bar. Contributions are logged as transfers so they show up in your ledger too.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="19" r="12"/><circle cx="18" cy="19" r="7"/><line x1="18" y1="15" x2="18" y2="23"/><line x1="14" y1="19" x2="22" y2="19"/></svg>`,
+  },
+  // ── 17. Budgets ───────────────────────────────────────────────────────────
   { tab: 'budgets', target: '.form-card',
-    title: 'Budgets',
-    body: 'Set monthly spending caps per category. The Spending Breakdown tile on your dashboard shows each bar — turns amber when you\'re close and red when you\'re over.',
+    title: 'Setting a Budget',
+    body: 'Pick a category (e.g. Food) and enter a monthly dollar cap. Once you save it, the Spending Breakdown tile on your dashboard turns amber when you\'re near the limit and red when you\'re over.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><line x1="18" y1="9" x2="18" y2="27"/><path d="M22.5 13.5a4 4 0 0 0-8 0c0 2.2 1.8 3.3 4 4.2 2.2.9 4 2 4 4.3a4 4 0 0 1-8 0"/></svg>`,
   },
-  { tab: 'settings', target: null,
-    title: 'Settings',
-    body: 'Pick from 12+ themes, reposition the nav, set a PIN lock, and manage multiple accounts. VS Code and PowerShell themes apply their real fonts automatically.',
-    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3.5"/><path d="M27 14.9l2-3.6-3-3-3.6 2a9.5 9.5 0 0 0-2.4-.9L19.2 6h-2.4l-.8 3.4a9.5 9.5 0 0 0-2.4.9L10 8.3l-3 3 2 3.6a9.5 9.5 0 0 0-.9 2.4L5 18l3.1.7a9.5 9.5 0 0 0 .9 2.4l-2 3.6 3 3 3.6-2a9.5 9.5 0 0 0 2.4.9L16.8 30h2.4l.8-3.4a9.5 9.5 0 0 0 2.4-.9l3.6 2 3-3-2-3.6a9.5 9.5 0 0 0 .9-2.4L31 18l-3.1-.7a9.5 9.5 0 0 0-.9-2.4z"/></svg>`,
+  // ── 18. Settings — Accounts ───────────────────────────────────────────────
+  { tab: 'settings', target: '#goto-accounts-card',
+    title: 'Settings — Accounts',
+    body: 'Tap "Accounts" at the top of Settings to add, rename, or delete accounts. Create checking, savings, credit card, or loan accounts here — they show up in the account switcher and the Debt Tracker.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="13" r="7"/><path d="M4 32c0-7.7 6.3-14 14-14s14 6.3 14 14"/></svg>`,
   },
+  // ── 19. Settings — Theme ──────────────────────────────────────────────────
+  { tab: 'settings', target: '.theme-mode-row',
+    title: 'Settings — Theme',
+    body: 'Choose Dark, Light, or Terminal mode, then pick an accent color below. Terminal themes (VS Code, PowerShell, CMD) also change the font to match the real editor. Changes apply instantly.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="7"/><circle cx="18" cy="18" r="13" stroke-dasharray="3 3"/><line x1="18" y1="5" x2="18" y2="2"/><line x1="18" y1="31" x2="18" y2="34"/><line x1="5" y1="18" x2="2" y2="18"/><line x1="31" y1="18" x2="34" y2="18"/></svg>`,
+  },
+  // ── 20. Settings — Privacy ────────────────────────────────────────────────
+  { tab: 'settings', target: null,
+    title: 'Settings — Privacy & PIN',
+    body: 'Scroll down to the Privacy section to set a 4-digit PIN or enable Phone Lock (Face ID / fingerprint). Once set, the app prompts for your PIN or biometric every time it opens — keeping your finances private.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="16" width="20" height="16" rx="3"/><path d="M12 16v-4a6 6 0 0 1 12 0v4"/><circle cx="18" cy="24" r="2" fill="currentColor" stroke="none"/></svg>`,
+  },
+  // ── 21. About — Force Update ──────────────────────────────────────────────
+  { tab: 'about', target: '#force-update-btn',
+    title: 'Force Update',
+    body: 'If the app ever feels stale or a new feature isn\'t appearing, scroll to the bottom of the About page and tap "Force Update." It clears the cache and reloads the latest version instantly.',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 9 7 14 12"/><path d="M9 7v10a12 12 0 0 0 21.9 6.8"/><polyline points="32 24 27 29 22 24"/><path d="M27 29V19A12 12 0 0 0 5.1 12.2"/></svg>`,
+  },
+  // ── 22. Nav Bar ───────────────────────────────────────────────────────────
   { tab: null, target: '#dawg-bottom-nav',
     title: 'Customize Your Nav Bar',
-    body: 'Hold the bottom nav bar for 1 second to open the editor. Tap any slot then pick a section to swap it in — the nav updates instantly.',
+    body: 'Hold the bottom nav bar for 1 second to open the editor. Tap any slot to select it, then pick a different page to put in that spot. Put the sections you use most one tap away.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="26" width="28" height="6" rx="2"/><line x1="10" y1="29" x2="26" y2="29"/><circle cx="14" cy="29" r="2" fill="currentColor" stroke="none"/><circle cx="22" cy="29" r="2" fill="currentColor" stroke="none"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="24" y1="4" x2="24" y2="20"/><polyline points="8 8 12 4 16 8"/><polyline points="20 16 24 20 28 16"/></svg>`,
   },
+  // ── 23. Done ──────────────────────────────────────────────────────────────
   { tab: null, target: null,
-    title: 'You\'re All Set!',
-    body: 'That\'s the full tour. Tap any section in the nav to jump right in. Come back to this tour from the About page anytime — it stays updated as new features land.',
+    title: "You're All Set! 🎉",
+    body: "That's the full tour. You now know how to log transactions, plan your week, track bills and debt, set goals, and customize the whole app. Come back to this tour from the About page anytime — it updates as new features land.",
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><polyline points="12 18 16.5 23 24 13"/></svg>`,
   },
 ];
