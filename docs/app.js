@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.10.9';
+const VERSION = '5.11.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.11.0', date: '2026-05-22', changes: [
+    'Glitch effects upgraded — LOCK TF IN. and splash screen now use 6-frame burst patterns with text-shadow chromatic aberration, per-frame clip-path slice variation, brightness/saturation flashes, and a micro-jitter between bursts',
+    'Tutorial sparkline: removed the dot pop-in at the end of the line animation',
+    'Dashboard sparkline redraws left→right on loop — line wipes in with the dot traveling at the tip; when fully drawn the dot pulses at the end, then the cycle repeats',
+  ]},
   { version: '5.10.9', date: '2026-05-22', changes: [
     'Removed currency symbol background art from the dashboard hero — cleaner look',
     'LOCK TF IN. text now occasionally glitches with an RGB-split burst (red/cyan channel layers) matching the splash screen style',
@@ -7238,8 +7243,6 @@ const WALKTHROUGH_STEPS = [
           stroke="url(#wt-spark-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
           fill="none" stroke-dasharray="210" stroke-dashoffset="210"
           style="animation:wt-spark-draw 2.8s ease-in-out infinite;"/>
-        <circle cx="120" cy="7" r="2.5" fill="#4ecb8d"
-          style="animation:wt-spark-dot 2.8s ease-in-out infinite;"/>
       </svg>
     </div>
   </div>
@@ -7890,13 +7893,28 @@ function attachDashboardDawg() {
     // For VS Code theme the line uses a multi-color gradient; keep the string for the dot
     const _sparkClrStr = (typeof _sparkClr === 'string') ? _sparkClr : `rgb(${_sparkClrRgb})`;
 
+    const _DRAW_MS  = 2200;  // ms to draw line left→right
+    const _PAUSE_MS = 1600;  // ms to rest at end before replaying
+    const _easeIO   = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+
     const _pulsePlugin = {
       id: 'dawgPulse',
       afterInit(chart) {
-        chart._pulsePhase = 0;
-        const tick = () => {
+        chart._drawPhase = 0;
+        chart._atEnd     = false;
+        chart._pauseMs   = 0;
+        let _lastTs      = null;
+        const tick = ts => {
           if (!chart.canvas?.isConnected) return;
-          chart._pulsePhase = (chart._pulsePhase + 0.005) % 1;
+          const dt = _lastTs ? Math.min(ts - _lastTs, 60) : 0;
+          _lastTs  = ts;
+          if (chart._atEnd) {
+            chart._pauseMs += dt;
+            if (chart._pauseMs >= _PAUSE_MS) { chart._atEnd = false; chart._pauseMs = 0; chart._drawPhase = 0; }
+          } else {
+            chart._drawPhase = Math.min(1, chart._drawPhase + dt / _DRAW_MS);
+            if (chart._drawPhase >= 1) { chart._atEnd = true; chart._pauseMs = 0; }
+          }
           chart.draw();
           chart._pulseRaf = requestAnimationFrame(tick);
         };
@@ -7905,37 +7923,49 @@ function attachDashboardDawg() {
       afterDraw(chart) {
         const meta = chart.getDatasetMeta(0);
         if (!meta?.data?.length) return;
-        const pts  = meta.data;
-        const last = pts[pts.length - 1];
-        const { x, y } = last.getProps(['x', 'y'], true);
-        const phase = chart._pulsePhase || 0;
+        const { chartArea, ctx: c } = chart;
+        const raw   = chart._drawPhase ?? 1;
+        const phase = _easeIO(raw);
+        const pts   = meta.data;
 
-        // Pulsing outer glow ring at last data point
-        const pulseAlpha  = 0.10 + 0.12 * Math.sin(phase * Math.PI * 2);
-        const pulseRadius = 6.5 + 2 * Math.sin(phase * Math.PI * 2);
+        // Mask the undrawn right portion by clearing it (canvas is transparent; card bg shows through)
+        if (raw < 1) {
+          const revealX = chartArea.left + (chartArea.right - chartArea.left) * phase;
+          c.save();
+          c.clearRect(revealX, chartArea.top - 6, (chartArea.right - revealX) + 6, (chartArea.bottom - chartArea.top) + 12);
+          c.restore();
+        }
 
-        const ctx2 = chart.ctx;
-        ctx2.save();
-        // Outer glow pulse
-        ctx2.beginPath();
-        ctx2.arc(x, y, pulseRadius, 0, Math.PI * 2);
-        ctx2.fillStyle   = _sparkClrStr;
-        ctx2.globalAlpha = pulseAlpha;
-        ctx2.fill();
-        // Mid ring
-        ctx2.beginPath();
-        ctx2.arc(x, y, 4.5, 0, Math.PI * 2);
-        ctx2.globalAlpha = pulseAlpha * 1.6;
-        ctx2.fill();
-        // Solid inner dot
-        ctx2.globalAlpha = 1;
-        ctx2.shadowColor  = _sparkClrStr;
-        ctx2.shadowBlur   = 10;
-        ctx2.beginPath();
-        ctx2.arc(x, y, 2.8, 0, Math.PI * 2);
-        ctx2.fillStyle = _sparkClrStr;
-        ctx2.fill();
-        ctx2.restore();
+        // Dot position: interpolate along the drawn data points
+        const total = pts.length - 1;
+        const pos   = phase * total;
+        const i0    = Math.min(Math.floor(pos), total - 1);
+        const frac  = pos - i0;
+        const p0    = pts[i0].getProps(['x','y'], true);
+        const p1    = pts[Math.min(i0+1, total)].getProps(['x','y'], true);
+        const dotX  = p0.x + frac*(p1.x - p0.x);
+        const dotY  = p0.y + frac*(p1.y - p0.y);
+        const atEnd = chart._atEnd;
+        const pMs   = chart._pauseMs || 0;
+
+        c.save();
+        if (atEnd) {
+          // Pulsing glow ring while resting at the end
+          const sin      = Math.sin((pMs / 900) * Math.PI * 2);
+          const outerR   = 6.5 + 1.5 * sin;
+          const outerAlp = 0.08 + 0.10 * Math.abs(sin);
+          c.beginPath(); c.arc(dotX, dotY, outerR, 0, Math.PI*2);
+          c.fillStyle = _sparkClrStr; c.globalAlpha = outerAlp; c.fill();
+          c.beginPath(); c.arc(dotX, dotY, 4, 0, Math.PI*2);
+          c.globalAlpha = outerAlp * 1.8; c.fill();
+        }
+        // Solid dot — slightly smaller while moving, normal at end
+        c.globalAlpha = 1;
+        c.shadowColor = _sparkClrStr;
+        c.shadowBlur  = atEnd ? 10 : 5;
+        c.beginPath(); c.arc(dotX, dotY, atEnd ? 3 : 2.4, 0, Math.PI*2);
+        c.fillStyle = _sparkClrStr; c.fill();
+        c.restore();
       },
       beforeDestroy(chart) {
         if (chart._pulseRaf) { cancelAnimationFrame(chart._pulseRaf); chart._pulseRaf = null; }
@@ -7949,7 +7979,7 @@ function attachDashboardDawg() {
         responsive:true, maintainAspectRatio:false,
         plugins:{ legend:{display:false}, tooltip:{enabled:false} },
         scales:{ x:{display:false}, y:{display:false} },
-        animation:{duration:400}
+        animation:{ duration:0 }   // plugin drives all animation
       }
     });
   }
