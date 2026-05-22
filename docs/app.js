@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.10.4';
+const VERSION = '5.10.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.10.5', date: '2026-05-22', changes: [
+    'Weekly planner now shows Adjusted Per Day card — dynamically recalculates your daily rate based on what\'s left of this week\'s budget divided by days remaining',
+    'Custom accent color wheel — pick any color in Settings > Theme to override the preset accent on any dark or light theme; tap Reset to revert',
+    'Accent color now applies everywhere — success/positive indicators and gradients all update when you change the accent color',
+  ]},
   { version: '5.10.4', date: '2026-05-22', changes: [
     'Linux terminal themes added — Kali Linux (dark navy + cyan), Linux Mint (dark + green), and Ubuntu (purple + orange) in the Terminal theme section',
     'VS Code theme now shows both Java and Python syntax: page titles use Java class syntax (class PageName {), section headers use Python def syntax (def sectionName():)',
@@ -1741,6 +1746,16 @@ function applyTheme(theme) {
   document.body.classList.remove('theme-vscode', 'theme-powershell', 'theme-cmd', 'theme-kali', 'theme-mintlinux', 'theme-ubuntu');
   if (['vscode', 'powershell', 'cmd', 'kali', 'mintlinux', 'ubuntu'].includes(theme)) {
     document.body.classList.add('theme-' + theme);
+  }
+  // Custom accent color override (color wheel) — skipped for terminal/linux themes
+  const _caS = loadSettings();
+  const _termThemes = ['vscode','powershell','cmd','kali','mintlinux','ubuntu'];
+  if (_caS.customAccent && !_termThemes.includes(theme)) {
+    const _ca = _caS.customAccent;
+    root.style.setProperty('--accent',          _ca);
+    root.style.setProperty('--accent2',         _ca);
+    root.style.setProperty('--success',         _ca);
+    root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${t.surface2} 0%, ${_ca} 100%)`);
   }
   // Update category colors to match theme
   if (t.cats) Object.assign(CAT_COLORS, t.cats);
@@ -5159,10 +5174,23 @@ function calcWeekly() {
   const weekPct  = perWeek > 0 ? Math.min(weekNet / perWeek, 1) : 0;
   const barColor = weekPct >= 1 ? 'var(--danger)' : weekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
 
+  // Adjusted per day: remaining weekly budget spread across days left in this week (including today)
+  const _todayWkIdx   = now.getDay() === 0 ? 6 : now.getDay() - 1; // 0=Mon … 6=Sun
+  const _daysLeftWk   = Math.max(1, 7 - _todayWkIdx);
+  const adjustedPerDay = perWeek > 0 ? Math.max(0, perWeek - weekNet) / _daysLeftWk : 0;
+  const _adjDiff       = adjustedPerDay - perDay;
+  const _adjSub        = _adjDiff >  0.005 ? '↑ ahead of pace'
+                       : _adjDiff < -0.005 ? '↓ behind pace'
+                       : 'on track';
+  const _adjColor      = adjustedPerDay >= perDay * 0.95 ? 'var(--success)'
+                       : adjustedPerDay >= perDay * 0.5  ? 'var(--warn)'
+                       : 'var(--danger)';
+
   const summaryCards = [
-    ['SPENDABLE', fmt(available), 'var(--text)',    `after bills${bufPct?' + buffer':''}`],
-    ['PER WEEK',  fmt(perWeek),   'var(--warn)',    `across ${weeks} week${weeks!==1?'s':''}`],
-    ['PER DAY',   fmt(perDay),    'var(--warn)',    'daily limit'],
+    ['SPENDABLE',    fmt(available),        'var(--text)',    `after bills${bufPct?' + buffer':''}`],
+    ['PER WEEK',     fmt(perWeek),          'var(--warn)',    `across ${weeks} week${weeks!==1?'s':''}`],
+    ['PER DAY',      fmt(perDay),           'var(--warn)',    'daily limit'],
+    ['ADJ. PER DAY', fmt(adjustedPerDay),   _adjColor,       _adjSub],
     ...(bufPct ? [['BUFFER', fmt(buffer), '#6ec8d8', 'emergency fund']] : []),
   ].map(([t,v,c,s]) => `<div class="card"><div class="card-title">${t}</div><div class="card-value" style="color:${c}">${v}</div><div class="card-sub">${s}</div></div>`).join('');
 
@@ -5923,11 +5951,12 @@ function attachRetirement() {
 
 // ── settings ───────────────────────────────────────────────────────────────
 function renderSettings() {
-  const s          = loadSettings();
-  const theme      = s.theme || 'dark';
-  const customCats = s.customCategories || [];
-  const fontStyle  = s.fontStyle || 'default';
-  const bioEnabled = !!localStorage.getItem('slawminyaw_biometric_cred');
+  const s            = loadSettings();
+  const theme        = s.theme || 'dark';
+  const customCats   = s.customCategories || [];
+  const fontStyle    = s.fontStyle || 'default';
+  const customAccent = s.customAccent || '';
+  const bioEnabled   = !!localStorage.getItem('slawminyaw_biometric_cred');
 
   const fontBtns = [
     { key:'default',  label:'Default',  sub:'Plus Jakarta Sans' },
@@ -6009,6 +6038,18 @@ function renderSettings() {
               ? LIGHT_ACCENTS.map(k => accentChip(k, k === theme)).join('')
               : DARK_ACCENTS.map(k => accentChip(k, k === theme)).join('')
             }
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+            <div style="position:relative;flex-shrink:0">
+              <input type="color" id="custom-accent-input"
+                value="${customAccent || THEMES[theme]?.accent || '#4ecb8d'}"
+                style="width:42px;height:42px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;padding:3px;box-sizing:border-box;-webkit-appearance:none">
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.82rem;font-weight:600;color:var(--text)">Custom color</div>
+              <div style="font-size:.7rem;color:var(--muted);margin-top:2px">${customAccent ? `Active: ${customAccent}` : 'Pick any accent — overrides the preset'}</div>
+            </div>
+            ${customAccent ? `<button id="reset-accent-btn" class="btn-xs" style="flex-shrink:0">Reset</button>` : ''}
           </div>
         </div>
 
@@ -6104,7 +6145,7 @@ function attachSettings() {
       const mode = btn.dataset.mode;
       const cur  = loadSettings().theme || 'dark';
       // If already in this mode, do nothing
-      const isTerminal = ['vscode','powershell','cmd'].includes(cur);
+      const isTerminal = ['vscode','powershell','cmd','kali','mintlinux','ubuntu'].includes(cur);
       const curMode    = isTerminal ? 'terminal' : THEMES[cur]?.light ? 'light' : 'dark';
       if (mode === curMode) return;
       // Switch to default theme for new mode
@@ -6121,6 +6162,23 @@ function attachSettings() {
   // Terminal chips
   document.querySelectorAll('.theme-terminal-chip').forEach(chip => {
     chip.addEventListener('click', () => _applyThemeKey(chip.dataset.theme));
+  });
+
+  // Custom accent color wheel
+  document.getElementById('custom-accent-input')?.addEventListener('input', e => {
+    const color = e.target.value;
+    const _s = loadSettings(); _s.customAccent = color; saveSettings(_s);
+    const root = document.documentElement;
+    root.style.setProperty('--accent',          color);
+    root.style.setProperty('--accent2',         color);
+    root.style.setProperty('--success',         color);
+    const surf2 = root.style.getPropertyValue('--surface2') || getComputedStyle(root).getPropertyValue('--surface2').trim();
+    root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${surf2} 0%, ${color} 100%)`);
+  });
+  document.getElementById('custom-accent-input')?.addEventListener('change', () => render());
+  document.getElementById('reset-accent-btn')?.addEventListener('click', () => {
+    const _s = loadSettings(); delete _s.customAccent; saveSettings(_s);
+    applyTheme(_s.theme || 'dark'); render();
   });
 
   // Go to accounts page
