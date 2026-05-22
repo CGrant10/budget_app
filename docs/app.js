@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.10.7';
+const VERSION = '5.10.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,13 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.10.8', date: '2026-05-22', changes: [
+    'Swipe-to-delete confirmation now responds on first tap every time — fixed layout shift caused by row slide-back animation interfering with modal button',
+    'Splash screen text glitch — Budget DAWGs title now glitches with RGB-split channel layers (red/cyan pseudo-elements, clip-path burst effect); canvas glitch removed',
+    'About page now fully respects your chosen theme — previously reset to base dark/light when navigating to the About screen',
+    'Account selector: first account card outline no longer clips at the top edge when tapped',
+    'Dashboard sparkline line now fades from transparent on the left to full color on the right; the dot has moved from the travelling pulse to a static pulsing glow at the latest data point',
+  ]},
   { version: '5.10.7', date: '2026-05-22', changes: [
     'Custom theme is now its own standalone theme — picking a color via the color wheel no longer modifies your current theme; it switches to the dedicated Custom theme entry',
     'Color picker upgraded to a full canvas HSL color wheel — no more sliders; tap any point on the wheel to choose hue/saturation, use the brightness bar for lightness',
@@ -2106,16 +2113,13 @@ function showTab(key) {
   }
   if (_insightTimer) { clearInterval(_insightTimer); _insightTimer = null; }
   if (_dawgSparkGlobal) { _dawgSparkGlobal.destroy(); _dawgSparkGlobal = null; }
-  // About page always uses base dark/light — unaffected by Dusk/Denim/Ember etc.
+  // Re-apply the active theme if leaving the about page (about used to reset it; no longer needed)
   const activeTheme = (loadSettings().theme) || 'dark';
-  if (key === 'about') {
-    const isLight = !!(THEMES[activeTheme] || THEMES.dark).light;
-    applyTheme(isLight ? 'light' : 'dark');
-    // Always keep dawg-mode (universal layout)
-    document.getElementById('app')?.classList.add('dawg-mode');
-  } else if (currentTab === 'about') {
+  if (currentTab === 'about' && key !== 'about') {
     applyTheme(activeTheme);
   }
+  // Always keep dawg-mode (universal layout)
+  document.getElementById('app')?.classList.add('dawg-mode');
   // Dashboard always zooms in; slide between other nav tabs; hamburger pages fade
   // In DAWG mode the visual order is: [slot0] [slot1] [🐕 dashboard] [slot2] [slot3]
   // so we derive direction from visual position rather than NAV_TABS order.
@@ -3086,107 +3090,28 @@ function _openColorPicker(currentHex, onApply) {
 // ── splash screen ──────────────────────────────────────────────────────────
 function runSplash() {
   return new Promise(resolve => {
-    const el = document.getElementById('splash-screen');
+    const el        = document.getElementById('splash-screen');
     if (!el) return resolve();
 
-    let done      = false;
-    let animFrame = null;
+    let done = false;
 
     const canvas    = document.getElementById('splash-canvas');
     const toggleBtn = document.getElementById('splash-anim-toggle');
 
-    const startAnim = () => {
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      canvas.width  = el.offsetWidth  || window.innerWidth;
-      canvas.height = el.offsetHeight || window.innerHeight;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (canvas) canvas.style.display = 'none'; // canvas no longer used
 
-      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#4ecb8d';
-
-      // Static scattered money-symbol field (drawn once, very faint)
-      const symbols = ['$', '¥', '€', '£', '₿', '¢', '$', '$'];
-      const cells   = [];
-      for (let y = 28; y < canvas.height; y += 34) {
-        for (let x = 10; x < canvas.width; x += 28) {
-          if (Math.random() > 0.42) {
-            cells.push({ x, y, ch: symbols[Math.floor(Math.random() * symbols.length)], a: 0.025 + Math.random() * 0.045 });
-          }
-        }
-      }
-
-      // Glitch slice state
-      let glitchSlices = [];
-      let glitching    = false;
-
-      const scheduleGlitch = () => {
-        setTimeout(() => {
-          if (done) return;
-          glitchSlices = Array.from({ length: 3 + Math.floor(Math.random() * 5) }, () => ({
-            y:  Math.floor(Math.random() * canvas.height),
-            h:  1 + Math.floor(Math.random() * 5),
-            dx: (Math.random() - 0.5) * 32,
-          }));
-          glitching = true;
-          setTimeout(() => {
-            if (done) return;
-            glitching    = false;
-            glitchSlices = [];
-            scheduleGlitch();
-          }, 80 + Math.random() * 80);
-        }, 700 + Math.random() * 1400);
-      };
-
-      const draw = () => {
-        if (done) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Faint $ field
-        ctx.font = '13px Consolas, monospace';
-        cells.forEach(({ x, y, ch, a }) => {
-          ctx.globalAlpha = a;
-          ctx.fillStyle   = accent;
-          ctx.fillText(ch, x, y);
-        });
-
-        // Glitch slices (RGB split bands)
-        if (glitching && glitchSlices.length) {
-          glitchSlices.forEach(({ y, h, dx }) => {
-            ctx.globalAlpha = 0.25;
-            ctx.fillStyle   = 'rgba(255,40,40,0.8)';
-            ctx.fillRect(dx + 3, y, canvas.width, h);
-            ctx.fillStyle   = 'rgba(40,40,255,0.8)';
-            ctx.fillRect(dx - 3, y + 1, canvas.width, h);
-            ctx.globalAlpha = 0.10;
-            ctx.fillStyle   = accent;
-            ctx.fillRect(dx, y, canvas.width, h);
-          });
-        }
-
-        ctx.globalAlpha = 1;
-        animFrame = requestAnimationFrame(draw);
-      };
-
-      scheduleGlitch();
-      draw();
-      canvas.style.display = '';
-    };
-
-    const stopAnim = () => {
-      if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
-      if (canvas) canvas.style.display = 'none';
-    };
+    const startAnim = () => el.classList.add('splash-glitch-on');
+    const stopAnim  = () => el.classList.remove('splash-glitch-on');
 
     const animPref = localStorage.getItem('splashAnim');
     const animOn   = animPref !== 'false';
     if (animOn) startAnim();
-    else if (canvas) canvas.style.display = 'none';
 
     if (toggleBtn) {
       toggleBtn.textContent = animOn ? '✦ hide effects' : '✦ show effects';
       toggleBtn.addEventListener('click', e => {
         e.stopPropagation();
-        const currently = (canvas && canvas.style.display !== 'none') || animFrame !== null;
+        const currently = el.classList.contains('splash-glitch-on');
         if (currently) {
           stopAnim();
           localStorage.setItem('splashAnim', 'false');
@@ -3202,13 +3127,13 @@ function runSplash() {
     const finish = () => {
       if (done) return;
       done = true;
-      if (animFrame) cancelAnimationFrame(animFrame);
+      stopAnim();
       el.classList.add('dismiss');
       setTimeout(() => { el.remove(); resolve(); }, 450);
     };
-    setTimeout(finish, 1900);
+    setTimeout(finish, 2600);
     el.addEventListener('click', finish, { once: true });
-    setTimeout(() => { if (!done) { done = true; if (animFrame) cancelAnimationFrame(animFrame); el.remove(); resolve(); } }, 5000);
+    setTimeout(() => { if (!done) { done = true; el.remove(); resolve(); } }, 6000);
   });
 }
 
@@ -7668,6 +7593,7 @@ function parseExcelDate(raw) {
 }
 
 // ── swipe to delete ────────────────────────────────────────────────────────
+let _swipeDeleteDocListenerAdded = false;
 function attachSwipeDelete() {
   let startX, startY, swipedRow = null;
   document.querySelectorAll('.ledger-row').forEach(row => {
@@ -7680,12 +7606,18 @@ function attachSwipeDelete() {
       else if (dx > 20) { row.classList.remove('swiped'); if (swipedRow === row) swipedRow = null; }
     }, { passive: true });
   });
-  document.addEventListener('touchstart', e => {
-    if (swipedRow && !swipedRow.contains(e.target)) { swipedRow.classList.remove('swiped'); swipedRow = null; }
-  }, { passive: true });
+  if (!_swipeDeleteDocListenerAdded) {
+    _swipeDeleteDocListenerAdded = true;
+    document.addEventListener('touchstart', e => {
+      if (swipedRow && !swipedRow.contains(e.target)) { swipedRow.classList.remove('swiped'); swipedRow = null; }
+    }, { passive: true });
+  }
   document.querySelectorAll('.swipe-delete-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = parseInt(btn.dataset.idx);
+      // Clear swiped state immediately — prevents the document touchstart handler
+      // from firing a layout-shift animation while the modal confirm button is being tapped
+      if (swipedRow) { swipedRow.classList.remove('swiped'); swipedRow = null; }
       showConfirmModal({
         title: 'Delete Transaction', danger: true,
         message: 'Delete this transaction? This cannot be undone.',
@@ -7923,54 +7855,61 @@ function attachDashboardDawg() {
     }
     grad.addColorStop(0, `rgba(${_sparkClrRgb},.28)`);
     grad.addColorStop(1, `rgba(${_sparkClrRgb},0)`);
+
+    // Horizontal gradient for the line: fades from transparent on left → full color on right
+    const _lineGrad = ctx.createLinearGradient(0, 0, canvas.offsetWidth || 300, 0);
+    _lineGrad.addColorStop(0,   `rgba(${_sparkClrRgb}, 0.05)`);
+    _lineGrad.addColorStop(0.3, `rgba(${_sparkClrRgb}, 0.25)`);
+    _lineGrad.addColorStop(1,   `rgba(${_sparkClrRgb}, 1)`);
+    // For VS Code theme the line uses a multi-color gradient; keep the string for the dot
+    const _sparkClrStr = (typeof _sparkClr === 'string') ? _sparkClr : `rgb(${_sparkClrRgb})`;
+
     const _pulsePlugin = {
       id: 'dawgPulse',
       afterInit(chart) {
         chart._pulsePhase = 0;
         const tick = () => {
           if (!chart.canvas?.isConnected) return;
-          chart._pulsePhase = (chart._pulsePhase + 0.004) % 1;
+          chart._pulsePhase = (chart._pulsePhase + 0.005) % 1;
           chart.draw();
           chart._pulseRaf = requestAnimationFrame(tick);
         };
         chart._pulseRaf = requestAnimationFrame(tick);
       },
       afterDraw(chart) {
-        const ds = chart.data.datasets[0];
-        if (!ds?.data?.length) return;
         const meta = chart.getDatasetMeta(0);
         if (!meta?.data?.length) return;
-        const pts = meta.data;
-        const clr = ds.borderColor || '#39ff14';
+        const pts  = meta.data;
+        const last = pts[pts.length - 1];
+        const { x, y } = last.getProps(['x', 'y'], true);
         const phase = chart._pulsePhase || 0;
 
-        // Interpolate position along the line
-        const total = pts.length - 1;
-        const pos   = phase * total;
-        const idx   = Math.min(Math.floor(pos), total - 1);
-        const frac  = pos - idx;
-        const p1 = pts[idx].getProps(['x','y'], true);
-        const p2 = pts[Math.min(idx + 1, total)].getProps(['x','y'], true);
-        const x  = p1.x + frac * (p2.x - p1.x);
-        const y  = p1.y + frac * (p2.y - p1.y);
+        // Pulsing outer glow ring at last data point
+        const pulseAlpha  = 0.10 + 0.12 * Math.sin(phase * Math.PI * 2);
+        const pulseRadius = 6.5 + 2 * Math.sin(phase * Math.PI * 2);
 
-        const ctx = chart.ctx;
-        ctx.save();
-        // Outer glow ring
-        ctx.beginPath();
-        ctx.arc(x, y, 7, 0, Math.PI * 2);
-        ctx.fillStyle = clr;
-        ctx.globalAlpha = 0.2;
-        ctx.fill();
-        // Inner dot
-        ctx.globalAlpha = 1;
-        ctx.shadowColor = clr;
-        ctx.shadowBlur = 8;
-        ctx.beginPath();
-        ctx.arc(x, y, 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = clr;
-        ctx.fill();
-        ctx.restore();
+        const ctx2 = chart.ctx;
+        ctx2.save();
+        // Outer glow pulse
+        ctx2.beginPath();
+        ctx2.arc(x, y, pulseRadius, 0, Math.PI * 2);
+        ctx2.fillStyle   = _sparkClrStr;
+        ctx2.globalAlpha = pulseAlpha;
+        ctx2.fill();
+        // Mid ring
+        ctx2.beginPath();
+        ctx2.arc(x, y, 4.5, 0, Math.PI * 2);
+        ctx2.globalAlpha = pulseAlpha * 1.6;
+        ctx2.fill();
+        // Solid inner dot
+        ctx2.globalAlpha = 1;
+        ctx2.shadowColor  = _sparkClrStr;
+        ctx2.shadowBlur   = 10;
+        ctx2.beginPath();
+        ctx2.arc(x, y, 2.8, 0, Math.PI * 2);
+        ctx2.fillStyle = _sparkClrStr;
+        ctx2.fill();
+        ctx2.restore();
       },
       beforeDestroy(chart) {
         if (chart._pulseRaf) { cancelAnimationFrame(chart._pulseRaf); chart._pulseRaf = null; }
@@ -7978,7 +7917,7 @@ function attachDashboardDawg() {
     };
     _dawgSpark = _dawgSparkGlobal = new Chart(canvas, {
       type:'line',
-      data:{ labels, datasets:[{ data, borderColor:_sparkClr, borderWidth:2, pointRadius:0, tension:0.4, fill:true, backgroundColor:grad }] },
+      data:{ labels, datasets:[{ data, borderColor:_lineGrad, borderWidth:2, pointRadius:0, tension:0.4, fill:true, backgroundColor:grad }] },
       plugins:[_pulsePlugin],
       options:{
         responsive:true, maintainAspectRatio:false,
