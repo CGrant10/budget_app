@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.7.0';
+const VERSION = '5.8.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,16 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.8.0', date: '2026-05-22', changes: [
+    '6 new dashboard tiles — every section of the app is now available on the dashboard: Upcoming Bills, Debt Summary, Weekly Plan snapshot, Category Budgets, Monthly Stats, and Quick Add',
+    'Upcoming Bills tile: shows next unpaid bills sorted by due date with color-coded urgency and a running total',
+    'Debt Summary tile: all debt accounts at a glance with balances and total owed',
+    'Weekly Plan tile: per-day budget, days until paydate, and upcoming bills at a glance — tap to update the plan',
+    'Category Budgets tile: spending-vs-cap bars for every budget category you\'ve set',
+    'Monthly Stats tile: clean income / expenses / net summary for the selected month',
+    'Quick Add tile: one-tap EXPENSE and INCOME buttons to jump straight to the add form',
+    'Fixed app tutorial crashing when opened from the accounts overview screen',
+  ]},
   { version: '5.7.0', date: '2026-05-22', changes: [
     'App tutorial massively expanded — 23 steps covering every feature with instructions on how to use each one, not just descriptions',
     'New tour steps: hamburger menu, account switcher pill, all-accounts overview button, customize layout button, debt payoff planner usage, goals contribution flow, settings accounts / theme / privacy walk-through, force update button',
@@ -1941,6 +1951,7 @@ let currentTab = 'dashboard';
 let dashMonth = new Date().toISOString().slice(0, 7);
 let debtSubTab = 'credit'; // 'credit' | 'loan'
 let _pendingAccountExpand = null; // account id to auto-expand when Accounts tab renders
+let _quickAddType = null;         // pre-select expense/income when navigating from Quick Add tile
 let debtCalcMode = 'snowball'; // 'snowball' | 'avalanche'
 let debtMonthlyPay = '';
 let showingAccountPicker = false;
@@ -3236,47 +3247,71 @@ function renderRetirementDashboard(acct) {
 
 // ── Dashboard tile layout ──────────────────────────────────────────────────
 const DASH_TILE_META = {
-  'budget-week':   { label: 'Per Week Budget',      icon: '📅' },
-  'budget-day':    { label: 'Per Day Budget',        icon: '☀️' },
-  'daily-history': { label: 'Daily History',         icon: '📆' },
-  'breakdown':     { label: 'Spending Breakdown',    icon: '📊' },
-  'goals':         { label: 'Savings Goals',         icon: '🎯' },
-  'transactions':  { label: 'Recent Transactions',   icon: '💳' },
-  'networth':      { label: 'Net Worth',             icon: '📈' },
+  'budget-week':    { label: 'Per Week Budget',      icon: '📅' },
+  'budget-day':     { label: 'Per Day Budget',       icon: '☀️' },
+  'daily-history':  { label: 'Daily History',        icon: '📆' },
+  'breakdown':      { label: 'Spending Breakdown',   icon: '📊' },
+  'goals':          { label: 'Savings Goals',        icon: '🎯' },
+  'transactions':   { label: 'Recent Transactions',  icon: '💳' },
+  'networth':       { label: 'Net Worth',            icon: '📈' },
+  'bills-upcoming': { label: 'Upcoming Bills',       icon: '🗓️' },
+  'debt-summary':   { label: 'Debt Summary',         icon: '💳' },
+  'weekly-plan':    { label: 'Weekly Plan Snapshot', icon: '📋' },
+  'budgets-cats':   { label: 'Category Budgets',     icon: '🎛️' },
+  'monthly-stats':  { label: 'Monthly Stats',        icon: '📉' },
+  'quick-add':      { label: 'Quick Add',            icon: '➕' },
 };
 const DEFAULT_DASH_LAYOUT = [
-  { id: 'budget-week',   size: 'half', visible: true  },
-  { id: 'budget-day',    size: 'half', visible: true  },
-  { id: 'daily-history', size: 'full', visible: true  },
-  { id: 'breakdown',     size: 'full', visible: true  },
-  { id: 'goals',         size: 'full', visible: true  },
-  { id: 'transactions',  size: 'full', visible: true  },
-  { id: 'networth',      size: 'full', visible: false },
+  { id: 'budget-week',    size: 'half', visible: true  },
+  { id: 'budget-day',     size: 'half', visible: true  },
+  { id: 'daily-history',  size: 'full', visible: true  },
+  { id: 'breakdown',      size: 'full', visible: true  },
+  { id: 'goals',          size: 'full', visible: true  },
+  { id: 'transactions',   size: 'full', visible: true  },
+  { id: 'networth',       size: 'full', visible: false },
+  { id: 'bills-upcoming', size: 'full', visible: false },
+  { id: 'debt-summary',   size: 'full', visible: false },
+  { id: 'weekly-plan',    size: 'half', visible: false },
+  { id: 'budgets-cats',   size: 'full', visible: false },
+  { id: 'monthly-stats',  size: 'half', visible: false },
+  { id: 'quick-add',      size: 'half', visible: false },
 ];
 const DASH_PRESETS = {
   default:  [
-    { id:'budget-week',   size:'half', visible:true  }, { id:'budget-day',    size:'half', visible:true  },
-    { id:'daily-history', size:'full', visible:true  }, { id:'breakdown',     size:'full', visible:true  },
-    { id:'goals',         size:'full', visible:true  }, { id:'transactions',  size:'full', visible:true  },
-    { id:'networth',      size:'full', visible:false },
+    { id:'budget-week',    size:'half', visible:true  }, { id:'budget-day',     size:'half', visible:true  },
+    { id:'daily-history',  size:'full', visible:true  }, { id:'breakdown',      size:'full', visible:true  },
+    { id:'goals',          size:'full', visible:true  }, { id:'transactions',   size:'full', visible:true  },
+    { id:'networth',       size:'full', visible:false }, { id:'bills-upcoming', size:'full', visible:false },
+    { id:'debt-summary',   size:'full', visible:false }, { id:'weekly-plan',    size:'half', visible:false },
+    { id:'budgets-cats',   size:'full', visible:false }, { id:'monthly-stats',  size:'half', visible:false },
+    { id:'quick-add',      size:'half', visible:false },
   ],
   budget: [
-    { id:'budget-week',   size:'full', visible:true  }, { id:'budget-day',    size:'full', visible:true  },
-    { id:'daily-history', size:'full', visible:true  }, { id:'breakdown',     size:'full', visible:true  },
-    { id:'transactions',  size:'half', visible:true  }, { id:'goals',         size:'half', visible:true  },
-    { id:'networth',      size:'full', visible:false },
+    { id:'budget-week',    size:'full', visible:true  }, { id:'budget-day',     size:'full', visible:true  },
+    { id:'daily-history',  size:'full', visible:true  }, { id:'breakdown',      size:'full', visible:true  },
+    { id:'budgets-cats',   size:'full', visible:true  }, { id:'weekly-plan',    size:'half', visible:true  },
+    { id:'monthly-stats',  size:'half', visible:true  }, { id:'transactions',   size:'half', visible:true  },
+    { id:'goals',          size:'half', visible:true  }, { id:'bills-upcoming', size:'full', visible:false },
+    { id:'networth',       size:'full', visible:false }, { id:'debt-summary',   size:'full', visible:false },
+    { id:'quick-add',      size:'half', visible:false },
   ],
   compact: [
-    { id:'budget-week',   size:'half', visible:true  }, { id:'budget-day',    size:'half', visible:true  },
-    { id:'daily-history', size:'full', visible:true  }, { id:'transactions',  size:'full', visible:true  },
-    { id:'breakdown',     size:'full', visible:false }, { id:'goals',         size:'full', visible:false },
-    { id:'networth',      size:'full', visible:false },
+    { id:'budget-week',    size:'half', visible:true  }, { id:'budget-day',     size:'half', visible:true  },
+    { id:'weekly-plan',    size:'half', visible:true  }, { id:'monthly-stats',  size:'half', visible:true  },
+    { id:'quick-add',      size:'half', visible:true  }, { id:'bills-upcoming', size:'half', visible:true  },
+    { id:'transactions',   size:'full', visible:true  }, { id:'daily-history',  size:'full', visible:false },
+    { id:'breakdown',      size:'full', visible:false }, { id:'goals',          size:'full', visible:false },
+    { id:'networth',       size:'full', visible:false }, { id:'budgets-cats',   size:'full', visible:false },
+    { id:'debt-summary',   size:'full', visible:false },
   ],
   spending: [
-    { id:'breakdown',     size:'full', visible:true  }, { id:'transactions',  size:'full', visible:true  },
-    { id:'budget-week',   size:'half', visible:true  }, { id:'budget-day',    size:'half', visible:true  },
-    { id:'daily-history', size:'full', visible:true  }, { id:'goals',         size:'full', visible:false },
-    { id:'networth',      size:'full', visible:false },
+    { id:'breakdown',      size:'full', visible:true  }, { id:'budgets-cats',   size:'full', visible:true  },
+    { id:'transactions',   size:'full', visible:true  }, { id:'budget-week',    size:'half', visible:true  },
+    { id:'budget-day',     size:'half', visible:true  }, { id:'daily-history',  size:'full', visible:true  },
+    { id:'monthly-stats',  size:'half', visible:true  }, { id:'goals',          size:'half', visible:false },
+    { id:'networth',       size:'full', visible:false }, { id:'bills-upcoming', size:'full', visible:false },
+    { id:'debt-summary',   size:'full', visible:false }, { id:'weekly-plan',    size:'half', visible:false },
+    { id:'quick-add',      size:'half', visible:false },
   ],
 };
 function loadDashLayout() {
@@ -3911,6 +3946,177 @@ function renderDashboardDawg() {
           ${ins.map(i => `<div style="font-size:.82rem;color:var(--text);padding:5px 0;border-bottom:1px solid var(--border);line-height:1.45">${i}</div>`).join('')}
         </div>`;
       })();
+
+      // ── NEW TILES ──────────────────────────────────────────────────────────
+
+      // Upcoming Bills
+      {
+        const _curMonth = new Date().toISOString().slice(0,7);
+        const _unpaid   = [...state.bills]
+          .filter(b => b.paidMonth !== _curMonth)
+          .sort((a,b) => getDaysUntilDue(a.dueDay) - getDaysUntilDue(b.dueDay))
+          .slice(0, 5);
+        if (_unpaid.length) {
+          const _billTotal = _unpaid.reduce((s,b) => s + b.amount, 0);
+          const _billRows  = _unpaid.map(b => {
+            const _d    = getDaysUntilDue(b.dueDay);
+            const _col  = _d === 0 ? 'var(--danger)' : _d <= 3 ? 'var(--warn)' : 'var(--muted)';
+            const _dlbl = _d === 0 ? 'TODAY' : _d === 1 ? 'TOMORROW' : `${_d}d`;
+            return `<div class="dawg-bill-row">
+              <span class="dawg-bill-name">${b.name}</span>
+              <span class="dawg-bill-due" style="color:${_col}">${_dlbl}</span>
+              <span class="dawg-bill-amt">${fmt(b.amount)}</span>
+            </div>`;
+          }).join('');
+          _tileHtml['bills-upcoming'] = `
+            <div class="dawg-section-hdr">
+              <span class="dawg-card-title">UPCOMING BILLS</span>
+              <button class="dawg-view-all" id="dawg-goto-bills">VIEW ALL</button>
+            </div>
+            ${_billRows}
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0 0;border-top:1px solid var(--border);margin-top:4px">
+              <span style="font-size:.72rem;color:var(--muted);letter-spacing:.04em">TOTAL UPCOMING</span>
+              <span style="font-size:.88rem;font-weight:700;color:var(--text)">${fmt(_billTotal)}</span>
+            </div>`;
+        }
+      }
+
+      // Debt Summary
+      {
+        const _nwAll    = getNetWorth();
+        const _debtAcct = _nwAll.accounts.filter(a => a.type === 'credit' || a.type === 'loan');
+        if (_debtAcct.length) {
+          const _totalOwed = _debtAcct.reduce((s,a) => s + Math.abs(a.balance), 0);
+          const _debtRows  = _debtAcct.map(a => {
+            const _owed = Math.abs(a.balance);
+            const _col  = _owed > 0 ? 'var(--danger)' : 'var(--success)';
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
+              <div style="min-width:0;flex:1">
+                <span style="font-size:.82rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.name}</span>
+                <span style="font-size:.68rem;color:var(--muted);margin-left:4px;text-transform:capitalize">${a.type}</span>
+              </div>
+              <span style="font-size:.82rem;font-weight:700;color:${_col};flex-shrink:0;margin-left:8px">${_owed > 0 ? fmt(_owed) : '✓ Paid off'}</span>
+            </div>`;
+          }).join('');
+          _tileHtml['debt-summary'] = `
+            <div class="dawg-section-hdr">
+              <span class="dawg-card-title">DEBT SUMMARY</span>
+              <button class="dawg-view-all" id="dawg-goto-debt">VIEW ALL</button>
+            </div>
+            ${_debtRows}
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0 0;border-top:1px solid var(--border);margin-top:2px">
+              <span style="font-size:.72rem;color:var(--muted);letter-spacing:.04em">TOTAL OWED</span>
+              <span style="font-size:.88rem;font-weight:700;color:${_totalOwed>0?'var(--danger)':'var(--success)'}">${_totalOwed > 0 ? fmt(_totalOwed) : '✓ Debt free!'}</span>
+            </div>`;
+        }
+      }
+
+      // Weekly Plan Snapshot
+      {
+        const _perDay   = parseFloat(_wp?.per_day || 0);
+        const _paydate  = _wp?.paydate;
+        if (_perDay > 0 && _paydate && !isPastDash) {
+          const _pd      = new Date(_paydate + 'T00:00:00');
+          const _now2    = new Date(); _now2.setHours(0,0,0,0);
+          const _daysL   = Math.max(0, Math.round((_pd - _now2) / 86400000) + 1);
+          const _billAmt = parseFloat(_wp?.bills || 0);
+          const _pdColor = dayBudget > 0
+            ? (daySpent / dayBudget >= 1 ? 'var(--danger)' : daySpent / dayBudget >= 0.75 ? 'var(--warn)' : 'var(--accent)')
+            : 'var(--accent)';
+          _tileHtml['weekly-plan'] = `
+            <div class="dawg-card-title">WEEKLY PLAN</div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:.72rem;color:var(--muted)">PER DAY</span>
+                <span style="font-size:1rem;font-weight:700;color:${_pdColor}">${fmt(_perDay)}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:.72rem;color:var(--muted)">SPENT TODAY</span>
+                <span style="font-size:.88rem;font-weight:600;color:var(--text)">${fmt(daySpent)}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:.72rem;color:var(--muted)">DAYS LEFT</span>
+                <span style="font-size:.88rem;font-weight:600;color:var(--text)">${_daysL}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:.72rem;color:var(--muted)">PAYDAY</span>
+                <span style="font-size:.78rem;color:var(--text)">${_pd.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+              </div>
+              ${_billAmt > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px solid var(--border)">
+                <span style="font-size:.72rem;color:var(--muted)">BILLS DUE</span>
+                <span style="font-size:.78rem;color:var(--warn)">${fmt(_billAmt)}</span>
+              </div>` : ''}
+            </div>
+            <button class="dawg-view-btn" id="dawg-goto-weekly">UPDATE PLAN ›</button>`;
+        }
+      }
+
+      // Category Budgets
+      {
+        const _budgets = state.budgets || {};
+        const _budgetCats = Object.entries(_budgets).filter(([,v]) => parseFloat(v) > 0);
+        if (_budgetCats.length) {
+          const _catSpend = {};
+          state.transactions
+            .filter(t => t.type === 'expense' && t.date.startsWith(dashMonth))
+            .forEach(t => { _catSpend[t.category] = (_catSpend[t.category] || 0) + t.amount; });
+          const _bcRows = _budgetCats.map(([cat, cap]) => {
+            const _spent  = _catSpend[cat] || 0;
+            const _limit  = parseFloat(cap);
+            const _pct    = _limit > 0 ? Math.min(_spent / _limit * 100, 100) : 0;
+            const _color  = _pct >= 100 ? 'var(--danger)' : _pct >= 75 ? 'var(--warn)' : 'var(--accent)';
+            const _barW   = _boostBar(_pct);
+            return `<div class="dawg-bcat-row">
+              <span class="dawg-bcat-name">${catIcons[cat]||'💰'} ${cat}</span>
+              <div class="dawg-bcat-bar-wrap"><div class="dawg-bcat-bar" style="width:${_barW}%;background:${_color}"></div></div>
+              <span class="dawg-bcat-amt" style="color:${_color}">${fmt(_spent)}<span style="color:var(--muted);font-weight:400"> /${fmt(_limit)}</span></span>
+            </div>`;
+          }).join('');
+          _tileHtml['budgets-cats'] = `
+            <div class="dawg-section-hdr">
+              <span class="dawg-card-title">CATEGORY BUDGETS</span>
+              <button class="dawg-view-all" id="dawg-goto-budgets-page">MANAGE</button>
+            </div>
+            ${_bcRows}`;
+        }
+      }
+
+      // Monthly Stats
+      {
+        const _mNet = mInc - mExp;
+        _tileHtml['monthly-stats'] = `
+          <div class="dawg-card-title">MONTHLY STATS</div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:.72rem;color:var(--muted)">INCOME</span>
+              <span style="font-size:.9rem;font-weight:700;color:var(--success)">+${fmt(mInc)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:.72rem;color:var(--muted)">EXPENSES</span>
+              <span style="font-size:.9rem;font-weight:700;color:var(--danger)">-${fmt(mExp)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:5px;border-top:1px solid var(--border)">
+              <span style="font-size:.72rem;color:var(--muted)">NET</span>
+              <span style="font-size:1rem;font-weight:700;color:${_mNet >= 0 ? 'var(--success)' : 'var(--danger)'}">${_mNet >= 0 ? '+' : ''}${fmt(_mNet)}</span>
+            </div>
+          </div>`;
+      }
+
+      // Quick Add
+      {
+        _tileHtml['quick-add'] = `
+          <div class="dawg-card-title">QUICK ADD</div>
+          <div class="dawg-qa-wrap">
+            <button class="dawg-qa-btn dawg-qa-expense" id="dawg-qa-expense">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              EXPENSE
+            </button>
+            <button class="dawg-qa-btn dawg-qa-income" id="dawg-qa-income">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 17 12 12 17 17"/><polyline points="7 11 12 6 17 11"/></svg>
+              INCOME
+            </button>
+          </div>`;
+      }
 
       // Build the tile grid from layout
       const layout = loadDashLayout();
@@ -6785,6 +6991,15 @@ let _wtOpen = false;
 
 function openTutorial() {
   if (_wtOpen) return;
+
+  // Close the account picker overlay if it's open — the tour navigates tabs,
+  // and showingAccountPicker overrides render() to always show the picker.
+  if (showingAccountPicker) {
+    showingAccountPicker = false;
+    currentTab = 'dashboard';
+    render();
+  }
+
   _wtOpen = true;
   _wtStep = 0;
 
@@ -7186,10 +7401,18 @@ function attachDashboardDawg() {
   document.getElementById('ret-dash-add-contrib')?.addEventListener('click', () => showAddContribModal(currentAccountId));
 
   document.getElementById('dash-layout-btn')?.addEventListener('click', enterDashEditMode);
-  document.getElementById('dawg-goto-budgets')?.addEventListener('click', () => showTab('weekly'));
-  document.getElementById('dawg-goto-ledger')?.addEventListener('click',  () => showTab('ledger'));
-  document.getElementById('dawg-goto-goals')?.addEventListener('click',   () => showTab('goals'));
-  document.getElementById('dawg-goto-txns')?.addEventListener('click',    () => showTab('ledger'));
+  document.getElementById('dawg-goto-budgets')?.addEventListener('click',      () => showTab('weekly'));
+  document.getElementById('dawg-goto-ledger')?.addEventListener('click',       () => showTab('ledger'));
+  document.getElementById('dawg-goto-goals')?.addEventListener('click',        () => showTab('goals'));
+  document.getElementById('dawg-goto-txns')?.addEventListener('click',         () => showTab('ledger'));
+  // New tile nav buttons
+  document.getElementById('dawg-goto-bills')?.addEventListener('click',        () => showTab('bills'));
+  document.getElementById('dawg-goto-debt')?.addEventListener('click',         () => showTab('debt'));
+  document.getElementById('dawg-goto-weekly')?.addEventListener('click',       () => showTab('weekly'));
+  document.getElementById('dawg-goto-budgets-page')?.addEventListener('click', () => showTab('budgets'));
+  // Quick Add tile buttons — pre-select expense or income type
+  document.getElementById('dawg-qa-expense')?.addEventListener('click', () => { _quickAddType = 'expense'; showTab('add'); });
+  document.getElementById('dawg-qa-income')?.addEventListener('click',  () => { _quickAddType = 'income';  showTab('add'); });
 
   // Month navigator
   document.getElementById('dash-month-prev')?.addEventListener('click', () => {
@@ -7364,6 +7587,13 @@ async function autoUpdateWeeklyPlan(incomeAdded) {
 }
 
 function attachAdd() {
+  // Pre-select type if arriving from Quick Add tile
+  if (_quickAddType) {
+    const radio = document.querySelector(`input[name="etype"][value="${_quickAddType}"]`);
+    if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change', { bubbles: true })); }
+    _quickAddType = null;
+  }
+
   // ── split helpers ───────────────────────────────────────────────────────
   const cats = getCategories();
   if (!_splitRows.length) {
