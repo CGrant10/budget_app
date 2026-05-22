@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.5.7';
+const VERSION = '5.5.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.5.8', date: '2026-05-22', changes: [
+    'Per Day tile now mirrors the weekly planner exactly — uses the saved per_day value directly, no rolling adjustments',
+    'Daily History tile still shows each day this week vs your plan rate',
+  ]},
   { version: '5.5.7', date: '2026-05-22', changes: [
     'Fixed rolling daily limit showing wrong amount — was dividing the weekly budget by days-left-in-week, which gives incorrect results for pay periods that aren\'t a multiple of 7 days',
     'Rolling limit now uses the full pay period: (per_day × total days) minus all spending since the plan was saved, divided by days remaining until paydate',
@@ -3626,28 +3630,6 @@ function renderDashboardDawg() {
   const _todayStr2  = today();
   const daySpent    = state.transactions.filter(t => t.type==='expense' && t.date===_todayStr2).reduce((s,t)=>s+t.amount,0);
 
-  // Rolling daily limit — uses the FULL pay period (saved_date → paydate), not just the current week.
-  // totalBudget = per_day × total_days = the available money at plan-save time.
-  // adjustedDayLimit = (totalBudget − spent since save date) ÷ days remaining until paydate.
-  // This correctly handles any period length (7-day, 10-day, 14-day, etc.).
-  let adjustedDayLimit = dayBudget;
-  let _dayAdjDiff = 0;
-  if (dayBudget > 0 && _wp?.paydate && _wp?.saved_date) {
-    const _saveD      = new Date(_wp.saved_date + 'T00:00:00');
-    const _paydateD   = new Date(_wp.paydate    + 'T00:00:00');
-    const _todayNow   = new Date(); _todayNow.setHours(0,0,0,0);
-    const _totalDays  = Math.max(1, Math.round((_paydateD - _saveD)    / 86400000) + 1);
-    const _daysLeft   = Math.max(1, Math.round((_paydateD - _todayNow) / 86400000) + 1);
-    if (_paydateD >= _todayNow) { // only adjust if we haven't passed the pay date
-      const _totalBudget    = dayBudget * _totalDays;
-      const _saveDateStr    = localDateStr(_saveD);
-      const _spentSinceSave = state.transactions
-        .filter(t => t.type==='expense' && t.date >= _saveDateStr && t.date < _todayStr2)
-        .reduce((s,t) => s+t.amount, 0);
-      adjustedDayLimit = Math.max(0, _totalBudget - _spentSinceSave) / _daysLeft;
-      _dayAdjDiff = adjustedDayLimit - dayBudget;
-    }
-  }
 
   // Daily history — one entry per day Mon through today
   const _weekDays = [];
@@ -3792,17 +3774,9 @@ function renderDashboardDawg() {
           <div class="dawg-tile-sub">${fmt(budgetSpent)} / ${fmt(totalBudget)}</div>`;
 
         if (dayBudget > 0) {
-          // Use rolling adjusted limit for the ring; show plan rate if it changed
-          const _ringLimit = adjustedDayLimit > 0 ? adjustedDayLimit : dayBudget;
-          const dayPct   = Math.min(daySpent / _ringLimit * 100, 100);
+          const dayPct   = Math.min(daySpent / dayBudget * 100, 100);
           const dayColor = dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
           const dayDash  = (C * (1 - dayPct / 100)).toFixed(1);
-          // Warn if today's limit is more than $0.50 below the plan rate
-          const _adjHtml = _dayAdjDiff < -0.50
-            ? `<div class="dawg-tile-adj dawg-tile-adj--warn">↓ adj from ${fmt(dayBudget)}/day</div>`
-            : _dayAdjDiff > 0.50
-              ? `<div class="dawg-tile-adj dawg-tile-adj--good">↑ extra from ${fmt(dayBudget)}/day</div>`
-              : '';
           _tileHtml['budget-day'] = `
             <div class="dawg-card-title">BUDGET OVERVIEW</div>
             <div class="dawg-tile-period">PER DAY</div>
@@ -3814,8 +3788,7 @@ function renderDashboardDawg() {
               <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${dayColor}">${dayPct.toFixed(0)}%</div></div>
             </div>
             <div class="dawg-tile-amt">${fmt(daySpent)}</div>
-            <div class="dawg-tile-sub">${fmt(daySpent)} / ${fmt(_ringLimit)}</div>
-            ${_adjHtml}`;
+            <div class="dawg-tile-sub">${fmt(daySpent)} / ${fmt(dayBudget)}</div>`;
         }
 
         // Daily history tile — one row per day Mon through today
