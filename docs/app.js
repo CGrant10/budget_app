@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.5.3';
+const VERSION = '5.5.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.5.4', date: '2026-05-22', changes: [
+    'Fixed Per Day budget tile resetting at ~7 pm — the app was using UTC midnight instead of local midnight to determine "today", causing the tile to flip to the next date hours early',
+    'All date comparisons throughout the app now use local calendar date; a new localDateStr() helper ensures consistency everywhere',
+  ]},
   { version: '5.5.3', date: '2026-05-21', changes: [
     'Dashboard tile drag no longer creates a double empty space — the dragged tile is replaced by the placeholder (one slot, not two), and cancelling always restores it cleanly',
     'Tile drag motion uses requestAnimationFrame for smooth updates and skips redundant DOM moves, so reordering feels fluid',
@@ -1232,7 +1236,7 @@ function _dismissTxnAnim(el) {
 
 async function _checkPaychecks() {
   const today = new Date(); today.setHours(0,0,0,0);
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = localDateStr(today);
   let changed = false;
   for (const acct of state.accounts) {
     const ps = acct.paySchedule;
@@ -1292,7 +1296,7 @@ async function _checkPaychecks() {
 function showAddContribModal(acctId) {
   const acct    = state.accounts.find(a => a.id === acctId);
   const typeName = (RETIRE_LIMITS[acct?.type] || {}).label || 'Retirement';
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = today();
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.75);display:flex;align-items:flex-end;justify-content:center;padding:0';
   ov.innerHTML = `
@@ -1793,7 +1797,16 @@ function fmt(n) {
   return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function today() { return new Date().toISOString().split('T')[0]; }
+// Always returns the LOCAL calendar date (YYYY-MM-DD) — never UTC.
+// Using toISOString() would flip to "tomorrow" at 6–7 pm for US timezones.
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+// Same but for any Date object
+function localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 
 function showStatus(id, msg, type, ms = 3000) {
   const el = document.getElementById(id);
@@ -2247,8 +2260,8 @@ function checkWeekMilestone() {
   const today = new Date();
   if (today.getDay() !== 0) return;
   const mon = new Date(today); mon.setDate(today.getDate() - 6);
-  const monStr   = mon.toISOString().slice(0, 10);
-  const todayStr = today.toISOString().slice(0, 10);
+  const monStr   = localDateStr(mon);
+  const todayStr = localDateStr(today);
   const weekSpent = state.transactions
     .filter(t => t.type === 'expense' && t.date >= monStr && t.date <= todayStr)
     .reduce((s, t) => s + t.amount, 0);
@@ -4397,10 +4410,10 @@ function attachChallenges() {
   autoCheck.forEach(async ch => {
     const status = _challengeAutoStatus(ch);
     if (status === 'pass') {
-      const today = new Date().toISOString().slice(0,10);
+      const todayStr = today();
       const endPast = ch.type === 'spending_freeze'
-        ? ch.data.endDate < today
-        : ch.data.month < today.slice(0,7);
+        ? ch.data.endDate < todayStr
+        : ch.data.month < todayStr.slice(0,7);
       if (endPast && ch.status !== 'completed') {
         ch.status = 'completed';
         await api.saveChallenges(state.challenges);
@@ -5261,8 +5274,8 @@ async function checkBillNotifications() {
   const s = loadSettings();
   if (!s.notifications) return;
   if (Notification.permission !== 'granted') return;
-  const today = new Date().toISOString().slice(0,10);
-  if (s.lastNotifDate === today) return;
+  const todayStr = today();
+  if (s.lastNotifDate === todayStr) return;
   const due = getUpcomingBills(3);
   if (!due.length) return;
   const reg = await navigator.serviceWorker?.ready.catch(() => null);
@@ -5273,7 +5286,7 @@ async function checkBillNotifications() {
     if (reg) reg.showNotification(`📑 ${b.name}`, opts);
     else new Notification(`📑 ${b.name}`, opts);
   });
-  s.lastNotifDate = today;
+  s.lastNotifDate = todayStr;
   saveSettings(s);
 }
 
