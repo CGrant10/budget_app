@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.5.4';
+const VERSION = '5.5.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.5.5', date: '2026-05-22', changes: [
+    'Per Day tile on the dashboard now shows the exact same number as the Weekly Planner — both use available ÷ days-until-paycheck; previously the tile used per-week ÷ 7 which gave a different result whenever the pay period isn\'t a perfect multiple of 7 days',
+    'per_day is now saved to the weekly plan on every Save and auto-update so the dashboard always has the correct value',
+  ]},
   { version: '5.5.4', date: '2026-05-22', changes: [
     'Fixed Per Day budget tile resetting at ~7 pm — the app was using UTC midnight instead of local midnight to determine "today", causing the tile to flip to the next date hours early',
     'All date comparisons throughout the app now use local calendar date; a new localDateStr() helper ensures consistency everywhere',
@@ -1472,6 +1476,7 @@ function checkSpendingAlert(category) {
 // ── state + localStorage ───────────────────────────────────────────────────
 let state = { transactions: [], weekly_plan: {}, budgets: {}, bills: [], goals: [], challenges: [], accounts: [], startingBalance: 0 };
 let lastCalcPerWeek = 0;
+let lastCalcPerDay  = 0;
 let dashChartMode = 'bar';
 let currentAccountId = 'main';
 const STORAGE_KEY  = 'slawminyaw';
@@ -3598,8 +3603,11 @@ function renderDashboardDawg() {
   const budgetPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
   const budgetColor = budgetPct >= 90 ? 'var(--danger)' : budgetPct >= 75 ? 'var(--warn)' : 'var(--accent)';
   const budgetLbl   = weekBudget ? 'weekly' : 'monthly';
-  // Per-day budget derived from the effective weekly budget
-  const dayBudget   = weekBudget > 0 && !isPastDash ? effectiveWeekBudget / 7 : 0;
+  // Per-day budget: use the saved per_day from the weekly planner (available ÷ days-until-paycheck)
+  // so it matches what the weekly planner page shows. Fall back to per_week/7 for old saved plans.
+  const dayBudget   = weekBudget > 0 && !isPastDash
+    ? (parseFloat(_wp?.per_day || 0) || effectiveWeekBudget / 7)
+    : 0;
   const _todayStr2  = today();
   const daySpent    = state.transactions.filter(t => t.type==='expense' && t.date===_todayStr2).reduce((s,t)=>s+t.amount,0);
   const _ds            = loadSettings();
@@ -4709,7 +4717,8 @@ function calcWeekly() {
   const weeks     = Math.ceil(days / 7);
   const perWeek   = weeks > 0 ? available / weeks : 0;
   lastCalcPerWeek = perWeek;
-  const perDay    = days > 0 ? available / days : 0;
+  lastCalcPerDay  = days > 0 ? available / days : 0;
+  const perDay    = lastCalcPerDay;
 
   const now    = new Date(); now.setHours(0,0,0,0);
   const monday = new Date(now);
@@ -7187,7 +7196,8 @@ async function autoUpdateWeeklyPlan(incomeAdded) {
   const available     = Math.max(0, spendable - spendable * bufPct / 100);
   const weeks         = Math.ceil(days / 7);
   const perWeek       = weeks > 0 ? available / weeks : 0;
-  await api.saveWeeklyPlan({ ...wp, balance: newBalance.toFixed(2), per_week: perWeek });
+  const perDay        = days > 0 ? available / days : 0;
+  await api.saveWeeklyPlan({ ...wp, balance: newBalance.toFixed(2), per_week: perWeek, per_day: perDay });
 }
 
 function attachAdd() {
@@ -7536,6 +7546,7 @@ function attachWeekly() {
       paydate:    document.getElementById('wk-paydate').value,
       buffer:     parseInt(document.getElementById('wk-buffer').value),
       per_week:   lastCalcPerWeek,
+      per_day:    lastCalcPerDay,
       saved_date: today(),
     };
     await api.saveWeeklyPlan(plan);
