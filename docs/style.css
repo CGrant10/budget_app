@@ -2202,6 +2202,8 @@ body.light .section-title::before {
   gap: 8px;
   align-content: start;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 /* Full tiles span both columns */
@@ -2212,10 +2214,11 @@ body.light .section-title::before {
   grid-column: span 1;
   flex-direction: column;
   align-items: stretch;
-  padding: 10px 8px;
-  min-height: 96px;
+  padding: 10px 8px 44px;
+  min-height: 108px;
   position: relative;
   gap: 4px;
+  overflow: hidden;
 }
 .dem-tile[data-size="half"] .dem-drag-handle {
   position: absolute;
@@ -2231,7 +2234,7 @@ body.light .section-title::before {
 }
 .dem-tile[data-size="half"] .dem-tile-icon { width: 20px; height: 20px; }
 .dem-tile[data-size="half"] .dem-tile-name { font-size: .71rem; }
-.dem-tile[data-size="half"] .dem-tile-ctrls { margin-top: 6px; }
+.dem-tile[data-size="half"] .dem-tile-ctrls { position: absolute; bottom: 7px; left: 8px; right: 8px; margin-top: 0; }
 .dem-tile[data-size="half"] .dem-btn span { display: none; }
 
 /* Placeholder spans must match the dragged tile */
@@ -2240,6 +2243,7 @@ body.light .section-title::before {
 
 /* Individual tile block in the mockup */
 .dem-tile {
+  touch-action: pan-y;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -2247,7 +2251,6 @@ body.light .section-title::before {
   border: 1.5px solid var(--border);
   border-radius: 14px;
   padding: 13px 12px;
-  touch-action: none;
   user-select: none;
   transition: opacity .15s, border-color .15s;
 }
@@ -2373,7 +2376,9 @@ body.light .section-title::before {
   font-size: .5rem; font-weight: 800; letter-spacing: .05em;
   color: var(--muted); opacity: .7;
 }
-.nem-slot-icon { font-size: 1.3rem; line-height: 1; }
+.nem-slot-icon { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; color: var(--text); }
+.nem-slot-icon svg { width: 20px; height: 20px; }
+.nem-slot-active .nem-slot-icon { color: var(--accent); }
 .nem-slot-lbl {
   font-size: .55rem; font-weight: 700; color: var(--text);
   text-align: center; white-space: nowrap;
@@ -2414,7 +2419,9 @@ body.light .section-title::before {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 10%, var(--card));
 }
-.nem-pick-icon { font-size: 1.1rem; line-height: 1; flex-shrink: 0; }
+.nem-pick-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text); }
+.nem-pick-icon svg { width: 18px; height: 18px; }
+.nem-pick-current .nem-pick-icon { color: var(--accent); }
 .nem-pick-lbl {
   flex: 1; font-size: .76rem; font-weight: 700; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -4396,7 +4403,7 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
 }
 .est-use-btn:active { opacity: .85; }
 
-/* ── Transaction animations (expense = evil, income = hype, paycheck = 🔥) ── */
+/* ── Transaction animations (CSS scene-based, tutorial quality) ─────────── */
 .txn-anim {
   position: fixed;
   bottom: calc(var(--nav-h, 58px) + 14px);
@@ -4432,80 +4439,181 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
   position: relative;
   overflow: hidden;
 }
-/* Evil red glow */
 .txn-anim--expense .txn-anim-card {
   border-color: rgba(255,69,58,.35);
   box-shadow: 0 -4px 28px rgba(255,69,58,.18), inset 0 1px 0 rgba(255,69,58,.12);
 }
-/* Income green glow */
 .txn-anim--income .txn-anim-card {
   border-color: rgba(50,215,75,.35);
   box-shadow: 0 -4px 28px rgba(50,215,75,.15), inset 0 1px 0 rgba(50,215,75,.1);
 }
-/* Paycheck gold glow */
 .txn-anim--paycheck .txn-anim-card {
   border-color: rgba(255,214,10,.4);
   box-shadow: 0 -4px 32px rgba(255,214,10,.22), inset 0 1px 0 rgba(255,214,10,.14);
 }
-
-/* SVG icon wrap */
-.txn-anim-dob-wrap {
-  position: relative;
-  flex-shrink: 0;
-  width: 58px;
-  height: 58px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.txn-anim--transfer .txn-anim-card {
+  border-color: rgba(var(--accent-rgb, 78,203,141),.35);
+  box-shadow: 0 -4px 28px rgba(var(--accent-rgb, 78,203,141),.14), inset 0 1px 0 rgba(var(--accent-rgb, 78,203,141),.1);
 }
-.txn-anim-icon {
-  width: 52px;
-  height: 52px;
-  display: block;
-}
-.txn-anim-icon--expense {
-  color: var(--danger, #ff453a);
-  animation: iconEvil .5s cubic-bezier(.22,1,.36,1) .08s both;
-}
-.txn-anim-icon--income {
-  color: var(--success, #32d74b);
-  animation: iconHype .55s cubic-bezier(.22,1,.36,1) .08s both;
-}
-.txn-anim-icon--paycheck {
-  color: #ffd60a;
-  animation: iconHype .55s cubic-bezier(.22,1,.36,1) .08s both;
-}
-@keyframes iconEvil {
-  0%   { transform: rotate(0) scale(1); }
-  20%  { transform: rotate(-8deg) scale(1.08); }
-  45%  { transform: rotate(6deg) scale(1.06); }
-  65%  { transform: rotate(-4deg) scale(1.02); }
-  100% { transform: rotate(0) scale(1); }
-}
-@keyframes iconHype {
-  0%   { transform: translateY(0) scale(1); }
-  35%  { transform: translateY(-10px) scale(1.12); }
-  60%  { transform: translateY(-3px) scale(1.04); }
-  80%  { transform: translateY(-7px) scale(1.08); }
-  100% { transform: translateY(0) scale(1); }
-}
-
-/* Confetti host (income/paycheck) */
-.txn-anim-confetti-host {
-  position: absolute;
-  top: 50%;
-  left: 50%;
+/* Card shine sweep */
+.txn-anim-card::after {
+  content: '';
+  position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
+  animation: txn-shine .7s ease-out .15s both;
   pointer-events: none;
 }
-.txn-confetti-dot {
-  position: absolute;
-  top: 0; left: 0;
-  margin: -2px 0 0 -2px;
-  animation: confettiShoot .7s ease-out var(--delay, 0s) both;
+@keyframes txn-shine {
+  from { left: -60%; }
+  to   { left: 120%; }
 }
-@keyframes confettiShoot {
-  from { opacity: 1; transform: translate(0,0) scale(1) rotate(0deg); }
-  to   { opacity: 0; transform: translate(var(--x,0px),var(--y,0px)) scale(.35) rotate(180deg); }
+
+/* Icon wrap */
+.txn-anim-dob-wrap {
+  flex-shrink: 0;
+  width: 64px; height: 64px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Scene container ──────────────────────────────────────────────────────── */
+.txn-scene {
+  position: relative;
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  animation: txn-scene-in .4s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes txn-scene-in {
+  from { transform: scale(.5); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
+}
+
+/* Background glow disk */
+.txn-scene::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .12;
+}
+
+/* Per-type colors */
+.txn-scene--expense  { color: var(--danger,  #ff453a); }
+.txn-scene--income   { color: var(--success, #32d74b); }
+.txn-scene--paycheck { color: #ffd60a; }
+.txn-scene--transfer { color: var(--accent,  #4ecb8d); }
+
+/* Pulsing rings */
+.txn-ring {
+  position: absolute; border-radius: 50%;
+  border: 1.5px solid currentColor;
+  pointer-events: none;
+  animation: txn-ring-expand 1.6s ease-out infinite;
+}
+.txn-ring--a { width: 48px; height: 48px; }
+.txn-ring--b { width: 62px; height: 62px; animation-delay: .5s; }
+@keyframes txn-ring-expand {
+  0%   { transform: scale(.7); opacity: .65; }
+  100% { transform: scale(1.5); opacity: 0;  }
+}
+
+/* Main SVG */
+.txn-main-svg {
+  width: 36px; height: 36px;
+  display: block; position: relative; z-index: 1;
+}
+
+/* Stroke draw-in animation — each path uses --dl (dashLength) custom prop */
+.txn-sd {
+  stroke-dasharray: var(--dl, 60);
+  stroke-dashoffset: var(--dl, 60);
+}
+.txn-sd--1 { animation: txn-draw .5s cubic-bezier(.22,1,.36,1) .12s both; }
+.txn-sd--2 { animation: txn-draw .5s cubic-bezier(.22,1,.36,1) .28s both; }
+.txn-sd--3 { animation: txn-draw .5s cubic-bezier(.22,1,.36,1) .42s both; }
+.txn-sd--4 { animation: txn-draw .5s cubic-bezier(.22,1,.36,1) .55s both; }
+@keyframes txn-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Expense: arrow + wallet bounce down */
+.txn-scene--expense .txn-main-svg {
+  animation: txn-svg-drop .55s cubic-bezier(.22,1,.36,1) .08s both;
+}
+@keyframes txn-svg-drop {
+  0%   { transform: translateY(-10px) scale(.75); opacity: 0; }
+  65%  { transform: translateY(4px)  scale(1.06); opacity: 1; }
+  100% { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+/* Income/paycheck: arrow bounce up */
+.txn-scene--income .txn-main-svg,
+.txn-scene--paycheck .txn-main-svg {
+  animation: txn-svg-rise .55s cubic-bezier(.22,1,.36,1) .08s both;
+}
+@keyframes txn-svg-rise {
+  0%   { transform: translateY(10px) scale(.75); opacity: 0; }
+  65%  { transform: translateY(-4px) scale(1.08); opacity: 1; }
+  100% { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+/* Transfer: spin in */
+.txn-scene--transfer .txn-main-svg {
+  animation: txn-svg-spin .7s cubic-bezier(.22,1,.36,1) .05s both;
+}
+@keyframes txn-svg-spin {
+  from { transform: rotate(-120deg) scale(.5); opacity: 0; }
+  to   { transform: rotate(0deg)   scale(1);   opacity: 1; }
+}
+
+/* Flying particles */
+.txn-p {
+  position: absolute;
+  font-size: .6rem; font-weight: 900;
+  pointer-events: none;
+  z-index: 2;
+}
+/* Expense: $ signs scatter outward */
+.txn-p.txn-p-exp--1 { color:#ffd60a; animation: txn-exp-1 .9s ease-out .2s both; }
+.txn-p.txn-p-exp--2 { color:#ff9f0a; animation: txn-exp-2 .9s ease-out .32s both; }
+.txn-p.txn-p-exp--3 { color:var(--danger,#ff453a); animation: txn-exp-3 .9s ease-out .44s both; }
+@keyframes txn-exp-1 {
+  0%   { opacity:1; transform:translate(0,0) scale(1); }
+  100% { opacity:0; transform:translate(-24px,-30px) scale(.35) rotate(-40deg); }
+}
+@keyframes txn-exp-2 {
+  0%   { opacity:1; transform:translate(0,0) scale(1); }
+  100% { opacity:0; transform:translate(20px,-34px) scale(.35) rotate(30deg); }
+}
+@keyframes txn-exp-3 {
+  0%   { opacity:1; transform:translate(0,0) scale(1); }
+  100% { opacity:0; transform:translate(30px,-8px) scale(.35) rotate(15deg); }
+}
+/* Income/paycheck: sparkles shoot upward */
+.txn-p.txn-p-inc--1 { color:#ffd60a; animation: txn-inc-1 .9s ease-out .18s both; }
+.txn-p.txn-p-inc--2 { color:var(--success,#32d74b); animation: txn-inc-2 .9s ease-out .30s both; }
+.txn-p.txn-p-inc--3 { color:#ffd60a; animation: txn-inc-3 .9s ease-out .44s both; }
+.txn-p.txn-p-inc--4 { color:#ffd60a; animation: txn-inc-4 .9s ease-out .22s both; }
+.txn-p.txn-p-inc--5 { color:var(--success,#32d74b); animation: txn-inc-5 .9s ease-out .38s both; }
+@keyframes txn-inc-1 {
+  0%   { opacity:1; transform:translate(0,0) scale(1); }
+  100% { opacity:0; transform:translate(-20px,-36px) scale(.3) rotate(-20deg); }
+}
+@keyframes txn-inc-2 {
+  0%   { opacity:1; transform:translate(0,0) scale(1); }
+  100% { opacity:0; transform:translate(2px,-40px) scale(.3); }
+}
+@keyframes txn-inc-3 {
+  0%   { opacity:1; transform:translate(0,0) scale(1); }
+  100% { opacity:0; transform:translate(22px,-32px) scale(.3) rotate(25deg); }
+}
+@keyframes txn-inc-4 {
+  0%   { opacity:1; transform:translate(0,0) scale(1); }
+  100% { opacity:0; transform:translate(-30px,-20px) scale(.35); }
+}
+@keyframes txn-inc-5 {
+  0%   { opacity:1; transform:translate(0,0) scale(1); }
+  100% { opacity:0; transform:translate(28px,-18px) scale(.35) rotate(45deg); }
 }
 
 /* Text */

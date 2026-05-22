@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.10.1';
+const VERSION = '5.10.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1191,8 +1191,16 @@ const _PAYCHECK_MSGS = [
   "DIRECT DEPOSIT SECURED.",
 ];
 
+const _TRANSFER_MSGS = [
+  'TRANSFER SENT.',
+  'FUNDS MOVED.',
+  'ACCOUNTS SYNCED.',
+  'MONEY SHIFTED.',
+];
+
 function showRobbery(amount, desc) { _showTxnAnim('expense', amount, desc); }
 function showPayday(amount, desc)   { _showTxnAnim('income',  amount, desc); }
+function showTransfer(amount, desc) { _showTxnAnim('transfer', amount, desc); }
 
 function _showPaycheckToast(amount) {
   // Auto-paycheck fires from _checkPaychecks — reuse the full anim
@@ -1203,47 +1211,68 @@ function _showTxnAnim(type, amount, desc) {
   document.getElementById('txn-anim')?.remove();
 
   const isExpense  = type === 'expense';
-  const isPaycheck = /paycheck|pay.?check|direct.?deposit|payday|salary|wages|payroll/i.test(desc || '');
+  const isTransfer = type === 'transfer';
+  const isPaycheck = !isExpense && !isTransfer && /paycheck|pay.?check|direct.?deposit|payday|salary|wages|payroll/i.test(desc || '');
   const variant    = isPaycheck ? 'paycheck' : type;
 
-  const msgs    = isPaycheck ? _PAYCHECK_MSGS : (isExpense ? _EXPENSE_MSGS : _INCOME_MSGS);
+  const msgs     = isTransfer ? _TRANSFER_MSGS : isPaycheck ? _PAYCHECK_MSGS : (isExpense ? _EXPENSE_MSGS : _INCOME_MSGS);
   const headline = msgs[Math.floor(Math.random() * msgs.length)];
-  const amtStr   = `${isExpense ? '-' : '+'}${fmt(amount)}`;
+  const amtStr   = isTransfer ? fmt(amount) : `${isExpense ? '-' : '+'}${fmt(amount)}`;
 
-  // Clean outline SVG icons — red devil for expense, green happy for income, gold $ for paycheck
-  const iconSvg = isPaycheck
-    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="txn-anim-icon txn-anim-icon--paycheck">
-        <circle cx="12" cy="12" r="9"/>
-        <path d="M12 6v12"/>
-        <path d="M15.5 8.5a3.5 3.5 0 0 0-7 0c0 2.2 1.5 3.2 3.5 3.8s3.5 1.6 3.5 3.7a3.5 3.5 0 0 1-7 0"/>
-      </svg>`
-    : isExpense
-    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="txn-anim-icon txn-anim-icon--expense">
-  <circle cx="12" cy="13" r="8"/>
-  <path d="M9 6.5 L7.5 1.5 L11.5 6"/>
-  <path d="M15 6.5 L16.5 1.5 L12.5 6"/>
-  <path d="M8.5 10.5 L11 11.5"/>
-  <path d="M13 11.5 L15.5 10.5"/>
-  <circle cx="9.8" cy="13" r="0.85" fill="currentColor" stroke="none"/>
-  <circle cx="14.2" cy="13" r="0.85" fill="currentColor" stroke="none"/>
-  <path d="M9 16.5 Q10 18.5 12 18 Q14 17.5 15 16.5"/>
-</svg>`
-    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="txn-anim-icon txn-anim-icon--income">
-        <circle cx="12" cy="12" r="9"/>
-        <circle cx="9" cy="10.5" r=".9" fill="currentColor" stroke="none"/>
-        <circle cx="15" cy="10.5" r=".9" fill="currentColor" stroke="none"/>
-        <path d="M8.5 14.5 Q10.5 17 12 17 Q13.5 17 15.5 14.5"/>
-      </svg>`;
+  // ── CSS-animated scene — matches tutorial animation quality ───────────────
+  let scene;
+  if (isExpense) {
+    scene = `<div class="txn-scene txn-scene--expense">
+      <div class="txn-ring txn-ring--a"></div>
+      <div class="txn-ring txn-ring--b"></div>
+      <svg class="txn-main-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+        <line x1="16" y1="6" x2="16" y2="22" class="txn-sd txn-sd--1" style="--dl:16"/>
+        <polyline points="9,16 16,23 23,16" class="txn-sd txn-sd--2" style="--dl:20"/>
+        <rect x="8" y="4" width="16" height="10" rx="2" class="txn-sd txn-sd--3" style="--dl:56"/>
+        <line x1="8" y1="8" x2="24" y2="8" class="txn-sd txn-sd--4" style="--dl:16"/>
+      </svg>
+      <span class="txn-p txn-p-exp--1">$</span>
+      <span class="txn-p txn-p-exp--2">$</span>
+      <span class="txn-p txn-p-exp--3">$</span>
+    </div>`;
+  } else if (isTransfer) {
+    scene = `<div class="txn-scene txn-scene--transfer">
+      <div class="txn-ring txn-ring--a"></div>
+      <svg class="txn-main-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+        <path d="M6 11 A10 10 0 0 1 26 11" class="txn-sd txn-sd--1" style="--dl:34"/>
+        <polyline points="22,7 26,11 22,15" class="txn-sd txn-sd--2" style="--dl:12"/>
+        <path d="M26 21 A10 10 0 0 1 6 21" class="txn-sd txn-sd--3" style="--dl:34"/>
+        <polyline points="10,17 6,21 10,25" class="txn-sd txn-sd--4" style="--dl:12"/>
+      </svg>
+    </div>`;
+  } else {
+    // income / paycheck
+    const extraP = isPaycheck
+      ? `<span class="txn-p txn-p-inc--4">$</span><span class="txn-p txn-p-inc--5">$</span>`
+      : '';
+    scene = `<div class="txn-scene txn-scene--${isPaycheck ? 'paycheck' : 'income'}">
+      <div class="txn-ring txn-ring--a"></div>
+      <div class="txn-ring txn-ring--b"></div>
+      <svg class="txn-main-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+        <line x1="16" y1="26" x2="16" y2="10" class="txn-sd txn-sd--1" style="--dl:16"/>
+        <polyline points="9,16 16,9 23,16" class="txn-sd txn-sd--2" style="--dl:20"/>
+        ${isPaycheck
+          ? `<line x1="8" y1="27" x2="24" y2="27" stroke-width="2.5" class="txn-sd txn-sd--3" style="--dl:16"/>`
+          : `<path d="M11 22 Q16 26 21 22" class="txn-sd txn-sd--3" style="--dl:14"/>`}
+      </svg>
+      <span class="txn-p txn-p-inc--1">✦</span>
+      <span class="txn-p txn-p-inc--2">✦</span>
+      <span class="txn-p txn-p-inc--3">✦</span>
+      ${extraP}
+    </div>`;
+  }
 
   const el = document.createElement('div');
   el.id        = 'txn-anim';
   el.className = `txn-anim txn-anim--${variant}`;
   el.innerHTML = `
     <div class="txn-anim-card">
-      <div class="txn-anim-dob-wrap">
-        ${iconSvg}
-        <div class="txn-anim-confetti-host"></div>
-      </div>
+      <div class="txn-anim-dob-wrap">${scene}</div>
       <div class="txn-anim-body">
         <div class="txn-anim-headline">${headline}</div>
         <div class="txn-anim-amount">${amtStr}</div>
@@ -1254,26 +1283,6 @@ function _showTxnAnim(type, amount, desc) {
 
   document.body.appendChild(el);
 
-  // Confetti burst for income/paycheck
-  if (!isExpense) {
-    const host   = el.querySelector('.txn-anim-confetti-host');
-    const colors = ['#ffd60a','#32d74b','var(--accent)','#ff453a','#7c6fff','#2dd4bf','#ff9f0a'];
-    for (let i = 0; i < 14; i++) {
-      const dot   = document.createElement('div');
-      dot.className = 'txn-confetti-dot';
-      const angle = (i / 14) * 360;
-      const dist  = 26 + Math.random() * 32;
-      const x     = Math.round(Math.cos(angle * Math.PI / 180) * dist);
-      const y     = Math.round(Math.sin(angle * Math.PI / 180) * dist);
-      const sz    = (3.5 + Math.random() * 4.5).toFixed(1);
-      dot.style.cssText = `--x:${x}px;--y:${y}px;--delay:${(i * 0.032).toFixed(3)}s;`
-        + `background:${colors[i % colors.length]};width:${sz}px;height:${sz}px;`
-        + `border-radius:${Math.random() > .5 ? '50%' : '2px'};`;
-      host.appendChild(dot);
-    }
-  }
-
-  // Kick off the depleting progress bar on the next frame
   const dur = isPaycheck ? 3600 : 2700;
   requestAnimationFrame(() => {
     const bar = el.querySelector('.txn-anim-progress-bar');
@@ -1545,17 +1554,28 @@ function saveSettings(s) {
 function defaultAccounts() { return [{ id: 'main', name: 'Main', type: 'checking' }]; }
 
 const NAV_ITEMS = [
-  { key: 'dashboard', label: 'Dashboard', icon: '📊', required: true },
-  { key: 'add',       label: 'Add',       icon: '➕' },
-  { key: 'ledger',    label: 'Ledger',    icon: '📋' },
-  { key: 'weekly',    label: 'Weekly',    icon: '📅' },
-  { key: 'bills',     label: 'Bills',     icon: '📑' },
-  { key: 'debt',     label: 'Debt',      icon: '💳' },
-  { key: 'goals',     label: 'Goals',     icon: '🎯' },
-  { key: 'import',    label: 'Import',    icon: '📥' },
-  { key: 'budgets',   label: 'Budgets',   icon: '💰' },
-  { key: 'settings',  label: 'Settings',  icon: '⚙️' },
-  { key: 'about',     label: 'About',     icon: 'ℹ️',  required: true },
+  { key: 'dashboard', label: 'Dashboard', required: true,
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>` },
+  { key: 'add',       label: 'Add',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>` },
+  { key: 'ledger',    label: 'Ledger',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>` },
+  { key: 'weekly',    label: 'Weekly',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>` },
+  { key: 'bills',     label: 'Bills',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><path d="M12 10v7M14.5 11.5a2.5 2.5 0 0 0-5 0c0 1.5 1.1 2.2 2.5 2.7s2.5 1.2 2.5 2.7a2.5 2.5 0 0 1-5 0"/></svg>` },
+  { key: 'debt',      label: 'Debt',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="6" width="20" height="14" rx="2"/><line x1="2" y1="11" x2="22" y2="11"/><line x1="6" y1="15" x2="9" y2="15"/></svg>` },
+  { key: 'goals',     label: 'Goals',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>` },
+  { key: 'import',    label: 'Import',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v13"/><polyline points="7,12 12,17 17,12"/><path d="M3 19h18"/></svg>` },
+  { key: 'budgets',   label: 'Budgets',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="20" x2="5" y2="9"/><line x1="12" y1="20" x2="12" y2="3"/><line x1="19" y1="20" x2="19" y2="13"/></svg>` },
+  { key: 'settings',  label: 'Settings',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>` },
+  { key: 'about',     label: 'About',     required: true,
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="17"/><circle cx="12" cy="7.5" r=".6" fill="currentColor" stroke="none"/></svg>` },
 ];
 
 const DEFAULT_NAV_LAYOUT = ['add', 'ledger', 'weekly', 'settings'];
@@ -7852,6 +7872,7 @@ function attachAdd() {
     haptic(t.type === 'income' ? [20, 50, 20] : [30]);
     if (t.type === 'expense') showRobbery(t.amount, t.description);
     else if (t.type === 'income') showPayday(t.amount, t.description);
+    else if (t.type === 'transfer') showTransfer(t.amount, t.description);
     if (t.type === 'expense') { checkRoast(t.category); checkSpendingAlert(t.category); }
     checkMilestones(prevBal, newBal);
     checkWeekMilestone();
