@@ -43,6 +43,7 @@
 
   <!-- Splash screen — visible by default, dismissed by JS after animation -->
   <div id="splash-screen" class="splash-screen">
+    <canvas id="splash-canvas" class="splash-canvas"></canvas>
     <div class="splash-inner">
       <div class="splash-dog">
         <img src="./doberman.png" alt="Budget DAWGs" class="splash-dob-img"/>
@@ -56,6 +57,7 @@
       </div>
       <div class="splash-tap-hint">tap to continue</div>
     </div>
+    <button id="splash-anim-toggle" class="splash-anim-toggle">✦ hide effects</button>
   </div>
 
   <div id="app" style="opacity:0;transition:opacity .18s ease">

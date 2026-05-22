@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.10.3';
+const VERSION = '5.10.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.10.4', date: '2026-05-22', changes: [
+    'Linux terminal themes added — Kali Linux (dark navy + cyan), Linux Mint (dark + green), and Ubuntu (purple + orange) in the Terminal theme section',
+    'VS Code theme now shows both Java and Python syntax: page titles use Java class syntax (class PageName {), section headers use Python def syntax (def sectionName():)',
+    'Splash screen matrix money animation — falling currency and binary symbols rain down in the accent color; tap ✦ hide effects to revert to the clean minimal splash',
+  ]},
   { version: '5.10.3', date: '2026-05-22', changes: [
     'Terminal themes (VS Code, PowerShell, CMD) now style every page title and section header in code syntax — VS Code uses def/(): Python style, PowerShell uses $var = style, CMD uses @/:: style',
     'Per Day budget tile now dynamically adjusts — if you overspend one day the remaining budget is divided across days left in the week instead of using the static plan rate',
@@ -979,6 +984,33 @@ const THEMES = {
     font:'cmd',
     cats:{ Food:'#00c300', Gas:'#ff3333', Car:'#00aaff', Boat:'#00ffff', Tools:'#ffaa00', Home:'#aaff00', Entertainment:'#ff55ff', Health:'#00aaff', Other:'#888888' },
   },
+  kali: {
+    label: 'Kali Linux',
+    bg: '#1a1a2e', surface: '#16213e', surface2: '#0f3460', card: '#16213e',
+    text: '#e0e0e0', muted: '#4a6a7a', border: '#1e3a5e',
+    accent: '#00d4ff', accent2: '#267bf0', success: '#00ff88', warn: '#f1c40f', danger: '#e74c3c',
+    grad: 'linear-gradient(135deg, #0f3460 0%, #00d4ff 100%)',
+    font: 'kali',
+    cats: { Food:'#00ff88', Gas:'#e74c3c', Car:'#267bf0', Boat:'#00d4ff', Tools:'#f39c12', Home:'#2ecc71', Entertainment:'#9b59b6', Health:'#00d4ff', Other:'#4a6a7a' },
+  },
+  mintlinux: {
+    label: 'Linux Mint',
+    bg: '#1c2128', surface: '#22272e', surface2: '#2d333b', card: '#22272e',
+    text: '#adbac7', muted: '#768390', border: '#373e47',
+    accent: '#87cf3e', accent2: '#5fa832', success: '#87cf3e', warn: '#d9a520', danger: '#e05252',
+    grad: 'linear-gradient(135deg, #1c3010 0%, #87cf3e 100%)',
+    font: 'default',
+    cats: { Food:'#87cf3e', Gas:'#e05252', Car:'#4080c0', Boat:'#40c0b0', Tools:'#d9a520', Home:'#87cf3e', Entertainment:'#a070c0', Health:'#4898c8', Other:'#768390' },
+  },
+  ubuntu: {
+    label: 'Ubuntu',
+    bg: '#300a24', surface: '#2c0a20', surface2: '#3a1035', card: '#350c28',
+    text: '#eeeeee', muted: '#a08898', border: '#5a1a40',
+    accent: '#e95420', accent2: '#77216f', success: '#6cc644', warn: '#f1c40f', danger: '#e74c3c',
+    grad: 'linear-gradient(135deg, #300a24 0%, #e95420 100%)',
+    font: 'ubuntu',
+    cats: { Food:'#6cc644', Gas:'#e95420', Car:'#4284f3', Boat:'#6cc644', Tools:'#f39c12', Home:'#6cc644', Entertainment:'#77216f', Health:'#4284f3', Other:'#a08898' },
+  },
   light: {
     label:'Light', shortLabel:'Mint',
     bg:'#e9e9e7', surface:'#f3f3f0', surface2:'#deded9', card:'#e3e3e0',
@@ -1625,6 +1657,8 @@ function applyFontStyle(style) {
     vscode:     "'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace",
     powershell: "'Cascadia Code', 'Cascadia Mono', 'Consolas', 'Courier New', monospace",
     cmd:        "'Lucida Console', 'Consolas', 'Courier New', monospace",
+    kali:       "'JetBrains Mono', 'Fira Code', 'Consolas', 'Courier New', monospace",
+    ubuntu:     "'Ubuntu Mono', 'Consolas', 'Courier New', monospace",
   };
   document.documentElement.style.setProperty('--font-body', map[style] || map.default);
 }
@@ -1704,8 +1738,8 @@ function applyTheme(theme) {
   root.style.setProperty('--border',   t.border);
   document.body.classList.toggle('light', !!t.light);
   // Terminal theme body classes — used for code-syntax styled titles in CSS
-  document.body.classList.remove('theme-vscode', 'theme-powershell', 'theme-cmd');
-  if (['vscode', 'powershell', 'cmd'].includes(theme)) {
+  document.body.classList.remove('theme-vscode', 'theme-powershell', 'theme-cmd', 'theme-kali', 'theme-mintlinux', 'theme-ubuntu');
+  if (['vscode', 'powershell', 'cmd', 'kali', 'mintlinux', 'ubuntu'].includes(theme)) {
     document.body.classList.add('theme-' + theme);
   }
   // Update category colors to match theme
@@ -2845,19 +2879,86 @@ function runSplash() {
   return new Promise(resolve => {
     const el = document.getElementById('splash-screen');
     if (!el) return resolve();
-    let done = false;
+
+    let done      = false;
+    let animFrame = null;
+
+    const canvas    = document.getElementById('splash-canvas');
+    const toggleBtn = document.getElementById('splash-anim-toggle');
+
+    const startAnim = () => {
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      canvas.width  = el.offsetWidth  || window.innerWidth;
+      canvas.height = el.offsetHeight || window.innerHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const CHARS = '$¥€£₿01$10¢₩¥$0110₿€$';
+      const colW  = 18;
+      const cols  = Math.ceil(canvas.width / colW);
+      const drops = Array.from({ length: cols }, () => Math.random() * -40);
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#4ecb8d';
+      const bg     = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()     || '#1a1a1a';
+
+      const tick = () => {
+        if (done) return;
+        ctx.fillStyle   = bg;
+        ctx.globalAlpha = 0.09;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 0.42;
+        ctx.fillStyle   = accent;
+        ctx.font        = `13px 'Consolas','Menlo',monospace`;
+        for (let i = 0; i < cols; i++) {
+          if (drops[i] < 0) { drops[i] += 0.4; continue; }
+          const ch = CHARS[Math.floor(Math.random() * CHARS.length)];
+          ctx.fillText(ch, i * colW + 2, drops[i] * 15);
+          if (drops[i] * 15 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+          drops[i] += 0.65;
+        }
+        ctx.globalAlpha = 1;
+        animFrame = requestAnimationFrame(tick);
+      };
+      tick();
+      canvas.style.display = '';
+    };
+
+    const stopAnim = () => {
+      if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+      if (canvas) canvas.style.display = 'none';
+    };
+
+    const animPref = localStorage.getItem('splashAnim');
+    const animOn   = animPref !== 'false';
+    if (animOn) startAnim();
+    else if (canvas) canvas.style.display = 'none';
+
+    if (toggleBtn) {
+      toggleBtn.textContent = animOn ? '✦ hide effects' : '✦ show effects';
+      toggleBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const currently = (canvas && canvas.style.display !== 'none') || animFrame !== null;
+        if (currently) {
+          stopAnim();
+          localStorage.setItem('splashAnim', 'false');
+          toggleBtn.textContent = '✦ show effects';
+        } else {
+          localStorage.setItem('splashAnim', 'true');
+          toggleBtn.textContent = '✦ hide effects';
+          startAnim();
+        }
+      });
+    }
+
     const finish = () => {
       if (done) return;
       done = true;
+      if (animFrame) cancelAnimationFrame(animFrame);
       el.classList.add('dismiss');
       setTimeout(() => { el.remove(); resolve(); }, 450);
     };
-    // Auto-dismiss after 1.9s (bar fills at 2.1s — starts fading just before)
     setTimeout(finish, 1900);
-    // Hard fallback: if anything delays init, tap anywhere skips the splash
     el.addEventListener('click', finish, { once: true });
-    // Nuclear fallback: force-remove after 5s no matter what
-    setTimeout(() => { if (!done) { done = true; el.remove(); resolve(); } }, 5000);
+    setTimeout(() => { if (!done) { done = true; if (animFrame) cancelAnimationFrame(animFrame); el.remove(); resolve(); } }, 5000);
   });
 }
 
@@ -5840,7 +5941,7 @@ function renderSettings() {
       <button class="btn-xs custom-cat-del" data-idx="${i}" style="background:var(--danger);color:#fff;border-color:var(--danger)">✕</button>
     </div>`).join('') : '<p style="font-size:.8rem;color:var(--muted);margin-bottom:6px">No custom categories yet.</p>';
 
-  const TERMINAL_KEYS = ['vscode','powershell','cmd'];
+  const TERMINAL_KEYS = ['vscode','powershell','cmd','kali','mintlinux','ubuntu'];
   const isTerminal = TERMINAL_KEYS.includes(theme);
   const isLight    = !isTerminal && !!THEMES[theme]?.light;
   const activeMode = isTerminal ? 'terminal' : isLight ? 'light' : 'dark';
@@ -5912,9 +6013,13 @@ function renderSettings() {
         </div>
 
         <div id="theme-terminal-section" style="${activeMode !== 'terminal' ? 'display:none' : ''}">
-          <p class="code-hint" style="margin-bottom:8px">Terminal style</p>
+          <p class="code-hint" style="margin-bottom:6px">IDE &amp; Shell</p>
           <div class="theme-terminal-chips">
-            ${TERMINAL_KEYS.map(terminalChip).join('')}
+            ${['vscode','powershell','cmd'].map(terminalChip).join('')}
+          </div>
+          <p class="code-hint" style="margin:10px 0 6px">Linux</p>
+          <div class="theme-terminal-chips">
+            ${['kali','mintlinux','ubuntu'].map(terminalChip).join('')}
           </div>
         </div>
       </div>

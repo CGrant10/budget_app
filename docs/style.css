@@ -2969,6 +2969,34 @@ body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
   opacity: 0;
   animation: splashFadeIn .4s ease 3.5s both;
 }
+.splash-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  animation: splashFadeIn .7s ease .3s both;
+}
+.splash-anim-toggle {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: .52rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 6px 8px;
+  opacity: 0;
+  animation: splashFadeIn .35s ease 1.3s both;
+  z-index: 2;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
 
 /* ── page transition animations ── */
 @keyframes pageSlideInRight {
@@ -4811,10 +4839,17 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
 
 /* ── terminal theme: code-syntax styled titles ───────────────────────────── */
 
-/* VS Code — Python style: def sectionName(): */
+/* VS Code — Java class for page titles, Python def for section titles */
+body.theme-vscode .page-title {
+  color: #4ec9b0;
+}
 body.theme-vscode .page-title::before {
-  content: '// ';
-  color: #6a9955;
+  content: 'class ';
+  color: #569cd6;
+}
+body.theme-vscode .page-title::after {
+  content: ' {';
+  color: #d4d4d4;
 }
 body.theme-vscode .section-title {
   padding-left: 0;
@@ -4880,6 +4915,78 @@ body.theme-cmd .section-title {
 body.theme-cmd .section-title::before {
   content: '@';
   color: #00ff41;
+  position: static;
+  transform: none;
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  display: inline;
+}
+
+/* Kali Linux — root@kali:~# style */
+body.theme-kali .page-title::before {
+  content: '>> ';
+  color: #00d4ff;
+}
+body.theme-kali .section-title {
+  padding-left: 0;
+  text-transform: none;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: #00d4ff;
+}
+body.theme-kali .section-title::before {
+  content: '$ ';
+  color: #00ff88;
+  position: static;
+  transform: none;
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  display: inline;
+}
+
+/* Linux Mint — bash prompt style */
+body.theme-mintlinux .page-title::before {
+  content: '$ ';
+  color: #87cf3e;
+}
+body.theme-mintlinux .section-title {
+  padding-left: 0;
+  text-transform: none;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: #87cf3e;
+}
+body.theme-mintlinux .section-title::before {
+  content: '→ ';
+  color: #5fa832;
+  position: static;
+  transform: none;
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  display: inline;
+}
+
+/* Ubuntu — bash prompt style */
+body.theme-ubuntu .page-title::before {
+  content: '$ ';
+  color: #e95420;
+}
+body.theme-ubuntu .section-title {
+  padding-left: 0;
+  text-transform: none;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: #e95420;
+}
+body.theme-ubuntu .section-title::before {
+  content: '→ ';
+  color: #77216f;
   position: static;
   transform: none;
   width: auto;
