@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.5.6';
+const VERSION = '5.5.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.5.7', date: '2026-05-22', changes: [
+    'Fixed rolling daily limit showing wrong amount — was dividing the weekly budget by days-left-in-week, which gives incorrect results for pay periods that aren\'t a multiple of 7 days',
+    'Rolling limit now uses the full pay period: (per_day × total days) minus all spending since the plan was saved, divided by days remaining until paydate',
+  ]},
   { version: '5.5.6', date: '2026-05-22', changes: [
     'New Daily History tile shows every day of the current week with a bar, amount spent, and an over-budget badge so you can see your daily pattern at a glance',
     'Per Day tile now shows a rolling adjusted limit — if you overspent earlier in the week your remaining days get a smaller limit; if you came in under, you get more room',
@@ -3622,18 +3626,28 @@ function renderDashboardDawg() {
   const _todayStr2  = today();
   const daySpent    = state.transactions.filter(t => t.type==='expense' && t.date===_todayStr2).reduce((s,t)=>s+t.amount,0);
 
-  // Rolling daily limit — redistributes remaining week budget over remaining days in the week.
-  // If you overspent earlier this week the limit goes down; if you banked days it goes up.
-  const _nowDow          = (_wkNow.getDay() + 6) % 7;   // Mon=0 … Sun=6
-  const _daysLeftInWeek  = 7 - _nowDow;                  // today + future days (1–7)
-  const _spentBeforeToday = state.transactions
-    .filter(t => t.type==='expense' && t.date >= _monStr && t.date < _todayStr2)
-    .reduce((s,t) => s+t.amount, 0);
-  const _remainingWeekBudget = Math.max(0, effectiveWeekBudget - _spentBeforeToday);
-  const adjustedDayLimit = dayBudget > 0
-    ? (_daysLeftInWeek > 0 ? _remainingWeekBudget / _daysLeftInWeek : dayBudget)
-    : 0;
-  const _dayAdjDiff = dayBudget > 0 ? adjustedDayLimit - dayBudget : 0; // + means extra room, - means behind
+  // Rolling daily limit — uses the FULL pay period (saved_date → paydate), not just the current week.
+  // totalBudget = per_day × total_days = the available money at plan-save time.
+  // adjustedDayLimit = (totalBudget − spent since save date) ÷ days remaining until paydate.
+  // This correctly handles any period length (7-day, 10-day, 14-day, etc.).
+  let adjustedDayLimit = dayBudget;
+  let _dayAdjDiff = 0;
+  if (dayBudget > 0 && _wp?.paydate && _wp?.saved_date) {
+    const _saveD      = new Date(_wp.saved_date + 'T00:00:00');
+    const _paydateD   = new Date(_wp.paydate    + 'T00:00:00');
+    const _todayNow   = new Date(); _todayNow.setHours(0,0,0,0);
+    const _totalDays  = Math.max(1, Math.round((_paydateD - _saveD)    / 86400000) + 1);
+    const _daysLeft   = Math.max(1, Math.round((_paydateD - _todayNow) / 86400000) + 1);
+    if (_paydateD >= _todayNow) { // only adjust if we haven't passed the pay date
+      const _totalBudget    = dayBudget * _totalDays;
+      const _saveDateStr    = localDateStr(_saveD);
+      const _spentSinceSave = state.transactions
+        .filter(t => t.type==='expense' && t.date >= _saveDateStr && t.date < _todayStr2)
+        .reduce((s,t) => s+t.amount, 0);
+      adjustedDayLimit = Math.max(0, _totalBudget - _spentSinceSave) / _daysLeft;
+      _dayAdjDiff = adjustedDayLimit - dayBudget;
+    }
+  }
 
   // Daily history — one entry per day Mon through today
   const _weekDays = [];
