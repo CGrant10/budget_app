@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.11.1';
+const VERSION = '5.11.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -7893,28 +7893,20 @@ function attachDashboardDawg() {
     // For VS Code theme the line uses a multi-color gradient; keep the string for the dot
     const _sparkClrStr = (typeof _sparkClr === 'string') ? _sparkClr : `rgb(${_sparkClrRgb})`;
 
-    const _DRAW_MS  = 2200;  // ms to draw line left→right
-    const _PAUSE_MS = 1600;  // ms to rest at end before replaying
-    const _easeIO   = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    const _DRAW_MS = 2200;  // ms per left→right pass
+    const _easeIO  = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
 
     const _pulsePlugin = {
       id: 'dawgPulse',
       afterInit(chart) {
         chart._drawPhase = 0;
-        chart._atEnd     = false;
-        chart._pauseMs   = 0;
-        let _lastTs      = null;
+        let _lastTs = null;
         const tick = ts => {
           if (!chart.canvas?.isConnected) return;
           const dt = _lastTs ? Math.min(ts - _lastTs, 60) : 0;
           _lastTs  = ts;
-          if (chart._atEnd) {
-            chart._pauseMs += dt;
-            if (chart._pauseMs >= _PAUSE_MS) { chart._atEnd = false; chart._pauseMs = 0; chart._drawPhase = 0; }
-          } else {
-            chart._drawPhase = Math.min(1, chart._drawPhase + dt / _DRAW_MS);
-            if (chart._drawPhase >= 1) { chart._atEnd = true; chart._pauseMs = 0; }
-          }
+          // Continuous 0→1 cycle, wraps seamlessly
+          chart._drawPhase = (chart._drawPhase + dt / _DRAW_MS) % 1;
           chart.draw();
           chart._pulseRaf = requestAnimationFrame(tick);
         };
@@ -7924,19 +7916,22 @@ function attachDashboardDawg() {
         const meta = chart.getDatasetMeta(0);
         if (!meta?.data?.length) return;
         const { chartArea, ctx: c } = chart;
-        const raw   = chart._drawPhase ?? 1;
-        const phase = _easeIO(raw);
-        const pts   = meta.data;
+        const raw     = chart._drawPhase ?? 0;
+        const phase   = _easeIO(raw);
+        const revealX = chartArea.left + (chartArea.right - chartArea.left) * phase;
+        const h       = (chartArea.bottom - chartArea.top) + 12;
+        const y0      = chartArea.top - 6;
 
-        // Mask the undrawn right portion by clearing it (canvas is transparent; card bg shows through)
-        if (raw < 1) {
-          const revealX = chartArea.left + (chartArea.right - chartArea.left) * phase;
-          c.save();
-          c.clearRect(revealX, chartArea.top - 6, (chartArea.right - revealX) + 6, (chartArea.bottom - chartArea.top) + 12);
-          c.restore();
-        }
+        // Overwrite effect: fade the undrawn right portion proportional to how far
+        // through the pass we are — new line overwrites old, old slowly ghosts away
+        c.save();
+        c.globalCompositeOperation = 'destination-out';
+        c.globalAlpha = raw;
+        c.fillRect(revealX, y0, (chartArea.right - revealX) + 6, h);
+        c.restore();
 
-        // Dot position: interpolate along the drawn data points
+        // Dot at the current draw tip
+        const pts  = meta.data;
         const total = pts.length - 1;
         const pos   = phase * total;
         const i0    = Math.min(Math.floor(pos), total - 1);
@@ -7945,25 +7940,12 @@ function attachDashboardDawg() {
         const p1    = pts[Math.min(i0+1, total)].getProps(['x','y'], true);
         const dotX  = p0.x + frac*(p1.x - p0.x);
         const dotY  = p0.y + frac*(p1.y - p0.y);
-        const atEnd = chart._atEnd;
-        const pMs   = chart._pauseMs || 0;
 
         c.save();
-        if (atEnd) {
-          // Pulsing glow ring while resting at the end
-          const sin      = Math.sin((pMs / 900) * Math.PI * 2);
-          const outerR   = 6.5 + 1.5 * sin;
-          const outerAlp = 0.08 + 0.10 * Math.abs(sin);
-          c.beginPath(); c.arc(dotX, dotY, outerR, 0, Math.PI*2);
-          c.fillStyle = _sparkClrStr; c.globalAlpha = outerAlp; c.fill();
-          c.beginPath(); c.arc(dotX, dotY, 4, 0, Math.PI*2);
-          c.globalAlpha = outerAlp * 1.8; c.fill();
-        }
-        // Solid dot — slightly smaller while moving, normal at end
         c.globalAlpha = 1;
         c.shadowColor = _sparkClrStr;
-        c.shadowBlur  = atEnd ? 10 : 5;
-        c.beginPath(); c.arc(dotX, dotY, atEnd ? 3 : 2.4, 0, Math.PI*2);
+        c.shadowBlur  = 5;
+        c.beginPath(); c.arc(dotX, dotY, 2.4, 0, Math.PI*2);
         c.fillStyle = _sparkClrStr; c.fill();
         c.restore();
       },
