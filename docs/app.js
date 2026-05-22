@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.5.8';
+const VERSION = '5.5.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,13 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.5.9', date: '2026-05-22', changes: [
+    'Walkthrough tour spotlight now actually highlights what it\'s describing — steps were targeting #main-content (the whole page) so the dark overlay had nowhere to show',
+    'Spotlight box-shadow is now set directly in JS so it appears immediately, not dependent on the CSS animation timing',
+    'Tab-switch delay increased and a retry added — if the target element isn\'t rendered yet the tour waits and tries again instead of snapping to a centered fallback',
+    'Removed smooth scroll before measuring element position (was a race condition); uses instant scroll + rAF for accurate placement every time',
+    'Updated nav bar tour step text to match the new tap-to-swap editor',
+  ]},
   { version: '5.5.8', date: '2026-05-22', changes: [
     'Per Day tile now mirrors the weekly planner exactly — uses the saved per_day value directly, no rolling adjustments',
     'Daily History tile still shows each day this week vs your plan rate',
@@ -6626,67 +6633,67 @@ function renderAbout() {
 const WALKTHROUGH_STEPS = [
   { tab: null, target: null,
     title: 'Welcome to Budget DAWGs',
-    body: 'Your all-in-one personal finance companion. This quick tour navigates you through every section — takes about 2 minutes. Tap Next or tap anywhere dark to advance.',
+    body: 'Your all-in-one personal finance companion. This quick tour navigates you through every section — takes about 2 minutes. Tap Next to advance.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 4l3.1 6.3 7 1.1-5.1 4.9 1.2 7-6.2-3.3-6.2 3.3 1.2-7-5.1-4.9 7-1.1z"/><line x1="12" y1="28" x2="24" y2="28" stroke-width="1.5"/><line x1="15" y1="32" x2="21" y2="32" stroke-width="1.5"/></svg>`,
   },
-  { tab: 'dashboard', target: '#main-content',
+  { tab: 'dashboard', target: '.dawg-balance-card',
     title: 'Dashboard',
-    body: 'Home base — your current balance, monthly income and expenses, and customizable tiles below. Tap ‹ › to browse any past month.',
+    body: 'Home base — your current balance, monthly net, and a sparkline showing your trend. Tap ‹ › to browse any past month.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="13" rx="2"/><rect x="20" y="4" width="12" height="7" rx="2"/><rect x="20" y="15" width="12" height="13" rx="2"/><rect x="4" y="21" width="12" height="11" rx="2"/></svg>`,
   },
-  { tab: 'dashboard', target: '.dawg-tile-grid',
+  { tab: 'dashboard', target: '#dawg-tile-grid',
     title: 'Budget Tiles',
-    body: 'Ring tiles track weekly and daily spend vs your budget. Tap "Customize Layout" below the grid to reorder, resize, or swap any tile.',
+    body: 'Ring tiles show weekly and daily spend vs your budget. Hold any tile to drag it. Tap "Customize Layout" below the grid to resize or swap tiles.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="12"/><circle cx="18" cy="18" r="6"/><line x1="18" y1="6" x2="18" y2="10"/><line x1="18" y1="26" x2="18" y2="30"/><line x1="6" y1="18" x2="10" y2="18"/><line x1="26" y1="18" x2="30" y2="18"/></svg>`,
   },
-  { tab: 'add', target: '#main-content',
-    title: 'Tracking Transactions',
-    body: 'Log an expense, income, or transfer. The category field auto-completes from your history. Tap ✓ Done on your keyboard to save without jumping fields.',
+  { tab: 'add', target: '.form-card',
+    title: 'Add a Transaction',
+    body: 'Log an expense, income, or transfer. Category auto-completes from your history. Hit ✓ Done on your keyboard to save fast.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><line x1="18" y1="11" x2="18" y2="25"/><line x1="11" y1="18" x2="25" y2="18"/></svg>`,
   },
-  { tab: 'ledger', target: '#main-content',
+  { tab: 'ledger', target: '.ledger-filter-bar',
     title: 'Ledger',
-    body: 'Every transaction in one list with a running balance, just like a bank statement. Tap a row to edit inline, or swipe left to delete. Use the filter bar to search by category or date.',
+    body: 'Every transaction in one list with a running balance. Use the filter bar above to search by description, category, or date range. Tap a row to edit inline.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h18a2 2 0 0 1 2 2v24a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><line x1="13" y1="12" x2="23" y2="12"/><line x1="13" y1="18" x2="23" y2="18"/><line x1="13" y1="24" x2="19" y2="24"/></svg>`,
   },
-  { tab: 'weekly', target: '#main-content',
+  { tab: 'weekly', target: '.form-card',
     title: 'Weekly Planner',
-    body: 'Set your paycheck schedule and the app calculates a safe daily spend limit after bills and a savings buffer. Expand past weeks to see every transaction in that period.',
+    body: 'Enter your balance, upcoming bills, and next paydate. The planner calculates a safe per-day spend limit after bills and your savings buffer.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="26" height="24" rx="2"/><line x1="5" y1="14" x2="31" y2="14"/><line x1="12" y1="4" x2="12" y2="10"/><line x1="24" y1="4" x2="24" y2="10"/><rect x="10" y="19" width="4" height="4" rx=".5"/><rect x="22" y="19" width="4" height="4" rx=".5"/></svg>`,
   },
-  { tab: 'bills', target: '#main-content',
+  { tab: 'bills', target: '.bills-list',
     title: 'Bills',
-    body: 'Track recurring bills with due dates. Bills due within 3 days show a badge on the nav. Marking a bill paid can automatically log it as an expense.',
+    body: 'Track recurring bills with due dates. Bills due within 3 days show a badge on the nav icon. Marking a bill paid can automatically log it as an expense.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h20a1 1 0 0 1 1 1v26l-4.5-3-3 3-3-3-3 3-3-3-4.5 3V5a1 1 0 0 1 1-1z"/><line x1="13" y1="14" x2="23" y2="14"/><line x1="13" y1="20" x2="23" y2="20"/><line x1="13" y1="26" x2="18" y2="26"/></svg>`,
   },
-  { tab: 'debt', target: '#main-content',
+  { tab: 'debt', target: null,
     title: 'Debt Tracker',
-    body: 'Credit cards and loans tracked with a payoff progress bar. Add a monthly payment to get Snowball vs Avalanche timelines and see exactly how much interest you\'ll save.',
+    body: 'Credit cards and loans tracked with a payoff progress bar. Add a monthly payment to see Snowball vs Avalanche timelines and how much interest you\'ll save.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="28" height="19" rx="3"/><line x1="4" y1="16" x2="32" y2="16"/><rect x="8" y="21" width="7" height="3.5" rx="1.5"/><circle cx="28" cy="22.8" r="2" stroke-width="1.5"/></svg>`,
   },
-  { tab: 'goals', target: '#main-content',
+  { tab: 'goals', target: '.goals-list',
     title: 'Savings Goals',
-    body: 'Set a target amount with an optional deadline. Contribute any amount anytime — the progress bar fills as you get closer. Perfect for emergency funds, trips, or big purchases.',
+    body: 'Set a target amount with an optional deadline. Contribute anytime — the progress bar fills as you get closer. Great for emergency funds, trips, or big purchases.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="19" r="12"/><circle cx="18" cy="19" r="7"/><circle cx="18" cy="19" r="2.5" fill="currentColor" stroke="none"/><line x1="28" y1="6" x2="21.5" y2="13.5"/><polyline points="30.5 4.5 28 4.5 28 7.5"/></svg>`,
   },
-  { tab: 'budgets', target: '#main-content',
+  { tab: 'budgets', target: '.form-card',
     title: 'Budgets',
-    body: 'Set monthly spending caps per category. The Spending Breakdown tile on your dashboard shows each category\'s bar — turns amber when you\'re close and red when you\'re over.',
+    body: 'Set monthly spending caps per category. The Spending Breakdown tile on your dashboard shows each bar — turns amber when you\'re close and red when you\'re over.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><line x1="18" y1="9" x2="18" y2="27"/><path d="M22.5 13.5a4 4 0 0 0-8 0c0 2.2 1.8 3.3 4 4.2 2.2.9 4 2 4 4.3a4 4 0 0 1-8 0"/></svg>`,
   },
-  { tab: 'settings', target: '#main-content',
+  { tab: 'settings', target: null,
     title: 'Settings',
-    body: 'Pick from 12+ themes (VS Code and PowerShell apply their real fonts automatically), reposition the nav, set a PIN lock, and manage multiple accounts — all here.',
+    body: 'Pick from 12+ themes, reposition the nav, set a PIN lock, and manage multiple accounts. VS Code and PowerShell themes apply their real fonts automatically.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3.5"/><path d="M27 14.9l2-3.6-3-3-3.6 2a9.5 9.5 0 0 0-2.4-.9L19.2 6h-2.4l-.8 3.4a9.5 9.5 0 0 0-2.4.9L10 8.3l-3 3 2 3.6a9.5 9.5 0 0 0-.9 2.4L5 18l3.1.7a9.5 9.5 0 0 0 .9 2.4l-2 3.6 3 3 3.6-2a9.5 9.5 0 0 0 2.4.9L16.8 30h2.4l.8-3.4a9.5 9.5 0 0 0 2.4-.9l3.6 2 3-3-2-3.6a9.5 9.5 0 0 0 .9-2.4L31 18l-3.1-.7a9.5 9.5 0 0 0-.9-2.4z"/></svg>`,
   },
   { tab: null, target: '#dawg-bottom-nav',
     title: 'Customize Your Nav Bar',
-    body: 'Hold the bottom nav bar for 1 second to open the editor. Drag any section into the top 4 slots to add it, drag below the divider to remove it — the live preview strip updates as you go.',
+    body: 'Hold the bottom nav bar for 1 second to open the editor. Tap any slot then pick a section to swap it in — the nav updates instantly.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="26" width="28" height="6" rx="2"/><line x1="10" y1="29" x2="26" y2="29"/><circle cx="14" cy="29" r="2" fill="currentColor" stroke="none"/><circle cx="22" cy="29" r="2" fill="currentColor" stroke="none"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="24" y1="4" x2="24" y2="20"/><polyline points="8 8 12 4 16 8"/><polyline points="20 16 24 20 28 16"/></svg>`,
   },
   { tab: null, target: null,
     title: 'You\'re All Set!',
-    body: 'That\'s the full tour. Tap any section in the nav to jump right in. Come back to this tour from the About page anytime — we\'ll keep it updated whenever new features land.',
+    body: 'That\'s the full tour. Tap any section in the nav to jump right in. Come back to this tour from the About page anytime — it stays updated as new features land.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="13"/><polyline points="12 18 16.5 23 24 13"/></svg>`,
   },
 ];
@@ -6770,77 +6777,85 @@ function _renderWalkthroughStep(i) {
     e.stopPropagation(); _advanceWalkthrough();
   });
 
-  // Positioning: place the card so it never overlaps the spotlight
-  function _place() {
-    if (!step.target) {
-      // No spotlight — solid backdrop + centered card
-      hl.style.display = 'none';
-      if (bd) bd.style.background = 'rgba(0,0,0,.72)';
-      card.style.top    = '';
-      card.style.bottom = '';
-      card.className    = 'wt-card--center';
-      return;
-    }
+  // Positioning: find target, place spotlight, position card away from it
+  function _center() {
+    hl.style.cssText = 'display:none';
+    if (bd) bd.style.background = 'rgba(0,0,0,.72)';
+    card.style.top = ''; card.style.bottom = '';
+    card.className = 'wt-card--center';
+  }
+
+  function _place(retry) {
+    if (!step.target) { _center(); return; }
 
     const el = document.querySelector(step.target);
     if (!el) {
-      hl.style.display = 'none';
-      if (bd) bd.style.background = 'rgba(0,0,0,.72)';
-      card.style.top    = '';
-      card.style.bottom = '';
-      card.className    = 'wt-card--center';
-      return;
+      // Target not in DOM yet — retry once more after a short wait
+      if (retry !== false) { setTimeout(() => _place(false), 350); return; }
+      _center(); return;
     }
 
-    // Spotlight mode: #wt-hl's box-shadow provides the dark overlay
-    if (bd) bd.style.background = 'transparent';
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Scroll target into view instantly so getBoundingClientRect is accurate
+    el.scrollIntoView({ behavior: 'instant', block: 'center' });
 
-    setTimeout(() => {
+    // Use rAF to read layout after scroll settles
+    requestAnimationFrame(() => {
       const r   = el.getBoundingClientRect();
       const pad = 10;
-      hl.style.cssText = `display:block;position:fixed;`
-        + `left:${r.left - pad}px;top:${r.top - pad}px;`
-        + `width:${r.width + pad * 2}px;height:${r.height + pad * 2}px;`
-        + `border-radius:20px;z-index:9998;pointer-events:none;`;
 
-      // Assign class first so the card renders at its real size
-      card.className = 'wt-card--placed';
+      // Clamp spotlight to viewport so the box-shadow overlay always has room
+      const sleft = Math.max(4, r.left - pad);
+      const stop  = Math.max(4, r.top  - pad);
+      const sw    = Math.min(window.innerWidth  - sleft - 4, r.width  + pad * 2);
+      const sh    = Math.min(window.innerHeight - stop  - 4, r.height + pad * 2);
+
+      // Set box-shadow inline (not relying solely on CSS animation) so overlay appears immediately
+      hl.style.cssText = `display:block;position:fixed;`
+        + `left:${sleft}px;top:${stop}px;width:${sw}px;height:${sh}px;`
+        + `border-radius:16px;z-index:9998;pointer-events:none;`
+        + `box-shadow:0 0 0 9999px rgba(0,0,0,.72),`
+        +            `0 0 0 2px rgba(78,203,141,.55),`
+        +            `0 0 24px 6px rgba(78,203,141,.28);`
+        + `animation:wtGlow 2.5s ease-in-out infinite;`;
+
+      if (bd) bd.style.background = 'transparent';
+
+      // Place card above or below the spotlight — pick the side with more room
+      card.className    = 'wt-card--placed';
       card.style.top    = '';
       card.style.bottom = '';
 
-      // Measure after browser lays out the card
       requestAnimationFrame(() => {
-        const vh       = window.innerHeight;
-        const cardH    = card.offsetHeight || 190;
-        const margin   = 14;
-        const spotTop  = r.top  - pad;
-        const spotBot  = r.bottom + pad;
-        const spaceBel = vh - spotBot - margin;
-        const spaceAbo = spotTop  - margin;
+        const vh      = window.innerHeight;
+        const cardH   = card.offsetHeight || 180;
+        const margin  = 12;
+        const spotTop = stop;
+        const spotBot = stop + sh;
+        const below   = vh - spotBot - margin;
+        const above   = spotTop - margin;
 
-        if (spaceBel >= cardH + margin) {
-          // Fits below the spotlight
+        if (below >= cardH + margin) {
           card.style.top    = (spotBot + margin) + 'px';
           card.style.bottom = '';
-        } else if (spaceAbo >= cardH + margin) {
-          // Fits above the spotlight
+        } else if (above >= cardH + margin) {
           card.style.top    = '';
           card.style.bottom = (vh - spotTop + margin) + 'px';
         } else {
-          // Tight screen — anchor to bottom edge, spotlight still visible above
+          // Not enough room either side — float above bottom nav
           card.style.top    = '';
           card.style.bottom = margin + 'px';
         }
       });
-    }, 180);
+    });
   }
 
   if (step.tab && step.tab !== currentTab) {
     showTab(step.tab);
-    setTimeout(_place, 400);
+    // Wait for tab transition + initial render before measuring
+    setTimeout(() => _place(true), 550);
   } else {
-    requestAnimationFrame(_place);
+    // Already on correct tab — wait one frame for any pending re-renders
+    setTimeout(() => _place(true), 80);
   }
 }
 
