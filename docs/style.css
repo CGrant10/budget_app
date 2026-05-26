@@ -5458,6 +5458,58 @@ body.light::after {
   box-shadow: inset 0 0 12px rgba(78,203,141,.08);
 }
 
+/* ── Accounts page — HUD corners + neon expand + glitch on tap ────────── */
+.acct-settings-card {
+  position: relative;
+}
+.acct-settings-card::before,
+.acct-settings-card::after {
+  content: '';
+  position: absolute;
+  width: 10px; height: 10px;
+  pointer-events: none;
+  z-index: 2;
+}
+.acct-settings-card::before {
+  top: -1px; left: -1px;
+  border-top: 1.5px solid var(--accent);
+  border-left: 1.5px solid var(--accent);
+  border-radius: 12px 0 0 0;
+  opacity: .45;
+}
+.acct-settings-card::after {
+  bottom: -1px; right: -1px;
+  border-bottom: 1.5px solid var(--accent);
+  border-right: 1.5px solid var(--accent);
+  border-radius: 0 0 12px 0;
+  opacity: .45;
+}
+/* Expanded card — glow up the border */
+.acct-settings-card:not(.acct-card-collapsed) {
+  border-color: rgba(78,203,141,.4) !important;
+  box-shadow: 0 0 0 1px rgba(78,203,141,.12), 0 0 14px rgba(78,203,141,.07) !important;
+}
+.acct-settings-card:not(.acct-card-collapsed)::before,
+.acct-settings-card:not(.acct-card-collapsed)::after {
+  opacity: .85;
+}
+/* Active account badge — neon */
+.acct-badge {
+  color: var(--accent) !important;
+  text-shadow: 0 0 5px var(--accent);
+  border-color: rgba(78,203,141,.5) !important;
+  box-shadow: 0 0 6px rgba(78,203,141,.25) !important;
+}
+/* Card header tap — brief glitch via icon-glitch-tap */
+.acct-card-header.icon-glitch-tap {
+  animation: icon-glitch-tap .28s steps(1,end) both;
+}
+/* Add Account section card neon border */
+.accounts-list + .form-card,
+.form-card + .form-card {
+  /* subtle scan line emphasis — no extra rule needed beyond existing CRT */
+}
+
 /* ── Neon line at top of bottom nav ──────────────────────────────────── */
 #dawg-bottom-nav::before {
   content: '';

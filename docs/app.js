@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.13.1';
+const VERSION = '5.13.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -6934,6 +6934,7 @@ function attachAccounts() {
   document.querySelectorAll('.acct-card-header').forEach(hdr => {
     hdr.addEventListener('click', e => {
       if (e.target.closest('.acct-switch-btn')) return;
+      triggerIconGlitch(hdr);
       const card   = hdr.closest('.acct-settings-card');
       const body   = card.querySelector('.acct-card-body');
       const toggle = card.querySelector('.acct-card-toggle');
@@ -7232,10 +7233,8 @@ function renderAbout() {
   const built    = new Date().getFullYear();
   const s        = loadSettings();
   const userName = s.name || null;
-  // Only show changelog entries for the current major.minor (e.g. 2.8.x)
-  const [major, minor] = VERSION.split('.');
-  const verPrefix = `${major}.${minor}.`;
-  const changelogHtml = CHANGELOG.filter(e => e.version.startsWith(verPrefix)).map(entry => `
+  // Only show the changelog entry for the current exact version
+  const changelogHtml = CHANGELOG.filter(e => e.version === VERSION).map(entry => `
     <div style="margin-bottom:18px">
       <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
         <span style="font-size:.95rem;font-weight:700;color:var(--accent)">v${entry.version}</span>
@@ -8887,11 +8886,14 @@ function triggerNavGlitch(btn) {
 
 // ── Screen flash + page-title glitch on tab navigation ─────────────────────
 function _screenFlash() {
+  // Capture NOW — _applyPageTransition resets _pageTransition to 'fade' ~1 rAF later
+  const _isSlide = _pageTransition === 'slide-right' || _pageTransition === 'slide-left';
   const _f = document.createElement('div');
   _f.className = 'screen-flash-overlay';
   document.body.appendChild(_f);
   _f.addEventListener('animationend', () => _f.remove(), { once: true });
-  // Delay the title glitch slightly so it fires after the page has painted
+  // Slides take 340ms — wait until the panel finishes sliding in before glitching the title
+  // Fade/zoom: 80ms is enough for the new page to be visible
   setTimeout(() => {
     const _t = document.querySelector('.page-title');
     if (!_t) return;
@@ -8899,7 +8901,7 @@ function _screenFlash() {
     void _t.offsetWidth;
     _t.classList.add('page-title-glitch');
     _t.addEventListener('animationend', () => _t.classList.remove('page-title-glitch'), { once: true });
-  }, 60);
+  }, _isSlide ? 390 : 80);
 }
 
 // Universal icon tap glitch — same RGB-split effect on any element
