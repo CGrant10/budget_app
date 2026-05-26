@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.15.0';
+const VERSION = '5.15.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -4210,7 +4210,7 @@ function renderDashboardDawg() {
                 <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
                 <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${wkColor};stroke-dasharray:${C};stroke-dashoffset:${wkDash}"/>
               </svg>
-              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${wkColor}">${wkFailed ? '!' : wkPct.toFixed(0)+'%'}</div></div>
+              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${wkColor}">${wkFailed ? '⚠' : wkPct.toFixed(0)+'%'}</div></div>
             </div>
             ${wkFailed
               ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
@@ -4234,7 +4234,7 @@ function renderDashboardDawg() {
                 <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
                 <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${dayColor};stroke-dasharray:${C};stroke-dashoffset:${dayDash}"/>
               </svg>
-              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${dayColor}">${dayFailed ? '!' : dayPct.toFixed(0)+'%'}</div></div>
+              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${dayColor}">${dayFailed ? '⚠' : dayPct.toFixed(0)+'%'}</div></div>
             </div>
             ${dayFailed
               ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
@@ -5539,7 +5539,7 @@ function calcWeekly() {
     } else {
       // Current + future weeks — live, recalculated on every settings change
       // Always use the effective limit (savedPerWeek) as denominator so FAILED shows real overrun
-      const _rowDenominator = savedPerWeek > 0 ? savedPerWeek : (wkNet > 0 ? wkNet : perWeek);
+      const _rowDenominator = _effectivePerWeek > 0 ? _effectivePerWeek : (wkNet > 0 ? wkNet : perWeek);
       const wkPct   = _rowDenominator > 0 ? Math.min(wkNet/_rowDenominator*100,100) : 0;
       const wkColor = isCurrent && _wkFailed ? 'var(--danger)' : wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
       const badge   = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
