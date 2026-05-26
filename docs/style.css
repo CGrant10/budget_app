@@ -5278,32 +5278,6 @@ body.light::after {
   );
 }
 
-/* ── Orbitron for money & score displays ─────────────────────────────── */
-.dawg-tile-amt,
-.dawg-tile-ring-pct,
-.dawg-tile-sub,
-.card-value,
-.wt-spent,
-.wt-of,
-.dawg-payoff-date {
-  font-family: 'Orbitron', monospace !important;
-  letter-spacing: .03em;
-}
-/* Keep small inline amounts in the default font for readability */
-.ledger-amt, .dawg-txn-amt, .dawg-goal-sub, .dawg-due-body span {
-  font-family: inherit !important;
-}
-/* Tighten up sizes so Orbitron reads cleanly at small sizes */
-.dawg-tile-ring-pct { font-size: .82rem !important; }
-.dawg-tile-amt      { font-size: .88rem !important; }
-.dawg-tile-sub      { font-size: .65rem !important; letter-spacing: .04em; }
-.card-value         { font-size: 20px  !important; letter-spacing: .02em; }
-.wt-spent           { font-size: 17px  !important; }
-/* Big balance value slightly tighter tracking */
-.cards-grid .card:first-child .card-value {
-  font-family: 'Orbitron', monospace !important;
-  letter-spacing: -.01em;
-}
 
 /* ── Corner bracket accents on dashboard tiles ───────────────────────── */
 .dawg-section-card,
