@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.13.9';
+const VERSION = '5.14.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,15 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.13.9', date: '2026-05-26', changes: [
+    'Spending breakdown icons are now SVGs matching the rest of the app — Food, Gas, Car, Entertainment, Health, and more all have custom icons',
+    'Spending breakdown bars are video game styled — parallelogram clip shape with quarter-segment tick marks',
+    'Dashboard per-week and per-day tiles now always show your spending vs. your limit, and say FAILED with the overage amount when you go over',
+    'Weekly planner tracker turns red and shows overage when you exceed your weekly limit — bar no longer stops at 100%',
+    'Budget limit survives dipping into your buffer — the committed per-week/day limit is stored separately and never zeroed out',
+    'Page title glitch effect now fires correctly on slide transitions',
+    'Accounts page and settings page styled with cyberpunk corner accents',
+  ]},
   { version: '5.11.0', date: '2026-05-22', changes: [
     'Glitch effects upgraded — LOCK TF IN. and splash screen now use 6-frame burst patterns with text-shadow chromatic aberration, per-frame clip-path slice variation, brightness/saturation flashes, and a micro-jitter between bursts',
     'Tutorial sparkline: removed the dot pop-in at the end of the line animation',
@@ -9489,8 +9498,10 @@ window.addEventListener('popstate', () => {
         reg.update();
         window.addEventListener('focus', () => reg.update());
       }).catch(() => {});
-      // controllerchange fires when a new SW takes over — checkForUpdate()
-      // already handles version-mismatch reloads, so skip redundant reload here
+      // Auto-reload when a new service worker takes over — delivers updates silently
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
     }
     } catch(err) {
       // Surface init errors so a blank screen doesn't look like a stuck splash
