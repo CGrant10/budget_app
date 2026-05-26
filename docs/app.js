@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.11.3';
+const VERSION = '5.11.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -5351,7 +5351,10 @@ function calcWeekly() {
   const weekPct  = perWeek > 0 ? Math.min(weekNet / perWeek, 1) : 0;
   const barColor = weekPct >= 1 ? 'var(--danger)' : weekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
 
-  // Adjusted per week: scan past weeks for overspend and redistribute across remaining weeks
+  // Adjusted per week: scan past weeks for overspend and redistribute across remaining weeks.
+  // Use the SAVED per_week as the stable baseline so the week-by-week breakdown never shifts
+  // just because the form inputs changed.
+  const savedPerWeek  = parseFloat(state.weekly_plan?.per_week || 0) || perWeek;
   const _paydateAdj   = paydateStr ? new Date(paydateStr+'T00:00:00') : new Date(now.getTime()+(days-1)*86400000);
   const _weeksFromMon = Math.max(1, Math.ceil((_paydateAdj.getTime() - monday.getTime()) / (7*86400000)));
   let _totalPastOverspend = 0;
@@ -5364,11 +5367,11 @@ function calcWeekly() {
     if (!_wt.length) break;
     const _wne = Math.max(0, _wt.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0)
                           - _wt.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0));
-    _totalPastOverspend += Math.max(0, _wne - perWeek);
+    _totalPastOverspend += Math.max(0, _wne - savedPerWeek);
   }
   const adjustedPerWeek = _weeksFromMon > 0
-    ? Math.max(0, (perWeek * _weeksFromMon - _totalPastOverspend) / _weeksFromMon)
-    : perWeek;
+    ? Math.max(0, (savedPerWeek * _weeksFromMon - _totalPastOverspend) / _weeksFromMon)
+    : savedPerWeek;
   const _adjWkDiff  = adjustedPerWeek - perWeek;
   const _adjWkSub   = _adjWkDiff < -0.01 ? `↓ ${fmt(Math.abs(_adjWkDiff))} less/wk` : 'on track';
   const _adjWkColor = adjustedPerWeek >= perWeek * 0.95 ? 'var(--success)'
@@ -5443,12 +5446,12 @@ function calcWeekly() {
       : '<p class="pw-empty">No transactions.</p>';
 
     if (isPast) {
-      // Past weeks — static, only transaction data, never recalculated from settings
-      const pastPct      = perWeek > 0 ? Math.min(wkExp / perWeek * 100, 100) : 0;
-      const pastBarColor = wkExp > perWeek && perWeek > 0 ? 'var(--danger)' : wkExp >= perWeek * 0.8 && perWeek > 0 ? 'var(--warn)' : 'var(--muted)';
-      const spentColor   = perWeek > 0 && wkExp > perWeek ? 'var(--danger)' : wkExp > 0 ? 'var(--text)' : 'var(--muted)';
-      const spentLabel   = wkExp > 0 ? `${fmt(wkExp)} / ${fmt(perWeek)}` : 'No spending';
-      const miniBar      = perWeek > 0 ? `<div class="breakdown-bar-bg small" style="flex:1;margin:0 8px"><div class="breakdown-bar-fill" style="width:${pastPct.toFixed(1)}%;background:${pastBarColor}"></div></div>` : `<span style="flex:1"></span>`;
+      // Past weeks — anchored to savedPerWeek so they never shift when form inputs change
+      const pastPct      = savedPerWeek > 0 ? Math.min(wkExp / savedPerWeek * 100, 100) : 0;
+      const pastBarColor = wkExp > savedPerWeek && savedPerWeek > 0 ? 'var(--danger)' : wkExp >= savedPerWeek * 0.8 && savedPerWeek > 0 ? 'var(--warn)' : 'var(--muted)';
+      const spentColor   = savedPerWeek > 0 && wkExp > savedPerWeek ? 'var(--danger)' : wkExp > 0 ? 'var(--text)' : 'var(--muted)';
+      const spentLabel   = wkExp > 0 ? `${fmt(wkExp)} / ${fmt(savedPerWeek)}` : 'No spending';
+      const miniBar      = savedPerWeek > 0 ? `<div class="breakdown-bar-bg small" style="flex:1;margin:0 8px"><div class="breakdown-bar-fill" style="width:${pastPct.toFixed(1)}%;background:${pastBarColor}"></div></div>` : `<span style="flex:1"></span>`;
       pastRowsHtml.push(`<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span>${miniBar}<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     } else {
       // Current + future weeks — live, recalculated on every settings change
