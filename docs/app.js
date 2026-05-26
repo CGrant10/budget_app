@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.11.7';
+const VERSION = '5.11.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -4157,9 +4157,12 @@ function renderDashboardDawg() {
           <div class="dawg-tile-amt">${fmt(budgetSpent)}</div>
           <div class="dawg-tile-sub">${fmt(budgetSpent)} / ${fmt(totalBudget)}</div>`;
 
-        if (dayBudget > 0) {
-          const dayPct   = Math.min(daySpent / dayBudget * 100, 100);
-          const dayColor = dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
+        // Use live dayBudget when available; fall back to saved per_day so the tile always renders
+        const _savedPerDay = parseFloat(_wp?.per_day || 0);
+        const _dayBudgetDisplay = dayBudget > 0 ? dayBudget : _savedPerDay;
+        if (_dayBudgetDisplay > 0) {
+          const dayPct   = Math.min(daySpent / _dayBudgetDisplay * 100, 100);
+          const dayColor = dayPct >= 100 ? 'var(--danger)' : dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
           const dayDash  = (C * (1 - dayPct / 100)).toFixed(1);
           _tileHtml['budget-day'] = `
             <div class="dawg-card-title">BUDGET OVERVIEW</div>
@@ -4172,7 +4175,7 @@ function renderDashboardDawg() {
               <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${dayColor}">${dayPct.toFixed(0)}%</div></div>
             </div>
             <div class="dawg-tile-amt">${fmt(daySpent)}</div>
-            <div class="dawg-tile-sub">${fmt(daySpent)} / ${fmt(dayBudget)}</div>`;
+            <div class="dawg-tile-sub">${fmt(daySpent)} / ${fmt(_dayBudgetDisplay)}</div>`;
         }
 
         // Daily history tile — one row per day Mon through today
@@ -4359,7 +4362,7 @@ function renderDashboardDawg() {
               ? (daySpent / dayBudget >= 0.75 ? 'var(--warn)' : 'var(--accent)')
               : 'var(--accent)';
           const _perDayDisplay = _overDay
-            ? `<span style="font-size:1rem;font-weight:700;color:var(--danger);letter-spacing:.06em">FAILED</span>`
+            ? `<span class="dash-glitch-failed" style="font-size:1rem;font-weight:700;color:var(--danger);letter-spacing:.06em">FAILED</span>`
             : `<span style="font-size:1rem;font-weight:700;color:${_pdColor}">${_perDay > 0 ? fmt(_perDay) : '—'}</span>`;
           _tileHtml['weekly-plan'] = `
             <div class="dawg-card-title">WEEKLY PLAN</div>
@@ -5430,49 +5433,28 @@ function calcWeekly() {
       const wkPct   = perWeek > 0 ? Math.min(wkNet/perWeek*100,100) : 0;
       const wkColor = wkPct>=100?'var(--danger)':wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
       const badge   = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
-      // For the current week, when spending already exceeds perWeek (which is the remaining
-      // available balance), show spent + remaining rather than a misleading spent/budget ratio.
-      const _rowOver    = isCurrent && wkNet > perWeek;
-      const _rowAmtStr  = _rowOver
-        ? `<span style="color:var(--text)">${fmt(wkNet)}</span><span style="color:var(--muted);font-size:.8em"> spent · </span><span style="color:var(--accent)">${fmt(available)} left</span>`
-        : `${fmt(wkNet)} / ${fmt(perWeek)}`;
-      const _rowAmtColor = _rowOver ? 'var(--text)' : wkColor;
-      const _rowBarPct   = _rowOver ? 100 : wkPct.toFixed(1);
-      const _rowBarColor = _rowOver ? 'var(--danger)' : wkColor;
-      futureRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${_rowBarPct}%;background:${_rowBarColor}"></div></div><span class="wkb-amounts" style="color:${_rowAmtColor}">${_rowAmtStr}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
+      futureRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(perWeek)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     }
   });
 
   // ── Write summary + this-week tracker to #wk-live (always updated) ─────
   const liveEl = document.getElementById('wk-live');
   if (!liveEl) return;
-  // When this week's spending already exceeds the remaining available (perWeek),
-  // showing spent/perWeek as a ratio is misleading — perWeek IS what's left in the account,
-  // not a pre-set limit the user blew through. Show spent + remaining as two separate facts.
-  const _wkOver      = weekNet > perWeek;
-  const _wkPctLabel  = _wkOver
-    ? `<span class="wt-pct" style="color:var(--accent)">${fmt(available)} remaining</span>`
-    : `<span class="wt-pct" style="color:${barColor}">${(weekPct*100).toFixed(0)}% used</span>`;
-  const _wkAmtHtml   = _wkOver
-    ? `<span class="wt-spent" style="color:var(--text)">${fmt(weekNet)}</span><span class="wt-of"> spent this week · </span><span style="color:var(--accent);font-weight:700">${fmt(available)} remaining</span>`
-    : `<span class="wt-spent" style="color:${barColor}">${fmt(weekNet)}</span><span class="wt-of"> / ${fmt(perWeek)} weekly budget</span>`;
-  const _wkBarPct    = _wkOver ? 100 : (weekPct*100).toFixed(1);
-  const _wkBarColor  = _wkOver ? 'var(--danger)' : barColor;
-
   liveEl.innerHTML = `
     <div class="cards-grid">${summaryCards}</div>
     <div class="week-tracker">
       <div class="wt-header">
         <span class="wt-label">THIS WEEK</span>
         <span class="wt-dates">(Mon ${monLabel} – today)</span>
-        ${_wkPctLabel}
+        <span class="wt-pct" style="color:${barColor}">${(weekPct*100).toFixed(0)}% used</span>
       </div>
       <div class="wt-amounts">
-        ${_wkAmtHtml}
+        <span class="wt-spent" style="color:${barColor}">${fmt(weekNet)}</span>
+        <span class="wt-of"> / ${fmt(perWeek)}</span>
       </div>
       ${weekIncomeOffset?`<div class="wt-offset">${fmt(weekExpenses)} spent − ${fmt(weekIncomeOffset)} income = ${fmt(weekNet)} net</div>`:''}
       <div class="progress-bar-bg">
-        <div class="progress-bar-fill" style="width:${_wkBarPct}%;background:${_wkBarColor}"></div>
+        <div class="progress-bar-fill" style="width:${(weekPct*100).toFixed(1)}%;background:${barColor}"></div>
       </div>
       <div class="wt-txns-section">
         <button class="wt-txns-toggle">▼  show transactions</button>
@@ -8217,7 +8199,7 @@ function attachAdd() {
     const balFn  = tx => tx.type === 'income' ? tx.amount : -tx.amount;
     const prevBal = state.transactions.reduce((s, tx) => s + balFn(tx), 0);
     await api.addTransaction(t);
-    if (t.type === 'income') await autoUpdateWeeklyPlan();
+    await autoUpdateWeeklyPlan(); // runs on every transaction so dashboard always matches planner
     const newBal = state.transactions.reduce((s, tx) => s + balFn(tx), 0);
     showStatus('add-status', `✓ Added ${t.type}: ${fmt(t.amount)} (${t.category})`, 'success');
     document.getElementById('add-amount').value = '';
