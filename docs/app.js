@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.11.8';
+const VERSION = '5.11.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -3322,9 +3322,11 @@ function render() {
     _applyPageTransition(main, _oldHTML, _transType);
     document.querySelectorAll('.acct-row').forEach(tile => {
       tile.addEventListener('click', async () => {
-        // Brief press glow on the tapped tile before transitioning
-        tile.classList.add('acct-row-tapped');
-        await new Promise(r => setTimeout(r, 110));
+        // Glitch + press glow on tap, then transition
+        tile.classList.remove('acct-row-glitch-tap');
+        void tile.offsetWidth; // force reflow so animation restarts cleanly
+        tile.classList.add('acct-row-tapped', 'acct-row-glitch-tap');
+        await new Promise(r => setTimeout(r, 260)); // match acct-tap-glitch duration
         _navPush();
         _pageTransition = 'zoom-in';
         showingAccountPicker = false;        // set BEFORE switchAccount so its render() sees correct state
