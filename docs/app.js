@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.11.2';
+const VERSION = '5.11.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -5351,10 +5351,36 @@ function calcWeekly() {
   const weekPct  = perWeek > 0 ? Math.min(weekNet / perWeek, 1) : 0;
   const barColor = weekPct >= 1 ? 'var(--danger)' : weekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
 
-  // Adjusted per day: remaining weekly budget spread across days left in this week (including today)
+  // Adjusted per week: scan past weeks for overspend and redistribute across remaining weeks
+  const _paydateAdj   = paydateStr ? new Date(paydateStr+'T00:00:00') : new Date(now.getTime()+(days-1)*86400000);
+  const _weeksFromMon = Math.max(1, Math.ceil((_paydateAdj.getTime() - monday.getTime()) / (7*86400000)));
+  let _totalPastOverspend = 0;
+  for (let _bw = 1; _bw <= 12; _bw++) {
+    const _sd = new Date(monday); _sd.setDate(monday.getDate() - _bw*7);
+    const _ed = new Date(monday); _ed.setDate(monday.getDate() - _bw*7 + 6);
+    const _sdS = _sd.toISOString().split('T')[0];
+    const _edS = _ed.toISOString().split('T')[0];
+    const _wt  = state.transactions.filter(t=>t.date>=_sdS&&t.date<=_edS);
+    if (!_wt.length) break;
+    const _wne = Math.max(0, _wt.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0)
+                          - _wt.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0));
+    _totalPastOverspend += Math.max(0, _wne - perWeek);
+  }
+  const adjustedPerWeek = _weeksFromMon > 0
+    ? Math.max(0, (perWeek * _weeksFromMon - _totalPastOverspend) / _weeksFromMon)
+    : perWeek;
+  const _adjWkDiff  = adjustedPerWeek - perWeek;
+  const _adjWkSub   = _adjWkDiff < -0.01 ? `↓ ${fmt(Math.abs(_adjWkDiff))} less/wk` : 'on track';
+  const _adjWkColor = adjustedPerWeek >= perWeek * 0.95 ? 'var(--success)'
+                    : adjustedPerWeek >= perWeek * 0.5  ? 'var(--warn)'
+                    : 'var(--danger)';
+  const _adjWeekPct  = adjustedPerWeek > 0 ? Math.min(weekNet / adjustedPerWeek, 1) : 0;
+  const _adjBarColor = _adjWeekPct >= 1 ? 'var(--danger)' : _adjWeekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
+
+  // Adjusted per day: remaining adjusted weekly budget spread across days left in this week (including today)
   const _todayWkIdx   = now.getDay() === 0 ? 6 : now.getDay() - 1; // 0=Mon … 6=Sun
   const _daysLeftWk   = Math.max(1, 7 - _todayWkIdx);
-  const adjustedPerDay = perWeek > 0 ? Math.max(0, perWeek - weekNet) / _daysLeftWk : 0;
+  const adjustedPerDay = adjustedPerWeek > 0 ? Math.max(0, adjustedPerWeek - weekNet) / _daysLeftWk : 0;
   const _adjDiff       = adjustedPerDay - perDay;
   const _adjSub        = _adjDiff >  0.005 ? '↑ ahead of pace'
                        : _adjDiff < -0.005 ? '↓ behind pace'
@@ -5364,10 +5390,11 @@ function calcWeekly() {
                        : 'var(--danger)';
 
   const summaryCards = [
-    ['SPENDABLE',    fmt(available),        'var(--text)',    `after bills${bufPct?' + buffer':''}`],
-    ['PER WEEK',     fmt(perWeek),          'var(--warn)',    `across ${weeks} week${weeks!==1?'s':''}`],
-    ['PER DAY',      fmt(perDay),           'var(--warn)',    'daily limit'],
-    ['ADJ. PER DAY', fmt(adjustedPerDay),   _adjColor,       _adjSub],
+    ['SPENDABLE',     fmt(available),        'var(--text)',    `after bills${bufPct?' + buffer':''}`],
+    ['PER WEEK',      fmt(perWeek),          'var(--warn)',    `across ${weeks} week${weeks!==1?'s':''}`],
+    ['ADJ. PER WEEK', fmt(adjustedPerWeek),  _adjWkColor,     _adjWkSub],
+    ['PER DAY',       fmt(perDay),           'var(--warn)',    'daily limit'],
+    ['ADJ. PER DAY',  fmt(adjustedPerDay),   _adjColor,       _adjSub],
     ...(bufPct ? [['BUFFER', fmt(buffer), '#6ec8d8', 'emergency fund']] : []),
   ].map(([t,v,c,s]) => `<div class="card"><div class="card-title">${t}</div><div class="card-value" style="color:${c}">${v}</div><div class="card-sub">${s}</div></div>`).join('');
 
@@ -5425,10 +5452,10 @@ function calcWeekly() {
       pastRowsHtml.push(`<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span>${miniBar}<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     } else {
       // Current + future weeks — live, recalculated on every settings change
-      const wkPct   = perWeek > 0 ? Math.min(wkNet/perWeek*100,100) : 0;
+      const wkPct   = adjustedPerWeek > 0 ? Math.min(wkNet/adjustedPerWeek*100,100) : 0;
       const wkColor = wkPct>=100?'var(--danger)':wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
       const badge   = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
-      futureRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(perWeek)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
+      futureRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(adjustedPerWeek)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     }
   });
 
@@ -5441,15 +5468,15 @@ function calcWeekly() {
       <div class="wt-header">
         <span class="wt-label">THIS WEEK</span>
         <span class="wt-dates">(Mon ${monLabel} – today)</span>
-        <span class="wt-pct" style="color:${barColor}">${(weekPct*100).toFixed(0)}% used</span>
+        <span class="wt-pct" style="color:${_adjBarColor}">${(_adjWeekPct*100).toFixed(0)}% used</span>
       </div>
       <div class="wt-amounts">
-        <span class="wt-spent" style="color:${barColor}">${fmt(weekNet)}</span>
-        <span class="wt-of"> / ${fmt(perWeek)} weekly budget</span>
+        <span class="wt-spent" style="color:${_adjBarColor}">${fmt(weekNet)}</span>
+        <span class="wt-of"> / ${fmt(adjustedPerWeek)} weekly budget</span>
       </div>
       ${weekIncomeOffset?`<div class="wt-offset">${fmt(weekExpenses)} spent − ${fmt(weekIncomeOffset)} income = ${fmt(weekNet)} net</div>`:''}
       <div class="progress-bar-bg">
-        <div class="progress-bar-fill" style="width:${(weekPct*100).toFixed(1)}%;background:${barColor}"></div>
+        <div class="progress-bar-fill" style="width:${(_adjWeekPct*100).toFixed(1)}%;background:${_adjBarColor}"></div>
       </div>
       <div class="wt-txns-section">
         <button class="wt-txns-toggle">▼  show transactions</button>
