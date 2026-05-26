@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.13.5';
+const VERSION = '5.13.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -4003,8 +4003,12 @@ function renderDashboardDawg() {
   const _dashDays     = Math.max(1, Math.round((_dashPdDate - _wkNow) / 86400000) + 1);
   const _dashAvail    = Math.max(0, _dashLiveBal - _dashStopAt - _dashBills);
   const _dashWeeks    = Math.ceil(_dashDays / 7) || 1;
-  const _livePerWeek  = _dashWeeks > 0 ? _dashAvail / _dashWeeks : 0;
-  const _livePerDay   = _dashDays  > 0 ? _dashAvail / _dashDays  : 0;
+  const _dashComputed = _dashWeeks > 0 ? _dashAvail / _dashWeeks : 0;
+  const _dayComputed  = _dashDays  > 0 ? _dashAvail / _dashDays  : 0;
+  // When available = 0 (dipped into buffer), use the saved limit as denominator
+  // so FAILED tiles show the original limit, not 0.
+  const _livePerWeek  = _dashAvail > 0 ? _dashComputed : (parseFloat(_wp?.per_week) || 0);
+  const _livePerDay   = _dashAvail > 0 ? _dayComputed  : (parseFloat(_wp?.per_day)  || 0);
   // Treat _livePerWeek as the authoritative weekBudget for tiles
   const weekBudget    = _livePerWeek;
   // Carry-over: if previous weeks in this plan cycle were over/under budget, adjust this week's budget
@@ -5379,19 +5383,19 @@ function calcWeekly() {
   const weekExpenses     = state.transactions.filter(t => t.type==='expense' && t.date>=mondayStr).reduce((s,t)=>s+t.amount,0);
   const weekIncomeOffset = state.transactions.filter(t => t.type==='income'  && t.date>=mondayStr).reduce((s,t)=>s+t.amount,0);
   const weekNet  = Math.max(0, weekExpenses - weekIncomeOffset);
-  // When spending already exceeds the per-week share, use (spent + remaining) as the true
-  // week allocation so the denominator reflects the full picture, not just what's left.
-  const weekBudget = weekNet > perWeek ? weekNet + available : perWeek;
+  // savedPerWeek: preserved by autoUpdateWeeklyPlan even when available hits 0,
+  // so we always have the original limit as the denominator for FAILED display.
+  const savedPerWeek    = parseFloat(state.weekly_plan?.per_week || 0) || perWeek;
+  const _effectivePerWeek = savedPerWeek > 0 ? savedPerWeek : (perWeek > 0 ? perWeek : 0);
+  // Use the effective limit as the denominator — never (spent + remaining), so FAILED shows real overrun
+  const weekBudget = _effectivePerWeek > 0 ? _effectivePerWeek : (weekNet > 0 ? weekNet : 0);
   const weekPct    = weekBudget > 0 ? Math.min(weekNet / weekBudget, 1) : 0;
-  const barColor   = weekNet > perWeek ? 'var(--warn)' : weekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
-
-  // savedPerWeek anchors past week rows to the last-saved plan value
-  const savedPerWeek = parseFloat(state.weekly_plan?.per_week || 0) || perWeek;
+  const barColor   = _effectivePerWeek > 0 && weekNet > _effectivePerWeek ? 'var(--danger)' : weekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
 
   // Adjusted per day: remaining weekly budget spread across days left in this week (including today)
   const _todayWkIdx   = now.getDay() === 0 ? 6 : now.getDay() - 1; // 0=Mon … 6=Sun
   const _daysLeftWk   = Math.max(1, 7 - _todayWkIdx);
-  const adjustedPerDay = perWeek > 0 ? Math.max(0, perWeek - weekNet) / _daysLeftWk : 0;
+  const adjustedPerDay = _effectivePerWeek > 0 ? Math.max(0, _effectivePerWeek - weekNet) / _daysLeftWk : 0;
   const _adjDiff       = adjustedPerDay - perDay;
   const _adjSub        = _adjDiff >  0.005 ? '↑ ahead of pace'
                        : _adjDiff < -0.005 ? '↓ behind pace'
@@ -5401,10 +5405,10 @@ function calcWeekly() {
                        : 'var(--danger)';
 
   const _reservedLabel  = [stopAt > 0 ? `${fmt(stopAt)} stop-at` : '', bills > 0 ? `${fmt(bills)} bills` : ''].filter(Boolean).join(' + ') || 'none reserved';
-  const _wkOver         = weekNet > perWeek;
-  const _perWeekCardVal = _wkOver ? weekBudget : perWeek;
-  const _perWeekCardSub = _wkOver ? `${fmt(available)} remaining` : `across ${weeks} week${weeks!==1?'s':''}`;
-  const _perWeekColor   = _wkOver ? 'var(--warn)' : 'var(--warn)';
+  const _wkOver         = _effectivePerWeek > 0 && weekNet > _effectivePerWeek;
+  const _perWeekCardVal = _effectivePerWeek;
+  const _perWeekCardSub = _wkOver ? `+${fmt(weekNet - _effectivePerWeek)} over limit` : `across ${weeks} week${weeks!==1?'s':''}`;
+  const _perWeekColor   = _wkOver ? 'var(--danger)' : 'var(--warn)';
   const summaryCards = [
     ['BALANCE',      fmt(liveBalance),         'var(--text)',    `live — auto-updates`],
     ['SPENDABLE',    fmt(available),           'var(--accent)',  _reservedLabel],
@@ -5476,10 +5480,11 @@ function calcWeekly() {
       pastRowsHtml.push(`<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span>${miniBar}<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     } else {
       // Current + future weeks — live, recalculated on every settings change
-      // For the current week, use weekBudget (spent + remaining) as denominator when over perWeek
-      const _rowDenominator = isCurrent && wkNet > perWeek ? wkNet + available : perWeek;
+      // Always use the effective limit (savedPerWeek) as denominator so FAILED shows real overrun
+      const _rowDenominator = savedPerWeek > 0 ? savedPerWeek : (wkNet > 0 ? wkNet : perWeek);
       const wkPct   = _rowDenominator > 0 ? Math.min(wkNet/_rowDenominator*100,100) : 0;
-      const wkColor = isCurrent && wkNet > perWeek ? 'var(--warn)' : wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
+      const _rowOver = isCurrent && _effectivePerWeek > 0 && wkNet > _effectivePerWeek;
+      const wkColor = _rowOver ? 'var(--danger)' : wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
       const badge   = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
       futureRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(_rowDenominator)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     }
@@ -5498,8 +5503,9 @@ function calcWeekly() {
       </div>
       <div class="wt-amounts">
         <span class="wt-spent" style="color:${barColor}">${fmt(weekNet)}</span>
-        <span class="wt-of"> / ${fmt(weekBudget)}</span>
+        <span class="wt-of" style="color:${barColor}"> / ${fmt(weekBudget)}</span>
       </div>
+      ${_wkOver ? `<div class="wt-offset" style="color:var(--danger);font-weight:700">FAILED — +${fmt(weekNet - _effectivePerWeek)} over limit</div>` : ''}
       ${weekIncomeOffset?`<div class="wt-offset">${fmt(weekExpenses)} spent − ${fmt(weekIncomeOffset)} income = ${fmt(weekNet)} net</div>`:''}
       <div class="progress-bar-bg">
         <div class="progress-bar-fill" style="width:${(weekPct*100).toFixed(1)}%;background:${barColor}"></div>
@@ -8091,7 +8097,11 @@ async function autoUpdateWeeklyPlan() {
   const weeks       = Math.ceil(days / 7);
   const perWeek     = weeks > 0 ? available / weeks : 0;
   const perDay      = days > 0 ? available / days : 0;
-  await api.saveWeeklyPlan({ ...wp, per_week: perWeek, per_day: perDay });
+  // Preserve last non-zero per_week/per_day when balance dips into buffer so the
+  // FAILED denominator always shows the original limit, never 0.
+  const _keepPerWeek = available > 0 ? perWeek : (parseFloat(wp.per_week) || 0);
+  const _keepPerDay  = available > 0 ? perDay  : (parseFloat(wp.per_day)  || 0);
+  await api.saveWeeklyPlan({ ...wp, per_week: _keepPerWeek, per_day: _keepPerDay });
 }
 
 function attachAdd() {
