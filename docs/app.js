@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.11.9';
+const VERSION = '5.12.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -7803,6 +7803,18 @@ function toggleDawgBell() {
 }
 
 function attachDashboardDawg() {
+  // LOCK TF IN tap glitch
+  const _lockinEl = document.querySelector('.dawg-lockin');
+  if (_lockinEl) {
+    _lockinEl.style.cursor = 'pointer';
+    _lockinEl.addEventListener('click', () => {
+      _lockinEl.classList.remove('lockin-glitch-tap');
+      void _lockinEl.offsetWidth;
+      _lockinEl.classList.add('lockin-glitch-tap');
+      _lockinEl.addEventListener('animationend', () => _lockinEl.classList.remove('lockin-glitch-tap'), { once: true });
+    });
+  }
+
   // Dashboard edit account button (all account types)
   document.getElementById('dash-acct-edit')?.addEventListener('click', () => showAccountEdit(currentAccountId));
   // Retirement dashboard: Add Contribution button
