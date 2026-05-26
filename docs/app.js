@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.13.4';
+const VERSION = '5.13.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -3982,9 +3982,8 @@ function renderDashboardDawg() {
     ? (monthDelta > 0 ? `▼ ${fmt(monthDelta)} paid this month` : 'No payments this month')
     : `${deltaArrow} ${fmt(Math.abs(monthDelta))} (${deltaPct.toFixed(1)}%) this month`;
 
-  // Budget overview — read the per_week/per_day values that autoUpdateWeeklyPlan()
-  // saves on every transaction. These are computed by exactly the same formula as
-  // calcWeekly() on the planner page, so the numbers always match.
+  // Budget overview — compute perWeek/perDay LIVE using exact same algorithm as calcWeekly()
+  // so the dashboard always matches the planner page regardless of how much time has passed.
   const _wp         = state.weekly_plan;
   const _wkNow      = new Date(); _wkNow.setHours(0,0,0,0);
   const _wkMon      = new Date(_wkNow); _wkMon.setDate(_wkNow.getDate() - (_wkNow.getDay()===0?6:_wkNow.getDay()-1));
@@ -3992,22 +3991,20 @@ function renderDashboardDawg() {
   const _wkExp      = state.transactions.filter(t => t.type==='expense' && t.date >= _monStr).reduce((s,t)=>s+t.amount,0);
   const _wkInc      = state.transactions.filter(t => t.type==='income'  && t.date >= _monStr).reduce((s,t)=>s+t.amount,0);
   const weekSpent   = Math.max(0, _wkExp - _wkInc);
-  // Use the planner's already-saved per_week/per_day (written by autoUpdateWeeklyPlan on every transaction)
-  // so the dashboard always shows the exact same denominator as the planner page.
-  const _livePerWeek = parseFloat(_wp?.per_week) || 0;
-  const _livePerDay  = parseFloat(_wp?.per_day)  || 0;
-  // Still need _dashDays for the dayBudget / daysLeft calculation below
-  const _dashPdStr  = _wp?.paydate || '';
-  let _dashDays = 14;
-  if (_dashPdStr) {
-    const _dashPd = new Date(_dashPdStr + 'T00:00:00');
-    _dashDays = Math.max(1, Math.round((_dashPd - _wkNow) / 86400000) + 1);
-  }
   const { income: _dashTotalInc, expense: _dashTotalExp } = totals();
   const _dashLiveBal  = (state.startingBalance || 0) + _dashTotalInc - _dashTotalExp;
   const _dashBills    = parseFloat(_wp?.bills   || '0') || 0;
   const _dashStopAt   = parseFloat(_wp?.stop_at || '0') || 0;
+  const _dashPdStr    = _wp?.paydate || '';
+  // Use today+14 default when no paydate saved — same as planner DOM default (gives days=15, weeks=3)
+  const _dashPdDate   = _dashPdStr
+    ? new Date(_dashPdStr + 'T00:00:00')
+    : (() => { const d = new Date(); d.setDate(d.getDate() + 14); return d; })();
+  const _dashDays     = Math.max(1, Math.round((_dashPdDate - _wkNow) / 86400000) + 1);
   const _dashAvail    = Math.max(0, _dashLiveBal - _dashStopAt - _dashBills);
+  const _dashWeeks    = Math.ceil(_dashDays / 7) || 1;
+  const _livePerWeek  = _dashWeeks > 0 ? _dashAvail / _dashWeeks : 0;
+  const _livePerDay   = _dashDays  > 0 ? _dashAvail / _dashDays  : 0;
   // Treat _livePerWeek as the authoritative weekBudget for tiles
   const weekBudget    = _livePerWeek;
   // Carry-over: if previous weeks in this plan cycle were over/under budget, adjust this week's budget
