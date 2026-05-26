@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.13.6';
+const VERSION = '5.13.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -4066,7 +4066,25 @@ function renderDashboardDawg() {
 
   const totalMExp  = Object.values(bycat).reduce((s,v)=>s+v, 0);
   const catEntries = Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  const catIcons   = { Food:'🍔', Gas:'⛽', Car:'🚗', Boat:'⛵', Tools:'🔧', Home:'🏠', Entertainment:'🎮', Health:'❤️', Shopping:'🛍️', Transport:'🚗', Housing:'🏠', Other:'💬' };
+  const _si = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+  const catIcons = {
+    'Food':          _si('<path d="M3 2v7c0 1.1.9 2 2 2s2-.9 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6h5"/><path d="M21 22v-7"/>'),
+    'Snacks':        _si('<circle cx="12" cy="12" r="10"/><circle cx="8.5" cy="9.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.5" fill="currentColor" stroke="none"/><circle cx="10" cy="15.5" r="1.5" fill="currentColor" stroke="none"/>'),
+    'Gas':           _si('<line x1="3" y1="22" x2="15" y2="22"/><line x1="4" y1="9" x2="14" y2="9"/><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/><path d="M14 13h2a2 2 0 0 1 2 2v2a1 1 0 0 0 2 0V9l-3-3"/>'),
+    'Car':           _si('<path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6A2 2 0 0 0 11.7 6H5a2 2 0 0 0-1.8 1.1L2.2 9.85A2 2 0 0 0 2 10.8V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/>'),
+    'Boat':          _si('<circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/>'),
+    'Tools':         _si('<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>'),
+    'Home':          _si('<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'),
+    'Transport':     _si('<rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>'),
+    'Housing':       _si('<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/><path d="M2 22h20"/><path d="M9 7h1m4 0h1M9 11h1m4 0h1M9 15h1m4 0h1"/>'),
+    'Entertainment': _si('<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01"/><path d="M7 12v-2m0 4v-2m2-2h2"/>'),
+    'Health':        _si('<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>'),
+    'Shopping':      _si('<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'),
+    'Income':        _si('<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>'),
+    'Other':         _si('<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>'),
+  };
+  const _iconFallback = _si('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>');
+  const _iconIncome   = catIcons['Income'];
 
   const spendHtml = catEntries.length ? catEntries.map(([cat,amt]) => {
     const pct      = totalMExp > 0 ? (amt/totalMExp*100).toFixed(0) : 0;
@@ -4074,9 +4092,9 @@ function renderDashboardDawg() {
     const barW     = _boostBar(rawPct);
     const catColor = CAT_COLORS[cat] || 'var(--accent)';
     return `<div class="dawg-cat-row">
-      <span class="dawg-cat-icon">${catIcons[cat]||'💰'}</span>
+      <span class="dawg-cat-icon">${catIcons[cat]||_iconFallback}</span>
       <span class="dawg-cat-name">${cat}</span>
-      <div class="dawg-cat-bar-wrap"><div class="dawg-cat-bar" style="width:${barW}%;background:${catColor}"></div></div>
+      <div class="dawg-cat-bar-wrap"><div class="dawg-cat-bar" style="--cat-c:${catColor};width:${barW}%;background:${catColor}"></div></div>
       <span class="dawg-cat-amt">${fmt(amt)}</span>
       <span class="dawg-cat-pct">${pct}%</span>
     </div>`;
@@ -4108,7 +4126,7 @@ function renderDashboardDawg() {
     const isInc  = t.type === 'income';
     const color  = isInc ? 'var(--success)' : 'var(--danger)';
     const sign   = isInc ? '+' : '−';
-    const icon   = isInc ? '💵' : (catIcons[t.category] || '💳');
+    const icon   = isInc ? _iconIncome : (catIcons[t.category] || _iconFallback);
     const dlbl   = t.date === todayStr ? 'Today' : t.date === yesterdayStr ? 'Yesterday' : t.date.slice(5);
     return `<div class="dawg-txn-row">
       <div class="dawg-txn-icon">${icon}</div>
@@ -4442,7 +4460,7 @@ function renderDashboardDawg() {
             const _color  = _pct >= 100 ? 'var(--danger)' : _pct >= 75 ? 'var(--warn)' : 'var(--accent)';
             const _barW   = _boostBar(_pct);
             return `<div class="dawg-bcat-row">
-              <span class="dawg-bcat-name">${catIcons[cat]||'💰'} ${cat}</span>
+              <span class="dawg-bcat-name"><span class="dawg-bcat-icon">${catIcons[cat]||_iconFallback}</span>${cat}</span>
               <div class="dawg-bcat-bar-wrap"><div class="dawg-bcat-bar" style="width:${_barW}%;background:${_color}"></div></div>
               <span class="dawg-bcat-amt" style="color:${_color}">${fmt(_spent)}<span style="color:var(--muted);font-weight:400"> /${fmt(_limit)}</span></span>
             </div>`;
