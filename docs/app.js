@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.13.2';
+const VERSION = '5.13.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -4182,9 +4182,9 @@ function renderDashboardDawg() {
             </div>
             ${wkFailed
               ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
-                 <div class="dawg-tile-sub" style="color:var(--danger)">+${_wkOver} over</div>`
+                 <div class="dawg-tile-sub" style="color:var(--danger)">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</div>`
               : `<div class="dawg-tile-amt">${fmt(weekSpent)}</div>
-                 <div class="dawg-tile-sub">${fmt(weekSpent)} / ${fmt(_wkDenom)}</div>`
+                 <div class="dawg-tile-sub">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</div>`
             }`;
         }
         // ── Per-day tile: uses live perDay from plan settings ─────────────────
