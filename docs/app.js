@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.15.1';
+const VERSION = '5.15.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.15.2', date: '2026-05-26', changes: [
+    'Code cleanup pass — removed dead functions (fitLogo, getLastSixWeeks, closeTutorial, stale splash canvas block), stale event listeners, and redundant console.warn calls',
+    'Performance: merged multiple transaction scan passes into single loops across the dashboard, planner, sparkline, and add-transaction flow — fewer iterations over your data',
+    'Budget suggestion engine rewritten from O(categories × transactions) to O(transactions) — single pre-grouped scan instead of repeated full-list filters',
+    'Removed duplicate today() logic — both today() and localDateStr() now share one implementation',
+  ]},
   { version: '5.15.0', date: '2026-05-26', changes: [
     'Dashboard per-week and per-day tiles now correctly recover your spending limit even when you have dipped into your buffer — uses start-of-week balance as a last-resort fallback',
     'Budget limit in the weekly planner also recovers correctly using the same fallback chain — no more showing $0 as the denominator',
@@ -1129,18 +1135,13 @@ const THEMES = {
 
 let CAT_COLORS = {
   Food:          '#4ecb8d',
-  Snacks:        '#f7c96a',
   Gas:           '#f76a6a',
   Car:           '#7c6af7',
   Boat:          '#4ecbcb',
   Tools:         '#f7936a',
   Home:          '#8dcb4e',
-  Transport:     '#6af7c9',
-  Housing:       '#c96af7',
   Entertainment: '#f76ab5',
   Health:        '#4eaecb',
-  Shopping:      '#cb4e8d',
-  Income:        '#4ecb8d',
   Other:         '#9896a4',
 };
 
@@ -1707,8 +1708,6 @@ function applySettings() {
   applyFontStyle(s.fontStyle || 'default');
 }
 
-// No-op: brand lockup uses a fixed image + short label — font shrinking no longer needed.
-function fitLogo() {}
 
 function applyFontStyle(style) {
   const map = {
@@ -1838,12 +1837,12 @@ function _save() {
       challenges:      state.challenges,
       startingBalance: state.startingBalance,
     }));
-  } catch(e) { console.warn('Budget DAWGs: save failed', e); _showSaveError(); }
+  } catch(e) { _showSaveError(); }
 }
 function _saveAccounts() {
   try {
     localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
-  } catch(e) { console.warn('Budget DAWGs: account save failed', e); _showSaveError(); }
+  } catch(e) { _showSaveError(); }
 }
 function _loadAccountData(id) {
   let d = {};
@@ -1942,8 +1941,8 @@ async function processRecurring() {
   if (acct && (acct.type === 'credit' || acct.type === 'loan') &&
       parseFloat(acct.interest_rate || 0) > 0 &&
       acct.last_interest_month !== currentMonth) {
-    const ai  = state.transactions.reduce((s,t) => t.type==='income'  ? s+t.amount : s, 0);
-    const ae  = state.transactions.reduce((s,t) => t.type==='expense' ? s+t.amount : s, 0);
+    let ai = 0, ae = 0;
+    for (const t of state.transactions) { if (t.type==='income') ai+=t.amount; else ae+=t.amount; }
     const bal = Math.max(0, (state.startingBalance || 0) + ae - ai);
     if (bal > 0) {
       const monthlyInterest = parseFloat((bal * parseFloat(acct.interest_rate) / 100 / 12).toFixed(2));
@@ -1990,16 +1989,11 @@ function fmt(n) {
   return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// Always returns the LOCAL calendar date (YYYY-MM-DD) — never UTC.
-// Using toISOString() would flip to "tomorrow" at 6–7 pm for US timezones.
-function today() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-// Same but for any Date object
+// Returns YYYY-MM-DD for any Date in LOCAL time (never UTC — toISOString flips at ~6 pm US).
 function localDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+function today() { return localDateStr(new Date()); }
 
 function showStatus(id, msg, type, ms = 3000) {
   const el = document.getElementById(id);
@@ -2222,26 +2216,6 @@ function showCatModal(cat) {
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
-function getLastSixWeeks() {
-  const weeks = [];
-  for (let i = 0; i < 6; i++) {
-    const mon = new Date();
-    mon.setHours(0, 0, 0, 0);
-    mon.setDate(mon.getDate() - mon.getDay() + 1 - (5 - i) * 7);
-    const sun = new Date(mon); sun.setDate(sun.getDate() + 6);
-    const monStr = mon.toISOString().slice(0, 10);
-    const sunStr = sun.toISOString().slice(0, 10);
-    const label  = mon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    let income = 0, expense = 0;
-    for (const t of state.transactions) {
-      if (t.date >= monStr && t.date <= sunStr) {
-        if (t.type === 'income') income += t.amount; else expense += t.amount;
-      }
-    }
-    weeks.push({ label, income, expense });
-  }
-  return weeks;
-}
 
 function getMonthCatData(monthStr) {
   const m = monthStr || new Date().toISOString().slice(0, 7);
@@ -3127,10 +3101,7 @@ function runSplash() {
 
     let done = false;
 
-    const canvas    = document.getElementById('splash-canvas');
     const toggleBtn = document.getElementById('splash-anim-toggle');
-
-    if (canvas) canvas.style.display = 'none'; // canvas no longer used
 
     const startAnim = () => el.classList.add('splash-glitch-on');
     const stopAnim  = () => el.classList.remove('splash-glitch-on');
@@ -3361,7 +3332,7 @@ function render() {
   // new content when it's called, but the browser must NOT have painted it yet.
   // All of this is synchronous JS, so no intermediate paint occurs.
   switch (currentTab) {
-    case 'dashboard': main.innerHTML = renderDashboard(); break;
+    case 'dashboard': main.innerHTML = renderDashboardDawg(); break;
     case 'add':       main.innerHTML = renderAdd();       break;
     case 'ledger':    main.innerHTML = renderLedger();    break;
     case 'weekly':    main.innerHTML = renderWeekly();    break;
@@ -3948,8 +3919,10 @@ function renderDashboardDawg() {
   // Balance as of the end of the browsed month (not all-time live balance)
   let balance;
   if (_isDebt) {
-    const _incUpTo = state.transactions.filter(t=>t.date<=balAsOfStr&&t.type==='income').reduce((s,t)=>s+t.amount,0);
-    const _expUpTo = state.transactions.filter(t=>t.date<=balAsOfStr&&t.type==='expense').reduce((s,t)=>s+t.amount,0);
+    let _incUpTo = 0, _expUpTo = 0;
+    for (const t of state.transactions) {
+      if (t.date <= balAsOfStr) { if (t.type==='income') _incUpTo+=t.amount; else _expUpTo+=t.amount; }
+    }
     balance = Math.max(0, (state.startingBalance||0) + _expUpTo - _incUpTo);
   } else {
     balance = balanceAsOf(balAsOfStr);
@@ -4002,11 +3975,15 @@ function renderDashboardDawg() {
   const _wkMon   = new Date(_wkNow);
   _wkMon.setDate(_wkNow.getDate() - (_wkNow.getDay() === 0 ? 6 : _wkNow.getDay() - 1));
   const _monStr  = _wkMon.toISOString().split('T')[0];
-  const _wkExp   = state.transactions.filter(t => t.type==='expense' && t.date >= _monStr).reduce((s,t)=>s+t.amount, 0);
-  const _wkInc   = state.transactions.filter(t => t.type==='income'  && t.date >= _monStr).reduce((s,t)=>s+t.amount, 0);
-  const weekSpent = Math.max(0, _wkExp - _wkInc);
   const _todayStr2 = today();
-  const daySpent   = state.transactions.filter(t => t.type==='expense' && t.date===_todayStr2).reduce((s,t)=>s+t.amount, 0);
+  let _wkExp = 0, _wkInc = 0, daySpent = 0;
+  for (const t of state.transactions) {
+    if (t.date >= _monStr) {
+      if (t.type === 'expense') { _wkExp += t.amount; if (t.date === _todayStr2) daySpent += t.amount; }
+      else if (t.type === 'income') _wkInc += t.amount;
+    }
+  }
+  const weekSpent = Math.max(0, _wkExp - _wkInc);
 
   // Plan settings
   const { income: _dashTotalInc, expense: _dashTotalExp } = totals();
@@ -4545,10 +4522,6 @@ function renderDashboardDawg() {
 }
 
 // ── dashboard ──────────────────────────────────────────────────────────────
-function renderDashboard() {
-  return renderDashboardDawg();
-}
-
 // ── income budget planner ──────────────────────────────────────────────────
 function getIncomeBudgetPlan() {
   const acct = state.accounts.find(a => a.id === currentAccountId);
@@ -4604,17 +4577,24 @@ const _BUDGET_PRESETS = {
 
 function getSmartBudgetSuggestions() {
   const now = new Date();
-  const calculated = {};
-  const monthsWithData = [];
+  // Build a Set of the 3 prior month prefixes for fast membership test
+  const monthSet = new Set();
   for (let i = 1; i <= 3; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    monthsWithData.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    monthSet.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
   }
+  // Single pass: accumulate per-category totals keyed by "cat|month"
+  const byKey = {};
+  for (const t of state.transactions) {
+    if (t.type !== 'expense') continue;
+    const m = t.date.slice(0, 7);
+    if (!monthSet.has(m)) continue;
+    const k = `${t.category}|${m}`;
+    byKey[k] = (byKey[k] || 0) + t.amount;
+  }
+  const calculated = {};
   for (const cat of getCategories()) {
-    const monthlySums = monthsWithData.map(m =>
-      state.transactions.filter(t => t.type==='expense' && t.category===cat && t.date.startsWith(m))
-        .reduce((s,t) => s+t.amount, 0)
-    ).filter(v => v > 0);
+    const monthlySums = [...monthSet].map(m => byKey[`${cat}|${m}`] || 0).filter(v => v > 0);
     if (monthlySums.length >= 1) {
       const avg = monthlySums.reduce((s,v) => s+v, 0) / monthlySums.length;
       calculated[cat] = Math.ceil(avg / 5) * 5;
@@ -5412,8 +5392,10 @@ function calcWeekly() {
   const monday = new Date(now);
   monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
   const mondayStr = monday.toISOString().split('T')[0];
-  const weekExpenses     = state.transactions.filter(t => t.type==='expense' && t.date>=mondayStr).reduce((s,t)=>s+t.amount,0);
-  const weekIncomeOffset = state.transactions.filter(t => t.type==='income'  && t.date>=mondayStr).reduce((s,t)=>s+t.amount,0);
+  let weekExpenses = 0, weekIncomeOffset = 0;
+  for (const t of state.transactions) {
+    if (t.date >= mondayStr) { if (t.type==='expense') weekExpenses+=t.amount; else weekIncomeOffset+=t.amount; }
+  }
   const weekNet  = Math.max(0, weekExpenses - weekIncomeOffset);
   // Recover the effective per-week limit even when available = 0 (dipped into buffer).
   // Chain: budget_per_week → per_week → saved_date reconstruction → start-of-week reconstruction
@@ -5523,9 +5505,11 @@ function calcWeekly() {
       // Past weeks — reconstruct historical per_week from the balance at the START of that week.
       // This freezes each week's denominator to what the budget actually was during that week,
       // so future transactions (or plan changes) never retroactively alter past-week display.
-      const _histBal   = (state.startingBalance || 0)
-        + state.transactions.filter(t => t.type==='income'  && t.date < sdS).reduce((s,t)=>s+t.amount,0)
-        - state.transactions.filter(t => t.type==='expense' && t.date < sdS).reduce((s,t)=>s+t.amount,0);
+      let _hInc = 0, _hExp = 0;
+      for (const t of state.transactions) {
+        if (t.date < sdS) { if (t.type==='income') _hInc+=t.amount; else _hExp+=t.amount; }
+      }
+      const _histBal = (state.startingBalance || 0) + _hInc - _hExp;
       const _histAvail = Math.max(0, _histBal - stopAt - bills);
       const _histDays  = Math.max(1, Math.round((paydate - sd) / 86400000) + 1);
       const _histWeeks = Math.max(1, Math.ceil(_histDays / 7));
@@ -7682,7 +7666,6 @@ function _renderWalkthroughStep(i) {
 }
 
 // Keep old name as alias for any external references
-function closeTutorial() { _closeWalkthrough(); }
 
 function attachAbout() {
   document.getElementById('open-tutorial-btn')?.addEventListener('click', openTutorial);
@@ -7820,8 +7803,7 @@ function getDawgNotifications() {
       notes.push({ type:'bill', icon:'📄', title:`${b.name} due`, body: d===0 ? 'Due today!' : `Due in ${d} day${d===1?'':'s'}` });
     }
   });
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const { expense: _mExp } = monthTotals(thisMonth);
+  const { expense: _mExp } = monthTotals(curMonth);
   const _tBudget = Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0),0);
   if (_tBudget > 0 && _mExp > _tBudget) {
     notes.push({ type:'warn', icon:'⚠️', title:'Over budget', body:`${fmt(_mExp - _tBudget)} over monthly budget` });
@@ -7994,8 +7976,8 @@ function attachDashboardDawg() {
     const _spIsDebt  = _spAcct?.type === 'credit' || _spAcct?.type === 'loan';
     let _sparkClrRgb, _sparkClr;
     if (_spIsDebt) {
-      const _spInc   = state.transactions.reduce((s,t)=>t.type==='income' ?s+t.amount:s,0);
-      const _spExp   = state.transactions.reduce((s,t)=>t.type==='expense'?s+t.amount:s,0);
+      let _spInc = 0, _spExp = 0;
+      for (const t of state.transactions) { if (t.type==='income') _spInc+=t.amount; else _spExp+=t.amount; }
       const _spBal   = Math.max(0,(state.startingBalance||0)+_spExp-_spInc);
       const _spLimit = parseFloat(_spAcct?.credit_limit||0) || parseFloat(state.startingBalance||0) || 1;
       const _spRatio = Math.min(_spBal/_spLimit,1);
@@ -8348,11 +8330,11 @@ function attachAdd() {
       ts:          Date.now()
     };
     if (isRecurring) t.recur_month = new Date().toISOString().slice(0, 7);
-    const balFn  = tx => tx.type === 'income' ? tx.amount : -tx.amount;
-    const prevBal = state.transactions.reduce((s, tx) => s + balFn(tx), 0);
+    let prevBal = 0;
+    for (const tx of state.transactions) prevBal += tx.type==='income' ? tx.amount : -tx.amount;
     await api.addTransaction(t);
     await autoUpdateWeeklyPlan(); // runs on every transaction so dashboard always matches planner
-    const newBal = state.transactions.reduce((s, tx) => s + balFn(tx), 0);
+    const newBal = prevBal + (t.type==='income' ? t.amount : -t.amount);
     showStatus('add-status', `✓ Added ${t.type}: ${fmt(t.amount)} (${t.category})`, 'success');
     document.getElementById('add-amount').value = '';
     document.getElementById('add-desc').value   = '';
@@ -9369,12 +9351,6 @@ document.getElementById('pwa-install-btn')?.addEventListener('click', async () =
   }
 });
 
-// Floating tutorial button
-document.getElementById('tut-float-btn')?.addEventListener('click', openTutorial);
-// Close tutorial on backdrop click
-document.getElementById('tutorial-overlay')?.addEventListener('click', e => {
-  if (e.target === document.getElementById('tutorial-overlay')) closeTutorial();
-});
 
 // Keyboard "Done" / checkmark — blur the focused input to dismiss the keyboard.
 // Prevents accidental form submission and lets the user review before hitting Save.
@@ -9453,7 +9429,6 @@ window.addEventListener('popstate', () => {
     applySettings();
     // Re-fit logo once custom fonts finish loading — applySettings fires before
     // web fonts are ready, so the first measurement uses the fallback font width.
-    document.fonts.ready.then(fitLogo);
     updateAccountSwitcher();
     document.getElementById('account-switcher')?.addEventListener('change', async e => {
       await api.switchAccount(e.target.value);
