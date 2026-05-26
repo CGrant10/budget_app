@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.12.4';
+const VERSION = '5.12.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -3981,15 +3981,31 @@ function renderDashboardDawg() {
     ? (monthDelta > 0 ? `▼ ${fmt(monthDelta)} paid this month` : 'No payments this month')
     : `${deltaArrow} ${fmt(Math.abs(monthDelta))} (${deltaPct.toFixed(1)}%) this month`;
 
-  // Budget overview — prefer weekly planner per-week budget; fall back to monthly budget total
+  // Budget overview — compute live from plan settings (same formula as weekly planner page)
   const _wp         = state.weekly_plan;
-  const weekBudget  = parseFloat(_wp?.per_week || 0);
   const _wkNow      = new Date(); _wkNow.setHours(0,0,0,0);
   const _wkMon      = new Date(_wkNow); _wkMon.setDate(_wkNow.getDate() - (_wkNow.getDay()===0?6:_wkNow.getDay()-1));
   const _monStr     = _wkMon.toISOString().split('T')[0];
   const _wkExp      = state.transactions.filter(t => t.type==='expense' && t.date >= _monStr).reduce((s,t)=>s+t.amount,0);
   const _wkInc      = state.transactions.filter(t => t.type==='income'  && t.date >= _monStr).reduce((s,t)=>s+t.amount,0);
   const weekSpent   = Math.max(0, _wkExp - _wkInc);
+  // Live recompute of perWeek/perDay — mirrors calcWeekly() so dashboard always matches the planner
+  const _dashBills  = parseFloat(_wp?.bills   || '0') || 0;
+  const _dashStopAt = parseFloat(_wp?.stop_at || '0') || 0;
+  const _dashPdStr  = _wp?.paydate || '';
+  let _dashDays = 14;
+  if (_dashPdStr) {
+    const _dashPd = new Date(_dashPdStr + 'T00:00:00');
+    _dashDays = Math.max(1, Math.round((_dashPd - _wkNow) / 86400000) + 1);
+  }
+  const { income: _dashTotalInc, expense: _dashTotalExp } = totals();
+  const _dashLiveBal  = (state.startingBalance || 0) + _dashTotalInc - _dashTotalExp;
+  const _dashAvail    = Math.max(0, _dashLiveBal - _dashStopAt - _dashBills);
+  const _dashWeeks    = Math.max(1, Math.ceil(_dashDays / 7));
+  const _livePerWeek  = _dashPdStr ? (_dashWeeks > 0 ? _dashAvail / _dashWeeks : 0) : 0;
+  const _livePerDay   = _dashPdStr ? (_dashDays  > 0 ? _dashAvail / _dashDays  : 0) : 0;
+  // Treat _livePerWeek as the authoritative weekBudget for tiles
+  const weekBudget    = _livePerWeek;
   // Carry-over: if previous weeks in this plan cycle were over/under budget, adjust this week's budget
   let effectiveWeekBudget = weekBudget;
   if (weekBudget > 0 && _wp?.saved_date && !isPastDash) {
@@ -4142,28 +4158,29 @@ function renderDashboardDawg() {
 
       // Budget tiles (only if weekly plan exists and not debt account)
       if (!_isDebt) {
-        const wkPct   = totalBudget > 0 ? Math.min(budgetSpent / totalBudget * 100, 100) : 0;
-        const wkColor = wkPct >= 90 ? 'var(--danger)' : wkPct >= 75 ? 'var(--warn)' : 'var(--accent)';
         const C = 175.93;
-        const wkDash  = (C * (1 - wkPct / 100)).toFixed(1);
-        _tileHtml['budget-week'] = `
-          <div class="dawg-card-title">BUDGET OVERVIEW</div>
-          <div class="dawg-tile-period">PER WEEK</div>
-          <div class="dawg-tile-ring-wrap">
-            <svg class="dawg-tile-ring" viewBox="0 0 64 64">
-              <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
-              <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${wkColor};stroke-dasharray:${C};stroke-dashoffset:${wkDash}"/>
-            </svg>
-            <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${wkColor}">${wkPct.toFixed(0)}%</div></div>
-          </div>
-          <div class="dawg-tile-amt">${fmt(budgetSpent)}</div>
-          <div class="dawg-tile-sub">${fmt(budgetSpent)} / ${fmt(totalBudget)}</div>`;
-
-        // Use live dayBudget when available; fall back to saved per_day so the tile always renders
-        const _savedPerDay = parseFloat(_wp?.per_day || 0);
-        const _dayBudgetDisplay = dayBudget > 0 ? dayBudget : _savedPerDay;
-        if (_dayBudgetDisplay > 0) {
-          const dayPct   = Math.min(daySpent / _dayBudgetDisplay * 100, 100);
+        // ── Per-week tile: mirrors the planner's THIS WEEK tracker exactly ─────
+        if (_livePerWeek > 0 || weekSpent > 0) {
+          const _wkDenom  = weekSpent > _livePerWeek ? weekSpent + _dashAvail : _livePerWeek;
+          const wkPct     = _wkDenom > 0 ? Math.min(weekSpent / _wkDenom * 100, 100) : 0;
+          const wkColor   = weekSpent > _livePerWeek ? 'var(--warn)' : wkPct >= 80 ? 'var(--warn)' : 'var(--accent)';
+          const wkDash    = (C * (1 - wkPct / 100)).toFixed(1);
+          _tileHtml['budget-week'] = `
+            <div class="dawg-card-title">BUDGET OVERVIEW</div>
+            <div class="dawg-tile-period">PER WEEK</div>
+            <div class="dawg-tile-ring-wrap">
+              <svg class="dawg-tile-ring" viewBox="0 0 64 64">
+                <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
+                <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${wkColor};stroke-dasharray:${C};stroke-dashoffset:${wkDash}"/>
+              </svg>
+              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${wkColor}">${wkPct.toFixed(0)}%</div></div>
+            </div>
+            <div class="dawg-tile-amt">${fmt(weekSpent)}</div>
+            <div class="dawg-tile-sub">${fmt(weekSpent)} / ${fmt(_wkDenom)}</div>`;
+        }
+        // ── Per-day tile: uses live perDay from plan settings ─────────────────
+        if (_livePerDay > 0 || daySpent > 0) {
+          const dayPct   = _livePerDay > 0 ? Math.min(daySpent / _livePerDay * 100, 100) : (daySpent > 0 ? 100 : 0);
           const dayColor = dayPct >= 100 ? 'var(--danger)' : dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
           const dayDash  = (C * (1 - dayPct / 100)).toFixed(1);
           _tileHtml['budget-day'] = `
@@ -4177,7 +4194,7 @@ function renderDashboardDawg() {
               <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${dayColor}">${dayPct.toFixed(0)}%</div></div>
             </div>
             <div class="dawg-tile-amt">${fmt(daySpent)}</div>
-            <div class="dawg-tile-sub">${fmt(daySpent)} / ${fmt(_dayBudgetDisplay)}</div>`;
+            <div class="dawg-tile-sub">${fmt(daySpent)} / ${fmt(_livePerDay)}</div>`;
         }
 
         // Daily history tile — one row per day Mon through today
@@ -5430,12 +5447,21 @@ function calcWeekly() {
       : '<p class="pw-empty">No transactions.</p>';
 
     if (isPast) {
-      // Past weeks — anchored to savedPerWeek so they never shift when form inputs change
-      const pastPct      = savedPerWeek > 0 ? Math.min(wkExp / savedPerWeek * 100, 100) : 0;
-      const pastBarColor = wkExp > savedPerWeek && savedPerWeek > 0 ? 'var(--danger)' : wkExp >= savedPerWeek * 0.8 && savedPerWeek > 0 ? 'var(--warn)' : 'var(--muted)';
-      const spentColor   = savedPerWeek > 0 && wkExp > savedPerWeek ? 'var(--danger)' : wkExp > 0 ? 'var(--text)' : 'var(--muted)';
-      const spentLabel   = wkExp > 0 ? `${fmt(wkExp)} / ${fmt(savedPerWeek)}` : 'No spending';
-      const miniBar      = savedPerWeek > 0 ? `<div class="breakdown-bar-bg small" style="flex:1;margin:0 8px"><div class="breakdown-bar-fill" style="width:${pastPct.toFixed(1)}%;background:${pastBarColor}"></div></div>` : `<span style="flex:1"></span>`;
+      // Past weeks — reconstruct historical per_week from the balance at the START of that week.
+      // This freezes each week's denominator to what the budget actually was during that week,
+      // so future transactions (or plan changes) never retroactively alter past-week display.
+      const _histBal   = (state.startingBalance || 0)
+        + state.transactions.filter(t => t.type==='income'  && t.date < sdS).reduce((s,t)=>s+t.amount,0)
+        - state.transactions.filter(t => t.type==='expense' && t.date < sdS).reduce((s,t)=>s+t.amount,0);
+      const _histAvail = Math.max(0, _histBal - stopAt - bills);
+      const _histDays  = Math.max(1, Math.round((paydate - sd) / 86400000) + 1);
+      const _histWeeks = Math.max(1, Math.ceil(_histDays / 7));
+      const _histPerWk = _histWeeks > 0 ? _histAvail / _histWeeks : 0;
+      const pastPct      = _histPerWk > 0 ? Math.min(wkExp / _histPerWk * 100, 100) : 0;
+      const pastBarColor = wkExp > _histPerWk && _histPerWk > 0 ? 'var(--danger)' : wkExp >= _histPerWk * 0.8 && _histPerWk > 0 ? 'var(--warn)' : 'var(--muted)';
+      const spentColor   = _histPerWk > 0 && wkExp > _histPerWk ? 'var(--danger)' : wkExp > 0 ? 'var(--text)' : 'var(--muted)';
+      const spentLabel   = wkExp > 0 ? `${fmt(wkExp)} / ${fmt(_histPerWk)}` : 'No spending';
+      const miniBar      = _histPerWk > 0 ? `<div class="breakdown-bar-bg small" style="flex:1;margin:0 8px"><div class="breakdown-bar-fill" style="width:${pastPct.toFixed(1)}%;background:${pastBarColor}"></div></div>` : `<span style="flex:1"></span>`;
       pastRowsHtml.push(`<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span>${miniBar}<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     } else {
       // Current + future weeks — live, recalculated on every settings change
