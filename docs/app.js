@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.12.8';
+const VERSION = '5.12.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -4181,9 +4181,11 @@ function renderDashboardDawg() {
         }
         // ── Per-day tile: uses live perDay from plan settings ─────────────────
         if (_livePerDay > 0 || daySpent > 0) {
-          const dayPct   = _livePerDay > 0 ? Math.min(daySpent / _livePerDay * 100, 100) : (daySpent > 0 ? 100 : 0);
-          const dayColor = dayPct >= 100 ? 'var(--danger)' : dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
-          const dayDash  = (C * (1 - dayPct / 100)).toFixed(1);
+          const dayFailed = daySpent > _livePerDay;
+          const dayPct    = _livePerDay > 0 ? Math.min(daySpent / _livePerDay * 100, 100) : (daySpent > 0 ? 100 : 0);
+          const dayColor  = dayFailed || dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
+          const dayDash   = (C * (1 - dayPct / 100)).toFixed(1);
+          const _dayOver  = dayFailed ? fmt(daySpent - _livePerDay) : '';
           _tileHtml['budget-day'] = `
             <div class="dawg-card-title">BUDGET OVERVIEW</div>
             <div class="dawg-tile-period">PER DAY</div>
@@ -4192,10 +4194,14 @@ function renderDashboardDawg() {
                 <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
                 <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${dayColor};stroke-dasharray:${C};stroke-dashoffset:${dayDash}"/>
               </svg>
-              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${dayColor}">${dayPct.toFixed(0)}%</div></div>
+              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${dayColor}">${dayFailed ? '!' : dayPct.toFixed(0)+'%'}</div></div>
             </div>
-            <div class="dawg-tile-amt">${fmt(daySpent)}</div>
-            <div class="dawg-tile-sub">${fmt(daySpent)} / ${fmt(_livePerDay)}</div>`;
+            ${dayFailed
+              ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
+                 <div class="dawg-tile-sub" style="color:var(--danger)">+${_dayOver} over</div>`
+              : `<div class="dawg-tile-amt">${fmt(daySpent)}</div>
+                 <div class="dawg-tile-sub">${fmt(daySpent)} / ${fmt(_livePerDay)}</div>`
+            }`;
         }
 
         // Daily history tile — one row per day Mon through today
