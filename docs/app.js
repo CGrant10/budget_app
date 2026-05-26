@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.12.2';
+const VERSION = '5.12.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -3362,7 +3362,7 @@ function render() {
     case 'about':     main.innerHTML = renderAbout();     break;
   }
   _applyPageTransition(main, _oldHTML, _transType);
-  attachHandlers();
+  if (!_slidePendingHTML) attachHandlers(); // slide transition calls attachHandlers() in its own cleanup; skip here to avoid attaching twice
   updateBillBadge();
   updateDawgTopbar();
   // Negative balance warning — show once per session when dashboard is visible
@@ -5128,8 +5128,7 @@ function renderAdd() {
         <div class="form-row" id="add-cat-row">
           <label class="form-label">Category</label>
           <div style="flex:1">
-            <input type="text" id="add-cat" list="add-cat-list" class="form-input" placeholder="Type or choose a category…" autocomplete="off">
-            <datalist id="add-cat-list">${getCategories().map(c=>`<option value="${c}">`).join('')}</datalist>
+            <select id="add-cat" class="form-input">${getCategories().map(c=>`<option value="${c}">${c}</option>`).join('')}</select>
           </div>
         </div>
         <div class="form-row" id="add-split-row">
@@ -9097,7 +9096,16 @@ document.querySelectorAll('.nav-btn').forEach(btn =>
 
 // DAWG bottom nav — built dynamically from saved layout
 renderDawgNav();
-document.getElementById('dawg-nav-accts')?.addEventListener('click', () => showTab('dashboard'));
+document.getElementById('dawg-nav-accts')?.addEventListener('click', () => {
+  const _centerBtn = document.getElementById('dawg-nav-accts');
+  if (_centerBtn) {
+    _centerBtn.classList.remove('nav-dob-tap');
+    void _centerBtn.offsetWidth;
+    _centerBtn.classList.add('nav-dob-tap');
+    _centerBtn.addEventListener('animationend', () => _centerBtn.classList.remove('nav-dob-tap'), { once: true });
+  }
+  showTab('dashboard');
+});
 // Long-press on DAWG nav bar opens nav customization
 (function() {
   const _nav = document.getElementById('dawg-bottom-nav');
