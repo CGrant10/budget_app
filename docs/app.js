@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.14.0';
+const VERSION = '5.15.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.15.0', date: '2026-05-26', changes: [
+    'Dashboard per-week and per-day tiles now correctly recover your spending limit even when you have dipped into your buffer — uses start-of-week balance as a last-resort fallback',
+    'Budget limit in the weekly planner also recovers correctly using the same fallback chain — no more showing $0 as the denominator',
+    'Per-week value stored in your plan now always preserves the last known positive limit instead of being overwritten with $0 when available balance drops to zero',
+  ]},
   { version: '5.13.9', date: '2026-05-26', changes: [
     'Spending breakdown icons are now SVGs matching the rest of the app — Food, Gas, Car, Entertainment, Health, and more all have custom icons',
     'Spending breakdown bars are video game styled — parallelogram clip shape with quarter-segment tick marks',
@@ -4016,8 +4021,8 @@ function renderDashboardDawg() {
   const _dashWeeks = Math.ceil(_dashDays / 7) || 1;
 
   // The committed per-week/day limit.
-  // Priority: fresh live computation (when budget is positive) → budget_per_week (saved committed limit)
-  // → per_week (preserved when dipping into buffer) → reconstruct from balance at plan-save date
+  // Priority: fresh live computation → budget_per_week → per_week → saved_date reconstruction
+  // → start-of-week balance reconstruction (last resort when user dipped into buffer)
   const _getLimit = (weeks, days) => {
     if (_dashAvail > 0) return { week: _dashAvail / weeks, day: _dashAvail / days };
     const bpw = parseFloat(_wp?.budget_per_week) || parseFloat(_wp?.per_week) || 0;
@@ -4025,8 +4030,14 @@ function renderDashboardDawg() {
     if (bpw > 0) return { week: bpw, day: bpd };
     if (_wp?.saved_date) {
       const a = Math.max(0, balanceAsOf(_wp.saved_date) - _dashStopAt - _dashBills);
-      return { week: weeks > 0 ? a / weeks : 0, day: days > 0 ? a / days : 0 };
+      if (a > 0) return { week: weeks > 0 ? a / weeks : 0, day: days > 0 ? a / days : 0 };
     }
+    // Last resort: reconstruct from balance at the start of this week (before any spending this week).
+    // This recovers the limit for users whose stored per_week was zeroed before budget_per_week was added.
+    const _prevSun    = new Date(_wkMon); _prevSun.setDate(_wkMon.getDate() - 1);
+    const _prevSunStr = _prevSun.toISOString().split('T')[0];
+    const _wkStartAvail = Math.max(0, balanceAsOf(_prevSunStr) - _dashStopAt - _dashBills);
+    if (_wkStartAvail > 0) return { week: weeks > 0 ? _wkStartAvail / weeks : 0, day: days > 0 ? _wkStartAvail / days : 0 };
     return { week: 0, day: 0 };
   };
   const { week: _livePerWeek, day: _livePerDay } = _getLimit(_dashWeeks, _dashDays);
@@ -5405,17 +5416,33 @@ function calcWeekly() {
   const weekIncomeOffset = state.transactions.filter(t => t.type==='income'  && t.date>=mondayStr).reduce((s,t)=>s+t.amount,0);
   const weekNet  = Math.max(0, weekExpenses - weekIncomeOffset);
   // Recover the effective per-week limit even when available = 0 (dipped into buffer).
-  // 1st: saved per_week (preserved going forward); 2nd: reconstruct from balance at save date.
-  const savedPerWeek = parseFloat(state.weekly_plan?.per_week || 0) || perWeek;
+  // Chain: budget_per_week → per_week → saved_date reconstruction → start-of-week reconstruction
+  const savedPerWeek = parseFloat(state.weekly_plan?.budget_per_week || 0)
+                    || parseFloat(state.weekly_plan?.per_week || 0)
+                    || perWeek;
   let _effectivePerWeek;
   if (savedPerWeek > 0) {
     _effectivePerWeek = savedPerWeek;
   } else if (perWeek === 0 && state.weekly_plan?.saved_date) {
     const _balAtSave   = balanceAsOf(state.weekly_plan.saved_date);
     const _availAtSave = Math.max(0, _balAtSave - stopAt - bills);
-    _effectivePerWeek  = weeks > 0 ? _availAtSave / weeks : 0;
+    if (_availAtSave > 0) {
+      _effectivePerWeek = weeks > 0 ? _availAtSave / weeks : 0;
+    } else {
+      // Last resort: use balance at start of this week
+      const _prevSun    = new Date(monday); _prevSun.setDate(monday.getDate() - 1);
+      const _prevSunStr = _prevSun.toISOString().split('T')[0];
+      const _wkStartAvail = Math.max(0, balanceAsOf(_prevSunStr) - stopAt - bills);
+      _effectivePerWeek = weeks > 0 ? _wkStartAvail / weeks : 0;
+    }
+  } else if (perWeek === 0) {
+    // No saved_date — try start-of-week balance as last resort
+    const _prevSun2    = new Date(monday); _prevSun2.setDate(monday.getDate() - 1);
+    const _prevSunStr2 = _prevSun2.toISOString().split('T')[0];
+    const _wkStartAvail2 = Math.max(0, balanceAsOf(_prevSunStr2) - stopAt - bills);
+    _effectivePerWeek = weeks > 0 ? _wkStartAvail2 / weeks : 0;
   } else {
-    _effectivePerWeek = perWeek > 0 ? perWeek : 0;
+    _effectivePerWeek = perWeek;
   }
   // weekBudget = the fixed limit for display (denominator)
   const weekBudget  = _effectivePerWeek > 0 ? _effectivePerWeek : (weekNet > 0 ? weekNet : 0);
@@ -8131,7 +8158,9 @@ async function autoUpdateWeeklyPlan() {
   // so it survives when the user dips into their buffer (available = 0).
   const budgetPerWeek = available > 0 ? perWeek : (parseFloat(wp.budget_per_week) || parseFloat(wp.per_week) || 0);
   const budgetPerDay  = available > 0 ? perDay  : (parseFloat(wp.budget_per_day)  || parseFloat(wp.per_day)  || 0);
-  await api.saveWeeklyPlan({ ...wp, per_week: perWeek, per_day: perDay, budget_per_week: budgetPerWeek, budget_per_day: budgetPerDay });
+  // per_week/per_day always store the last known positive limit — never 0 — so the
+  // fallback chain in _getLimit and calcWeekly can always recover the committed budget.
+  await api.saveWeeklyPlan({ ...wp, per_week: budgetPerWeek, per_day: budgetPerDay, budget_per_week: budgetPerWeek, budget_per_day: budgetPerDay });
 }
 
 function attachAdd() {
