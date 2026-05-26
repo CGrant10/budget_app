@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.12.5';
+const VERSION = '5.12.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -2170,6 +2170,7 @@ function showTab(key) {
     b.classList.toggle('active', b.dataset.tab === key));
   document.querySelectorAll('.dawg-nav-btn[data-tab]').forEach(b =>
     b.classList.toggle('dawg-nav-active', b.dataset.tab === key));
+  _screenFlash(); // green flash + page title glitch on every tab change
   render();
 }
 
@@ -8868,6 +8869,25 @@ function triggerNavGlitch(btn) {
   void btn.offsetWidth; // force reflow to restart animation
   btn.classList.add('nav-glitch-tap');
   btn.addEventListener('animationend', () => btn.classList.remove('nav-glitch-tap'), { once: true });
+}
+
+// ── Screen flash + page-title glitch on tab navigation ─────────────────────
+function _screenFlash() {
+  const _f = document.createElement('div');
+  _f.className = 'screen-flash-overlay';
+  document.body.appendChild(_f);
+  _f.addEventListener('animationend', () => _f.remove(), { once: true });
+  // Also glitch the new page title once it renders
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const _t = document.querySelector('.page-title');
+      if (!_t) return;
+      _t.classList.remove('page-title-glitch');
+      void _t.offsetWidth;
+      _t.classList.add('page-title-glitch');
+      _t.addEventListener('animationend', () => _t.classList.remove('page-title-glitch'), { once: true });
+    });
+  });
 }
 
 // Universal icon tap glitch — same RGB-split effect on any element
