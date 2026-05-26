@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.13.0';
+const VERSION = '5.13.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -3994,7 +3994,7 @@ function renderDashboardDawg() {
   const _dashBills  = parseFloat(_wp?.bills   || '0') || 0;
   const _dashStopAt = parseFloat(_wp?.stop_at || '0') || 0;
   const _dashPdStr  = _wp?.paydate || '';
-  let _dashDays = 14;
+  let _dashDays = 14; // same default as planner when no paydate set
   if (_dashPdStr) {
     const _dashPd = new Date(_dashPdStr + 'T00:00:00');
     _dashDays = Math.max(1, Math.round((_dashPd - _wkNow) / 86400000) + 1);
@@ -4003,8 +4003,10 @@ function renderDashboardDawg() {
   const _dashLiveBal  = (state.startingBalance || 0) + _dashTotalInc - _dashTotalExp;
   const _dashAvail    = Math.max(0, _dashLiveBal - _dashStopAt - _dashBills);
   const _dashWeeks    = Math.max(1, Math.ceil(_dashDays / 7));
-  const _livePerWeek  = _dashPdStr ? (_dashWeeks > 0 ? _dashAvail / _dashWeeks : 0) : 0;
-  const _livePerDay   = _dashPdStr ? (_dashDays  > 0 ? _dashAvail / _dashDays  : 0) : 0;
+  // Always compute perWeek/perDay from available ÷ weeks/days — same as calcWeekly()
+  // (do NOT gate on _dashPdStr: when paydate isn't saved the planner defaults to 14 days too)
+  const _livePerWeek  = _dashWeeks > 0 ? _dashAvail / _dashWeeks : 0;
+  const _livePerDay   = _dashDays  > 0 ? _dashAvail / _dashDays  : 0;
   // Treat _livePerWeek as the authoritative weekBudget for tiles
   const weekBudget    = _livePerWeek;
   // Carry-over: if previous weeks in this plan cycle were over/under budget, adjust this week's budget
