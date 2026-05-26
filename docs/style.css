@@ -5423,16 +5423,17 @@ body.light::after {
 /* ── Screen flash on page navigation ─────────────────────────────────── */
 @keyframes screen-flash {
   0%   { opacity: 0; }
-  18%  { opacity: 1; }
+  12%  { opacity: 1; }
+  60%  { opacity: .6; }
   100% { opacity: 0; }
 }
 .screen-flash-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(78,203,141,.055);
+  background: rgba(78,203,141,.13);
   pointer-events: none;
   z-index: 9991;
-  animation: screen-flash .24s ease-out both;
+  animation: screen-flash .45s ease-out both;
 }
 
 /* ── Hamburger — neon on tap ─────────────────────────────────────────── */
@@ -5469,16 +5470,20 @@ body.light::after {
 
 /* ── Glitch page-title on tab change (class added/removed via JS) ────── */
 .page-title-glitch {
-  animation: page-title-glitch .28s steps(1, end) both !important;
+  animation: page-title-glitch .55s steps(1, end) both !important;
 }
 @keyframes page-title-glitch {
   0%  { filter: none; transform: none; }
-  20% { filter: brightness(1.6) drop-shadow(3px 0 0 rgba(255,48,48,.8)) drop-shadow(-3px 0 0 rgba(0,216,255,.8));
-        transform: translateX(-2px) skewX(-4deg); }
-  40% { filter: brightness(1.8) drop-shadow(-4px 0 0 rgba(255,48,48,.65)) drop-shadow(4px 0 0 rgba(0,216,255,.65));
-        transform: translateX(2px); }
-  60% { filter: brightness(1.4) drop-shadow(2px 0 0 rgba(0,216,255,.7)) drop-shadow(-2px 0 0 rgba(255,48,48,.7));
-        transform: translateX(-1px) skewX(3deg); }
-  80% { filter: none; transform: none; }
+  10% { filter: brightness(2) drop-shadow(4px 0 0 rgba(255,48,48,.95)) drop-shadow(-4px 0 0 rgba(0,216,255,.95));
+        transform: translateX(-4px) skewX(-6deg); }
+  22% { filter: brightness(1.8) drop-shadow(-5px 0 0 rgba(255,48,48,.75)) drop-shadow(5px 0 0 rgba(0,216,255,.75));
+        transform: translateX(4px) skewX(4deg); }
+  35% { filter: brightness(2.2) drop-shadow(3px 0 0 rgba(0,216,255,.9)) drop-shadow(-3px 0 0 rgba(255,48,48,.9));
+        transform: translateX(-2px); }
+  50% { filter: brightness(1.5) drop-shadow(2px 0 0 rgba(255,48,48,.6)) drop-shadow(-2px 0 0 rgba(0,216,255,.6));
+        transform: translateX(2px) skewX(-2deg); }
+  70% { filter: brightness(1.2) drop-shadow(1px 0 0 rgba(0,216,255,.4));
+        transform: translateX(-1px); }
+  85% { filter: none; transform: none; }
   100%{ filter: none; transform: none; }
 }

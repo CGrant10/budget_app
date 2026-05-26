@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.12.9';
+const VERSION = '5.13.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -4162,10 +4162,12 @@ function renderDashboardDawg() {
         const C = 175.93;
         // ── Per-week tile: mirrors the planner's THIS WEEK tracker exactly ─────
         if (_livePerWeek > 0 || weekSpent > 0) {
-          const _wkDenom  = weekSpent > _livePerWeek ? weekSpent + _dashAvail : _livePerWeek;
-          const wkPct     = _wkDenom > 0 ? Math.min(weekSpent / _wkDenom * 100, 100) : 0;
-          const wkColor   = weekSpent > _livePerWeek ? 'var(--warn)' : wkPct >= 80 ? 'var(--warn)' : 'var(--accent)';
+          const wkFailed  = weekSpent > _livePerWeek;
+          const _wkDenom  = wkFailed ? _livePerWeek : _livePerWeek;
+          const wkPct     = _wkDenom > 0 ? Math.min(weekSpent / _wkDenom * 100, 100) : (weekSpent > 0 ? 100 : 0);
+          const wkColor   = wkFailed || wkPct >= 90 ? 'var(--danger)' : wkPct >= 80 ? 'var(--warn)' : 'var(--accent)';
           const wkDash    = (C * (1 - wkPct / 100)).toFixed(1);
+          const _wkOver   = wkFailed ? fmt(weekSpent - _livePerWeek) : '';
           _tileHtml['budget-week'] = `
             <div class="dawg-card-title">BUDGET OVERVIEW</div>
             <div class="dawg-tile-period">PER WEEK</div>
@@ -4174,10 +4176,14 @@ function renderDashboardDawg() {
                 <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
                 <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${wkColor};stroke-dasharray:${C};stroke-dashoffset:${wkDash}"/>
               </svg>
-              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${wkColor}">${wkPct.toFixed(0)}%</div></div>
+              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${wkColor}">${wkFailed ? '!' : wkPct.toFixed(0)+'%'}</div></div>
             </div>
-            <div class="dawg-tile-amt">${fmt(weekSpent)}</div>
-            <div class="dawg-tile-sub">${fmt(weekSpent)} / ${fmt(_wkDenom)}</div>`;
+            ${wkFailed
+              ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
+                 <div class="dawg-tile-sub" style="color:var(--danger)">+${_wkOver} over</div>`
+              : `<div class="dawg-tile-amt">${fmt(weekSpent)}</div>
+                 <div class="dawg-tile-sub">${fmt(weekSpent)} / ${fmt(_wkDenom)}</div>`
+            }`;
         }
         // ── Per-day tile: uses live perDay from plan settings ─────────────────
         if (_livePerDay > 0 || daySpent > 0) {
@@ -8883,17 +8889,15 @@ function _screenFlash() {
   _f.className = 'screen-flash-overlay';
   document.body.appendChild(_f);
   _f.addEventListener('animationend', () => _f.remove(), { once: true });
-  // Also glitch the new page title once it renders
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const _t = document.querySelector('.page-title');
-      if (!_t) return;
-      _t.classList.remove('page-title-glitch');
-      void _t.offsetWidth;
-      _t.classList.add('page-title-glitch');
-      _t.addEventListener('animationend', () => _t.classList.remove('page-title-glitch'), { once: true });
-    });
-  });
+  // Delay the title glitch slightly so it fires after the page has painted
+  setTimeout(() => {
+    const _t = document.querySelector('.page-title');
+    if (!_t) return;
+    _t.classList.remove('page-title-glitch');
+    void _t.offsetWidth;
+    _t.classList.add('page-title-glitch');
+    _t.addEventListener('animationend', () => _t.classList.remove('page-title-glitch'), { once: true });
+  }, 60);
 }
 
 // Universal icon tap glitch — same RGB-split effect on any element
