@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.11.4';
+const VERSION = '5.11.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -4348,20 +4348,25 @@ function renderDashboardDawg() {
       {
         const _perDay   = parseFloat(_wp?.per_day || 0);
         const _paydate  = _wp?.paydate;
-        if (_perDay > 0 && _paydate && !isPastDash) {
+        if (_paydate && !isPastDash) {
           const _pd      = new Date(_paydate + 'T00:00:00');
           const _now2    = new Date(); _now2.setHours(0,0,0,0);
           const _daysL   = Math.max(0, Math.round((_pd - _now2) / 86400000) + 1);
           const _billAmt = parseFloat(_wp?.bills || 0);
-          const _pdColor = dayBudget > 0
-            ? (daySpent / dayBudget >= 1 ? 'var(--danger)' : daySpent / dayBudget >= 0.75 ? 'var(--warn)' : 'var(--accent)')
-            : 'var(--accent)';
+          const _overDay = _perDay > 0 && daySpent > _perDay;
+          const _pdColor = _overDay ? 'var(--danger)'
+            : dayBudget > 0
+              ? (daySpent / dayBudget >= 0.75 ? 'var(--warn)' : 'var(--accent)')
+              : 'var(--accent)';
+          const _perDayDisplay = _overDay
+            ? `<span style="font-size:1rem;font-weight:700;color:var(--danger);letter-spacing:.06em">FAILED</span>`
+            : `<span style="font-size:1rem;font-weight:700;color:${_pdColor}">${_perDay > 0 ? fmt(_perDay) : '—'}</span>`;
           _tileHtml['weekly-plan'] = `
             <div class="dawg-card-title">WEEKLY PLAN</div>
             <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
               <div style="display:flex;justify-content:space-between;align-items:center">
                 <span style="font-size:.72rem;color:var(--muted)">PER DAY</span>
-                <span style="font-size:1rem;font-weight:700;color:${_pdColor}">${fmt(_perDay)}</span>
+                ${_perDayDisplay}
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center">
                 <span style="font-size:.72rem;color:var(--muted)">SPENT TODAY</span>
@@ -5270,10 +5275,9 @@ function renderLedger() {
 function renderWeekly() {
   const { income, expense } = totals();
   const wp = state.weekly_plan;
-  const defBalance = wp.balance ?? ((state.startingBalance || 0) + income - expense).toFixed(2);
-  const defBills   = wp.bills   ?? '0';
-  const defBuffer  = wp.buffer  ?? 10;
-  const defPaydate = wp.paydate ?? (() => {
+  const defStopAt  = wp.stop_at  ?? '0';
+  const defBills   = wp.bills    ?? '0';
+  const defPaydate = wp.paydate  ?? (() => {
     const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split('T')[0];
   })();
   const balance  = (state.startingBalance || 0) + income - expense;
@@ -5291,24 +5295,19 @@ function renderWeekly() {
       </div>
       <div class="form-card">
         <div class="form-row">
-          <label class="form-label">Remaining balance ($)</label>
-          <input type="number" id="wk-balance" class="form-input" value="${defBalance}" step="0.01" inputmode="decimal">
-        </div>
-        <div class="form-row">
           <label class="form-label">Fixed bills still due ($)</label>
           <input type="number" id="wk-bills" class="form-input" value="${defBills}" step="0.01" inputmode="decimal">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Stop at — minimum balance ($)</label>
+          <input type="number" id="wk-stop-at" class="form-input" value="${defStopAt}" step="0.01" inputmode="decimal" placeholder="0">
         </div>
         <div class="form-row">
           <label class="form-label">Next paycheck date</label>
           <input type="date" id="wk-paydate" class="form-input" value="${defPaydate}">
         </div>
-        <div class="form-row slider-row">
-          <label class="form-label">Emergency buffer <span id="buf-label">${defBuffer}%</span></label>
-          <input type="range" id="wk-buffer" class="slider" min="0" max="30" value="${defBuffer}">
-        </div>
         <div class="btn-row">
-          <button id="wk-calc" class="btn-primary">Calculate</button>
-          <button id="wk-save" class="btn-secondary">Save</button>
+          <button id="wk-save" class="btn-primary">Save</button>
           <span id="wk-save-status" class="status-inline"></span>
         </div>
       </div>
@@ -5322,9 +5321,10 @@ function renderWeekly() {
 }
 
 function calcWeekly() {
-  const balance    = parseFloat(document.getElementById('wk-balance')?.value)  || 0;
-  const bills      = parseFloat(document.getElementById('wk-bills')?.value)    || 0;
-  const bufPct     = parseInt(document.getElementById('wk-buffer')?.value)     || 0;
+  const { income: _wkInc, expense: _wkExp } = totals();
+  const liveBalance = (state.startingBalance || 0) + _wkInc - _wkExp;
+  const bills      = parseFloat(document.getElementById('wk-bills')?.value)   || 0;
+  const stopAt     = parseFloat(document.getElementById('wk-stop-at')?.value) || 0;
   const paydateStr = document.getElementById('wk-paydate')?.value || '';
   let days = 14;
   if (paydateStr) {
@@ -5332,14 +5332,12 @@ function calcWeekly() {
     const now = new Date(); now.setHours(0,0,0,0);
     days = Math.max(1, Math.round((paydate - now) / 86400000) + 1);
   }
-  const spendable = Math.max(0, balance - bills);
-  const buffer    = spendable * bufPct / 100;
-  const available = Math.max(0, spendable - buffer);
-  const weeks     = Math.ceil(days / 7);
-  const perWeek   = weeks > 0 ? available / weeks : 0;
-  lastCalcPerWeek = perWeek;
-  lastCalcPerDay  = days > 0 ? available / days : 0;
-  const perDay    = lastCalcPerDay;
+  const available  = Math.max(0, liveBalance - stopAt - bills);
+  const weeks      = Math.ceil(days / 7);
+  const perWeek    = weeks > 0 ? available / weeks : 0;
+  lastCalcPerWeek  = perWeek;
+  lastCalcPerDay   = days > 0 ? available / days : 0;
+  const perDay     = lastCalcPerDay;
 
   const now    = new Date(); now.setHours(0,0,0,0);
   const monday = new Date(now);
@@ -5351,39 +5349,13 @@ function calcWeekly() {
   const weekPct  = perWeek > 0 ? Math.min(weekNet / perWeek, 1) : 0;
   const barColor = weekPct >= 1 ? 'var(--danger)' : weekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
 
-  // Adjusted per week: scan past weeks for overspend and redistribute across remaining weeks.
-  // Use the SAVED per_week as the stable baseline so the week-by-week breakdown never shifts
-  // just because the form inputs changed.
-  const savedPerWeek  = parseFloat(state.weekly_plan?.per_week || 0) || perWeek;
-  const _paydateAdj   = paydateStr ? new Date(paydateStr+'T00:00:00') : new Date(now.getTime()+(days-1)*86400000);
-  const _weeksFromMon = Math.max(1, Math.ceil((_paydateAdj.getTime() - monday.getTime()) / (7*86400000)));
-  let _totalPastOverspend = 0;
-  for (let _bw = 1; _bw <= 12; _bw++) {
-    const _sd = new Date(monday); _sd.setDate(monday.getDate() - _bw*7);
-    const _ed = new Date(monday); _ed.setDate(monday.getDate() - _bw*7 + 6);
-    const _sdS = _sd.toISOString().split('T')[0];
-    const _edS = _ed.toISOString().split('T')[0];
-    const _wt  = state.transactions.filter(t=>t.date>=_sdS&&t.date<=_edS);
-    if (!_wt.length) break;
-    const _wne = Math.max(0, _wt.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0)
-                          - _wt.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0));
-    _totalPastOverspend += Math.max(0, _wne - savedPerWeek);
-  }
-  const adjustedPerWeek = _weeksFromMon > 0
-    ? Math.max(0, (savedPerWeek * _weeksFromMon - _totalPastOverspend) / _weeksFromMon)
-    : savedPerWeek;
-  const _adjWkDiff  = adjustedPerWeek - perWeek;
-  const _adjWkSub   = _adjWkDiff < -0.01 ? `↓ ${fmt(Math.abs(_adjWkDiff))} less/wk` : 'on track';
-  const _adjWkColor = adjustedPerWeek >= perWeek * 0.95 ? 'var(--success)'
-                    : adjustedPerWeek >= perWeek * 0.5  ? 'var(--warn)'
-                    : 'var(--danger)';
-  const _adjWeekPct  = adjustedPerWeek > 0 ? Math.min(weekNet / adjustedPerWeek, 1) : 0;
-  const _adjBarColor = _adjWeekPct >= 1 ? 'var(--danger)' : _adjWeekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
+  // savedPerWeek anchors past week rows to the last-saved plan value
+  const savedPerWeek = parseFloat(state.weekly_plan?.per_week || 0) || perWeek;
 
-  // Adjusted per day: remaining adjusted weekly budget spread across days left in this week (including today)
+  // Adjusted per day: remaining weekly budget spread across days left in this week (including today)
   const _todayWkIdx   = now.getDay() === 0 ? 6 : now.getDay() - 1; // 0=Mon … 6=Sun
   const _daysLeftWk   = Math.max(1, 7 - _todayWkIdx);
-  const adjustedPerDay = adjustedPerWeek > 0 ? Math.max(0, adjustedPerWeek - weekNet) / _daysLeftWk : 0;
+  const adjustedPerDay = perWeek > 0 ? Math.max(0, perWeek - weekNet) / _daysLeftWk : 0;
   const _adjDiff       = adjustedPerDay - perDay;
   const _adjSub        = _adjDiff >  0.005 ? '↑ ahead of pace'
                        : _adjDiff < -0.005 ? '↓ behind pace'
@@ -5392,13 +5364,13 @@ function calcWeekly() {
                        : adjustedPerDay >= perDay * 0.5  ? 'var(--warn)'
                        : 'var(--danger)';
 
+  const _reservedLabel = [stopAt > 0 ? `${fmt(stopAt)} stop-at` : '', bills > 0 ? `${fmt(bills)} bills` : ''].filter(Boolean).join(' + ') || 'none reserved';
   const summaryCards = [
-    ['SPENDABLE',     fmt(available),        'var(--text)',    `after bills${bufPct?' + buffer':''}`],
-    ['PER WEEK',      fmt(perWeek),          'var(--warn)',    `across ${weeks} week${weeks!==1?'s':''}`],
-    ['ADJ. PER WEEK', fmt(adjustedPerWeek),  _adjWkColor,     _adjWkSub],
-    ['PER DAY',       fmt(perDay),           'var(--warn)',    'daily limit'],
-    ['ADJ. PER DAY',  fmt(adjustedPerDay),   _adjColor,       _adjSub],
-    ...(bufPct ? [['BUFFER', fmt(buffer), '#6ec8d8', 'emergency fund']] : []),
+    ['BALANCE',      fmt(liveBalance),      'var(--text)',    `live — auto-updates`],
+    ['SPENDABLE',    fmt(available),        'var(--accent)',  _reservedLabel],
+    ['PER WEEK',     fmt(perWeek),          'var(--warn)',    `across ${weeks} week${weeks!==1?'s':''}`],
+    ['PER DAY',      fmt(perDay),           'var(--warn)',    'daily limit'],
+    ['ADJ. PER DAY', fmt(adjustedPerDay),   _adjColor,       _adjSub],
   ].map(([t,v,c,s]) => `<div class="card"><div class="card-title">${t}</div><div class="card-value" style="color:${c}">${v}</div><div class="card-sub">${s}</div></div>`).join('');
 
   const thisWeekTxns = state.transactions.filter(t=>t.date>=mondayStr).sort((a,b)=>b.date.localeCompare(a.date));
@@ -5455,10 +5427,10 @@ function calcWeekly() {
       pastRowsHtml.push(`<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span>${miniBar}<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     } else {
       // Current + future weeks — live, recalculated on every settings change
-      const wkPct   = adjustedPerWeek > 0 ? Math.min(wkNet/adjustedPerWeek*100,100) : 0;
+      const wkPct   = perWeek > 0 ? Math.min(wkNet/perWeek*100,100) : 0;
       const wkColor = wkPct>=100?'var(--danger)':wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
       const badge   = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
-      futureRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(adjustedPerWeek)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
+      futureRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(perWeek)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     }
   });
 
@@ -5471,15 +5443,15 @@ function calcWeekly() {
       <div class="wt-header">
         <span class="wt-label">THIS WEEK</span>
         <span class="wt-dates">(Mon ${monLabel} – today)</span>
-        <span class="wt-pct" style="color:${_adjBarColor}">${(_adjWeekPct*100).toFixed(0)}% used</span>
+        <span class="wt-pct" style="color:${barColor}">${(weekPct*100).toFixed(0)}% used</span>
       </div>
       <div class="wt-amounts">
-        <span class="wt-spent" style="color:${_adjBarColor}">${fmt(weekNet)}</span>
-        <span class="wt-of"> / ${fmt(adjustedPerWeek)} weekly budget</span>
+        <span class="wt-spent" style="color:${barColor}">${fmt(weekNet)}</span>
+        <span class="wt-of"> / ${fmt(perWeek)} weekly budget</span>
       </div>
       ${weekIncomeOffset?`<div class="wt-offset">${fmt(weekExpenses)} spent − ${fmt(weekIncomeOffset)} income = ${fmt(weekNet)} net</div>`:''}
       <div class="progress-bar-bg">
-        <div class="progress-bar-fill" style="width:${(_adjWeekPct*100).toFixed(1)}%;background:${_adjBarColor}"></div>
+        <div class="progress-bar-fill" style="width:${(weekPct*100).toFixed(1)}%;background:${barColor}"></div>
       </div>
       <div class="wt-txns-section">
         <button class="wt-txns-toggle">▼  show transactions</button>
@@ -8027,22 +7999,21 @@ function attachHandlers() {
   }
 }
 
-async function autoUpdateWeeklyPlan(incomeAdded) {
+async function autoUpdateWeeklyPlan() {
   const wp = state.weekly_plan;
-  if (!wp || !wp.paydate || !wp.per_week) return;
-  const storedBalance = parseFloat(wp.balance || '0') || 0;
-  const newBalance    = storedBalance + incomeAdded;
-  const bills         = parseFloat(wp.bills  || '0') || 0;
-  const bufPct        = parseInt(wp.buffer   || '0') || 0;
-  const paydate       = new Date(wp.paydate + 'T00:00:00');
-  const now           = new Date(); now.setHours(0,0,0,0);
-  const days          = Math.max(1, Math.round((paydate - now) / 86400000) + 1);
-  const spendable     = Math.max(0, newBalance - bills);
-  const available     = Math.max(0, spendable - spendable * bufPct / 100);
-  const weeks         = Math.ceil(days / 7);
-  const perWeek       = weeks > 0 ? available / weeks : 0;
-  const perDay        = days > 0 ? available / days : 0;
-  await api.saveWeeklyPlan({ ...wp, balance: newBalance.toFixed(2), per_week: perWeek, per_day: perDay });
+  if (!wp || !wp.paydate) return;
+  const { income, expense } = totals();
+  const liveBalance = (state.startingBalance || 0) + income - expense;
+  const bills       = parseFloat(wp.bills   || '0') || 0;
+  const stopAt      = parseFloat(wp.stop_at || '0') || 0;
+  const paydate     = new Date(wp.paydate + 'T00:00:00');
+  const now         = new Date(); now.setHours(0,0,0,0);
+  const days        = Math.max(1, Math.round((paydate - now) / 86400000) + 1);
+  const available   = Math.max(0, liveBalance - stopAt - bills);
+  const weeks       = Math.ceil(days / 7);
+  const perWeek     = weeks > 0 ? available / weeks : 0;
+  const perDay      = days > 0 ? available / days : 0;
+  await api.saveWeeklyPlan({ ...wp, per_week: perWeek, per_day: perDay });
 }
 
 function attachAdd() {
@@ -8225,7 +8196,7 @@ function attachAdd() {
     const balFn  = tx => tx.type === 'income' ? tx.amount : -tx.amount;
     const prevBal = state.transactions.reduce((s, tx) => s + balFn(tx), 0);
     await api.addTransaction(t);
-    if (t.type === 'income') await autoUpdateWeeklyPlan(t.amount);
+    if (t.type === 'income') await autoUpdateWeeklyPlan();
     const newBal = state.transactions.reduce((s, tx) => s + balFn(tx), 0);
     showStatus('add-status', `✓ Added ${t.type}: ${fmt(t.amount)} (${t.category})`, 'success');
     document.getElementById('add-amount').value = '';
@@ -8386,18 +8357,13 @@ function attachLedger() {
 }
 
 function attachWeekly() {
-  const bufSlider = document.getElementById('wk-buffer');
-  const bufLabel  = document.getElementById('buf-label');
-  bufSlider?.addEventListener('input', () => { bufLabel.textContent = bufSlider.value + '%'; calcWeekly(); });
-  ['wk-paydate','wk-balance','wk-bills'].forEach(id =>
+  ['wk-paydate','wk-bills','wk-stop-at'].forEach(id =>
     document.getElementById(id)?.addEventListener('change', calcWeekly));
-  document.getElementById('wk-calc')?.addEventListener('click', calcWeekly);
   document.getElementById('wk-save')?.addEventListener('click', async () => {
     const plan = {
-      balance:    document.getElementById('wk-balance').value,
       bills:      document.getElementById('wk-bills').value,
+      stop_at:    document.getElementById('wk-stop-at').value,
       paydate:    document.getElementById('wk-paydate').value,
-      buffer:     parseInt(document.getElementById('wk-buffer').value),
       per_week:   lastCalcPerWeek,
       per_day:    lastCalcPerDay,
       saved_date: today(),
