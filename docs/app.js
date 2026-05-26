@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.12.0';
+const VERSION = '5.12.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -5351,8 +5351,11 @@ function calcWeekly() {
   const weekExpenses     = state.transactions.filter(t => t.type==='expense' && t.date>=mondayStr).reduce((s,t)=>s+t.amount,0);
   const weekIncomeOffset = state.transactions.filter(t => t.type==='income'  && t.date>=mondayStr).reduce((s,t)=>s+t.amount,0);
   const weekNet  = Math.max(0, weekExpenses - weekIncomeOffset);
-  const weekPct  = perWeek > 0 ? Math.min(weekNet / perWeek, 1) : 0;
-  const barColor = weekPct >= 1 ? 'var(--danger)' : weekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
+  // When spending already exceeds the per-week share, use (spent + remaining) as the true
+  // week allocation so the denominator reflects the full picture, not just what's left.
+  const weekBudget = weekNet > perWeek ? weekNet + available : perWeek;
+  const weekPct    = weekBudget > 0 ? Math.min(weekNet / weekBudget, 1) : 0;
+  const barColor   = weekNet > perWeek ? 'var(--warn)' : weekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
 
   // savedPerWeek anchors past week rows to the last-saved plan value
   const savedPerWeek = parseFloat(state.weekly_plan?.per_week || 0) || perWeek;
@@ -5369,13 +5372,17 @@ function calcWeekly() {
                        : adjustedPerDay >= perDay * 0.5  ? 'var(--warn)'
                        : 'var(--danger)';
 
-  const _reservedLabel = [stopAt > 0 ? `${fmt(stopAt)} stop-at` : '', bills > 0 ? `${fmt(bills)} bills` : ''].filter(Boolean).join(' + ') || 'none reserved';
+  const _reservedLabel  = [stopAt > 0 ? `${fmt(stopAt)} stop-at` : '', bills > 0 ? `${fmt(bills)} bills` : ''].filter(Boolean).join(' + ') || 'none reserved';
+  const _wkOver         = weekNet > perWeek;
+  const _perWeekCardVal = _wkOver ? weekBudget : perWeek;
+  const _perWeekCardSub = _wkOver ? `${fmt(available)} remaining` : `across ${weeks} week${weeks!==1?'s':''}`;
+  const _perWeekColor   = _wkOver ? 'var(--warn)' : 'var(--warn)';
   const summaryCards = [
-    ['BALANCE',      fmt(liveBalance),      'var(--text)',    `live — auto-updates`],
-    ['SPENDABLE',    fmt(available),        'var(--accent)',  _reservedLabel],
-    ['PER WEEK',     fmt(perWeek),          'var(--warn)',    `across ${weeks} week${weeks!==1?'s':''}`],
-    ['PER DAY',      fmt(perDay),           'var(--warn)',    'daily limit'],
-    ['ADJ. PER DAY', fmt(adjustedPerDay),   _adjColor,       _adjSub],
+    ['BALANCE',      fmt(liveBalance),         'var(--text)',    `live — auto-updates`],
+    ['SPENDABLE',    fmt(available),           'var(--accent)',  _reservedLabel],
+    ['PER WEEK',     fmt(_perWeekCardVal),      _perWeekColor,   _perWeekCardSub],
+    ['PER DAY',      fmt(perDay),              'var(--warn)',    'daily limit'],
+    ['ADJ. PER DAY', fmt(adjustedPerDay),      _adjColor,       _adjSub],
   ].map(([t,v,c,s]) => `<div class="card"><div class="card-title">${t}</div><div class="card-value" style="color:${c}">${v}</div><div class="card-sub">${s}</div></div>`).join('');
 
   const thisWeekTxns = state.transactions.filter(t=>t.date>=mondayStr).sort((a,b)=>b.date.localeCompare(a.date));
@@ -5432,10 +5439,12 @@ function calcWeekly() {
       pastRowsHtml.push(`<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span>${miniBar}<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     } else {
       // Current + future weeks — live, recalculated on every settings change
-      const wkPct   = perWeek > 0 ? Math.min(wkNet/perWeek*100,100) : 0;
-      const wkColor = wkPct>=100?'var(--danger)':wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
+      // For the current week, use weekBudget (spent + remaining) as denominator when over perWeek
+      const _rowDenominator = isCurrent && wkNet > perWeek ? wkNet + available : perWeek;
+      const wkPct   = _rowDenominator > 0 ? Math.min(wkNet/_rowDenominator*100,100) : 0;
+      const wkColor = isCurrent && wkNet > perWeek ? 'var(--warn)' : wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
       const badge   = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
-      futureRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(perWeek)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
+      futureRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(_rowDenominator)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     }
   });
 
@@ -5452,7 +5461,7 @@ function calcWeekly() {
       </div>
       <div class="wt-amounts">
         <span class="wt-spent" style="color:${barColor}">${fmt(weekNet)}</span>
-        <span class="wt-of"> / ${fmt(perWeek)}</span>
+        <span class="wt-of"> / ${fmt(weekBudget)}</span>
       </div>
       ${weekIncomeOffset?`<div class="wt-offset">${fmt(weekExpenses)} spent − ${fmt(weekIncomeOffset)} income = ${fmt(weekNet)} net</div>`:''}
       <div class="progress-bar-bg">
