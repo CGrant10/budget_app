@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.13.3';
+const VERSION = '5.13.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -3982,7 +3982,9 @@ function renderDashboardDawg() {
     ? (monthDelta > 0 ? `▼ ${fmt(monthDelta)} paid this month` : 'No payments this month')
     : `${deltaArrow} ${fmt(Math.abs(monthDelta))} (${deltaPct.toFixed(1)}%) this month`;
 
-  // Budget overview — compute live from plan settings (same formula as weekly planner page)
+  // Budget overview — read the per_week/per_day values that autoUpdateWeeklyPlan()
+  // saves on every transaction. These are computed by exactly the same formula as
+  // calcWeekly() on the planner page, so the numbers always match.
   const _wp         = state.weekly_plan;
   const _wkNow      = new Date(); _wkNow.setHours(0,0,0,0);
   const _wkMon      = new Date(_wkNow); _wkMon.setDate(_wkNow.getDate() - (_wkNow.getDay()===0?6:_wkNow.getDay()-1));
@@ -3990,23 +3992,22 @@ function renderDashboardDawg() {
   const _wkExp      = state.transactions.filter(t => t.type==='expense' && t.date >= _monStr).reduce((s,t)=>s+t.amount,0);
   const _wkInc      = state.transactions.filter(t => t.type==='income'  && t.date >= _monStr).reduce((s,t)=>s+t.amount,0);
   const weekSpent   = Math.max(0, _wkExp - _wkInc);
-  // Live recompute of perWeek/perDay — mirrors calcWeekly() so dashboard always matches the planner
-  const _dashBills  = parseFloat(_wp?.bills   || '0') || 0;
-  const _dashStopAt = parseFloat(_wp?.stop_at || '0') || 0;
+  // Use the planner's already-saved per_week/per_day (written by autoUpdateWeeklyPlan on every transaction)
+  // so the dashboard always shows the exact same denominator as the planner page.
+  const _livePerWeek = parseFloat(_wp?.per_week) || 0;
+  const _livePerDay  = parseFloat(_wp?.per_day)  || 0;
+  // Still need _dashDays for the dayBudget / daysLeft calculation below
   const _dashPdStr  = _wp?.paydate || '';
-  let _dashDays = 14; // same default as planner when no paydate set
+  let _dashDays = 14;
   if (_dashPdStr) {
     const _dashPd = new Date(_dashPdStr + 'T00:00:00');
     _dashDays = Math.max(1, Math.round((_dashPd - _wkNow) / 86400000) + 1);
   }
   const { income: _dashTotalInc, expense: _dashTotalExp } = totals();
   const _dashLiveBal  = (state.startingBalance || 0) + _dashTotalInc - _dashTotalExp;
+  const _dashBills    = parseFloat(_wp?.bills   || '0') || 0;
+  const _dashStopAt   = parseFloat(_wp?.stop_at || '0') || 0;
   const _dashAvail    = Math.max(0, _dashLiveBal - _dashStopAt - _dashBills);
-  const _dashWeeks    = Math.max(1, Math.ceil(_dashDays / 7));
-  // Always compute perWeek/perDay from available ÷ weeks/days — same as calcWeekly()
-  // (do NOT gate on _dashPdStr: when paydate isn't saved the planner defaults to 14 days too)
-  const _livePerWeek  = _dashWeeks > 0 ? _dashAvail / _dashWeeks : 0;
-  const _livePerDay   = _dashDays  > 0 ? _dashAvail / _dashDays  : 0;
   // Treat _livePerWeek as the authoritative weekBudget for tiles
   const weekBudget    = _livePerWeek;
   // Carry-over: if previous weeks in this plan cycle were over/under budget, adjust this week's budget
@@ -4164,12 +4165,10 @@ function renderDashboardDawg() {
         const C = 175.93;
         // ── Per-week tile: mirrors the planner's THIS WEEK tracker exactly ─────
         if (_livePerWeek > 0 || weekSpent > 0) {
-          const wkFailed  = weekSpent > _livePerWeek;
-          const _wkDenom  = wkFailed ? _livePerWeek : _livePerWeek;
-          const wkPct     = _wkDenom > 0 ? Math.min(weekSpent / _wkDenom * 100, 100) : (weekSpent > 0 ? 100 : 0);
-          const wkColor   = wkFailed || wkPct >= 90 ? 'var(--danger)' : wkPct >= 80 ? 'var(--warn)' : 'var(--accent)';
-          const wkDash    = (C * (1 - wkPct / 100)).toFixed(1);
-          const _wkOver   = wkFailed ? fmt(weekSpent - _livePerWeek) : '';
+          const wkFailed = _livePerWeek > 0 && weekSpent > _livePerWeek;
+          const wkPct    = _livePerWeek > 0 ? Math.min(weekSpent / _livePerWeek * 100, 100) : (weekSpent > 0 ? 100 : 0);
+          const wkColor  = wkFailed || wkPct >= 90 ? 'var(--danger)' : wkPct >= 80 ? 'var(--warn)' : 'var(--accent)';
+          const wkDash   = (C * (1 - wkPct / 100)).toFixed(1);
           _tileHtml['budget-week'] = `
             <div class="dawg-card-title">BUDGET OVERVIEW</div>
             <div class="dawg-tile-period">PER WEEK</div>
@@ -4182,14 +4181,14 @@ function renderDashboardDawg() {
             </div>
             ${wkFailed
               ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
-                 <div class="dawg-tile-sub" style="color:var(--danger)">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</div>`
+                 <div class="dawg-tile-sub" style="color:var(--danger)">+${fmt(weekSpent - _livePerWeek)} over</div>`
               : `<div class="dawg-tile-amt">${fmt(weekSpent)}</div>
                  <div class="dawg-tile-sub">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</div>`
             }`;
         }
         // ── Per-day tile: uses live perDay from plan settings ─────────────────
         if (_livePerDay > 0 || daySpent > 0) {
-          const dayFailed = daySpent > _livePerDay;
+          const dayFailed = _livePerDay > 0 && daySpent > _livePerDay;
           const dayPct    = _livePerDay > 0 ? Math.min(daySpent / _livePerDay * 100, 100) : (daySpent > 0 ? 100 : 0);
           const dayColor  = dayFailed || dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
           const dayDash   = (C * (1 - dayPct / 100)).toFixed(1);
