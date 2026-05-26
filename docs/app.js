@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.13.7';
+const VERSION = '5.13.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -4005,10 +4005,28 @@ function renderDashboardDawg() {
   const _dashWeeks    = Math.ceil(_dashDays / 7) || 1;
   const _dashComputed = _dashWeeks > 0 ? _dashAvail / _dashWeeks : 0;
   const _dayComputed  = _dashDays  > 0 ? _dashAvail / _dashDays  : 0;
-  // When available = 0 (dipped into buffer), use the saved limit as denominator
-  // so FAILED tiles show the original limit, not 0.
-  const _livePerWeek  = _dashAvail > 0 ? _dashComputed : (parseFloat(_wp?.per_week) || 0);
-  const _livePerDay   = _dashAvail > 0 ? _dayComputed  : (parseFloat(_wp?.per_day)  || 0);
+  // When dipped into buffer (available=0): recover the limit from the best available source.
+  // 1st: saved per_week (preserved by autoUpdateWeeklyPlan going forward)
+  // 2nd: reconstruct from balance at plan-save date (handles legacy data where per_week was set to 0)
+  let _livePerWeek, _livePerDay;
+  if (_dashAvail > 0) {
+    _livePerWeek = _dashComputed;
+    _livePerDay  = _dayComputed;
+  } else {
+    const _savedPW = parseFloat(_wp?.per_week) || 0;
+    if (_savedPW > 0) {
+      _livePerWeek = _savedPW;
+      _livePerDay  = parseFloat(_wp?.per_day) || 0;
+    } else if (_wp?.saved_date) {
+      const _balAtSave   = balanceAsOf(_wp.saved_date);
+      const _availAtSave = Math.max(0, _balAtSave - _dashStopAt - _dashBills);
+      _livePerWeek = _dashWeeks > 0 ? _availAtSave / _dashWeeks : 0;
+      _livePerDay  = _dashDays  > 0 ? _availAtSave / _dashDays  : 0;
+    } else {
+      _livePerWeek = 0;
+      _livePerDay  = 0;
+    }
+  }
   // Treat _livePerWeek as the authoritative weekBudget for tiles
   const weekBudget    = _livePerWeek;
   // Carry-over: if previous weeks in this plan cycle were over/under budget, adjust this week's budget
@@ -5401,10 +5419,19 @@ function calcWeekly() {
   const weekExpenses     = state.transactions.filter(t => t.type==='expense' && t.date>=mondayStr).reduce((s,t)=>s+t.amount,0);
   const weekIncomeOffset = state.transactions.filter(t => t.type==='income'  && t.date>=mondayStr).reduce((s,t)=>s+t.amount,0);
   const weekNet  = Math.max(0, weekExpenses - weekIncomeOffset);
-  // savedPerWeek: preserved by autoUpdateWeeklyPlan even when available hits 0,
-  // so we always have the original limit as the denominator for FAILED display.
-  const savedPerWeek    = parseFloat(state.weekly_plan?.per_week || 0) || perWeek;
-  const _effectivePerWeek = savedPerWeek > 0 ? savedPerWeek : (perWeek > 0 ? perWeek : 0);
+  // Recover the effective per-week limit even when available = 0 (dipped into buffer).
+  // 1st: saved per_week (preserved going forward); 2nd: reconstruct from balance at save date.
+  const savedPerWeek = parseFloat(state.weekly_plan?.per_week || 0) || perWeek;
+  let _effectivePerWeek;
+  if (savedPerWeek > 0) {
+    _effectivePerWeek = savedPerWeek;
+  } else if (perWeek === 0 && state.weekly_plan?.saved_date) {
+    const _balAtSave   = balanceAsOf(state.weekly_plan.saved_date);
+    const _availAtSave = Math.max(0, _balAtSave - stopAt - bills);
+    _effectivePerWeek  = weeks > 0 ? _availAtSave / weeks : 0;
+  } else {
+    _effectivePerWeek = perWeek > 0 ? perWeek : 0;
+  }
   // Use the effective limit as the denominator — never (spent + remaining), so FAILED shows real overrun
   const weekBudget = _effectivePerWeek > 0 ? _effectivePerWeek : (weekNet > 0 ? weekNet : 0);
   const weekPct    = weekBudget > 0 ? Math.min(weekNet / weekBudget, 1) : 0;
