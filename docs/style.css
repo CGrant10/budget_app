@@ -2087,6 +2087,7 @@ body.light .section-title::before {
 .dawg-hero-dob {
   width:145px; flex-shrink:0; object-fit:contain; object-position:bottom;
   filter:drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8));
+  animation: dg-dob 14s steps(1, end) -5s infinite;
 }
 
 .dawg-balance-card {
@@ -2747,6 +2748,53 @@ body.light .section-title::before {
          transform: translateX(1px); }
   88%  { filter: none; transform: none; }
   100% { filter: none; transform: none; }
+}
+
+/* ── Dashboard element glitches ─────────────────────────────────────────── */
+/* FAILED daily tile label — 7.5s cycle, fires at ~12% and ~68% */
+.dash-glitch-failed {
+  display: inline-block;
+  animation: dg-failed 7.5s steps(1, end) 0.5s infinite;
+}
+@keyframes dg-failed {
+  0%, 100% { filter: none; transform: none; }
+  12%  { filter: brightness(1.9) drop-shadow(4px 0 0 rgba(255,48,48,.95)) drop-shadow(-4px 0 0 rgba(0,216,255,.85));
+          transform: translateX(-3px) skewX(-8deg); }
+  13%  { filter: brightness(1.5) drop-shadow(-5px 0 0 rgba(255,48,48,.7)) drop-shadow(5px 0 0 rgba(0,216,255,.7));
+          transform: translateX(2px); }
+  14%  { filter: none; transform: none; }
+  68%  { filter: brightness(1.7) drop-shadow(3px 0 0 rgba(0,216,255,.9)) drop-shadow(-3px 0 0 rgba(255,48,48,.8));
+          transform: translateX(-2px) skewX(6deg); }
+  69%  { filter: brightness(1.4) drop-shadow(-4px 0 0 rgba(255,48,48,.65)) drop-shadow(4px 0 0 rgba(0,216,255,.65));
+          transform: translateX(1px); }
+  70%  { filter: none; transform: none; }
+}
+/* Sparkline canvas — 11s cycle, fires at ~8% and ~58%, offset by -8s */
+#dawg-sparkline {
+  animation: dg-spark 11s steps(1, end) -8s infinite;
+}
+@keyframes dg-spark {
+  0%, 100% { filter: none; transform: none; }
+  8%   { filter: brightness(1.5) drop-shadow(3px 0 0 rgba(255,48,48,.8)) drop-shadow(-3px 0 0 rgba(0,216,255,.8));
+          transform: translateX(-2px); }
+  9%   { filter: brightness(1.3) drop-shadow(-4px 0 0 rgba(0,216,255,.75)) drop-shadow(3px 0 0 rgba(255,48,48,.6));
+          transform: translateX(1px) skewX(-2deg); }
+  10%  { filter: none; transform: none; }
+  58%  { filter: brightness(1.4) drop-shadow(4px 0 0 rgba(0,216,255,.8)) drop-shadow(-4px 0 0 rgba(255,48,48,.75));
+          transform: translateX(-1px); }
+  59%  { filter: brightness(1.6) drop-shadow(-3px 0 0 rgba(255,48,48,.6)) drop-shadow(3px 0 0 rgba(0,216,255,.6));
+          transform: translateX(2px) skewX(2deg); }
+  60%  { filter: none; transform: none; }
+}
+/* Doberman — 14s cycle, transform-only so existing glow filter is preserved, offset by -5s */
+@keyframes dg-dob {
+  0%, 100% { transform: none; }
+  7%   { transform: translateX(-4px) skewX(-5deg); }
+  8%   { transform: translateX(3px); }
+  9%   { transform: none; }
+  63%  { transform: translateX(3px) skewX(3deg); }
+  64%  { transform: translateX(-2px); }
+  65%  { transform: none; }
 }
 
 /* Center doberman button — rises out of nav with arc cutout */
