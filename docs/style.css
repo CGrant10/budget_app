@@ -2067,39 +2067,27 @@ body.light .section-title::before {
   pointer-events: none;
   white-space: nowrap;
 }
-.dawg-lockin::before {
-  color: rgba(255, 70, 70, 0.95);
-  animation: lockin-r 4.5s steps(1, end) 2.2s infinite;
-}
+/* Pseudo-elements no longer used — RGB split comes from drop-shadow on the element itself */
+.dawg-lockin::before,
 .dawg-lockin::after {
-  color: rgba(60, 215, 255, 0.95);
-  animation: lockin-b 4.5s steps(1, end) 2.5s infinite;
+  animation: none !important;
+  opacity: 0 !important;
 }
 .dawg-lockin {
   animation: lockin-main 4.5s steps(1, end) 2s infinite;
 }
 @keyframes lockin-main {
-  0%, 6%, 15%, 100% { transform: none; }
-  3%  { transform: translateX(-3px) skewX(-2deg); }
-  4%  { transform: translateX(2px); }
-  5%  { transform: none; }
-  10% { transform: translateX(3px) skewX(1deg); }
-  11% { transform: translateX(-2px); }
-  12% { transform: none; }
-}
-@keyframes lockin-r {
-  0%, 6%, 15%, 100% { opacity: 0; transform: none; clip-path: none; }
-  3%  { opacity: 1; transform: translateX(-5px); clip-path: polygon(0 0%, 100% 0%, 100% 50%, 0 50%); }
-  5%  { opacity: 0; }
-  10% { opacity: 1; transform: translateX(4px);  clip-path: polygon(0 48%, 100% 48%, 100% 100%, 0 100%); }
-  12% { opacity: 0; }
-}
-@keyframes lockin-b {
-  0%, 6%, 15%, 100% { opacity: 0; transform: none; clip-path: none; }
-  3%  { opacity: 1; transform: translateX(5px);  clip-path: polygon(0 45%, 100% 45%, 100% 100%, 0 100%); }
-  5%  { opacity: 0; }
-  10% { opacity: 1; transform: translateX(-4px); clip-path: polygon(0 0%, 100% 0%, 100% 55%, 0 55%); }
-  12% { opacity: 0; }
+  0%, 100% { filter: none; transform: none; }
+  3%  { filter: brightness(1.7) drop-shadow(4px 0 0 rgba(255,48,48,.9)) drop-shadow(-4px 0 0 rgba(0,216,255,.9));
+         transform: translateX(-3px) skewX(-6deg); }
+  4%  { filter: brightness(1.9) drop-shadow(-5px 0 0 rgba(255,48,48,.75)) drop-shadow(5px 0 0 rgba(0,216,255,.75));
+         transform: translateX(2px); }
+  5%  { filter: none; transform: none; }
+  10% { filter: brightness(1.6) drop-shadow(4px 0 0 rgba(0,216,255,.85)) drop-shadow(-4px 0 0 rgba(255,48,48,.8));
+         transform: translateX(2px) skewX(5deg); }
+  11% { filter: brightness(1.5) drop-shadow(-3px 0 0 rgba(255,48,48,.65)) drop-shadow(3px 0 0 rgba(0,216,255,.65));
+         transform: translateX(-2px); }
+  12% { filter: none; transform: none; }
 }
 /* LOCK TF IN tap glitch — one-shot on touch, same feel as nav-tap-glitch */
 .dawg-lockin.lockin-glitch-tap {
@@ -3137,51 +3125,34 @@ body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
   pointer-events: none;
   opacity: 0;
 }
-.splash-glitch-on .splash-brand::before {
-  color: rgba(255, 70, 70, 0.92);
-  animation: sg-layer-r 3.5s steps(1, end) 1.4s infinite;
-}
+/* Pseudo-elements no longer used — RGB split comes from drop-shadow on the element itself */
+.splash-glitch-on .splash-brand::before,
 .splash-glitch-on .splash-brand::after {
-  color: rgba(60, 210, 255, 0.92);
-  animation: sg-layer-b 3.5s steps(1, end) 1.7s infinite;
+  animation: none !important;
+  opacity: 0 !important;
 }
 @keyframes sg-main {
-  0%, 8%, 18%, 52%, 62%, 88%, 100% { transform: none; }
-  5%  { transform: translateX(-4px) skewX(-2deg); }
-  6%  { transform: translateX(3px); }
-  7%  { transform: none; }
-  14% { transform: translateX(4px) skewX(1deg); }
-  15% { transform: translateX(-3px); }
-  16% { transform: none; }
-  55% { transform: translateX(-5px) skewX(-1.5deg); }
-  56% { transform: translateX(4px); }
-  57% { transform: none; }
-  58% { transform: translateX(-2px); }
-  84% { transform: translateX(5px) skewX(2deg); }
-  85% { transform: translateX(-4px); }
-  86% { transform: none; }
-}
-@keyframes sg-layer-r {
-  0%, 100%  { opacity: 0; clip-path: none; transform: none; }
-  5%  { opacity: 1; transform: translateX(-6px); clip-path: polygon(0 12%, 100% 12%, 100% 42%, 0 42%); }
-  8%  { opacity: 0; }
-  14% { opacity: 1; transform: translateX(5px);  clip-path: polygon(0 58%, 100% 58%, 100% 82%, 0 82%); }
-  17% { opacity: 0; }
-  55% { opacity: 1; transform: translateX(-7px); clip-path: polygon(0 28%, 100% 28%, 100% 54%, 0 54%); }
-  60% { opacity: 0; }
-  84% { opacity: 1; transform: translateX(6px);  clip-path: polygon(0 0%, 100% 0%, 100% 38%, 0 38%); }
-  87% { opacity: 0; }
-}
-@keyframes sg-layer-b {
-  0%, 100%  { opacity: 0; clip-path: none; transform: none; }
-  5%  { opacity: 1; transform: translateX(6px);  clip-path: polygon(0 48%, 100% 48%, 100% 72%, 0 72%); }
-  8%  { opacity: 0; }
-  14% { opacity: 1; transform: translateX(-4px); clip-path: polygon(0 18%, 100% 18%, 100% 46%, 0 46%); }
-  17% { opacity: 0; }
-  55% { opacity: 1; transform: translateX(5px);  clip-path: polygon(0 62%, 100% 62%, 100% 88%, 0 88%); }
-  60% { opacity: 0; }
-  84% { opacity: 1; transform: translateX(-5px); clip-path: polygon(0 42%, 100% 42%, 100% 68%, 0 68%); }
-  87% { opacity: 0; }
+  0%, 100% { filter: none; transform: none; }
+  5%  { filter: brightness(1.8) drop-shadow(5px 0 0 rgba(255,48,48,.9)) drop-shadow(-5px 0 0 rgba(0,216,255,.9));
+         transform: translateX(-4px) skewX(-5deg); }
+  6%  { filter: brightness(2.0) drop-shadow(-6px 0 0 rgba(255,48,48,.75)) drop-shadow(6px 0 0 rgba(0,216,255,.75));
+         transform: translateX(3px); }
+  7%  { filter: none; transform: none; }
+  14% { filter: brightness(1.7) drop-shadow(5px 0 0 rgba(0,216,255,.85)) drop-shadow(-5px 0 0 rgba(255,48,48,.8));
+         transform: translateX(3px) skewX(4deg); }
+  15% { filter: brightness(1.5) drop-shadow(-4px 0 0 rgba(255,48,48,.65)) drop-shadow(4px 0 0 rgba(0,216,255,.65));
+         transform: translateX(-3px); }
+  16% { filter: none; transform: none; }
+  55% { filter: brightness(1.7) drop-shadow(5px 0 0 rgba(255,48,48,.85)) drop-shadow(-5px 0 0 rgba(0,216,255,.85));
+         transform: translateX(-4px) skewX(-4deg); }
+  56% { filter: brightness(1.9) drop-shadow(-5px 0 0 rgba(0,216,255,.7)) drop-shadow(5px 0 0 rgba(255,48,48,.7));
+         transform: translateX(3px); }
+  57% { filter: none; transform: none; }
+  84% { filter: brightness(1.6) drop-shadow(4px 0 0 rgba(0,216,255,.8)) drop-shadow(-4px 0 0 rgba(255,48,48,.75));
+         transform: translateX(4px) skewX(3deg); }
+  85% { filter: brightness(1.5) drop-shadow(-4px 0 0 rgba(255,48,48,.6)) drop-shadow(4px 0 0 rgba(0,216,255,.6));
+         transform: translateX(-3px); }
+  86% { filter: none; transform: none; }
 }
 .splash-tagline {
   font-size: .62rem;
