@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.12.3';
+const VERSION = '5.12.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -5128,7 +5128,8 @@ function renderAdd() {
         <div class="form-row" id="add-cat-row">
           <label class="form-label">Category</label>
           <div style="flex:1">
-            <select id="add-cat" class="form-input">${getCategories().map(c=>`<option value="${c}">${c}</option>`).join('')}</select>
+            <select id="add-cat" class="form-input">${getCategories().map(c=>`<option value="${c}">${c}</option>`).join('')}<option value="__custom__">Custom…</option></select>
+            <input type="text" id="add-cat-custom" class="form-input" placeholder="Type custom category" style="display:none;margin-top:6px">
           </div>
         </div>
         <div class="form-row" id="add-split-row">
@@ -6302,6 +6303,17 @@ function renderSettings() {
         </div>
       </div>
 
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Animations</h2>
+        <p class="code-hint" style="margin-bottom:12px">Control visual effects throughout the app.</p>
+        <div class="form-row">
+          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="splash-anim-settings" ${localStorage.getItem('splashAnim') !== 'false' ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
+            Splash screen glitch effects
+          </label>
+        </div>
+      </div>
+
     </div>`;
 }
 
@@ -6459,6 +6471,11 @@ function attachSettings() {
       confirmText: 'Remove',
       onConfirm: () => { localStorage.removeItem('slawminyaw_biometric_cred'); render(); },
     });
+  });
+
+  // Splash animation toggle (also accessible from splash screen button)
+  document.getElementById('splash-anim-settings')?.addEventListener('change', e => {
+    localStorage.setItem('splashAnim', e.target.checked ? 'true' : 'false');
   });
 
 }
@@ -8119,6 +8136,12 @@ function attachAdd() {
     if (document.getElementById('split-toggle')?.checked) updateSplitSummary();
   });
 
+  // Show/hide custom category text input when "Custom…" is selected
+  document.getElementById('add-cat')?.addEventListener('change', e => {
+    const customInp = document.getElementById('add-cat-custom');
+    if (customInp) customInp.style.display = e.target.value === '__custom__' ? '' : 'none';
+  });
+
   // Show/hide transfer-specific fields
   document.querySelectorAll('input[name="etype"]').forEach(radio => {
     radio.addEventListener('change', () => {
@@ -8199,9 +8222,11 @@ function attachAdd() {
     }
 
     const isRecurring = document.getElementById('add-recurring').checked;
-    // Category: free-text input with datalist autocomplete.
-    // If the user typed something that isn't a known category, auto-save it.
-    let chosenCat = (document.getElementById('add-cat')?.value || '').trim() || 'Other';
+    // Category: dropdown with "Custom…" option reveals a free-text input.
+    const _catSel = document.getElementById('add-cat');
+    let chosenCat = _catSel?.value === '__custom__'
+      ? (document.getElementById('add-cat-custom')?.value.trim() || 'Other')
+      : ((_catSel?.value || '').trim() || 'Other');
     if (!getCategories().includes(chosenCat)) {
       const s = loadSettings();
       const custom = s.customCategories || [];
@@ -8819,6 +8844,15 @@ function triggerNavGlitch(btn) {
   btn.addEventListener('animationend', () => btn.classList.remove('nav-glitch-tap'), { once: true });
 }
 
+// Universal icon tap glitch — same RGB-split effect on any element
+function triggerIconGlitch(el) {
+  if (!el) return;
+  el.classList.remove('icon-glitch-tap');
+  void el.offsetWidth;
+  el.classList.add('icon-glitch-tap');
+  el.addEventListener('animationend', () => el.classList.remove('icon-glitch-tap'), { once: true });
+}
+
 // ── biometric helpers ──────────────────────────────────────────────────────
 function _b64ToUint8(b64) {
   const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
@@ -9102,7 +9136,9 @@ document.getElementById('dawg-nav-accts')?.addEventListener('click', () => {
     _centerBtn.classList.remove('nav-dob-tap');
     void _centerBtn.offsetWidth;
     _centerBtn.classList.add('nav-dob-tap');
-    _centerBtn.addEventListener('animationend', () => _centerBtn.classList.remove('nav-dob-tap'), { once: true });
+    // Listen on the child img — that's where the animation runs
+    const _dobImg = _centerBtn.querySelector('.dawg-nav-dob') || _centerBtn;
+    _dobImg.addEventListener('animationend', () => _centerBtn.classList.remove('nav-dob-tap'), { once: true });
   }
   showTab('dashboard');
 });
@@ -9125,19 +9161,28 @@ document.getElementById('dawg-nav-accts')?.addEventListener('click', () => {
   });
 })();
 // DAWG persistent topbar — hamburger, accounts grid, account pill (permanent HTML elements)
-document.getElementById('dawg-hamburger')?.addEventListener('click', openDawgDrawer);
+document.getElementById('dawg-hamburger')?.addEventListener('click', () => {
+  triggerIconGlitch(document.getElementById('dawg-hamburger'));
+  openDawgDrawer();
+});
 document.getElementById('dawg-accts-btn')?.addEventListener('click', () => {
+  triggerIconGlitch(document.getElementById('dawg-accts-btn'));
   _navPush();
   _pageTransition = 'zoom-out';
   showingAccountPicker = true;
   render();
 });
-document.getElementById('dawg-acct-switch')?.addEventListener('click', () => toggleDawgAcctDropdown());
+document.getElementById('dawg-acct-switch')?.addEventListener('click', () => {
+  triggerIconGlitch(document.getElementById('dawg-acct-switch'));
+  toggleDawgAcctDropdown();
+});
 // DAWG drawer close + item listeners (permanent HTML elements)
 document.getElementById('dawg-drawer-close')?.addEventListener('click', closeDawgDrawer);
 document.getElementById('dawg-drawer-overlay')?.addEventListener('click', closeDawgDrawer);
 document.querySelectorAll('.dawg-drawer-item').forEach(btn =>
   btn.addEventListener('click', () => {
+    const icon = btn.querySelector('.dawg-di-icon');
+    if (icon) triggerIconGlitch(icon);
     closeDawgDrawer();
     if (btn.dataset.tab === '__accounts__') { _navPush(); showingAccountPicker = true; render(); }
     else showTab(btn.dataset.tab);
