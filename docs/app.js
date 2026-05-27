@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.17.5';
+const VERSION = '5.17.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.17.6', date: '2026-05-27', changes: [
+    'Notes & Reminders added to hamburger drawer — accessible even without it pinned to the nav bar',
+  ]},
   { version: '5.17.5', date: '2026-05-27', changes: [
     'Notes & Reminders tab — jot freeform notes with an optional due date; overdue and due-today items show a badge on the nav icon and a toast alert on app open',
     'Notes are stored globally across all accounts so your reminders are always visible',
