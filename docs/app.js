@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.16.0';
+const VERSION = '5.16.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -4017,7 +4017,8 @@ function renderDashboardDawg() {
     if (_dashAvail > 0) return { week: _dashAvail / weeks, day: _dashAvail / days };
     const bpw = parseFloat(_wp?.budget_per_week) || parseFloat(_wp?.per_week) || 0;
     const bpd = parseFloat(_wp?.budget_per_day)  || parseFloat(_wp?.per_day)  || 0;
-    if (bpw > 0) return { week: bpw, day: bpd };
+    // Derive per-day from per-week when budget_per_day was never seeded
+    if (bpw > 0) return { week: bpw, day: bpd > 0 ? bpd : bpw / 7 };
     if (_wp?.saved_date) {
       const a = Math.max(0, balanceAsOf(_wp.saved_date) - _dashStopAt - _dashBills);
       if (a > 0) return { week: weeks > 0 ? a / weeks : 0, day: days > 0 ? a / days : 0 };
