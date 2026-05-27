@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.16.6';
+const VERSION = '5.16.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.16.7', date: '2026-05-27', changes: [
+    'Splash bark animation upgraded — chromatic aberration glitch burst fires ~34ms before each cut (green/pink RGB split + brightness spike), then the mad dawg snaps in with a skewX overshoot that settles in ~25ms, like a corrupted sprite sheet',
+    'Splash screen extended to 4.2s so you see 3 full bark cycles before dismiss — tap anywhere to skip as before',
+  ]},
   { version: '5.16.6', date: '2026-05-27', changes: [
     'Fix splash dog layout — switched from position:absolute stacking to CSS grid overlap so both bark frames stay centered at the correct size',
   ]},
@@ -3169,7 +3173,7 @@ function runSplash() {
       el.classList.add('dismiss');
       setTimeout(() => { el.remove(); resolve(); }, 450);
     };
-    setTimeout(finish, 2600);
+    setTimeout(finish, 4200);
     el.addEventListener('click', finish, { once: true });
     setTimeout(() => { if (!done) { done = true; el.remove(); resolve(); } }, 6000);
   });
