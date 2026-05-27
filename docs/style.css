@@ -1568,6 +1568,107 @@ body.light .section-title::before {
   pointer-events: none;
 }
 
+/* ── notes & reminders ───────────────────────────────────────────────────── */
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.note-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 12px 12px 12px 14px;
+  transition: opacity .2s, border-color .2s;
+}
+.note-card-overdue {
+  border-color: color-mix(in srgb, var(--danger) 60%, transparent);
+  background: color-mix(in srgb, var(--danger) 6%, var(--glass-bg));
+}
+.note-card-today {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--glass-bg));
+}
+.note-card-done {
+  opacity: .45;
+}
+.note-check-wrap {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.note-check-wrap input[type="checkbox"] {
+  display: none;
+}
+.note-check-box {
+  width: 18px; height: 18px;
+  border-radius: 5px;
+  border: 2px solid var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, border-color .15s;
+  flex-shrink: 0;
+}
+.note-check-wrap input:checked + .note-check-box {
+  background: var(--success);
+  border-color: var(--success);
+}
+.note-check-wrap input:checked + .note-check-box::after {
+  content: '';
+  display: block;
+  width: 5px; height: 9px;
+  border: 2px solid #fff;
+  border-top: none; border-left: none;
+  transform: rotate(45deg) translateY(-1px);
+}
+.note-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.note-text {
+  font-size: .9rem;
+  color: var(--text);
+  line-height: 1.4;
+  word-break: break-word;
+}
+.note-card-done .note-text {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.note-date-tag {
+  display: inline-block;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  width: fit-content;
+  letter-spacing: .02em;
+}
+.note-tag-overdue  { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+.note-tag-today    { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+.note-tag-upcoming { background: color-mix(in srgb, var(--muted)  18%, transparent); color: var(--muted);  }
+.note-del-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: .8rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  line-height: 1;
+  transition: color .15s, background .15s;
+}
+.note-del-btn:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+
 /* ── net worth ────────────────────────────────────────────────────────────── */
 .net-worth-card {
   background: var(--glass-bg);

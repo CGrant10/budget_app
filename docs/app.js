@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.17.4';
+const VERSION = '5.17.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.17.5', date: '2026-05-27', changes: [
+    'Notes & Reminders tab — jot freeform notes with an optional due date; overdue and due-today items show a badge on the nav icon and a toast alert on app open',
+    'Notes are stored globally across all accounts so your reminders are always visible',
+  ]},
   { version: '5.17.4', date: '2026-05-27', changes: [
     'Light mode brightened — all backgrounds shifted ~12 points lighter for a cleaner feel across all light themes (Default, Sky, Rose, Sand, Silver)',
     'New "Slate" grey accent option added to dark mode theme picker',
@@ -1741,6 +1745,13 @@ let currentAccountId = 'main';
 const STORAGE_KEY  = 'slawminyaw';
 const SETTINGS_KEY = 'slawminyaw_settings';
 const ACCOUNTS_KEY = 'slawminyaw_accounts';
+const NOTES_KEY = 'slawminyaw_notes';
+function loadNotes() {
+  try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '[]'); } catch { return []; }
+}
+function saveNotes(notes) {
+  try { localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); } catch(e) { console.warn('Budget DAWGs: notes save failed', e); }
+}
 function accountDataKey(id) { return 'slawminyaw_data_' + id; }
 
 function loadSettings() {
@@ -1770,6 +1781,8 @@ const NAV_ITEMS = [
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v13"/><polyline points="7,12 12,17 17,12"/><path d="M3 19h18"/></svg>` },
   { key: 'budgets',   label: 'Budgets',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="20" x2="5" y2="9"/><line x1="12" y1="20" x2="12" y2="3"/><line x1="19" y1="20" x2="19" y2="13"/></svg>` },
+  { key: 'notes',     label: 'Notes',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>` },
   { key: 'settings',  label: 'Settings',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>` },
   { key: 'about',     label: 'About',     required: true,
@@ -2580,6 +2593,36 @@ function updateBillBadge() {
       btn.appendChild(badge);
     }
   }
+}
+
+// ── notes badge ─────────────────────────────────────────────────────────────
+function updateNotesBadge() {
+  const todayStr = today();
+  const count = loadNotes().filter(n => !n.done && n.dueDate && n.dueDate <= todayStr).length;
+  document.querySelectorAll('.nav-notes-badge').forEach(el => el.remove());
+  if (count > 0) {
+    const btn = document.querySelector('.nav-btn[data-tab="notes"]');
+    if (btn) {
+      const badge = document.createElement('span');
+      badge.className = 'nav-notes-badge nav-bill-badge';
+      badge.textContent = count;
+      btn.appendChild(badge);
+    }
+  }
+}
+
+let _shownNotesAlert = false;
+function checkNotesAlert() {
+  if (_shownNotesAlert) return;
+  _shownNotesAlert = true;
+  const todayStr = today();
+  const overdue  = loadNotes().filter(n => !n.done && n.dueDate && n.dueDate < todayStr);
+  const dueToday = loadNotes().filter(n => !n.done && n.dueDate === todayStr);
+  if (overdue.length === 0 && dueToday.length === 0) return;
+  const parts = [];
+  if (overdue.length)  parts.push(`${overdue.length} overdue reminder${overdue.length > 1 ? 's' : ''}`);
+  if (dueToday.length) parts.push(`${dueToday.length} due today`);
+  setTimeout(() => showAlert(`📝 ${parts.join(' · ')} — check your Notes`), 600);
 }
 
 // ── net worth ──────────────────────────────────────────────────────────────
@@ -3403,6 +3446,7 @@ function _applyPageTransition(main, oldHTML, transType) {
     main.appendChild(frag);
     attachHandlers();
     updateBillBadge();
+    updateNotesBadge();
     updateDawgTopbar();
   }, dur + 84);
 }
@@ -3458,12 +3502,14 @@ function render() {
     case 'challenges':  main.innerHTML = renderChallenges();  break;
     case 'retirement':  main.innerHTML = renderRetirement();  break;
     case 'accounts':    main.innerHTML = renderAccounts();    break;
+    case 'notes':     main.innerHTML = renderNotes();     break;
     case 'settings':  main.innerHTML = renderSettings();  break;
     case 'about':     main.innerHTML = renderAbout();     break;
   }
   _applyPageTransition(main, _oldHTML, _transType);
   if (!_slidePendingHTML) attachHandlers(); // slide transition calls attachHandlers() in its own cleanup; skip here to avoid attaching twice
   updateBillBadge();
+  updateNotesBadge();
   updateDawgTopbar();
   // Negative balance warning — show once per session when dashboard is visible
   if (currentTab === 'dashboard' && !_shownNegativePopup) {
@@ -6137,6 +6183,149 @@ function renderImport() {
     </div>`;
 }
 
+// ── notes & reminders ─────────────────────────────────────────────────────
+function _notesSort(notes) {
+  const todayStr = today();
+  return [...notes].sort((a, b) => {
+    // done items always last
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    // among undone: overdue first, then due today, then upcoming, then no date
+    const aOver = a.dueDate && a.dueDate < todayStr;
+    const bOver = b.dueDate && b.dueDate < todayStr;
+    const aToday = a.dueDate === todayStr;
+    const bToday = b.dueDate === todayStr;
+    const aRank = a.done ? 4 : aOver ? 0 : aToday ? 1 : a.dueDate ? 2 : 3;
+    const bRank = b.done ? 4 : bOver ? 0 : bToday ? 1 : b.dueDate ? 2 : 3;
+    if (aRank !== bRank) return aRank - bRank;
+    // within same rank sort by date ascending then by createdAt
+    if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+    return (a.createdAt || '').localeCompare(b.createdAt || '');
+  });
+}
+
+function renderNotes() {
+  const notes = loadNotes();
+  const sorted = _notesSort(notes);
+  const todayStr = today();
+
+  const noteHtml = n => {
+    const isOverdue  = !n.done && n.dueDate && n.dueDate < todayStr;
+    const isDueToday = !n.done && n.dueDate === todayStr;
+    const statusCls  = isOverdue ? 'note-card-overdue' : isDueToday ? 'note-card-today' : '';
+    let dateLine = '';
+    if (n.dueDate) {
+      const d = new Date(n.dueDate + 'T00:00:00');
+      const label = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+      const tag = isOverdue ? '⚠ Overdue' : isDueToday ? '📅 Today' : '📅';
+      dateLine = `<span class="note-date-tag ${isOverdue ? 'note-tag-overdue' : isDueToday ? 'note-tag-today' : 'note-tag-upcoming'}">${tag} ${label}</span>`;
+    }
+    return `<div class="note-card ${statusCls} ${n.done ? 'note-card-done' : ''}" data-id="${n.id}">
+      <label class="note-check-wrap">
+        <input type="checkbox" class="note-done-cb" data-id="${n.id}" ${n.done ? 'checked' : ''}>
+        <span class="note-check-box"></span>
+      </label>
+      <div class="note-body">
+        <span class="note-text">${n.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+        ${dateLine}
+      </div>
+      <button class="note-del-btn" data-id="${n.id}" aria-label="Delete note">✕</button>
+    </div>`;
+  };
+
+  const listHtml = sorted.length
+    ? sorted.map(noteHtml).join('')
+    : `<div class="empty-state-wrap"><p class="empty-state-msg">No notes yet</p><p class="empty-state-sub">Add a reminder below</p></div>`;
+
+  return `<div class="page">
+    <h1 class="page-title">Notes &amp; Reminders</h1>
+    <p class="page-sub">jot it down, set a date, get reminded</p>
+    <div class="form-card">
+      <h2 class="section-title" style="margin:0 0 10px">Add Note</h2>
+      <div class="form-row">
+        <label class="form-label">Note</label>
+        <input type="text" id="note-text-input" class="form-input" placeholder="e.g. Owe Cole $40 for dinner" maxlength="200" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Reminder date <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+        <input type="date" id="note-date-input" class="form-input">
+      </div>
+      <div id="note-status" class="form-status"></div>
+      <button id="note-add-btn" class="btn-primary">Add Note</button>
+    </div>
+    <h2 class="section-title" style="margin-top:20px">Your Notes</h2>
+    <div class="notes-list" id="notes-list">${listHtml}</div>
+  </div>`;
+}
+
+function attachNotes() {
+  document.getElementById('note-add-btn')?.addEventListener('click', () => {
+    const textEl = document.getElementById('note-text-input');
+    const dateEl = document.getElementById('note-date-input');
+    const status = document.getElementById('note-status');
+    const text = textEl?.value.trim();
+    if (!text) { if (status) { status.textContent = 'Note text is required.'; status.style.color = 'var(--danger)'; } return; }
+    const notes = loadNotes();
+    notes.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), text, dueDate: dateEl?.value || null, done: false, createdAt: new Date().toISOString() });
+    saveNotes(notes);
+    if (textEl) textEl.value = '';
+    if (dateEl) dateEl.value = '';
+    if (status) { status.textContent = 'Note added!'; status.style.color = 'var(--success)'; setTimeout(() => { if (status) status.textContent = ''; }, 2000); }
+    document.getElementById('notes-list').innerHTML = _notesSort(notes).map(n => {
+      const todayStr = today();
+      const isOverdue  = !n.done && n.dueDate && n.dueDate < todayStr;
+      const isDueToday = !n.done && n.dueDate === todayStr;
+      const statusCls  = isOverdue ? 'note-card-overdue' : isDueToday ? 'note-card-today' : '';
+      let dateLine = '';
+      if (n.dueDate) {
+        const d = new Date(n.dueDate + 'T00:00:00');
+        const label = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+        const tag = isOverdue ? '⚠ Overdue' : isDueToday ? '📅 Today' : '📅';
+        dateLine = `<span class="note-date-tag ${isOverdue ? 'note-tag-overdue' : isDueToday ? 'note-tag-today' : 'note-tag-upcoming'}">${tag} ${label}</span>`;
+      }
+      return `<div class="note-card ${statusCls} ${n.done ? 'note-card-done' : ''}" data-id="${n.id}">
+        <label class="note-check-wrap">
+          <input type="checkbox" class="note-done-cb" data-id="${n.id}" ${n.done ? 'checked' : ''}>
+          <span class="note-check-box"></span>
+        </label>
+        <div class="note-body">
+          <span class="note-text">${n.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+          ${dateLine}
+        </div>
+        <button class="note-del-btn" data-id="${n.id}" aria-label="Delete note">✕</button>
+      </div>`;
+    }).join('') || `<div class="empty-state-wrap"><p class="empty-state-msg">No notes yet</p><p class="empty-state-sub">Add a reminder below</p></div>`;
+    updateNotesBadge();
+    playSound('success');
+  });
+
+  document.getElementById('notes-list')?.addEventListener('change', e => {
+    if (!e.target.classList.contains('note-done-cb')) return;
+    const id = e.target.dataset.id;
+    const notes = loadNotes();
+    const n = notes.find(x => x.id === id);
+    if (n) { n.done = e.target.checked; saveNotes(notes); }
+    const card = e.target.closest('.note-card');
+    if (card) {
+      card.classList.toggle('note-card-done', e.target.checked);
+      if (e.target.checked) { card.classList.remove('note-card-overdue','note-card-today'); }
+    }
+    updateNotesBadge();
+  });
+
+  document.getElementById('notes-list')?.addEventListener('click', e => {
+    const btn = e.target.closest('.note-del-btn');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const notes = loadNotes().filter(x => x.id !== id);
+    saveNotes(notes);
+    btn.closest('.note-card')?.remove();
+    if (!document.querySelector('.note-card')) {
+      document.getElementById('notes-list').innerHTML = `<div class="empty-state-wrap"><p class="empty-state-msg">No notes yet</p><p class="empty-state-sub">Add a reminder below</p></div>`;
+    }
+    updateNotesBadge();
+  });
+}
+
 // ── notifications ──────────────────────────────────────────────────────────
 async function requestNotifPermission() {
   if (!('Notification' in window)) return false;
@@ -8249,6 +8438,7 @@ function attachHandlers() {
     case 'challenges':  attachChallenges();  break;
     case 'retirement':  attachRetirement();  break;
     case 'accounts':    attachAccounts();    break;
+    case 'notes':     attachNotes();     break;
     case 'settings':  attachSettings();  break;
     case 'about':     attachAbout();     break;
   }
@@ -9576,6 +9766,8 @@ window.addEventListener('popstate', () => {
     });
     updateBillBadge();
     checkBillNotifications();
+    updateNotesBadge();
+    checkNotesAlert();
     maybeShowWhatsNew();
 
     // ── swipe between tabs ────────────────────────────────────────────────
