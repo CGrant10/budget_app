@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.17.0';
+const VERSION = '5.17.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.17.1', date: '2026-05-27', changes: [
+    'Splash bark restored to original timing (~289ms) — one bark per cycle for both splash and hero',
+  ]},
   { version: '5.17.0', date: '2026-05-27', changes: [
     'Bark animation timing tightened — each bark frame now holds ~150-240ms instead of 1.3s+, snaps back to idle immediately after',
   ]},
