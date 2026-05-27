@@ -1981,8 +1981,8 @@ body.light .section-title::before {
 .acct-row-chevron { font-size:1.5rem; color:var(--muted); flex-shrink:0; line-height:1; opacity:.45; padding-right:2px; }
 .acct-home-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:4px 9px; font-size:1rem; cursor:pointer; line-height:1; }
 .acct-picker-hero { min-height:120px !important; padding-bottom:16px; }
-.acct-picker-hero .dawg-hero-dob { width:80px; animation-delay:5s; } /* offset so it barks at a different time than the dashboard */
-.acct-picker-hero .dawg-dob-bark { animation-delay:5s; }
+.acct-picker-hero .dawg-hero-dob { width:80px; animation-delay:-2.8s; } /* negative delay: starts mid-cycle so bark fires ~1.5s after page opens */
+.acct-picker-hero .dawg-dob-bark { animation-delay:-2.8s; }
 .acct-picker-page .acct-row { margin:0 14px 10px; }
 .acct-picker-page .page { background:transparent; }
 

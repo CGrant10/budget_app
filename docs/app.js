@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.17.1';
+const VERSION = '5.17.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.17.2', date: '2026-05-27', changes: [
+    'Accounts page dog barks within ~1.5s of opening — fixed by using a negative animation-delay to start mid-cycle instead of waiting the full 5s + 4s cycle',
+  ]},
   { version: '5.17.1', date: '2026-05-27', changes: [
     'Splash bark restored to original timing (~289ms) — one bark per cycle for both splash and hero',
   ]},
