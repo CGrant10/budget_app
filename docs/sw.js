@@ -1,4 +1,4 @@
-const CACHE = "slawminyaw-v278";
+const CACHE = "slawminyaw-v279";
 const ASSETS = [
   "./",
   "./index.html",
@@ -13,6 +13,7 @@ const ASSETS = [
   "./apple-touch-icon.png",
   "./favicon.ico",
   "./doberman.png",
+  "./maddawg.png",
   "./newicon.png"
 ];
 

@@ -3184,10 +3184,32 @@ body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
   width: 210px;
   height: 250px;
   opacity: 0;
+  position: relative;
   animation: splashDogIn .55s cubic-bezier(.22,1,.36,1) .08s both;
   filter: drop-shadow(0 10px 32px rgba(0,0,0,.6));
 }
-.splash-dob-img { width: 100%; height: 100%; display: block; object-fit: contain; }
+/* Both frames stacked — JS/CSS swaps between them to simulate barking */
+.splash-dob-idle,
+.splash-dob-bark {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: block; object-fit: contain;
+}
+/* Bark frame starts hidden; animation snaps it in on a double-bark rhythm.
+   Delay matches splashDogIn completion so the dog lands before it starts barking. */
+.splash-dob-bark {
+  opacity: 0;
+  transform-origin: bottom center;
+  animation: splashBarkFlip 1.7s step-start 0.9s infinite;
+}
+/* Two quick barks per cycle: ~55% idle → snap bark → snap idle → snap bark → snap idle */
+@keyframes splashBarkFlip {
+  0%,   54% { opacity: 0; transform: none; }
+  55%,  72% { opacity: 1; transform: scale(1.06) translateY(-4px); }
+  73%,  83% { opacity: 0; transform: none; }
+  84%,  99% { opacity: 1; transform: scale(1.06) translateY(-4px); }
+  100%      { opacity: 0; transform: none; }
+}
 @keyframes splashDogIn {
   from { opacity: 0; transform: translateY(14px) scale(.9); }
   to   { opacity: 1; transform: translateY(0) scale(1); }

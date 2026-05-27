@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.16.4';
+const VERSION = '5.16.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.16.5', date: '2026-05-27', changes: [
+    'Splash screen dog now barks — alternates between the idle doberman and the mad dawg in a double-bark rhythm with a scale pop on each bark frame',
+  ]},
   { version: '5.16.4', date: '2026-05-27', changes: [
     'Per-day tile limit is now truly dynamic: available-above-buffer ÷ days-to-paydate — shows $0 allowance when below buffer, auto-adjusts daily as balance changes',
     'Per-week FAILED tile now always shows spent / weekly-limit denominator, plus "−$X below buffer" when the cause is a balance shortfall',
