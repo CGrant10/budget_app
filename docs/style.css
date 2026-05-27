@@ -2155,25 +2155,29 @@ body.light .section-title::before {
   transform-origin: bottom center;
   animation: dawgHeroBarkFlip 8s linear 2s infinite;
 }
-/* Bark flip — same snap+overshoot technique as splash, 8s cycle */
+/* Bark flip — each bark ≈ 240ms (3% of 8s), double-bark pair, then long idle */
 @keyframes dawgHeroBarkFlip {
-  0%,    54%  { opacity: 0; transform: none; filter: none; }
-  55%         { opacity: 1; transform: scale(1.09) translateY(-6px) skewX(-7deg); filter: drop-shadow(-5px 0 0 rgba(0,216,255,.9)) drop-shadow(5px 0 0 rgba(255,48,48,.85)); }
-  56.5%       { opacity: 1; transform: scale(1.06) translateY(-4px) skewX(2deg);  filter: none; }
-  58%,  71%   { opacity: 1; transform: scale(1.06) translateY(-4px); filter: none; }
-  72%,  83%   { opacity: 0; transform: none; filter: none; }
-  84%         { opacity: 1; transform: scale(1.09) translateY(-6px) skewX(-7deg); filter: drop-shadow(-5px 0 0 rgba(0,216,255,.9)) drop-shadow(5px 0 0 rgba(255,48,48,.85)); }
-  85.5%       { opacity: 1; transform: scale(1.06) translateY(-4px) skewX(2deg);  filter: none; }
-  87%,  99%   { opacity: 1; transform: scale(1.06) translateY(-4px); filter: none; }
-  100%        { opacity: 0; transform: none; filter: none; }
+  0%,   53.4% { opacity: 0; transform: none; filter: none; }
+  /* bark 1 snap-in */
+  54%         { opacity: 1; transform: scale(1.09) translateY(-6px) skewX(-7deg); filter: drop-shadow(-5px 0 0 rgba(0,216,255,.9)) drop-shadow(5px 0 0 rgba(255,48,48,.85)); }
+  54.6%       { opacity: 1; transform: scale(1.06) translateY(-4px) skewX(2deg);  filter: none; }
+  55.2%, 56.9%{ opacity: 1; transform: scale(1.06) translateY(-4px); filter: none; }
+  /* idle gap ~480ms */
+  57%,  62.9% { opacity: 0; transform: none; filter: none; }
+  /* bark 2 snap-in */
+  63%         { opacity: 1; transform: scale(1.09) translateY(-6px) skewX(-7deg); filter: drop-shadow(-5px 0 0 rgba(0,216,255,.9)) drop-shadow(5px 0 0 rgba(255,48,48,.85)); }
+  63.6%       { opacity: 1; transform: scale(1.06) translateY(-4px) skewX(2deg);  filter: none; }
+  64.2%, 65.9%{ opacity: 1; transform: scale(1.06) translateY(-4px); filter: none; }
+  /* long idle rest ~2.7s */
+  66%,  100%  { opacity: 0; transform: none; filter: none; }
 }
-/* Wrapper glitch — chromatic aberration burst ~34ms before each bark cut */
+/* Wrapper glitch — brief chromatic burst just before each bark */
 @keyframes dawgHeroBarkGlitch {
-  0%,   52%   { filter: drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8)); }
-  52.5%,54.9% { filter: drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8)) drop-shadow(-7px 0 0 rgba(0,216,255,.75)) drop-shadow(7px 0 0 rgba(255,48,48,.75)) brightness(1.5); }
-  55%,  82%   { filter: drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8)); }
-  82.5%,83.9% { filter: drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8)) drop-shadow(-7px 0 0 rgba(0,216,255,.75)) drop-shadow(7px 0 0 rgba(255,48,48,.75)) brightness(1.5); }
-  84%,  100%  { filter: drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8)); }
+  0%,   52.4% { filter: drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8)); }
+  52.5%,53.9% { filter: drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8)) drop-shadow(-7px 0 0 rgba(0,216,255,.75)) drop-shadow(7px 0 0 rgba(255,48,48,.75)) brightness(1.5); }
+  54%,  61.4% { filter: drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8)); }
+  61.5%,62.9% { filter: drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8)) drop-shadow(-7px 0 0 rgba(0,216,255,.75)) drop-shadow(7px 0 0 rgba(255,48,48,.75)) brightness(1.5); }
+  63%,  100%  { filter: drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8)); }
 }
 
 .dawg-balance-card {
@@ -3202,25 +3206,28 @@ body.light .dawg-dob-bark { animation: dawgHeroBarkFlip 8s linear 2s infinite; }
   transform-origin: bottom center;
   animation: splashBarkFlip 1.7s linear 0.9s infinite;
 }
-/* Bark flip — near-instant opacity cut at 55%/84%, entry skew corrects over ~1.5% (~25ms) */
+/* Bark flip — each bark ≈ 150ms (9% of 1.7s), snappy double-bark */
 @keyframes splashBarkFlip {
-  0%,    54%  { opacity: 0; transform: none; filter: none; }
-  55%         { opacity: 1; transform: scale(1.09) translateY(-6px) skewX(-7deg); filter: drop-shadow(-5px 0 0 rgba(78,203,141,.9)) drop-shadow(5px 0 0 rgba(255,60,120,.85)); }
-  56.5%       { opacity: 1; transform: scale(1.06) translateY(-4px) skewX(2deg); filter: none; }
-  58%,  71%   { opacity: 1; transform: scale(1.06) translateY(-4px); filter: none; }
-  72%,  83%   { opacity: 0; transform: none; filter: none; }
-  84%         { opacity: 1; transform: scale(1.09) translateY(-6px) skewX(-7deg); filter: drop-shadow(-5px 0 0 rgba(78,203,141,.9)) drop-shadow(5px 0 0 rgba(255,60,120,.85)); }
-  85.5%       { opacity: 1; transform: scale(1.06) translateY(-4px) skewX(2deg); filter: none; }
-  87%,  99%   { opacity: 1; transform: scale(1.06) translateY(-4px); filter: none; }
-  100%        { opacity: 0; transform: none; filter: none; }
+  0%,   53.4% { opacity: 0; transform: none; filter: none; }
+  /* bark 1 */
+  54%         { opacity: 1; transform: scale(1.09) translateY(-6px) skewX(-7deg); filter: drop-shadow(-5px 0 0 rgba(78,203,141,.9)) drop-shadow(5px 0 0 rgba(255,60,120,.85)); }
+  55%         { opacity: 1; transform: scale(1.06) translateY(-4px) skewX(2deg); filter: none; }
+  56%,  62.9% { opacity: 1; transform: scale(1.06) translateY(-4px); filter: none; }
+  /* idle gap */
+  63%,  70.9% { opacity: 0; transform: none; filter: none; }
+  /* bark 2 */
+  71%         { opacity: 1; transform: scale(1.09) translateY(-6px) skewX(-7deg); filter: drop-shadow(-5px 0 0 rgba(78,203,141,.9)) drop-shadow(5px 0 0 rgba(255,60,120,.85)); }
+  72%         { opacity: 1; transform: scale(1.06) translateY(-4px) skewX(2deg); filter: none; }
+  73%,  79.9% { opacity: 1; transform: scale(1.06) translateY(-4px); filter: none; }
+  80%,  100%  { opacity: 0; transform: none; filter: none; }
 }
-/* Wrapper glitch — fires ~2% (~34ms) before each bark cut: chromatic aberration + brightness spike */
+/* Wrapper glitch — fires just before each bark cut */
 @keyframes splashBarkGlitch {
-  0%,   52%   { filter: drop-shadow(0 10px 32px rgba(0,0,0,.6)); }
-  52.5%,54.9% { filter: drop-shadow(0 10px 32px rgba(0,0,0,.6)) drop-shadow(-7px 0 0 rgba(78,203,141,.7)) drop-shadow(7px 0 0 rgba(255,60,120,.7)) brightness(1.5); }
-  55%,  82%   { filter: drop-shadow(0 10px 32px rgba(0,0,0,.6)); }
-  82.5%,83.9% { filter: drop-shadow(0 10px 32px rgba(0,0,0,.6)) drop-shadow(-7px 0 0 rgba(78,203,141,.7)) drop-shadow(7px 0 0 rgba(255,60,120,.7)) brightness(1.5); }
-  84%,  100%  { filter: drop-shadow(0 10px 32px rgba(0,0,0,.6)); }
+  0%,   52.4% { filter: drop-shadow(0 10px 32px rgba(0,0,0,.6)); }
+  52.5%,53.9% { filter: drop-shadow(0 10px 32px rgba(0,0,0,.6)) drop-shadow(-7px 0 0 rgba(78,203,141,.7)) drop-shadow(7px 0 0 rgba(255,60,120,.7)) brightness(1.5); }
+  54%,  69.4% { filter: drop-shadow(0 10px 32px rgba(0,0,0,.6)); }
+  69.5%,70.9% { filter: drop-shadow(0 10px 32px rgba(0,0,0,.6)) drop-shadow(-7px 0 0 rgba(78,203,141,.7)) drop-shadow(7px 0 0 rgba(255,60,120,.7)) brightness(1.5); }
+  71%,  100%  { filter: drop-shadow(0 10px 32px rgba(0,0,0,.6)); }
 }
 @keyframes splashDogIn {
   from { opacity: 0; transform: translateY(14px) scale(.9); }

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.16.9';
+const VERSION = '5.17.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.17.0', date: '2026-05-27', changes: [
+    'Bark animation timing tightened — each bark frame now holds ~150-240ms instead of 1.3s+, snaps back to idle immediately after',
+  ]},
   { version: '5.16.9', date: '2026-05-27', changes: [
     'Dashboard hero and accounts page doberman now do the same glitch-snap bark animation as the splash screen — 8s cycle with two barks per round and a chromatic aberration burst before each cut',
     'Dashboard and accounts bark on an offset timer so they fire at different times',
