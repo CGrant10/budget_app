@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.17.2';
+const VERSION = '5.17.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,17 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.17.3', date: '2026-05-27', changes: [
+    'Custom accent color now applies everywhere — 35+ hardcoded green rgba values replaced with color-mix(var(--accent)) so rings, glows, focus borders, and tints all follow your chosen color',
+    'Toasts slide out smoothly on dismiss instead of popping out instantly',
+    'Multiple toasts stack vertically instead of overlapping — each one offsets 60px below the last',
+    'Toast position uses topbar height variable so they never land behind the header on any device',
+    'Insight card rotates with a slide-up-out / glitch-snap-in transition instead of a plain opacity fade',
+    'Dashboard hero banner gets a subtle CRT scanline texture — repeating horizontal lines at 3px pitch for depth',
+    'color-mix() fallbacks added for Safari 15 — older devices get the default accent color instead of transparent elements',
+    'will-change: transform added to animated elements (dog, LOCK TF IN, splash, failed tile) for smoother compositing; nav blur reduced from 20px to 12px',
+    'Dashboard nav center button now has a hover state on desktop with accent glow',
+  ]},
   { version: '5.17.2', date: '2026-05-27', changes: [
     'Accounts page dog barks within ~1.5s of opening — fixed by using a negative animation-delay to start mid-cycle instead of waiting the full 5s + 4s cycle',
   ]},
@@ -1257,8 +1268,14 @@ function showRoast(msg) {
   const el = document.createElement('div');
   el.className = 'roast-toast';
   el.textContent = '🦀 ' + msg;
+  const existingToasts = document.querySelectorAll('.roast-toast, .alert-toast');
+  const offset = existingToasts.length * 60;
+  el.style.top = `calc(var(--topbar-h, 56px) + var(--safe-top, 0px) + 12px + ${offset}px)`;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+  setTimeout(() => {
+    el.classList.add('toast-dismiss');
+    setTimeout(() => el.remove(), 260);
+  }, 3500 - 260);
 }
 
 function checkRoast(category) {
@@ -1670,8 +1687,14 @@ function showAlert(msg) {
   const el = document.createElement('div');
   el.className = 'alert-toast';
   el.textContent = msg;
+  const existingToasts = document.querySelectorAll('.roast-toast, .alert-toast');
+  const offset = existingToasts.length * 60;
+  el.style.top = `calc(var(--topbar-h, 56px) + var(--safe-top, 0px) + 12px + ${offset}px)`;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 4500);
+  setTimeout(() => {
+    el.classList.add('toast-dismiss');
+    setTimeout(() => el.remove(), 260);
+  }, 4500 - 260);
 }
 
 function checkSpendingAlert(category) {
@@ -2455,8 +2478,21 @@ function attachDashboard() {
           const textEl  = document.getElementById('insight-text');
           const dots    = rotator.querySelectorAll('.insight-dot');
           if (textEl) {
+            textEl.style.transition = 'opacity .15s, transform .15s';
             textEl.style.opacity = '0';
-            setTimeout(() => { textEl.textContent = allInsights[insightIdx]; textEl.style.opacity = '1'; }, 250);
+            textEl.style.transform = 'translateY(-8px)';
+            setTimeout(() => {
+              textEl.textContent = allInsights[insightIdx];
+              textEl.style.transition = 'none';
+              textEl.style.transform = 'translateY(10px)';
+              textEl.style.filter = 'drop-shadow(-4px 0 0 var(--accent)) drop-shadow(4px 0 0 rgba(255,60,120,.7)) brightness(1.4)';
+              // force reflow
+              void textEl.offsetHeight;
+              textEl.style.transition = 'opacity .2s, transform .2s, filter .15s';
+              textEl.style.opacity = '1';
+              textEl.style.transform = 'translateY(0)';
+              textEl.style.filter = 'none';
+            }, 160);
           }
           dots.forEach((d, i) => d.classList.toggle('active', i === insightIdx));
         }, 4000);
