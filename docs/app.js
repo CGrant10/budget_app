@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.16.5';
+const VERSION = '5.16.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.16.6', date: '2026-05-27', changes: [
+    'Fix splash dog layout — switched from position:absolute stacking to CSS grid overlap so both bark frames stay centered at the correct size',
+  ]},
   { version: '5.16.5', date: '2026-05-27', changes: [
     'Splash screen dog now barks — alternates between the idle doberman and the mad dawg in a double-bark rhythm with a scale pop on each bark frame',
   ]},

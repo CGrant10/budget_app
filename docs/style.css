@@ -3184,25 +3184,25 @@ body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); }
   width: 210px;
   height: 250px;
   opacity: 0;
-  position: relative;
+  /* Grid stacks both images in the same cell — no absolute positioning */
+  display: grid;
   animation: splashDogIn .55s cubic-bezier(.22,1,.36,1) .08s both;
   filter: drop-shadow(0 10px 32px rgba(0,0,0,.6));
 }
-/* Both frames stacked — JS/CSS swaps between them to simulate barking */
+/* Both images occupy grid cell 1/1 — stacked on top of each other, same size */
 .splash-dob-idle,
 .splash-dob-bark {
-  position: absolute; top: 0; left: 0;
+  grid-area: 1 / 1;
   width: 100%; height: 100%;
   display: block; object-fit: contain;
 }
-/* Bark frame starts hidden; animation snaps it in on a double-bark rhythm.
-   Delay matches splashDogIn completion so the dog lands before it starts barking. */
+/* Bark frame hidden by default; snaps in on double-bark rhythm after dog lands */
 .splash-dob-bark {
   opacity: 0;
   transform-origin: bottom center;
   animation: splashBarkFlip 1.7s step-start 0.9s infinite;
 }
-/* Two quick barks per cycle: ~55% idle → snap bark → snap idle → snap bark → snap idle */
+/* Two quick barks per cycle: idle → bark snap → idle → bark snap → repeat */
 @keyframes splashBarkFlip {
   0%,   54% { opacity: 0; transform: none; }
   55%,  72% { opacity: 1; transform: scale(1.06) translateY(-4px); }
