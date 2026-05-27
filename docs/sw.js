@@ -1,4 +1,4 @@
-const CACHE = "slawminyaw-v275";
+const CACHE = "slawminyaw-v276";
 const ASSETS = [
   "./",
   "./index.html",

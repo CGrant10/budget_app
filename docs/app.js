@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.16.1';
+const VERSION = '5.16.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,7 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
-  { version: '5.16.0', date: '2026-05-27', changes: [
+  { version: '5.16.2', date: '2026-05-27', changes: [
+    'Per-day budget tile now derives its daily limit from the weekly limit ÷ 7 — consistent with the planner, never shows $0/day when available balance is split across remaining pay-period days',
+    'Per-day tile FAILED state now mirrors the per-week tile exactly — shows red FAILED label, spent/limit line, and over-amount',
+    'Fixed per-day tile showing stale "0/49.01" denominator by removing dependency on _livePerDay (raw available ÷ remaining days)',
+  ]},
+  { version: '5.16.1', date: '2026-05-27', changes: [
     'Design system unification — border-radius standardized to 18px for cards, 14px for list rows across the entire app',
     'All progress bars are now parallelogram-shaped with video game tick marks — weekly tracker, health score, goals, budget, and week-by-week breakdown all match',
     'Input focus glow is now green to match the accent color instead of leftover blue',
@@ -4210,13 +4215,15 @@ function renderDashboardDawg() {
                  <div class="dawg-tile-sub">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</div>`
             }`;
         }
-        // ── Per-day tile: uses live perDay from plan settings ─────────────────
-        if (_livePerDay > 0 || daySpent > 0) {
-          const dayFailed = _livePerDay > 0 && daySpent > _livePerDay;
-          const dayPct    = _livePerDay > 0 ? Math.min(daySpent / _livePerDay * 100, 100) : (daySpent > 0 ? 100 : 0);
+        // ── Per-day tile: daily limit = weekly limit / 7, always consistent ──
+        // _livePerDay from _getLimit is rawAvail/totalDays which changes every day
+        // as paydate approaches — useless as a daily budget. Derive from weekly instead.
+        const _perDayLimit = _livePerWeek > 0 ? _livePerWeek / 7 : 0;
+        if (_perDayLimit > 0 || daySpent > 0) {
+          const dayFailed = _perDayLimit > 0 && daySpent > _perDayLimit;
+          const dayPct    = _perDayLimit > 0 ? Math.min(daySpent / _perDayLimit * 100, 100) : (daySpent > 0 ? 100 : 0);
           const dayColor  = dayFailed || dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
           const dayDash   = (C * (1 - dayPct / 100)).toFixed(1);
-          const _dayOver  = dayFailed ? fmt(daySpent - _livePerDay) : '';
           _tileHtml['budget-day'] = `
             <div class="dawg-card-title">BUDGET OVERVIEW</div>
             <div class="dawg-tile-period">PER DAY</div>
@@ -4229,9 +4236,10 @@ function renderDashboardDawg() {
             </div>
             ${dayFailed
               ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
-                 <div class="dawg-tile-sub" style="color:var(--danger)">+${_dayOver} over</div>`
+                 <div class="dawg-tile-sub" style="color:var(--danger)">${fmt(daySpent)} / ${fmt(_perDayLimit)}</div>
+                 <div class="dawg-tile-sub" style="color:var(--danger)">+${fmt(daySpent - _perDayLimit)} over</div>`
               : `<div class="dawg-tile-amt">${fmt(daySpent)}</div>
-                 <div class="dawg-tile-sub">${fmt(daySpent)} / ${fmt(_livePerDay)}</div>`
+                 <div class="dawg-tile-sub">${fmt(daySpent)} / ${fmt(_perDayLimit)}</div>`
             }`;
         }
 
