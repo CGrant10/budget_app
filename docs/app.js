@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.15.2';
+const VERSION = '5.16.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,19 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.16.0', date: '2026-05-27', changes: [
+    'Design system unification — border-radius standardized to 18px for cards, 14px for list rows across the entire app',
+    'All progress bars are now parallelogram-shaped with video game tick marks — weekly tracker, health score, goals, budget, and week-by-week breakdown all match',
+    'Input focus glow is now green to match the accent color instead of leftover blue',
+    'Toasts use theme variables — roast and alert toasts now respect your current theme instead of hardcoded dark hex values',
+    'Page titles now have a left accent tick matching the section title language, applied consistently on every page',
+    'Week-by-week rows upgraded to glass treatment with gloss reflection — current week gets an accent glow border',
+    'Past week rows now use muted text + muted border instead of a blanket opacity reduction — they read as archived, not broken',
+    'Active nav button now shows a green scan-line underline and a subtle green tint background — immediately clear which tab is active',
+    'Secondary buttons are now ghost style (neutral border, text color) instead of green — cleaner primary/secondary hierarchy',
+    'Over-limit ⚠ in the ring tile is now larger and bolder — matches the weight of the % number it replaces',
+    'FAILED pulse animation is more dramatic — adds a scale pop and stronger glow burst on the beat',
+  ]},
   { version: '5.15.2', date: '2026-05-26', changes: [
     'Code cleanup pass — removed dead functions (fitLogo, getLastSixWeeks, closeTutorial, stale splash canvas block), stale event listeners, and redundant console.warn calls',
     'Performance: merged multiple transaction scan passes into single loops across the dashboard, planner, sparkline, and add-transaction flow — fewer iterations over your data',
@@ -4187,7 +4200,7 @@ function renderDashboardDawg() {
                 <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
                 <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${wkColor};stroke-dasharray:${C};stroke-dashoffset:${wkDash}"/>
               </svg>
-              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${wkColor}">${wkFailed ? '⚠' : wkPct.toFixed(0)+'%'}</div></div>
+              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct${wkFailed ? ' ring-warn' : ''}" style="color:${wkColor}">${wkFailed ? '⚠' : wkPct.toFixed(0)+'%'}</div></div>
             </div>
             ${wkFailed
               ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
@@ -4211,7 +4224,7 @@ function renderDashboardDawg() {
                 <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
                 <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${dayColor};stroke-dasharray:${C};stroke-dashoffset:${dayDash}"/>
               </svg>
-              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct" style="color:${dayColor}">${dayFailed ? '⚠' : dayPct.toFixed(0)+'%'}</div></div>
+              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct${dayFailed ? ' ring-warn' : ''}" style="color:${dayColor}">${dayFailed ? '⚠' : dayPct.toFixed(0)+'%'}</div></div>
             </div>
             ${dayFailed
               ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
