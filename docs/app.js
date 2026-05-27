@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.16.7';
+const VERSION = '5.16.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.16.8', date: '2026-05-27', changes: [
+    'Per-day tile now nets income against expenses for the day — same logic weekSpent uses, so adding income reduces what counts as "spent today"',
+  ]},
   { version: '5.16.7', date: '2026-05-27', changes: [
     'Splash bark animation upgraded — chromatic aberration glitch burst fires ~34ms before each cut (green/pink RGB split + brightness spike), then the mad dawg snaps in with a skewX overshoot that settles in ~25ms, like a corrupted sprite sheet',
     'Splash screen extended to 4.2s so you see 3 full bark cycles before dismiss — tap anywhere to skip as before',
@@ -4015,14 +4018,15 @@ function renderDashboardDawg() {
   _wkMon.setDate(_wkNow.getDate() - (_wkNow.getDay() === 0 ? 6 : _wkNow.getDay() - 1));
   const _monStr  = _wkMon.toISOString().split('T')[0];
   const _todayStr2 = today();
-  let _wkExp = 0, _wkInc = 0, daySpent = 0;
+  let _wkExp = 0, _wkInc = 0, _dayExp = 0, _dayInc = 0;
   for (const t of state.transactions) {
     if (t.date >= _monStr) {
-      if (t.type === 'expense') { _wkExp += t.amount; if (t.date === _todayStr2) daySpent += t.amount; }
-      else if (t.type === 'income') _wkInc += t.amount;
+      if (t.type === 'expense') { _wkExp += t.amount; if (t.date === _todayStr2) _dayExp += t.amount; }
+      else if (t.type === 'income') { _wkInc += t.amount; if (t.date === _todayStr2) _dayInc += t.amount; }
     }
   }
   const weekSpent = Math.max(0, _wkExp - _wkInc);
+  const daySpent  = Math.max(0, _dayExp - _dayInc);
 
   // Plan settings
   const { income: _dashTotalInc, expense: _dashTotalExp } = totals();
