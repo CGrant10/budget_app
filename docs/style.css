@@ -1288,21 +1288,21 @@ body.light .week-tracker,
 body.light .ledger-row-inner,
 body.light .wkb-row,
 body.light .pw-week-row {
-  background: #dededb;
+  background: #eaeae7;
   border-color: rgba(0,0,0,.08);
   box-shadow: 0 2px 14px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.04);
 }
 body.light .cards-grid .card:first-child {
-  background: linear-gradient(170deg, rgba(232,232,229,1) 0%, rgba(218,218,215,1) 100%);
+  background: linear-gradient(170deg, rgba(242,242,239,1) 0%, rgba(226,226,223,1) 100%);
   border-color: rgba(0,0,0,.09);
   box-shadow: 0 4px 20px rgba(0,0,0,.09), inset 0 1px 0 rgba(255,255,255,.7), inset 0 -1px 0 rgba(0,0,0,.05);
 }
 body.light .header {
-  background: #dededb;
+  background: #eaeae7;
   border-bottom: 1px solid rgba(0,0,0,.1);
 }
 body.light .bottom-nav {
-  background: rgba(222,222,219,.96);
+  background: rgba(234,234,231,.96);
   border-top: 1px solid rgba(0,0,0,.1);
 }
 body.light .nav-btn.active {
@@ -3163,7 +3163,7 @@ body.light .dawg-bell-btn:active { background:rgba(0,0,0,.12); }
 body.light .dawg-acct-pill { background:rgba(0,0,0,.06); border-color:rgba(0,0,0,.12); }
 body.light .dawg-acct-pill:active { background:rgba(0,0,0,.12); }
 body.light .dawg-ham-bar { background:var(--text); }
-body.light .dawg-hero { background:linear-gradient(180deg,#d0d0cd 0%,var(--bg) 100%); }
+body.light .dawg-hero { background:linear-gradient(180deg,#d8d8d5 0%,var(--bg) 100%); }
 body.light .dawg-hero-tagline { color:#111; text-shadow:none; }
 body.light .dawg-hero-dob { filter:drop-shadow(0 4px 12px rgba(0,0,0,.25)); animation:none; }
 body.light .dawg-dob-bark { animation: dawgHeroBarkFlip 8s linear 2s infinite; }

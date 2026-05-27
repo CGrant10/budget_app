@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.17.3';
+const VERSION = '5.17.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.17.4', date: '2026-05-27', changes: [
+    'Light mode brightened — all backgrounds shifted ~12 points lighter for a cleaner feel across all light themes (Default, Sky, Rose, Sand, Silver)',
+    'New "Slate" grey accent option added to dark mode theme picker',
+    'New "Silver" grey accent option added to light mode theme picker',
+  ]},
   { version: '5.17.3', date: '2026-05-27', changes: [
     'Custom accent color now applies everywhere — 35+ hardcoded green rgba values replaced with color-mix(var(--accent)) so rings, glows, focus borders, and tints all follow your chosen color',
     'Toasts slide out smoothly on dismiss instead of popping out instantly',
@@ -1134,7 +1139,7 @@ const THEMES = {
   },
   light: {
     label:'Light', shortLabel:'Mint',
-    bg:'#d4d4d1', surface:'#dededb', surface2:'#c9c9c6', card:'#cececa',
+    bg:'#e2e2df', surface:'#eaeae7', surface2:'#d8d8d5', card:'#e4e4e1',
     accent:'#5ab592', accent2:'#9a7850', success:'#4aaa80', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #1a4030 0%, #5ab592 100%)',
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
@@ -1158,6 +1163,13 @@ const THEMES = {
     accent:'#b8a048', accent2:'#b06040', success:'#5aaa40', warn:'#c8a020', danger:'#c84030',
     cats:{ Food:'#5aaa40', Gas:'#c84030', Car:'#c8a020', Boat:'#409870', Tools:'#c86020', Home:'#80a830', Entertainment:'#a07020', Health:'#50a860', Other:'#788858' },
   },
+  darkslate: {
+    label:'Slate', shortLabel:'Slate',
+    ..._D,
+    accent:'#8890a0', accent2:'#7a8090', success:'#8890a0', warn:'#c0a038', danger:'#c05050',
+    grad:'linear-gradient(135deg, #1c2028 0%, #8890a0 100%)',
+    cats:{ Food:'#7888a0', Gas:'#c05858', Car:'#6878a8', Boat:'#5888a0', Tools:'#b07840', Home:'#788888', Entertainment:'#887898', Health:'#5898a8', Other:'#787880' },
+  },
   auto: { label:'Auto (System)', shortLabel:'Auto', ..._D, accent:'#62b898', accent2:'#a07858', success:'#62b898', warn:'#c0a038', danger:'#c05050', grad:'linear-gradient(135deg, #283530 0%, #62b898 100%)' },
   custom: {
     label:'Custom', shortLabel:'Custom',
@@ -1167,15 +1179,15 @@ const THEMES = {
   },
   customlight: {
     label:'Custom', shortLabel:'Custom',
-    bg:'#d4d4d1', surface:'#dededb', surface2:'#c9c9c6', card:'#cececa',
-    text:'#1e1e20', muted:'#606068', border:'#c0c0bc', light:true, font:'default',
+    bg:'#e2e2df', surface:'#eaeae7', surface2:'#d8d8d5', card:'#e4e4e1',
+    text:'#1e1e20', muted:'#606068', border:'#d5d5d5', light:true, font:'default',
     accent:'#5ab592', accent2:'#5ab592', success:'#5ab592', warn:'#a08030', danger:'#c05050',
-    grad:'linear-gradient(135deg, #c9c9c6 0%, #5ab592 100%)',
+    grad:'linear-gradient(135deg, #d8d8d5 0%, #5ab592 100%)',
   },
   // ── Light mode accent variants ──────────────────────────────────────────
   lightsky: {
     label:'Sky', shortLabel:'Sky',
-    bg:'#d4d4d1', surface:'#dededb', surface2:'#c9c9c6', card:'#cececa',
+    bg:'#e2e2df', surface:'#eaeae7', surface2:'#d8d8d5', card:'#e4e4e1',
     accent:'#5492bc', accent2:'#c07840', success:'#2e9a68', warn:'#b07800', danger:'#a84040',
     grad:'linear-gradient(135deg, #1a304a 0%, #5492bc 100%)',
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
@@ -1183,7 +1195,7 @@ const THEMES = {
   },
   lightrose: {
     label:'Rose', shortLabel:'Rose',
-    bg:'#d4d4d1', surface:'#dededb', surface2:'#c9c9c6', card:'#cececa',
+    bg:'#e2e2df', surface:'#eaeae7', surface2:'#d8d8d5', card:'#e4e4e1',
     accent:'#b05878', accent2:'#987838', success:'#2ea870', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #4a1a2c 0%, #b05878 100%)',
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
@@ -1191,11 +1203,19 @@ const THEMES = {
   },
   lightsand: {
     label:'Sand', shortLabel:'Sand',
-    bg:'#d4d4d1', surface:'#dededb', surface2:'#c9c9c6', card:'#cececa',
+    bg:'#e2e2df', surface:'#eaeae7', surface2:'#d8d8d5', card:'#e4e4e1',
     accent:'#a8843c', accent2:'#c05830', success:'#2ea870', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #4a3010 0%, #a8843c 100%)',
     text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
     cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#a8843c', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
+  },
+  lightsilver: {
+    label:'Silver', shortLabel:'Silver',
+    bg:'#e2e2df', surface:'#eaeae7', surface2:'#d8d8d5', card:'#e4e4e1',
+    accent:'#70788a', accent2:'#8a8080', success:'#4a9870', warn:'#988018', danger:'#a84040',
+    grad:'linear-gradient(135deg, #282c38 0%, #70788a 100%)',
+    text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
+    cats:{ Food:'#4a9870', Gas:'#a84040', Car:'#5068a0', Boat:'#407890', Tools:'#986030', Home:'#608038', Entertainment:'#706890', Health:'#407890', Other:'#606078' },
   },
 };
 
@@ -6364,8 +6384,8 @@ function renderSettings() {
   const isLight    = !isTerminal && !!THEMES[theme]?.light;
   const activeMode = isTerminal ? 'terminal' : isLight ? 'light' : 'dark';
 
-  const DARK_ACCENTS  = ['dark','oled','denim','ember','jurassicpark','auto','custom'];
-  const LIGHT_ACCENTS = ['light','lightsky','lightrose','lightsand','customlight'];
+  const DARK_ACCENTS  = ['dark','oled','denim','ember','jurassicpark','darkslate','auto','custom'];
+  const LIGHT_ACCENTS = ['light','lightsky','lightrose','lightsand','lightsilver','customlight'];
 
   const accentChip = (key, active) => {
     const t = THEMES[key];
