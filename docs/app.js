@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.16.2';
+const VERSION = '5.16.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.16.3', date: '2026-05-27', changes: [
+    'Both budget tiles now show FAILED when your live balance is below the buffer floor — previously the tiles showed a normal spendable amount even while you were already dipping into your buffer',
+    'Per-week tile FAILED shows "−$X below buffer" when the cause is a balance shortfall rather than raw overspending this week',
+    'Per-day tile FAILED shows "−$X below buffer" for the same reason — you can see exactly how much you need to recover before spending resumes',
+    'Ring fills to 100% red on both tiles whenever the below-buffer FAILED state is active',
+  ]},
   { version: '5.16.2', date: '2026-05-27', changes: [
     'Per-day budget tile now derives its daily limit from the weekly limit ÷ 7 — consistent with the planner, never shows $0/day when available balance is split across remaining pay-period days',
     'Per-day tile FAILED state now mirrors the per-week tile exactly — shows red FAILED label, spent/limit line, and over-amount',
@@ -4038,6 +4044,11 @@ function renderDashboardDawg() {
   };
   const { week: _livePerWeek, day: _livePerDay } = _getLimit(_dashWeeks, _dashDays);
 
+  // Is the live balance already below the buffer floor?
+  // When true, both budget tiles should show FAILED regardless of this week's spending.
+  const _belowBuffer   = _dashLiveBal < (_dashStopAt + _dashBills);
+  const _bufferDeficit = _belowBuffer ? Math.max(0, (_dashStopAt + _dashBills) - _dashLiveBal) : 0;
+
   const weekBudget = _livePerWeek;
   const totalBudget = weekBudget || Object.values(state.budgets||{}).reduce((s,v)=>s+(parseFloat(v)||0), 0);
   const budgetSpent = weekBudget && !isPastDash ? weekSpent : mExp;
@@ -4193,9 +4204,9 @@ function renderDashboardDawg() {
       if (!_isDebt) {
         const C = 175.93;
         // ── Per-week tile: mirrors the planner's THIS WEEK tracker exactly ─────
-        if (_livePerWeek > 0 || weekSpent > 0) {
-          const wkFailed = _livePerWeek > 0 && weekSpent > _livePerWeek;
-          const wkPct    = _livePerWeek > 0 ? Math.min(weekSpent / _livePerWeek * 100, 100) : (weekSpent > 0 ? 100 : 0);
+        if (_livePerWeek > 0 || weekSpent > 0 || _belowBuffer) {
+          const wkFailed = _belowBuffer || (_livePerWeek > 0 && weekSpent > _livePerWeek);
+          const wkPct    = wkFailed ? 100 : (_livePerWeek > 0 ? Math.min(weekSpent / _livePerWeek * 100, 100) : (weekSpent > 0 ? 100 : 0));
           const wkColor  = wkFailed || wkPct >= 90 ? 'var(--danger)' : wkPct >= 80 ? 'var(--warn)' : 'var(--accent)';
           const wkDash   = (C * (1 - wkPct / 100)).toFixed(1);
           _tileHtml['budget-week'] = `
@@ -4210,18 +4221,23 @@ function renderDashboardDawg() {
             </div>
             ${wkFailed
               ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
-                 <div class="dawg-tile-sub" style="color:var(--danger)">+${fmt(weekSpent - _livePerWeek)} over</div>`
+                 ${_belowBuffer
+                   ? `<div class="dawg-tile-sub" style="color:var(--danger)">${fmt(weekSpent)} spent</div>
+                      <div class="dawg-tile-sub" style="color:var(--danger)">−${fmt(_bufferDeficit)} below buffer</div>`
+                   : `<div class="dawg-tile-sub" style="color:var(--danger)">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</div>
+                      <div class="dawg-tile-sub" style="color:var(--danger)">+${fmt(weekSpent - _livePerWeek)} over</div>`
+                 }`
               : `<div class="dawg-tile-amt">${fmt(weekSpent)}</div>
                  <div class="dawg-tile-sub">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</div>`
             }`;
         }
         // ── Per-day tile: daily limit = weekly limit / 7, always consistent ──
-        // _livePerDay from _getLimit is rawAvail/totalDays which changes every day
-        // as paydate approaches — useless as a daily budget. Derive from weekly instead.
+        // Also shows FAILED when balance has dipped below the buffer floor, regardless
+        // of today's individual spend — mirrors the per-week tile's buffer check.
         const _perDayLimit = _livePerWeek > 0 ? _livePerWeek / 7 : 0;
-        if (_perDayLimit > 0 || daySpent > 0) {
-          const dayFailed = _perDayLimit > 0 && daySpent > _perDayLimit;
-          const dayPct    = _perDayLimit > 0 ? Math.min(daySpent / _perDayLimit * 100, 100) : (daySpent > 0 ? 100 : 0);
+        if (_perDayLimit > 0 || daySpent > 0 || _belowBuffer) {
+          const dayFailed = _belowBuffer || (_perDayLimit > 0 && daySpent > _perDayLimit);
+          const dayPct    = dayFailed ? 100 : (_perDayLimit > 0 ? Math.min(daySpent / _perDayLimit * 100, 100) : (daySpent > 0 ? 100 : 0));
           const dayColor  = dayFailed || dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
           const dayDash   = (C * (1 - dayPct / 100)).toFixed(1);
           _tileHtml['budget-day'] = `
@@ -4237,7 +4253,10 @@ function renderDashboardDawg() {
             ${dayFailed
               ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
                  <div class="dawg-tile-sub" style="color:var(--danger)">${fmt(daySpent)} / ${fmt(_perDayLimit)}</div>
-                 <div class="dawg-tile-sub" style="color:var(--danger)">+${fmt(daySpent - _perDayLimit)} over</div>`
+                 ${_belowBuffer
+                   ? `<div class="dawg-tile-sub" style="color:var(--danger)">−${fmt(_bufferDeficit)} below buffer</div>`
+                   : `<div class="dawg-tile-sub" style="color:var(--danger)">+${fmt(daySpent - _perDayLimit)} over</div>`
+                 }`
               : `<div class="dawg-tile-amt">${fmt(daySpent)}</div>
                  <div class="dawg-tile-sub">${fmt(daySpent)} / ${fmt(_perDayLimit)}</div>`
             }`;
