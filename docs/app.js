@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.16.3';
+const VERSION = '5.16.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.16.4', date: '2026-05-27', changes: [
+    'Per-day tile limit is now truly dynamic: available-above-buffer ÷ days-to-paydate — shows $0 allowance when below buffer, auto-adjusts daily as balance changes',
+    'Per-week FAILED tile now always shows spent / weekly-limit denominator, plus "−$X below buffer" when the cause is a balance shortfall',
+    'Per-day FAILED tile shows daySpent / $0 when below buffer so you can see exactly why allowance is zero',
+  ]},
   { version: '5.16.3', date: '2026-05-27', changes: [
     'Both budget tiles now show FAILED when your live balance is below the buffer floor — previously the tiles showed a normal spendable amount even while you were already dipping into your buffer',
     'Per-week tile FAILED shows "−$X below buffer" when the cause is a balance shortfall rather than raw overspending this week',
@@ -4221,20 +4226,20 @@ function renderDashboardDawg() {
             </div>
             ${wkFailed
               ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
+                 <div class="dawg-tile-sub" style="color:var(--danger)">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</div>
                  ${_belowBuffer
-                   ? `<div class="dawg-tile-sub" style="color:var(--danger)">${fmt(weekSpent)} spent</div>
-                      <div class="dawg-tile-sub" style="color:var(--danger)">−${fmt(_bufferDeficit)} below buffer</div>`
-                   : `<div class="dawg-tile-sub" style="color:var(--danger)">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</div>
-                      <div class="dawg-tile-sub" style="color:var(--danger)">+${fmt(weekSpent - _livePerWeek)} over</div>`
+                   ? `<div class="dawg-tile-sub" style="color:var(--danger)">−${fmt(_bufferDeficit)} below buffer</div>`
+                   : `<div class="dawg-tile-sub" style="color:var(--danger)">+${fmt(weekSpent - _livePerWeek)} over</div>`
                  }`
               : `<div class="dawg-tile-amt">${fmt(weekSpent)}</div>
                  <div class="dawg-tile-sub">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</div>`
             }`;
         }
-        // ── Per-day tile: daily limit = weekly limit / 7, always consistent ──
-        // Also shows FAILED when balance has dipped below the buffer floor, regardless
-        // of today's individual spend — mirrors the per-week tile's buffer check.
-        const _perDayLimit = _livePerWeek > 0 ? _livePerWeek / 7 : 0;
+        // ── Per-day tile: truly dynamic daily allowance ──────────────────────
+        // Limit = available-above-buffer / days-to-paydate.
+        // When below buffer this is exactly $0 — no allowance until recovered.
+        // When above buffer it auto-adjusts each day so you never bust the floor.
+        const _perDayLimit = _dashAvail > 0 ? _dashAvail / _dashDays : 0;
         if (_perDayLimit > 0 || daySpent > 0 || _belowBuffer) {
           const dayFailed = _belowBuffer || (_perDayLimit > 0 && daySpent > _perDayLimit);
           const dayPct    = dayFailed ? 100 : (_perDayLimit > 0 ? Math.min(daySpent / _perDayLimit * 100, 100) : (daySpent > 0 ? 100 : 0));
@@ -4253,10 +4258,7 @@ function renderDashboardDawg() {
             ${dayFailed
               ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
                  <div class="dawg-tile-sub" style="color:var(--danger)">${fmt(daySpent)} / ${fmt(_perDayLimit)}</div>
-                 ${_belowBuffer
-                   ? `<div class="dawg-tile-sub" style="color:var(--danger)">−${fmt(_bufferDeficit)} below buffer</div>`
-                   : `<div class="dawg-tile-sub" style="color:var(--danger)">+${fmt(daySpent - _perDayLimit)} over</div>`
-                 }`
+                 <div class="dawg-tile-sub" style="color:var(--danger)">${_belowBuffer ? `−${fmt(_bufferDeficit)} below buffer` : `+${fmt(daySpent - _perDayLimit)} over`}</div>`
               : `<div class="dawg-tile-amt">${fmt(daySpent)}</div>
                  <div class="dawg-tile-sub">${fmt(daySpent)} / ${fmt(_perDayLimit)}</div>`
             }`;
