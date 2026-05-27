@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.16.8';
+const VERSION = '5.16.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.16.9', date: '2026-05-27', changes: [
+    'Dashboard hero and accounts page doberman now do the same glitch-snap bark animation as the splash screen — 8s cycle with two barks per round and a chromatic aberration burst before each cut',
+    'Dashboard and accounts bark on an offset timer so they fire at different times',
+  ]},
   { version: '5.16.8', date: '2026-05-27', changes: [
     'Per-day tile now nets income against expenses for the day — same logic weekSpent uses, so adding income reduces what counts as "spent today"',
   ]},
@@ -2940,7 +2944,10 @@ function renderAccountPicker() {
       <div class="dawg-hero acct-picker-hero">
         <div class="dawg-hero-glow"></div>
         <div style="display:flex;align-items:center;gap:12px;padding:14px 14px 0">
-          <img src="./doberman.png" class="dawg-hero-dob" style="width:70px;flex-shrink:0" alt="">
+          <div class="dawg-hero-dob" style="width:70px;flex-shrink:0">
+            <img src="./doberman.png" class="dawg-dob-idle" alt="">
+            <img src="./maddawg.png"  class="dawg-dob-bark" alt="">
+          </div>
           <div>
             <div class="acct-picker-title">My Accounts</div>
             <div class="acct-picker-sub">${count} account${count !== 1 ? 's' : ''} · tap to open</div>
@@ -4186,7 +4193,10 @@ function renderDashboardDawg() {
       <div class="dawg-hero-glow"></div>
       <div class="dawg-hero-inner">
         <div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin" data-glitch="LOCK TF IN.">LOCK TF IN.</em></div>
-        <img src="./doberman.png" class="dawg-hero-dob" alt="">
+        <div class="dawg-hero-dob">
+          <img src="./doberman.png" class="dawg-dob-idle" alt="">
+          <img src="./maddawg.png"  class="dawg-dob-bark" alt="">
+        </div>
       </div>
     </div>
 
