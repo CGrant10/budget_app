@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.17.8';
+const VERSION = '5.17.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.17.9', date: '2026-05-31', changes: [
+    'Bills: marking unpaid now refunds even for bills paid before expense tracking was added — falls back to matching by bill name and amount if no ID is on file',
+  ]},
   { version: '5.17.8', date: '2026-05-31', changes: [
     'Bills: mark paid/unpaid now updates the card in-place — page position never changes',
   ]},
@@ -5951,14 +5954,26 @@ function attachBills() {
       };
 
       if (paid) {
-        // Marking unpaid — refund the logged expense if one was recorded
-        const prevTxnId = state.bills[i].loggedTxnId;
+        // Marking unpaid — find and remove the logged expense
+        const b2        = state.bills[i];
+        const prevTxnId = b2.loggedTxnId;
+        let txnIdx      = -1;
         if (prevTxnId) {
-          const txnIdx = state.transactions.findIndex(t => t._billTxnId === prevTxnId);
-          if (txnIdx !== -1) await api.deleteTransaction(txnIdx);
-          state.bills[i].loggedTxnId = null;
+          // Exact match by stored ID (bills marked paid after v5.17.7)
+          txnIdx = state.transactions.findIndex(t => t._billTxnId === prevTxnId);
         }
-        state.bills[i].paidMonth = null;
+        if (txnIdx === -1) {
+          // Fallback: most recent expense matching this bill's name + amount
+          for (let j = state.transactions.length - 1; j >= 0; j--) {
+            const t = state.transactions[j];
+            if (t.type === 'expense' && t.amount === b2.amount && t.description === b2.name) {
+              txnIdx = j; break;
+            }
+          }
+        }
+        if (txnIdx !== -1) await api.deleteTransaction(txnIdx);
+        state.bills[i].loggedTxnId = null;
+        state.bills[i].paidMonth   = null;
         await api.saveBills(state.bills);
         refreshCard();
       } else {
