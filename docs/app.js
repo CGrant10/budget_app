@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.17.9';
+const VERSION = '5.18.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.18.0', date: '2026-05-31', changes: [
+    'Bills: marking unpaid removes the expense from the ledger and restores the balance — confirmed with a toast showing what was removed',
+    'Bills: fallback match is now case/trim-insensitive so minor naming differences no longer block the delete',
+  ]},
   { version: '5.17.9', date: '2026-05-31', changes: [
     'Bills: marking unpaid now refunds even for bills paid before expense tracking was added — falls back to matching by bill name and amount if no ID is on file',
   ]},
@@ -5959,22 +5963,30 @@ function attachBills() {
         const prevTxnId = b2.loggedTxnId;
         let txnIdx      = -1;
         if (prevTxnId) {
-          // Exact match by stored ID (bills marked paid after v5.17.7)
+          // Exact match by stored ID
           txnIdx = state.transactions.findIndex(t => t._billTxnId === prevTxnId);
         }
         if (txnIdx === -1) {
-          // Fallback: most recent expense matching this bill's name + amount
+          // Fallback: most recent expense matching this bill's name + amount (case/trim insensitive)
+          const bName = (b2.name || '').trim().toLowerCase();
+          const bAmt  = +b2.amount;
           for (let j = state.transactions.length - 1; j >= 0; j--) {
             const t = state.transactions[j];
-            if (t.type === 'expense' && t.amount === b2.amount && t.description === b2.name) {
+            if (t.type === 'expense' && +t.amount === bAmt &&
+                (t.description || '').trim().toLowerCase() === bName) {
               txnIdx = j; break;
             }
           }
         }
-        if (txnIdx !== -1) await api.deleteTransaction(txnIdx);
         state.bills[i].loggedTxnId = null;
         state.bills[i].paidMonth   = null;
         await api.saveBills(state.bills);
+        if (txnIdx !== -1) {
+          await api.deleteTransaction(txnIdx);
+          showAlert(`↩ ${b2.name} marked unpaid — expense removed from ledger`);
+        } else {
+          showAlert(`↩ ${b2.name} marked unpaid`);
+        }
         refreshCard();
       } else {
         // Marking paid
