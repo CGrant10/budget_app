@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.18.5';
+const VERSION = '5.18.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.18.6', date: '2026-05-31', changes: [
+    'Weekly Planner: Forfeit button on past weeks — dims the week and auto-opens Start New Cycle so you can move on; tap ↩ Undo to restore it',
+  ]},
   { version: '5.18.5', date: '2026-05-31', changes: [
     'Bills: calendar dots now update in-place when marking paid/unpaid — no stale state',
     'Bills: deleting a paid bill also removes its logged expense from the ledger',
@@ -5762,8 +5765,11 @@ function calcWeekly() {
       const spentColor   = _histPerWk > 0 && wkExp > _histPerWk ? 'var(--danger)' : wkExp > 0 ? 'var(--text)' : 'var(--muted)';
       const spentLabel   = wkExp > 0 ? `${fmt(wkExp)} / ${fmt(_histPerWk)}` : 'No spending';
       const miniBar      = _histPerWk > 0 ? `<div class="breakdown-bar-bg small" style="flex:1;margin:0 8px"><div class="breakdown-bar-fill" style="width:${pastPct.toFixed(1)}%;background:${pastBarColor}"></div></div>` : `<span style="flex:1"></span>`;
+      const forfeited    = (state.weekly_plan.forfeitedWeeks || []).includes(sdS);
+      const forfeitBtn   = `<button class="wkb-forfeit-btn" data-week="${sdS}">${forfeited ? '↩ Undo' : 'Forfeit'}</button>`;
+      const displayLabel = forfeited ? `<span class="wkb-forfeited-badge">FORFEITED</span>` : `<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span>`;
       if (monthLabel !== lastMonth) { lastMonth = monthLabel; allRowsHtml.push(`<div class="wkb-month-header">${monthLabel}</div>`); }
-      allRowsHtml.push(`<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span>${miniBar}<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
+      allRowsHtml.push(`<div class="wkb-row wkb-past${forfeited ? ' wkb-forfeited' : ''}"><div class="wkb-header"><span class="week-dates">${lbl}</span>${forfeited ? '<span style="flex:1"></span>' : miniBar}${displayLabel}${forfeitBtn}<span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     } else {
       // Current + future weeks — live, recalculated on every settings change
       const _rowDenominator = _effectivePerWeek > 0 ? _effectivePerWeek : (wkNet > 0 ? wkNet : perWeek);
@@ -9036,6 +9042,29 @@ function attachWeekly() {
     await api.saveWeeklyPlan(plan);
     haptic([20, 40, 20]);
     render();
+  });
+
+  // ── Forfeit / undo forfeit past week ────────────────────────────────────
+  document.getElementById('wk-all-rows')?.addEventListener('click', async e => {
+    const btn = e.target.closest('.wkb-forfeit-btn');
+    if (!btn) return;
+    e.stopPropagation(); // don't trigger the row expand toggle
+    const weekStart   = btn.dataset.week;
+    const wp          = { ...state.weekly_plan };
+    const forfeited   = [...(wp.forfeitedWeeks || [])];
+    const idx         = forfeited.indexOf(weekStart);
+    if (idx !== -1) { forfeited.splice(idx, 1); }
+    else            { forfeited.push(weekStart); }
+    wp.forfeitedWeeks = forfeited;
+    await api.saveWeeklyPlan(wp);
+    calcWeekly();
+    // If forfeiting (not undoing) and no future cycle is set up, open the Start New Cycle form
+    if (idx === -1) {
+      const np = document.getElementById('wk-next-cycle-form');
+      if (np && np.style.display === 'none') {
+        document.getElementById('wk-next-cycle-btn')?.click();
+      }
+    }
   });
 }
 
