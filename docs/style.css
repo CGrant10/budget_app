@@ -763,6 +763,16 @@ body::before {
 .wt-txns-body { display: none; }
 
 .wkb-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.wkb-month-header {
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 10px 2px 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
 .wkb-row {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);

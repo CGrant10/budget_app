@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.18.1';
+const VERSION = '5.18.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.18.2', date: '2026-05-31', changes: [
+    'Weekly Planner: week-by-week breakdown is now grouped by month with a labeled divider between each month',
+  ]},
   { version: '5.18.1', date: '2026-05-31', changes: [
     'Weekly Planner: "Start New Cycle" button — set your next paydate, carry over bills and stop-at, and start fresh without losing your history',
     'Cycle gap is remembered so the next paydate pre-fills automatically based on your usual pay frequency',
@@ -5702,8 +5705,10 @@ function calcWeekly() {
 
   const txnRow = t => `<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`;
 
-  const pastRowsHtml  = [];
+  const pastRowsHtml   = [];
   const futureRowsHtml = [];
+  let lastPastMonth    = null;
+  let lastFutureMonth  = null;
 
   Array.from({length: totalWeeks}, (_, w) => {
     const sd = new Date(startMonday); sd.setDate(startMonday.getDate() + w*7);
@@ -5711,8 +5716,9 @@ function calcWeekly() {
     if (ed > paydate) ed.setTime(paydate.getTime());
     const sdS = sd.toISOString().split('T')[0];
     const edS = ed.toISOString().split('T')[0];
-    const isCurrent = sdS <= mondayStr && mondayStr <= edS;
-    const isPast    = edS < mondayStr;
+    const isCurrent  = sdS <= mondayStr && mondayStr <= edS;
+    const isPast     = edS < mondayStr;
+    const monthLabel = sd.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const lbl = `${sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
     const wkTxns = state.transactions.filter(t=>t.date>=sdS&&t.date<=edS);
     const wkExp  = wkTxns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
@@ -5740,6 +5746,10 @@ function calcWeekly() {
       const spentColor   = _histPerWk > 0 && wkExp > _histPerWk ? 'var(--danger)' : wkExp > 0 ? 'var(--text)' : 'var(--muted)';
       const spentLabel   = wkExp > 0 ? `${fmt(wkExp)} / ${fmt(_histPerWk)}` : 'No spending';
       const miniBar      = _histPerWk > 0 ? `<div class="breakdown-bar-bg small" style="flex:1;margin:0 8px"><div class="breakdown-bar-fill" style="width:${pastPct.toFixed(1)}%;background:${pastBarColor}"></div></div>` : `<span style="flex:1"></span>`;
+      if (monthLabel !== lastPastMonth) {
+        lastPastMonth = monthLabel;
+        pastRowsHtml.push(`<div class="wkb-month-header">${monthLabel}</div>`);
+      }
       pastRowsHtml.push(`<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span>${miniBar}<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     } else {
       // Current + future weeks — live, recalculated on every settings change
@@ -5748,6 +5758,10 @@ function calcWeekly() {
       const wkPct   = _rowDenominator > 0 ? Math.min(wkNet/_rowDenominator*100,100) : 0;
       const wkColor = isCurrent && _wkFailed ? 'var(--danger)' : wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
       const badge   = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
+      if (monthLabel !== lastFutureMonth) {
+        lastFutureMonth = monthLabel;
+        futureRowsHtml.push(`<div class="wkb-month-header">${monthLabel}</div>`);
+      }
       futureRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(_rowDenominator)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     }
   });
