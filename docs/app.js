@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.18.4';
+const VERSION = '5.18.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,13 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.18.5', date: '2026-05-31', changes: [
+    'Bills: calendar dots now update in-place when marking paid/unpaid — no stale state',
+    'Bills: deleting a paid bill also removes its logged expense from the ledger',
+    'Bills: refund fallback now scoped to the month the bill was paid — prevents accidentally deleting an unrelated expense with the same name and amount',
+    'Notes: badge now appears on the DAWG bottom nav button too, not just the hidden nav list',
+    'Weekly Planner: calcWeekly is debounced 300ms — no more full list rebuild on every keystroke',
+  ]},
   { version: '5.18.4', date: '2026-05-31', changes: [
     'Weekly Planner: all weeks now render in one continuous list — current week stays grouped under its month with past weeks instead of appearing in a separate section',
   ]},
@@ -1770,6 +1777,7 @@ function checkSpendingAlert(category) {
 let state = { transactions: [], weekly_plan: {}, budgets: {}, bills: [], goals: [], challenges: [], accounts: [], startingBalance: 0 };
 let lastCalcPerWeek = 0;
 let lastCalcPerDay  = 0;
+let _wkCalcTimer    = null;
 let dashChartMode = 'bar';
 let currentAccountId = 'main';
 const STORAGE_KEY  = 'slawminyaw';
@@ -2631,13 +2639,16 @@ function updateNotesBadge() {
   const count = loadNotes().filter(n => !n.done && n.dueDate && n.dueDate <= todayStr).length;
   document.querySelectorAll('.nav-notes-badge').forEach(el => el.remove());
   if (count > 0) {
-    const btn = document.querySelector('.nav-btn[data-tab="notes"]');
-    if (btn) {
+    [
+      document.querySelector('.nav-btn[data-tab="notes"]'),
+      document.querySelector('.dawg-nav-btn[data-tab="notes"]'),
+    ].filter(Boolean).forEach(btn => {
       const badge = document.createElement('span');
       badge.className = 'nav-notes-badge nav-bill-badge';
       badge.textContent = count;
+      btn.style.position = 'relative';
       btn.appendChild(badge);
-    }
+    });
   }
 }
 
@@ -5977,6 +5988,14 @@ function attachBills() {
           stillDueEl.textContent   = fmt(stillDue);
           stillDueEl.style.color   = stillDue > 0 ? 'var(--warn)' : 'var(--success)';
         }
+        // Calendar dot for this bill's due day
+        const calCell = document.querySelector(`#bcal-grid .bcal-cell[data-day="${b2.dueDay}"]`);
+        if (calCell) {
+          const dayBills = state.bills.filter(b => b.dueDay === b2.dueDay);
+          const allPaid  = dayBills.length > 0 && dayBills.every(b => b.paidMonth === m);
+          calCell.classList.toggle('bill-paid', allPaid);
+          calCell.classList.toggle('bill-due',  !allPaid);
+        }
         updateBillBadge();
       };
 
@@ -5990,13 +6009,15 @@ function attachBills() {
           txnIdx = state.transactions.findIndex(t => t._billTxnId === prevTxnId);
         }
         if (txnIdx === -1) {
-          // Fallback: most recent expense matching this bill's name + amount (case/trim insensitive)
-          const bName = (b2.name || '').trim().toLowerCase();
-          const bAmt  = +b2.amount;
+          // Fallback: most recent expense this month matching name + amount
+          const bName    = (b2.name || '').trim().toLowerCase();
+          const bAmt     = +b2.amount;
+          const billMonth = b2.paidMonth || m;
           for (let j = state.transactions.length - 1; j >= 0; j--) {
             const t = state.transactions[j];
             if (t.type === 'expense' && +t.amount === bAmt &&
-                (t.description || '').trim().toLowerCase() === bName) {
+                (t.description || '').trim().toLowerCase() === bName &&
+                (t.date || '').startsWith(billMonth)) {
               txnIdx = j; break;
             }
           }
@@ -6042,11 +6063,35 @@ function attachBills() {
   document.querySelectorAll('.bill-delete-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const i = parseInt(btn.dataset.idx);
+      const b = state.bills[i];
+      const curM = new Date().toISOString().slice(0, 7);
+      const wasPaid = b.paidMonth === curM;
+      const extra = wasPaid ? ' The logged expense will also be removed from your ledger.' : '';
       showConfirmModal({
         title: 'Delete Bill',
-        message: `Delete "${state.bills[i].name}"? This cannot be undone.`,
+        message: `Delete "${b.name}"? This cannot be undone.${extra}`,
         confirmText: 'Delete', danger: true,
-        onConfirm: async () => { state.bills.splice(i, 1); await api.saveBills(state.bills); render(); },
+        onConfirm: async () => {
+          // Remove the logged expense if the bill was paid this month
+          if (wasPaid) {
+            let txnIdx = -1;
+            if (b.loggedTxnId) txnIdx = state.transactions.findIndex(t => t._billTxnId === b.loggedTxnId);
+            if (txnIdx === -1) {
+              const bName = (b.name || '').trim().toLowerCase();
+              const bAmt  = +b.amount;
+              for (let j = state.transactions.length - 1; j >= 0; j--) {
+                const t = state.transactions[j];
+                if (t.type === 'expense' && +t.amount === bAmt &&
+                    (t.description || '').trim().toLowerCase() === bName &&
+                    (t.date || '').startsWith(curM)) { txnIdx = j; break; }
+              }
+            }
+            if (txnIdx !== -1) await api.deleteTransaction(txnIdx);
+          }
+          state.bills.splice(i, 1);
+          await api.saveBills(state.bills);
+          render();
+        },
       });
     });
   });
@@ -8924,8 +8969,11 @@ function attachLedger() {
 }
 
 function attachWeekly() {
-  ['wk-paydate','wk-bills','wk-stop-at'].forEach(id =>
-    document.getElementById(id)?.addEventListener('change', calcWeekly));
+  const _debouncedCalc = () => { clearTimeout(_wkCalcTimer); _wkCalcTimer = setTimeout(calcWeekly, 300); };
+  ['wk-paydate','wk-bills','wk-stop-at'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', _debouncedCalc);
+    document.getElementById(id)?.addEventListener('input',  _debouncedCalc);
+  });
   document.getElementById('wk-save')?.addEventListener('click', async () => {
     const plan = {
       bills:           document.getElementById('wk-bills').value,
