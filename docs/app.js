@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.18.0';
+const VERSION = '5.18.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.18.1', date: '2026-05-31', changes: [
+    'Weekly Planner: "Start New Cycle" button — set your next paydate, carry over bills and stop-at, and start fresh without losing your history',
+    'Cycle gap is remembered so the next paydate pre-fills automatically based on your usual pay frequency',
+  ]},
   { version: '5.18.0', date: '2026-05-31', changes: [
     'Bills: marking unpaid removes the expense from the ledger and restores the balance — confirmed with a toast showing what was removed',
     'Bills: fallback match is now case/trim-insensitive so minor naming differences no longer block the delete',
@@ -5556,6 +5560,28 @@ function renderWeekly() {
         </div>
       </div>
       <div id="wk-live"></div>
+      <div id="wk-next-cycle-wrap" style="margin:0 0 20px">
+        <button id="wk-next-cycle-btn" class="btn-secondary" style="width:100%">🔄 Start New Cycle</button>
+        <div id="wk-next-cycle-form" class="form-card" style="display:none;margin-top:10px">
+          <h2 class="section-title" style="margin:0 0 10px">New Pay Cycle</h2>
+          <div class="form-row">
+            <label class="form-label">Next paycheck date</label>
+            <input type="date" id="wk-nc-paydate" class="form-input">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Fixed bills to reserve ($)</label>
+            <input type="number" id="wk-nc-bills" class="form-input" step="0.01" inputmode="decimal">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Stop-at — minimum balance ($)</label>
+            <input type="number" id="wk-nc-stopat" class="form-input" step="0.01" inputmode="decimal" placeholder="0">
+          </div>
+          <div class="btn-row" style="gap:8px">
+            <button id="wk-nc-confirm" class="btn-primary" style="flex:1">✓ Start Cycle</button>
+            <button id="wk-nc-cancel" class="btn-secondary" style="flex:1">Cancel</button>
+          </div>
+        </div>
+      </div>
       <div id="wk-week-section" style="display:none">
         <h2 class="section-title" style="margin-bottom:10px">Week-by-week breakdown</h2>
         <div class="wkb-rows" id="wk-past-rows"></div>
@@ -8917,6 +8943,54 @@ function attachWeekly() {
     await api.saveWeeklyPlan(plan);
     const el = document.getElementById('wk-save-status');
     if (el) { el.textContent = '✓ Saved'; setTimeout(() => { el.textContent = ''; }, 3000); }
+  });
+
+  // ── Start New Cycle ─────────────────────────────────────────────────────
+  document.getElementById('wk-next-cycle-btn')?.addEventListener('click', () => {
+    const form = document.getElementById('wk-next-cycle-form');
+    if (!form) return;
+    const isOpen = form.style.display !== 'none';
+    if (isOpen) { form.style.display = 'none'; return; }
+    // Pre-fill: next paydate = current paydate + cycle gap (or +14 days if none saved)
+    const wp       = state.weekly_plan;
+    const curPay   = wp.paydate ? new Date(wp.paydate + 'T00:00:00') : new Date();
+    const prevPay  = wp.prev_paydate ? new Date(wp.prev_paydate + 'T00:00:00') : null;
+    const gap      = prevPay ? Math.round((curPay - prevPay) / 86400000) : 14;
+    const nextPay  = new Date(curPay); nextPay.setDate(curPay.getDate() + Math.max(7, gap));
+    document.getElementById('wk-nc-paydate').value = nextPay.toISOString().split('T')[0];
+    document.getElementById('wk-nc-bills').value   = wp.bills  || '0';
+    document.getElementById('wk-nc-stopat').value  = wp.stop_at || '0';
+    form.style.display = '';
+    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  document.getElementById('wk-nc-cancel')?.addEventListener('click', () => {
+    document.getElementById('wk-next-cycle-form').style.display = 'none';
+  });
+
+  document.getElementById('wk-nc-confirm')?.addEventListener('click', async () => {
+    const newPaydate = document.getElementById('wk-nc-paydate').value;
+    const newBills   = document.getElementById('wk-nc-bills').value;
+    const newStopAt  = document.getElementById('wk-nc-stopat').value;
+    if (!newPaydate) {
+      showAlert('Please pick a next paycheck date.');
+      return;
+    }
+    // Carry forward current paydate as prev_paydate so we can infer cycle gap next time
+    const plan = {
+      bills:           newBills,
+      stop_at:         newStopAt,
+      paydate:         newPaydate,
+      prev_paydate:    state.weekly_plan.paydate || null,
+      per_week:        0,
+      per_day:         0,
+      budget_per_week: 0,
+      budget_per_day:  0,
+      saved_date:      today(),
+    };
+    await api.saveWeeklyPlan(plan);
+    haptic([20, 40, 20]);
+    render();
   });
 }
 
