@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.17.7';
+const VERSION = '5.17.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,9 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.17.8', date: '2026-05-31', changes: [
+    'Bills: mark paid/unpaid now updates the card in-place — page position never changes',
+  ]},
   { version: '5.17.7', date: '2026-05-31', changes: [
     'Bills: paid cards now visually dim with a green left border so paid vs unpaid is instantly obvious',
-    'Bills: marking paid/unpaid no longer scrolls the page back to the top',
     'Bills: marking a bill unpaid now automatically deletes the expense that was logged when it was marked paid — no more double-deduction',
   ]},
   { version: '5.17.6', date: '2026-05-27', changes: [
@@ -5865,7 +5867,7 @@ function renderBills() {
         </div>
         <div class="card">
           <div class="card-title">STILL DUE</div>
-          <div class="card-value" style="color:${totalUnpaid>0?'var(--warn)':'var(--success)'}">${fmt(totalUnpaid)}</div>
+          <div id="bills-still-due" class="card-value" style="color:${totalUnpaid>0?'var(--warn)':'var(--success)'}">${fmt(totalUnpaid)}</div>
           <div class="card-sub">this month</div>
         </div>
       </div>
@@ -5912,11 +5914,41 @@ function attachBills() {
 
   document.querySelectorAll('.bill-paid-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const i      = parseInt(btn.dataset.idx);
-      const paid   = btn.dataset.paid === 'true';
-      const m      = new Date().toISOString().slice(0, 7);
-      const savedY = window.scrollY;
-      const go     = () => { render(); requestAnimationFrame(() => window.scrollTo(0, savedY)); };
+      const i    = parseInt(btn.dataset.idx);
+      const paid = btn.dataset.paid === 'true';
+      const m    = new Date().toISOString().slice(0, 7);
+
+      // Update just the card DOM — no render(), no scroll jump
+      const refreshCard = () => {
+        const b2     = state.bills[i];
+        const isPaid = b2.paidMonth === m;
+        const d2     = getDaysUntilDue(b2.dueDay);
+        const card   = btn.closest('.bill-card');
+        if (!card) return;
+        // card styling
+        card.classList.toggle('bill-card-paid', isPaid);
+        // badge
+        let badgeHtml = '';
+        if (isPaid)        badgeHtml = '<span class="bill-badge paid">PAID</span>';
+        else if (d2 === 0) badgeHtml = '<span class="bill-badge due-today">TODAY</span>';
+        else if (d2 <= 3)  badgeHtml = `<span class="bill-badge due-soon">in ${d2}d</span>`;
+        else if (d2 <= 7)  badgeHtml = `<span class="bill-badge upcoming-soon">in ${d2}d</span>`;
+        else               badgeHtml = `<span class="bill-badge upcoming">day ${b2.dueDay}</span>`;
+        const badgeEl = card.querySelector('.bill-badge');
+        if (badgeEl) badgeEl.outerHTML = badgeHtml;
+        // button
+        btn.innerHTML = isPaid ? '↩ Mark Unpaid' : '✓ Mark Paid';
+        btn.dataset.paid = String(isPaid);
+        btn.classList.toggle('bill-unpaid-btn', isPaid);
+        // STILL DUE tile
+        const stillDue   = state.bills.filter(b => b.paidMonth !== m).reduce((s, b) => s + b.amount, 0);
+        const stillDueEl = document.getElementById('bills-still-due');
+        if (stillDueEl) {
+          stillDueEl.textContent   = fmt(stillDue);
+          stillDueEl.style.color   = stillDue > 0 ? 'var(--warn)' : 'var(--success)';
+        }
+        updateBillBadge();
+      };
 
       if (paid) {
         // Marking unpaid — refund the logged expense if one was recorded
@@ -5928,7 +5960,7 @@ function attachBills() {
         }
         state.bills[i].paidMonth = null;
         await api.saveBills(state.bills);
-        go();
+        refreshCard();
       } else {
         // Marking paid
         state.bills[i].paidMonth = m;
@@ -5949,9 +5981,9 @@ function attachBills() {
             });
             state.bills[i].loggedTxnId = billTxnId;
             await api.saveBills(state.bills);
-            go();
+            refreshCard();
           },
-          onCancel: go,
+          onCancel: refreshCard,
         });
       }
     });
