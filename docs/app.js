@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.18.2';
+const VERSION = '5.18.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.18.3', date: '2026-05-31', changes: [
+    'Weekly Planner: fixed "Jun 1 – Jun 1" single-day ghost week when paydate lands on a Monday',
+  ]},
   { version: '5.18.2', date: '2026-05-31', changes: [
     'Weekly Planner: week-by-week breakdown is now grouped by month with a labeled divider between each month',
   ]},
@@ -5718,6 +5721,8 @@ function calcWeekly() {
     const edS = ed.toISOString().split('T')[0];
     const isCurrent  = sdS <= mondayStr && mondayStr <= edS;
     const isPast     = edS < mondayStr;
+    // Skip degenerate future weeks that start on or after the paydate (e.g. "Jun 1 – Jun 1")
+    if (!isPast && paydateStr && sdS >= paydateStr) return;
     const monthLabel = sd.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const lbl = `${sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
     const wkTxns = state.transactions.filter(t=>t.date>=sdS&&t.date<=edS);
