@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.18.3';
+const VERSION = '5.18.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.18.4', date: '2026-05-31', changes: [
+    'Weekly Planner: all weeks now render in one continuous list — current week stays grouped under its month with past weeks instead of appearing in a separate section',
+  ]},
   { version: '5.18.3', date: '2026-05-31', changes: [
     'Weekly Planner: fixed "Jun 1 – Jun 1" single-day ghost week when paydate lands on a Monday',
   ]},
@@ -5590,8 +5593,7 @@ function renderWeekly() {
       </div>
       <div id="wk-week-section" style="display:none">
         <h2 class="section-title" style="margin-bottom:10px">Week-by-week breakdown</h2>
-        <div class="wkb-rows" id="wk-past-rows"></div>
-        <div class="wkb-rows" id="wk-future-rows"></div>
+        <div class="wkb-rows" id="wk-all-rows"></div>
       </div>
     </div>`;
 }
@@ -5708,10 +5710,8 @@ function calcWeekly() {
 
   const txnRow = t => `<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`;
 
-  const pastRowsHtml   = [];
-  const futureRowsHtml = [];
-  let lastPastMonth    = null;
-  let lastFutureMonth  = null;
+  const allRowsHtml = [];
+  let lastMonth     = null;
 
   Array.from({length: totalWeeks}, (_, w) => {
     const sd = new Date(startMonday); sd.setDate(startMonday.getDate() + w*7);
@@ -5751,23 +5751,16 @@ function calcWeekly() {
       const spentColor   = _histPerWk > 0 && wkExp > _histPerWk ? 'var(--danger)' : wkExp > 0 ? 'var(--text)' : 'var(--muted)';
       const spentLabel   = wkExp > 0 ? `${fmt(wkExp)} / ${fmt(_histPerWk)}` : 'No spending';
       const miniBar      = _histPerWk > 0 ? `<div class="breakdown-bar-bg small" style="flex:1;margin:0 8px"><div class="breakdown-bar-fill" style="width:${pastPct.toFixed(1)}%;background:${pastBarColor}"></div></div>` : `<span style="flex:1"></span>`;
-      if (monthLabel !== lastPastMonth) {
-        lastPastMonth = monthLabel;
-        pastRowsHtml.push(`<div class="wkb-month-header">${monthLabel}</div>`);
-      }
-      pastRowsHtml.push(`<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span>${miniBar}<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
+      if (monthLabel !== lastMonth) { lastMonth = monthLabel; allRowsHtml.push(`<div class="wkb-month-header">${monthLabel}</div>`); }
+      allRowsHtml.push(`<div class="wkb-row wkb-past"><div class="wkb-header"><span class="week-dates">${lbl}</span>${miniBar}<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     } else {
       // Current + future weeks — live, recalculated on every settings change
-      // Always use the effective limit (savedPerWeek) as denominator so FAILED shows real overrun
       const _rowDenominator = _effectivePerWeek > 0 ? _effectivePerWeek : (wkNet > 0 ? wkNet : perWeek);
       const wkPct   = _rowDenominator > 0 ? Math.min(wkNet/_rowDenominator*100,100) : 0;
       const wkColor = isCurrent && _wkFailed ? 'var(--danger)' : wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
       const badge   = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
-      if (monthLabel !== lastFutureMonth) {
-        lastFutureMonth = monthLabel;
-        futureRowsHtml.push(`<div class="wkb-month-header">${monthLabel}</div>`);
-      }
-      futureRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(_rowDenominator)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
+      if (monthLabel !== lastMonth) { lastMonth = monthLabel; allRowsHtml.push(`<div class="wkb-month-header">${monthLabel}</div>`); }
+      allRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(_rowDenominator)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     }
   });
 
@@ -5803,26 +5796,11 @@ function calcWeekly() {
     this.textContent = open ? '▲  hide transactions' : '▼  show transactions';
   });
 
-  // ── Write past rows ONCE — never overwrite if already populated ─────────
-  const pastEl = document.getElementById('wk-past-rows');
-  if (pastEl && !pastEl.children.length && pastRowsHtml.length) {
-    pastEl.innerHTML = pastRowsHtml.join('');
-    pastEl.querySelectorAll('.wkb-header').forEach(hdr => {
-      hdr.addEventListener('click', () => {
-        const txns = hdr.nextElementSibling;
-        const tog  = hdr.querySelector('.pw-week-toggle');
-        const open = txns.style.display !== 'block';
-        txns.style.display = open ? 'block' : 'none';
-        if (tog) tog.textContent = open ? '▲' : '▼';
-      });
-    });
-  }
-
-  // ── Always rebuild current + future rows ───────────────────────────────
-  const futureEl = document.getElementById('wk-future-rows');
-  if (futureEl) {
-    futureEl.innerHTML = futureRowsHtml.join('');
-    futureEl.querySelectorAll('.wkb-header').forEach(hdr => {
+  // ── Write all weeks into one container, grouped by month ─────────────
+  const allEl = document.getElementById('wk-all-rows');
+  if (allEl) {
+    allEl.innerHTML = allRowsHtml.join('');
+    allEl.querySelectorAll('.wkb-header').forEach(hdr => {
       hdr.addEventListener('click', () => {
         const txns = hdr.nextElementSibling;
         const tog  = hdr.querySelector('.pw-week-toggle');
