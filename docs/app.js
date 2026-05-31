@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.17.6';
+const VERSION = '5.17.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.17.7', date: '2026-05-31', changes: [
+    'Bills: paid cards now visually dim with a green left border so paid vs unpaid is instantly obvious',
+    'Bills: marking paid/unpaid no longer scrolls the page back to the top',
+    'Bills: marking a bill unpaid now automatically deletes the expense that was logged when it was marked paid — no more double-deduction',
+  ]},
   { version: '5.17.6', date: '2026-05-27', changes: [
     'Notes & Reminders added to hamburger drawer — accessible even without it pinned to the nav bar',
   ]},
@@ -5793,7 +5798,7 @@ function renderBills() {
     else if (d <= 7)  badge = `<span class="bill-badge upcoming-soon">in ${d}d</span>`;
     else              badge = `<span class="bill-badge upcoming">day ${b.dueDay}</span>`;
     return `
-      <div class="bill-card">
+      <div class="bill-card${paid ? ' bill-card-paid' : ''}">
         <div class="bill-card-main">
           <span class="cat-dot" style="background:${CAT_COLORS[b.category]||'#9896a4'}"></span>
           <div class="bill-card-info">
@@ -5806,7 +5811,7 @@ function renderBills() {
           </div>
         </div>
         <div class="bill-card-actions">
-          <button class="btn-xs bill-paid-btn" data-idx="${i}" data-paid="${paid}">${paid ? 'Mark Unpaid' : '✓ Mark Paid'}</button>
+          <button class="btn-xs bill-paid-btn${paid ? ' bill-unpaid-btn' : ''}" data-idx="${i}" data-paid="${paid}">${paid ? '↩ Mark Unpaid' : '✓ Mark Paid'}</button>
           <button class="btn-xs bill-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-idx="${i}">Delete</button>
         </div>
       </div>`;
@@ -5907,14 +5912,28 @@ function attachBills() {
 
   document.querySelectorAll('.bill-paid-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const i    = parseInt(btn.dataset.idx);
-      const paid = btn.dataset.paid === 'true';
-      const m    = new Date().toISOString().slice(0, 7);
-      state.bills[i].paidMonth = paid ? null : m;
-      await api.saveBills(state.bills);
-      if (!paid) haptic([20, 40, 20]);
-      if (!paid) {
-        // Was just marked paid — offer to log as expense
+      const i      = parseInt(btn.dataset.idx);
+      const paid   = btn.dataset.paid === 'true';
+      const m      = new Date().toISOString().slice(0, 7);
+      const savedY = window.scrollY;
+      const go     = () => { render(); requestAnimationFrame(() => window.scrollTo(0, savedY)); };
+
+      if (paid) {
+        // Marking unpaid — refund the logged expense if one was recorded
+        const prevTxnId = state.bills[i].loggedTxnId;
+        if (prevTxnId) {
+          const txnIdx = state.transactions.findIndex(t => t._billTxnId === prevTxnId);
+          if (txnIdx !== -1) await api.deleteTransaction(txnIdx);
+          state.bills[i].loggedTxnId = null;
+        }
+        state.bills[i].paidMonth = null;
+        await api.saveBills(state.bills);
+        go();
+      } else {
+        // Marking paid
+        state.bills[i].paidMonth = m;
+        await api.saveBills(state.bills);
+        haptic([20, 40, 20]);
         const b = state.bills[i];
         showConfirmModal({
           title: 'Log as Expense?',
@@ -5922,15 +5941,19 @@ function attachBills() {
           confirmText: 'Log it',
           cancelText: 'Skip',
           onConfirm: async () => {
+            const billTxnId = 'billtxn-' + Date.now().toString(36);
             await api.addTransaction({
               type: 'expense', amount: b.amount, description: b.name,
-              category: b.category, date: new Date().toISOString().slice(0, 10), account: currentAccountId,
+              category: b.category, date: new Date().toISOString().slice(0, 10),
+              account: currentAccountId, _billTxnId: billTxnId,
             });
-            render();
+            state.bills[i].loggedTxnId = billTxnId;
+            await api.saveBills(state.bills);
+            go();
           },
-          onCancel: () => render(),
+          onCancel: go,
         });
-      } else { render(); }
+      }
     });
   });
 

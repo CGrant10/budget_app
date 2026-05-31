@@ -1056,6 +1056,17 @@ body::before {
 .bill-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .bill-card-amt   { font-size: 15px; color: var(--accent2); font-weight: bold; }
 .bill-card-actions { display: flex; gap: 8px; }
+.bill-card-paid {
+  opacity: .55;
+  border-left: 3px solid var(--success);
+}
+.bill-card-paid .bill-card-amt { color: var(--muted); }
+.bill-unpaid-btn {
+  background: transparent !important;
+  color: var(--muted) !important;
+  border-color: var(--muted) !important;
+}
+.bill-unpaid-btn:active { opacity: .7; }
 
 /* ── goals ────────────────────────────────────────────────────────────────── */
 .goals-list { display: flex; flex-direction: column; }
