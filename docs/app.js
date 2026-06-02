@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.18.7';
+const VERSION = '5.18.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.18.8', date: '2026-06-02', changes: [
+    'Update button fix — the "vX available — tap to update" pill now fully clears the cache and unregisters the service worker before reloading, so it actually pulls the new version (previously it reloaded straight from the stale cache)',
+  ]},
   { version: '5.18.7', date: '2026-06-02', changes: [
     'Weekly Planner: week-by-week breakdown now always extends through the current week — fixes the new month (e.g. June) failing to appear when the saved paycheck date had already passed',
   ]},
@@ -9385,12 +9388,24 @@ async function checkForUpdate() {
   } catch(e) { /* offline — skip */ }
 }
 
-function forceUpdate() {
+async function forceUpdate() {
   // Clear the "seen version" flag so the What's New popup fires after reload
   localStorage.removeItem('slawminyaw_seen_version');
-  // Hard-reload bypassing the service worker cache
-  navigator.serviceWorker?.getRegistration?.()?.then?.(reg => reg?.unregister?.());
-  window.location.reload();
+  try {
+    // Delete every Cache Storage bucket — the service worker serves from here,
+    // so unregistering alone is not enough to pull fresh files.
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    // Unregister all service workers and WAIT for it before reloading.
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+  } catch (e) { /* best-effort — fall through to reload regardless */ }
+  // Cache-busting navigation so the HTML itself is re-fetched from the network
+  window.location.href = window.location.pathname + '?v=' + Date.now();
 }
 
 // ── what's new popup ──────────────────────────────────────────────────────
