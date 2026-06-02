@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.20.0';
+const VERSION = '5.20.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.20.1', date: '2026-06-02', changes: [
+    'Any transaction can now be excluded from your weekly spending — tick "Don\'t count toward weekly spending" when adding a transaction, or when editing one in the ledger',
+    'Excluded transactions show a "not in weekly" tag in the ledger and are left out of the weekly/daily trackers, breakdown, and dashboard tiles (same treatment as bills)',
+  ]},
   { version: '5.20.0', date: '2026-06-02', changes: [
     'Bills page now has a month navigator (‹ June 2026 ›) — jump to next month to pay bills early, with a "Today" button to jump back',
     'Bills can be paid for multiple months independently — paying next month early no longer wipes out the current month\'s paid status',
@@ -4207,8 +4211,8 @@ function renderDashboardDawg() {
   let _wkExp = 0, _wkInc = 0, _dayExp = 0, _dayInc = 0;
   for (const t of state.transactions) {
     if (t.date >= _monStr) {
-      // Bills are reserved separately — exclude them from discretionary spend (matches planner).
-      if (t.type === 'expense') { if (!isBillTxn(t)) { _wkExp += t.amount; if (t.date === _todayStr2) _dayExp += t.amount; } }
+      // Bills + user-flagged items are excluded from discretionary spend (matches planner).
+      if (t.type === 'expense') { if (!isExcludedFromSpend(t)) { _wkExp += t.amount; if (t.date === _todayStr2) _dayExp += t.amount; } }
       else if (t.type === 'income') { _wkInc += t.amount; if (t.date === _todayStr2) _dayInc += t.amount; }
     }
   }
@@ -5449,6 +5453,10 @@ function renderAdd() {
           <label class="form-label">Recurring</label>
           <label class="radio-label"><input type="checkbox" id="add-recurring"> Auto-add monthly</label>
         </div>
+        <div class="form-row" id="add-exclude-row">
+          <label class="form-label">Weekly budget</label>
+          <label class="radio-label"><input type="checkbox" id="add-exclude-budget"> Don't count toward weekly spending</label>
+        </div>
         <div id="add-status" class="form-status"></div>
         <button id="add-btn" class="btn-primary">Add Transaction</button>
       </div>
@@ -5488,6 +5496,7 @@ function renderLedger() {
     const sign      = t.type === 'income' ? '+' : '-';
     const cls       = t.type === 'income' ? 'income' : 'expense';
     const prefix    = t.recurring ? '↻ ' : '';
+    const exTag     = (t.excludeFromBudget && !isBillTxn(t)) ? ' <span class="ledger-extag">not in weekly</span>' : '';
     const catColor  = CAT_COLORS[t.category] || '#9896a4';
     const acct      = state.accounts.find(a => a.id === (t.account || 'main'));
     const acctBadge = acct && acct.id !== 'main' ? `<span class="acct-badge">${acct.name}</span>` : '';
@@ -5499,7 +5508,7 @@ function renderLedger() {
         <div class="ledger-row-inner">
           <div class="ledger-main">
             <div class="ledger-desc"><span class="cat-dot" style="background:${catColor}"></span>${prefix}${t.description}</div>
-            <div class="ledger-meta">${t.date} · ${t.category}${acctBadge}</div>
+            <div class="ledger-meta">${t.date} · ${t.category}${acctBadge}${exTag}</div>
           </div>
           <div class="ledger-right">
             <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
@@ -5519,6 +5528,7 @@ function renderLedger() {
             <input type="text" class="form-input ie-desc" value="${t.description}" placeholder="Description">
             <input type="number" class="form-input ie-amount" value="${t.amount}" step="0.01" min="0" placeholder="Amount" inputmode="decimal">
           </div>
+          <label class="ie-exclude-label"><input type="checkbox" class="ie-exclude"${t.excludeFromBudget ? ' checked' : ''}> Don't count toward weekly spending</label>
           <div class="ie-btns">
             <button class="btn-sm ie-save" data-idx="${t._i}">Save</button>
             <button class="ie-cancel">Cancel</button>
@@ -5667,6 +5677,10 @@ function monthWindow(refDate, monday) {
 // A "bill" transaction is one logged from the Bills tab's "Mark Paid" action.
 function isBillTxn(t) { return !!(t && t._billTxnId); }
 
+// A transaction is left out of discretionary weekly/daily spending if it's a bill payment
+// or the user flagged it "don't count toward weekly spending" when adding/editing it.
+function isExcludedFromSpend(t) { return isBillTxn(t) || (t && t.excludeFromBudget === true); }
+
 // ── bill paid-month model ────────────────────────────────────────────────────
 // A bill can be paid for several months at once (e.g. paying next month early), so we
 // track a set of YYYY-MM keys plus the logged expense txn id per month. These helpers
@@ -5746,7 +5760,7 @@ function calcWeekly() {
   let weekExpenses = 0, weekIncomeOffset = 0;
   for (const t of state.transactions) {
     if (t.date >= mondayStr) {
-      if (t.type==='expense') { if (!isBillTxn(t)) weekExpenses+=t.amount; }
+      if (t.type==='expense') { if (!isExcludedFromSpend(t)) weekExpenses+=t.amount; }
       else weekIncomeOffset+=t.amount;
     }
   }
@@ -5848,7 +5862,7 @@ function calcWeekly() {
     const monthLabel = sd.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const lbl = `${sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
     const wkTxns = state.transactions.filter(t=>t.date>=sdS&&t.date<=edS);
-    const wkExp  = wkTxns.filter(t=>t.type==='expense' && !isBillTxn(t)).reduce((s,t)=>s+t.amount,0);
+    const wkExp  = wkTxns.filter(t=>t.type==='expense' && !isExcludedFromSpend(t)).reduce((s,t)=>s+t.amount,0);
     const wkInc  = wkTxns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
     const wkNet  = Math.max(0, wkExp - wkInc);
     const txnHtml = wkTxns.length
@@ -8802,11 +8816,13 @@ function attachAdd() {
       const toRow      = document.getElementById('add-to-acct-row');
       const catRow     = document.getElementById('add-cat-row');
       const recurRow   = document.getElementById('add-recurring-row');
+      const excludeRow = document.getElementById('add-exclude-row');
       const descRow    = document.getElementById('add-desc-row');
       const splitRow   = document.getElementById('add-split-row');
       if (toRow)    toRow.style.display    = isTransfer ? '' : 'none';
       if (catRow)   catRow.style.display   = isTransfer ? 'none' : (document.getElementById('split-toggle')?.checked ? 'none' : '');
       if (recurRow) recurRow.style.display = isTransfer ? 'none' : '';
+      if (excludeRow) excludeRow.style.display = isTransfer ? 'none' : '';
       if (descRow)  descRow.style.display  = isTransfer ? 'none' : '';
       if (splitRow) splitRow.style.display = isTransfer ? 'none' : '';
     });
@@ -8829,6 +8845,7 @@ function attachAdd() {
       const desc        = document.getElementById('add-desc').value.trim() || '—';
       const acct        = document.getElementById('add-acct').value;
       const isRecurring = document.getElementById('add-recurring').checked;
+      const isExclude   = document.getElementById('add-exclude-budget')?.checked;
       let count = 0;
       const stamp = Date.now();
       for (const row of _splitRows) {
@@ -8837,6 +8854,7 @@ function attachAdd() {
         const t = { type, amount: splitAmt, description: desc, category: row.cat,
                     account: acct, date, recurring: isRecurring, ts: stamp + count };
         if (isRecurring) t.recur_month = new Date().toISOString().slice(0, 7);
+        if (isExclude)   t.excludeFromBudget = true;
         await api.addTransaction(t);
         count++;
       }
@@ -8844,6 +8862,7 @@ function attachAdd() {
       document.getElementById('add-amount').value = '';
       document.getElementById('add-desc').value   = '';
       document.getElementById('add-recurring').checked = false;
+    if (document.getElementById('add-exclude-budget')) document.getElementById('add-exclude-budget').checked = false;
       _splitRows = [{ cat: cats[0], amount: '' }, { cat: cats[0], amount: '' }];
       document.getElementById('split-toggle').checked = false;
       document.getElementById('split-section').style.display = 'none';
@@ -8885,6 +8904,7 @@ function attachAdd() {
       const custom = s.customCategories || [];
       if (!custom.includes(chosenCat)) { custom.push(chosenCat); s.customCategories = custom; saveSettings(s); }
     }
+    const isExclude = document.getElementById('add-exclude-budget')?.checked;
     const t = {
       type,
       amount,
@@ -8896,6 +8916,7 @@ function attachAdd() {
       ts:          Date.now()
     };
     if (isRecurring) t.recur_month = new Date().toISOString().slice(0, 7);
+    if (isExclude)   t.excludeFromBudget = true;
     let prevBal = 0;
     for (const tx of state.transactions) prevBal += tx.type==='income' ? tx.amount : -tx.amount;
     await api.addTransaction(t);
@@ -8905,6 +8926,7 @@ function attachAdd() {
     document.getElementById('add-amount').value = '';
     document.getElementById('add-desc').value   = '';
     document.getElementById('add-recurring').checked = false;
+    if (document.getElementById('add-exclude-budget')) document.getElementById('add-exclude-budget').checked = false;
     playSound(t.type);
     haptic(t.type === 'income' ? [20, 50, 20] : [30]);
     if (t.type === 'expense') showRobbery(t.amount, t.description);
@@ -9034,7 +9056,9 @@ function attachLedger() {
         category:    edit.querySelector('.ie-cat').value,
         description: edit.querySelector('.ie-desc').value,
         amount:      parseFloat(edit.querySelector('.ie-amount').value) || 0,
+        excludeFromBudget: !!edit.querySelector('.ie-exclude')?.checked,
       });
+      await autoUpdateWeeklyPlan(); // keep dashboard per-week/day in sync after the edit
       render();
     });
   });

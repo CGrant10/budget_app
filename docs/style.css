@@ -699,6 +699,27 @@ body::before {
 .ie-cat    { width: 130px; flex-shrink: 0; }
 .ie-desc   { flex: 1; min-width: 120px; }
 .ie-amount { width: 100px; flex-shrink: 0; }
+.ie-exclude-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 2px 0 10px;
+  cursor: pointer;
+}
+.ie-exclude-label input { width: 16px; height: 16px; flex-shrink: 0; }
+.ledger-extag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: var(--border);
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  vertical-align: middle;
+}
 .ie-btns   { display: flex; gap: 8px; }
 .ie-cancel {
   background: transparent;
