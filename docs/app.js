@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.18.8';
+const VERSION = '5.18.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.18.9', date: '2026-06-02', changes: [
+    'Weekly Planner is now month-based — "This Month" shows your spendable balance for the current calendar month, and the per-week / per-day limits spread that balance across the weeks and days left in the month',
+    'Week-by-week breakdown shows every week of the current month (not just until your next paycheck), with the month total ("· $X to spend") labeled on the month header',
+    'Per-week budget on each upcoming week is the same even share of your remaining monthly balance — fixes the wrong per-week figures that came from dividing by days-until-paycheck',
+  ]},
   { version: '5.18.8', date: '2026-06-02', changes: [
     'Update button fix — the "vX available — tap to update" pill now fully clears the cache and unregisters the service worker before reloading, so it actually pulls the new version (previously it reloaded straight from the stale cache)',
   ]},
@@ -5618,62 +5623,60 @@ function renderWeekly() {
     </div>`;
 }
 
+// Count the Mondays from `startMon` through `end` (inclusive) — i.e. how many weekly
+// budget rows remain between this week and the end of the month. Always at least 1.
+function weeksFromMonday(startMon, end) {
+  let c = 0; const d = new Date(startMon);
+  while (d <= end) { c++; d.setDate(d.getDate() + 7); }
+  return Math.max(1, c);
+}
+
 function calcWeekly() {
   const { income: _wkInc, expense: _wkExp } = totals();
   const liveBalance = (state.startingBalance || 0) + _wkInc - _wkExp;
   const bills      = parseFloat(document.getElementById('wk-bills')?.value)   || 0;
   const stopAt     = parseFloat(document.getElementById('wk-stop-at')?.value) || 0;
   const paydateStr = document.getElementById('wk-paydate')?.value || '';
-  let days = 14;
-  if (paydateStr) {
-    const paydate = new Date(paydateStr + 'T00:00:00');
-    const now = new Date(); now.setHours(0,0,0,0);
-    days = Math.max(1, Math.round((paydate - now) / 86400000) + 1);
-  }
-  const available  = Math.max(0, liveBalance - stopAt - bills);
-  const weeks      = Math.ceil(days / 7);
-  const perWeek    = weeks > 0 ? available / weeks : 0;
-  lastCalcPerWeek  = perWeek;
-  lastCalcPerDay   = days > 0 ? available / days : 0;
-  const perDay     = lastCalcPerDay;
-
   const now    = new Date(); now.setHours(0,0,0,0);
   const monday = new Date(now);
   monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
   const mondayStr = monday.toISOString().split('T')[0];
+
+  // ── Month-based budgeting ────────────────────────────────────────────────
+  // Spend the current spendable balance across THIS calendar month. The weekly and
+  // daily limits spread that balance over the time still remaining in the month.
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const days       = Math.max(1, Math.round((monthEnd - now) / 86400000) + 1);  // days left, incl today
+  const weeks      = weeksFromMonday(monday, monthEnd);                          // weeks left this month
+  const currentMonthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const available  = Math.max(0, liveBalance - stopAt - bills);
+  const perWeek    = weeks > 0 ? available / weeks : 0;
+  lastCalcPerWeek  = perWeek;
+  lastCalcPerDay   = days > 0 ? available / days : 0;
+  const perDay     = lastCalcPerDay;
   let weekExpenses = 0, weekIncomeOffset = 0;
   for (const t of state.transactions) {
     if (t.date >= mondayStr) { if (t.type==='expense') weekExpenses+=t.amount; else weekIncomeOffset+=t.amount; }
   }
   const weekNet  = Math.max(0, weekExpenses - weekIncomeOffset);
-  // Recover the effective per-week limit even when available = 0 (dipped into buffer).
-  // Chain: budget_per_week → per_week → saved_date reconstruction → start-of-week reconstruction
-  const savedPerWeek = parseFloat(state.weekly_plan?.budget_per_week || 0)
-                    || parseFloat(state.weekly_plan?.per_week || 0)
-                    || perWeek;
+  // Effective weekly limit. Prefer the live monthly figure; only fall back to a saved or
+  // reconstructed value when the spendable balance has hit 0 (user dipped into the buffer).
   let _effectivePerWeek;
-  if (savedPerWeek > 0) {
-    _effectivePerWeek = savedPerWeek;
-  } else if (perWeek === 0 && state.weekly_plan?.saved_date) {
-    const _balAtSave   = balanceAsOf(state.weekly_plan.saved_date);
-    const _availAtSave = Math.max(0, _balAtSave - stopAt - bills);
-    if (_availAtSave > 0) {
-      _effectivePerWeek = weeks > 0 ? _availAtSave / weeks : 0;
-    } else {
-      // Last resort: use balance at start of this week
-      const _prevSun    = new Date(monday); _prevSun.setDate(monday.getDate() - 1);
-      const _prevSunStr = _prevSun.toISOString().split('T')[0];
-      const _wkStartAvail = Math.max(0, balanceAsOf(_prevSunStr) - stopAt - bills);
-      _effectivePerWeek = weeks > 0 ? _wkStartAvail / weeks : 0;
-    }
-  } else if (perWeek === 0) {
-    // No saved_date — try start-of-week balance as last resort
-    const _prevSun2    = new Date(monday); _prevSun2.setDate(monday.getDate() - 1);
-    const _prevSunStr2 = _prevSun2.toISOString().split('T')[0];
-    const _wkStartAvail2 = Math.max(0, balanceAsOf(_prevSunStr2) - stopAt - bills);
-    _effectivePerWeek = weeks > 0 ? _wkStartAvail2 / weeks : 0;
-  } else {
+  if (perWeek > 0) {
     _effectivePerWeek = perWeek;
+  } else {
+    const savedPerWeek = parseFloat(state.weekly_plan?.budget_per_week || 0)
+                      || parseFloat(state.weekly_plan?.per_week || 0) || 0;
+    if (savedPerWeek > 0) {
+      _effectivePerWeek = savedPerWeek;
+    } else {
+      const _prevSun      = new Date(monday); _prevSun.setDate(monday.getDate() - 1);
+      const _prevSunStr   = _prevSun.toISOString().split('T')[0];
+      const _wkStartAvail = Math.max(0, balanceAsOf(_prevSunStr) - stopAt - bills);
+      _effectivePerWeek   = weeks > 0 ? _wkStartAvail / weeks : 0;
+    }
   }
   // weekBudget = the fixed limit for display (denominator)
   const weekBudget  = _effectivePerWeek > 0 ? _effectivePerWeek : (weekNet > 0 ? weekNet : 0);
@@ -5694,16 +5697,17 @@ function calcWeekly() {
                        : adjustedPerDay >= perDay * 0.5  ? 'var(--warn)'
                        : 'var(--danger)';
 
-  const _reservedLabel  = [stopAt > 0 ? `${fmt(stopAt)} stop-at` : '', bills > 0 ? `${fmt(bills)} bills` : ''].filter(Boolean).join(' + ') || 'none reserved';
+  const _reservedLabel  = [stopAt > 0 ? `${fmt(stopAt)} stop-at` : '', bills > 0 ? `${fmt(bills)} bills` : ''].filter(Boolean).join(' + ');
   const _perWeekCardVal = _effectivePerWeek;
-  const _perWeekCardSub = _wkFailed ? `+${fmt(weekNet - _effectivePerWeek)} over limit` : `across ${weeks} week${weeks!==1?'s':''}`;
+  const _perWeekCardSub = _wkFailed ? `+${fmt(weekNet - _effectivePerWeek)} over limit` : `across ${weeks} week${weeks!==1?'s':''} left`;
   const _perWeekColor   = _wkFailed ? 'var(--danger)' : 'var(--warn)';
+  const _monthName      = now.toLocaleDateString('en-US', { month: 'long' });
   const summaryCards = [
+    ['THIS MONTH',   fmt(available),           'var(--accent)',  _reservedLabel ? `after ${_reservedLabel}` : `spendable in ${_monthName}`],
     ['BALANCE',      fmt(liveBalance),         'var(--text)',    `live — auto-updates`],
-    ['SPENDABLE',    fmt(available),           'var(--accent)',  _reservedLabel],
-    ['PER WEEK',     fmt(_perWeekCardVal),      _perWeekColor,   _perWeekCardSub],
-    ['PER DAY',      fmt(perDay),              'var(--warn)',    'daily limit'],
-    ['ADJ. PER DAY', fmt(adjustedPerDay),      _adjColor,       _adjSub],
+    ['PER WEEK',     fmt(_perWeekCardVal),     _perWeekColor,    _perWeekCardSub],
+    ['PER DAY',      fmt(perDay),              'var(--warn)',    `${days} day${days!==1?'s':''} left`],
+    ['ADJ. PER DAY', fmt(adjustedPerDay),      _adjColor,        _adjSub],
   ].map(([t,v,c,s]) => `<div class="card"><div class="card-title">${t}</div><div class="card-value" style="color:${c}">${v}</div><div class="card-sub">${s}</div></div>`).join('');
 
   const thisWeekTxns = state.transactions.filter(t=>t.date>=mondayStr).sort((a,b)=>b.date.localeCompare(a.date));
@@ -5712,20 +5716,20 @@ function calcWeekly() {
     : '<p class="pw-empty">No transactions yet this week.</p>';
 
   const monLabel = monday.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  const paydate  = paydateStr ? new Date(paydateStr+'T00:00:00') : new Date(now.getTime()+(days-1)*86400000);
 
-  // The list must always run through at least the current week, even when the saved
-  // paydate has already passed (cycle ended but no new one started yet) — otherwise the
-  // span collapses to the past and the current week (e.g. the new month) never renders.
-  const curWeekEnd = new Date(monday); curWeekEnd.setDate(monday.getDate() + 6);
-  const listEnd    = paydate > curWeekEnd ? paydate : curWeekEnd;
+  // The breakdown spans the current calendar month end-to-end — every week of the month
+  // renders regardless of the paycheck date. listEnd = the last day of the month.
+  const listEnd    = monthEnd;
   const listEndStr = listEnd.toISOString().split('T')[0];
 
-  // ── Unified week list: find the earliest Monday that has data (up to 12 weeks back)
-  // then build one continuous list through to listEnd — no weeks ever shift or disappear.
-  let startMonday = new Date(monday);
+  // Start from the Monday of the week containing the 1st of the month, so the whole month
+  // shows; reach further back only if there is older transaction data worth displaying.
+  const monthFirstMonday = new Date(monthStart);
+  monthFirstMonday.setDate(monthStart.getDate() - ((monthStart.getDay() + 6) % 7));
+  let startMonday = new Date(monthFirstMonday);
   for (let i = 12; i >= 1; i--) {
     const m  = new Date(monday); m.setDate(monday.getDate() - i*7);
+    if (m >= startMonday) continue;          // within the current month — already covered
     const mS = m.toISOString().split('T')[0];
     const mE = new Date(m); mE.setDate(m.getDate() + 6);
     const mES = mE.toISOString().split('T')[0];
@@ -5771,9 +5775,9 @@ function calcWeekly() {
       }
       const _histBal = (state.startingBalance || 0) + _hInc - _hExp;
       const _histAvail = Math.max(0, _histBal - stopAt - bills);
-      const _histDays  = Math.max(1, Math.round((paydate - sd) / 86400000) + 1);
-      const _histWeeks = Math.max(1, Math.ceil(_histDays / 7));
-      const _histPerWk = _histWeeks > 0 ? _histAvail / _histWeeks : 0;
+      const _histMonthEnd = new Date(sd.getFullYear(), sd.getMonth() + 1, 0);
+      const _histWeeks    = weeksFromMonday(sd, _histMonthEnd);   // weeks from this week → end of its month
+      const _histPerWk    = _histWeeks > 0 ? _histAvail / _histWeeks : 0;
       const pastPct      = _histPerWk > 0 ? Math.min(wkExp / _histPerWk * 100, 100) : 0;
       const pastBarColor = wkExp > _histPerWk && _histPerWk > 0 ? 'var(--danger)' : wkExp >= _histPerWk * 0.8 && _histPerWk > 0 ? 'var(--warn)' : 'var(--muted)';
       const spentColor   = _histPerWk > 0 && wkExp > _histPerWk ? 'var(--danger)' : wkExp > 0 ? 'var(--text)' : 'var(--muted)';
@@ -5782,7 +5786,7 @@ function calcWeekly() {
       const forfeited    = (state.weekly_plan.forfeitedWeeks || []).includes(sdS);
       const forfeitBtn   = `<button class="wkb-forfeit-btn" data-week="${sdS}">${forfeited ? '↩ Undo' : 'Forfeit'}</button>`;
       const displayLabel = forfeited ? `<span class="wkb-forfeited-badge">FORFEITED</span>` : `<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span>`;
-      if (monthLabel !== lastMonth) { lastMonth = monthLabel; allRowsHtml.push(`<div class="wkb-month-header">${monthLabel}</div>`); }
+      if (monthLabel !== lastMonth) { lastMonth = monthLabel; const _mhBudget = monthLabel === currentMonthLabel ? ` <span style="font-weight:600;color:var(--accent);font-size:.82em">· ${fmt(available)} to spend</span>` : ''; allRowsHtml.push(`<div class="wkb-month-header">${monthLabel}${_mhBudget}</div>`); }
       allRowsHtml.push(`<div class="wkb-row wkb-past${forfeited ? ' wkb-forfeited' : ''}"><div class="wkb-header"><span class="week-dates">${lbl}</span>${forfeited ? '<span style="flex:1"></span>' : miniBar}${displayLabel}${forfeitBtn}<span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     } else {
       // Current + future weeks — live, recalculated on every settings change
@@ -5790,7 +5794,7 @@ function calcWeekly() {
       const wkPct   = _rowDenominator > 0 ? Math.min(wkNet/_rowDenominator*100,100) : 0;
       const wkColor = isCurrent && _wkFailed ? 'var(--danger)' : wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
       const badge   = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
-      if (monthLabel !== lastMonth) { lastMonth = monthLabel; allRowsHtml.push(`<div class="wkb-month-header">${monthLabel}</div>`); }
+      if (monthLabel !== lastMonth) { lastMonth = monthLabel; const _mhBudget = monthLabel === currentMonthLabel ? ` <span style="font-weight:600;color:var(--accent);font-size:.82em">· ${fmt(available)} to spend</span>` : ''; allRowsHtml.push(`<div class="wkb-month-header">${monthLabel}${_mhBudget}</div>`); }
       allRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(_rowDenominator)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     }
   });
