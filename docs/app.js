@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.19.0';
+const VERSION = '5.20.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.20.0', date: '2026-06-02', changes: [
+    'Bills page now has a month navigator (‹ June 2026 ›) — jump to next month to pay bills early, with a "Today" button to jump back',
+    'Bills can be paid for multiple months independently — paying next month early no longer wipes out the current month\'s paid status',
+    'Mark Paid now asks "Log & Deduct" vs "Just Mark Paid" — choose Just Mark Paid to record a bill as paid without deducting it from your balance (no double-deduction if you already recorded it)',
+  ]},
   { version: '5.19.0', date: '2026-06-02', changes: [
     'Ledger now has two tabs — Transactions and Bills — so bill payments (logged via the Bills tab) are separated from your normal spending',
     'Bills no longer count as overspending — bill payments are excluded from the weekly/daily spend tracker and the week-by-week breakdown, since they are already reserved via the "Fixed bills" field',
@@ -2235,7 +2240,7 @@ function calcHealthScore() {
     billScore = 25; billLabel = 'No bills tracked';
   } else {
     const n    = state.bills.length;
-    const paid = state.bills.filter(b => b.paidMonth === m).length;
+    const paid = state.bills.filter(b => isBillPaidFor(b, m)).length;
     const pct  = paid / n;
     if      (pct === 1)    { billScore = 25; billLabel = `${paid} of ${n} bills paid this month`; }
     else if (pct >= 0.75)  { billScore = 18; billLabel = `${paid} of ${n} bills paid this month`; }
@@ -2287,6 +2292,7 @@ let ledgerFilter = '';
 let ledgerSort = 'date-desc';
 let ledgerTypeFilter = 'all';
 let ledgerView = 'transactions';   // 'transactions' (non-bill) | 'bills'
+let billsMonth = new Date().toISOString().slice(0, 7);   // YYYY-MM shown on the Bills page
 let ledgerCatFilter = '';
 let ledgerDateFrom = '';
 let ledgerDateTo = '';
@@ -2305,6 +2311,7 @@ function showTab(key) {
     ledgerFilter = ''; ledgerSort = 'date-desc'; ledgerTypeFilter = 'all';
     ledgerCatFilter = ''; ledgerDateFrom = ''; ledgerDateTo = ''; ledgerView = 'transactions';
   }
+  if (currentTab === 'bills' && key !== 'bills') billsMonth = new Date().toISOString().slice(0, 7);
   if (_insightTimer) { clearInterval(_insightTimer); _insightTimer = null; }
   if (_dawgSparkGlobal) { _dawgSparkGlobal.destroy(); _dawgSparkGlobal = null; }
   // Re-apply the active theme if leaving the about page (about used to reset it; no longer needed)
@@ -2634,7 +2641,7 @@ function getDaysUntilDue(dueDay) {
 function getUpcomingBills(days = 7) {
   const m = new Date().toISOString().slice(0, 7);
   return state.bills
-    .filter(b => b.paidMonth !== m && getDaysUntilDue(b.dueDay) <= days)
+    .filter(b => !isBillPaidFor(b, m) && getDaysUntilDue(b.dueDay) <= days)
     .sort((a, b) => getDaysUntilDue(a.dueDay) - getDaysUntilDue(b.dueDay));
 }
 
@@ -4569,7 +4576,7 @@ function renderDashboardDawg() {
       {
         const _curMonth = new Date().toISOString().slice(0,7);
         const _unpaid   = [...state.bills]
-          .filter(b => b.paidMonth !== _curMonth)
+          .filter(b => !isBillPaidFor(b, _curMonth))
           .sort((a,b) => getDaysUntilDue(a.dueDay) - getDaysUntilDue(b.dueDay))
           .slice(0, 5);
         if (_unpaid.length) {
@@ -5660,6 +5667,57 @@ function monthWindow(refDate, monday) {
 // A "bill" transaction is one logged from the Bills tab's "Mark Paid" action.
 function isBillTxn(t) { return !!(t && t._billTxnId); }
 
+// ── bill paid-month model ────────────────────────────────────────────────────
+// A bill can be paid for several months at once (e.g. paying next month early), so we
+// track a set of YYYY-MM keys plus the logged expense txn id per month. These helpers
+// lazily migrate the older single `paidMonth` / `loggedTxnId` shape.
+function billPaidMonths(b) {
+  if (!Array.isArray(b.paidMonths)) b.paidMonths = b.paidMonth ? [b.paidMonth] : [];
+  return b.paidMonths;
+}
+function billLoggedTxns(b) {
+  if (!b.loggedTxns || typeof b.loggedTxns !== 'object') {
+    b.loggedTxns = {};
+    if (b.loggedTxnId && b.paidMonth) b.loggedTxns[b.paidMonth] = b.loggedTxnId;
+  }
+  return b.loggedTxns;
+}
+function isBillPaidFor(b, mKey) { return billPaidMonths(b).includes(mKey); }
+function markBillPaid(b, mKey, txnId) {
+  const arr = billPaidMonths(b);
+  if (!arr.includes(mKey)) arr.push(mKey);
+  if (txnId) billLoggedTxns(b)[mKey] = txnId;
+}
+function markBillUnpaid(b, mKey) {
+  const arr = billPaidMonths(b);
+  const idx = arr.indexOf(mKey);
+  if (idx !== -1) arr.splice(idx, 1);
+  const logged = billLoggedTxns(b);
+  const txnId  = logged[mKey] || null;
+  delete logged[mKey];
+  return txnId;
+}
+function curMonthKey() { return new Date().toISOString().slice(0, 7); }
+function shiftMonthKey(mKey, delta) {
+  const [y, mo] = mKey.split('-').map(Number);
+  const d = new Date(y, mo - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function monthKeyLabel(mKey) {
+  const [y, mo] = mKey.split('-').map(Number);
+  return new Date(y, mo - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+// Badge for a bill card. Urgency (TODAY / in Nd) only shown for the current month.
+function billBadgeHtml(b, mKey, isCurrentMonth) {
+  if (isBillPaidFor(b, mKey)) return '<span class="bill-badge paid">PAID</span>';
+  if (!isCurrentMonth)        return `<span class="bill-badge upcoming">day ${b.dueDay}</span>`;
+  const d = getDaysUntilDue(b.dueDay);
+  if (d === 0) return '<span class="bill-badge due-today">TODAY</span>';
+  if (d <= 3)  return `<span class="bill-badge due-soon">in ${d}d</span>`;
+  if (d <= 7)  return `<span class="bill-badge upcoming-soon">in ${d}d</span>`;
+  return `<span class="bill-badge upcoming">day ${b.dueDay}</span>`;
+}
+
 function calcWeekly() {
   const { income: _wkInc, expense: _wkExp } = totals();
   const liveBalance = (state.startingBalance || 0) + _wkInc - _wkExp;
@@ -5885,17 +5943,13 @@ function calcWeekly() {
 
 // ── bills ──────────────────────────────────────────────────────────────────
 function renderBills() {
-  const m = new Date().toISOString().slice(0, 7);
+  const m = billsMonth;
+  const isCurMonth = m === curMonthKey();
+  const [mY, mM] = m.split('-').map(Number);
   const catOptions = getCategories().map(c => `<option>${c}</option>`).join('');
   const billsHtml = state.bills.length ? state.bills.map((b, i) => {
-    const d    = getDaysUntilDue(b.dueDay);
-    const paid = b.paidMonth === m;
-    let badge  = '';
-    if (paid)        badge = '<span class="bill-badge paid">PAID</span>';
-    else if (d === 0) badge = '<span class="bill-badge due-today">TODAY</span>';
-    else if (d <= 3)  badge = `<span class="bill-badge due-soon">in ${d}d</span>`;
-    else if (d <= 7)  badge = `<span class="bill-badge upcoming-soon">in ${d}d</span>`;
-    else              badge = `<span class="bill-badge upcoming">day ${b.dueDay}</span>`;
+    const paid  = isBillPaidFor(b, m);
+    const badge = billBadgeHtml(b, m, isCurMonth);
     return `
       <div class="bill-card${paid ? ' bill-card-paid' : ''}">
         <div class="bill-card-main">
@@ -5917,18 +5971,22 @@ function renderBills() {
   }).join('') : emptyState('No bills yet', 'Add a recurring bill below to start tracking');
 
   const totalMonthly = state.bills.reduce((s, b) => s + b.amount, 0);
-  const totalUnpaid  = state.bills.filter(b => b.paidMonth !== m).reduce((s, b) => s + b.amount, 0);
+  const totalUnpaid  = state.bills.filter(b => !isBillPaidFor(b, m)).reduce((s, b) => s + b.amount, 0);
 
-  // ── bill calendar ──────────────────────────────────────────────────────────
+  // Month navigator — lets you pay ahead (e.g. mark next month's bills paid early).
+  const monthNavHtml = `
+    <div class="bills-month-nav">
+      <button class="bills-month-arrow" id="bills-month-prev" aria-label="Previous month">‹</button>
+      <div class="bills-month-label">${monthKeyLabel(m)}${isCurMonth ? '' : ' <button class="bills-month-today" id="bills-month-today">Today</button>'}</div>
+      <button class="bills-month-arrow" id="bills-month-next" aria-label="Next month">›</button>
+    </div>`;
+
+  // ── bill calendar (for the selected month) ─────────────────────────────────
   const billCalHtml = (() => {
     if (!state.bills.length) return '';
-    const now2     = new Date();
-    const yr2      = now2.getFullYear();
-    const mo2      = now2.getMonth();
-    const firstDay = new Date(yr2, mo2, 1).getDay();   // 0=Sun
-    const daysInM  = new Date(yr2, mo2 + 1, 0).getDate();
-    const todayD   = now2.getDate();
-    const curM     = now2.toISOString().slice(0, 7);
+    const firstDay = new Date(mY, mM - 1, 1).getDay();   // 0=Sun
+    const daysInM  = new Date(mY, mM, 0).getDate();
+    const todayD   = isCurMonth ? new Date().getDate() : -1;
     // Map dueDay -> bills
     const billsByDay = {};
     state.bills.forEach(b => { (billsByDay[b.dueDay] = billsByDay[b.dueDay] || []).push(b); });
@@ -5937,14 +5995,13 @@ function renderBills() {
     for (let i = 0; i < firstDay; i++) cells += '<div class="bcal-cell"></div>';
     for (let d = 1; d <= daysInM; d++) {
       const bs      = billsByDay[d] || [];
-      const paid    = bs.length && bs.every(b => b.paidMonth === curM);
+      const paid    = bs.length && bs.every(b => isBillPaidFor(b, m));
       const hasBill = bs.length > 0;
       const cls     = ['bcal-cell', d === todayD ? 'today' : '', hasBill ? (paid ? 'bill-paid' : 'bill-due') : ''].filter(Boolean).join(' ');
       cells += `<div class="${cls}" data-day="${d}"${hasBill ? ' role="button" tabindex="0"' : ''}><span class="bcal-num">${d}</span>${hasBill ? '<span class="bcal-dot"></span>' : ''}</div>`;
     }
     return `
       <div class="bill-cal">
-        <div class="bcal-month">${now2.toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
         <div class="bcal-legend"><span class="bcal-legend-due"></span>Due <span class="bcal-legend-paid"></span>Paid</div>
         <div class="bcal-grid" id="bcal-grid">${dayHdrs}${cells}</div>
         <div id="bcal-day-detail" class="bcal-day-detail" style="display:none"></div>
@@ -5956,6 +6013,7 @@ function renderBills() {
       <h1 class="page-title">Bills</h1>
       <p class="page-sub">track recurring monthly bills</p>
       ${state.bills.length ? `
+      ${monthNavHtml}
       <div class="cards-grid" style="margin-bottom:16px">
         <div class="card">
           <div class="card-title">MONTHLY TOTAL</div>
@@ -5965,7 +6023,7 @@ function renderBills() {
         <div class="card">
           <div class="card-title">STILL DUE</div>
           <div id="bills-still-due" class="card-value" style="color:${totalUnpaid>0?'var(--warn)':'var(--success)'}">${fmt(totalUnpaid)}</div>
-          <div class="card-sub">this month</div>
+          <div class="card-sub">${monthKeyLabel(m)}</div>
         </div>
       </div>
       ${billCalHtml}` : ''}
@@ -6004,51 +6062,45 @@ function attachBills() {
     if (!name) { showStatus('bill-status', 'Enter a bill name.', 'error'); return; }
     if (isNaN(amount) || amount <= 0) { showStatus('bill-status', 'Enter a valid amount.', 'error'); return; }
     if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) { showStatus('bill-status', 'Enter a day 1–31.', 'error'); return; }
-    state.bills.push({ id: Date.now(), name, amount, dueDay, category, paidMonth: null });
+    state.bills.push({ id: Date.now(), name, amount, dueDay, category, paidMonths: [], loggedTxns: {} });
     await api.saveBills(state.bills);
     render();
   });
+
+  // Month navigator
+  document.getElementById('bills-month-prev')?.addEventListener('click', () => { billsMonth = shiftMonthKey(billsMonth, -1); render(); });
+  document.getElementById('bills-month-next')?.addEventListener('click', () => { billsMonth = shiftMonthKey(billsMonth, +1); render(); });
+  document.getElementById('bills-month-today')?.addEventListener('click', () => { billsMonth = curMonthKey(); render(); });
 
   document.querySelectorAll('.bill-paid-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const i    = parseInt(btn.dataset.idx);
       const paid = btn.dataset.paid === 'true';
-      const m    = new Date().toISOString().slice(0, 7);
+      const m    = billsMonth;
+      const isCurMonth = m === curMonthKey();
 
       // Update just the card DOM — no render(), no scroll jump
       const refreshCard = () => {
         const b2     = state.bills[i];
-        const isPaid = b2.paidMonth === m;
-        const d2     = getDaysUntilDue(b2.dueDay);
+        const isPaid = isBillPaidFor(b2, m);
         const card   = btn.closest('.bill-card');
         if (!card) return;
-        // card styling
         card.classList.toggle('bill-card-paid', isPaid);
-        // badge
-        let badgeHtml = '';
-        if (isPaid)        badgeHtml = '<span class="bill-badge paid">PAID</span>';
-        else if (d2 === 0) badgeHtml = '<span class="bill-badge due-today">TODAY</span>';
-        else if (d2 <= 3)  badgeHtml = `<span class="bill-badge due-soon">in ${d2}d</span>`;
-        else if (d2 <= 7)  badgeHtml = `<span class="bill-badge upcoming-soon">in ${d2}d</span>`;
-        else               badgeHtml = `<span class="bill-badge upcoming">day ${b2.dueDay}</span>`;
         const badgeEl = card.querySelector('.bill-badge');
-        if (badgeEl) badgeEl.outerHTML = badgeHtml;
-        // button
+        if (badgeEl) badgeEl.outerHTML = billBadgeHtml(b2, m, isCurMonth);
         btn.innerHTML = isPaid ? '↩ Mark Unpaid' : '✓ Mark Paid';
         btn.dataset.paid = String(isPaid);
         btn.classList.toggle('bill-unpaid-btn', isPaid);
-        // STILL DUE tile
-        const stillDue   = state.bills.filter(b => b.paidMonth !== m).reduce((s, b) => s + b.amount, 0);
+        const stillDue   = state.bills.filter(b => !isBillPaidFor(b, m)).reduce((s, b) => s + b.amount, 0);
         const stillDueEl = document.getElementById('bills-still-due');
         if (stillDueEl) {
           stillDueEl.textContent   = fmt(stillDue);
           stillDueEl.style.color   = stillDue > 0 ? 'var(--warn)' : 'var(--success)';
         }
-        // Calendar dot for this bill's due day
         const calCell = document.querySelector(`#bcal-grid .bcal-cell[data-day="${b2.dueDay}"]`);
         if (calCell) {
           const dayBills = state.bills.filter(b => b.dueDay === b2.dueDay);
-          const allPaid  = dayBills.length > 0 && dayBills.every(b => b.paidMonth === m);
+          const allPaid  = dayBills.length > 0 && dayBills.every(b => isBillPaidFor(b, m));
           calCell.classList.toggle('bill-paid', allPaid);
           calCell.classList.toggle('bill-due',  !allPaid);
         }
@@ -6056,30 +6108,22 @@ function attachBills() {
       };
 
       if (paid) {
-        // Marking unpaid — find and remove the logged expense
-        const b2        = state.bills[i];
-        const prevTxnId = b2.loggedTxnId;
-        let txnIdx      = -1;
-        if (prevTxnId) {
-          // Exact match by stored ID
-          txnIdx = state.transactions.findIndex(t => t._billTxnId === prevTxnId);
-        }
+        // Marking unpaid — remove this month's logged expense (if one was logged)
+        const b2          = state.bills[i];
+        const storedTxnId = markBillUnpaid(b2, m);
+        let txnIdx        = -1;
+        if (storedTxnId) txnIdx = state.transactions.findIndex(t => t._billTxnId === storedTxnId);
         if (txnIdx === -1) {
-          // Fallback: most recent expense this month matching name + amount
-          const bName    = (b2.name || '').trim().toLowerCase();
-          const bAmt     = +b2.amount;
-          const billMonth = b2.paidMonth || m;
+          // Fallback: an expense in that month matching this bill's name + amount
+          const bName = (b2.name || '').trim().toLowerCase();
+          const bAmt  = +b2.amount;
           for (let j = state.transactions.length - 1; j >= 0; j--) {
             const t = state.transactions[j];
-            if (t.type === 'expense' && +t.amount === bAmt &&
+            if (t.type === 'expense' && isBillTxn(t) && +t.amount === bAmt &&
                 (t.description || '').trim().toLowerCase() === bName &&
-                (t.date || '').startsWith(billMonth)) {
-              txnIdx = j; break;
-            }
+                (t.date || '').startsWith(m)) { txnIdx = j; break; }
           }
         }
-        state.bills[i].loggedTxnId = null;
-        state.bills[i].paidMonth   = null;
         await api.saveBills(state.bills);
         if (txnIdx !== -1) {
           await api.deleteTransaction(txnIdx);
@@ -6089,16 +6133,16 @@ function attachBills() {
         }
         refreshCard();
       } else {
-        // Marking paid
-        state.bills[i].paidMonth = m;
+        // Marking paid — mark first (no deduction), then offer to also log the expense
+        const b = state.bills[i];
+        markBillPaid(b, m, null);
         await api.saveBills(state.bills);
         haptic([20, 40, 20]);
-        const b = state.bills[i];
         showConfirmModal({
-          title: 'Log as Expense?',
-          message: `Add "${b.name}" as a ${fmt(b.amount)} expense?`,
-          confirmText: 'Log it',
-          cancelText: 'Skip',
+          title: 'Mark Paid',
+          message: `"${b.name}" is now marked paid for ${monthKeyLabel(m)}. Also log a ${fmt(b.amount)} expense and deduct it from your balance? Skip this if you've already recorded the payment.`,
+          confirmText: 'Log & Deduct',
+          cancelText: 'Just Mark Paid',
           onConfirm: async () => {
             const billTxnId = 'billtxn-' + Date.now().toString(36);
             await api.addTransaction({
@@ -6106,7 +6150,7 @@ function attachBills() {
               category: b.category, date: new Date().toISOString().slice(0, 10),
               account: currentAccountId, _billTxnId: billTxnId,
             });
-            state.bills[i].loggedTxnId = billTxnId;
+            markBillPaid(b, m, billTxnId);
             await api.saveBills(state.bills);
             refreshCard();
           },
@@ -6120,29 +6164,17 @@ function attachBills() {
     btn.addEventListener('click', () => {
       const i = parseInt(btn.dataset.idx);
       const b = state.bills[i];
-      const curM = new Date().toISOString().slice(0, 7);
-      const wasPaid = b.paidMonth === curM;
-      const extra = wasPaid ? ' The logged expense will also be removed from your ledger.' : '';
+      const loggedIds = Object.values(billLoggedTxns(b)).filter(Boolean);
+      const extra = loggedIds.length ? ' Any logged expenses for this bill will also be removed from your ledger.' : '';
       showConfirmModal({
         title: 'Delete Bill',
         message: `Delete "${b.name}"? This cannot be undone.${extra}`,
         confirmText: 'Delete', danger: true,
         onConfirm: async () => {
-          // Remove the logged expense if the bill was paid this month
-          if (wasPaid) {
-            let txnIdx = -1;
-            if (b.loggedTxnId) txnIdx = state.transactions.findIndex(t => t._billTxnId === b.loggedTxnId);
-            if (txnIdx === -1) {
-              const bName = (b.name || '').trim().toLowerCase();
-              const bAmt  = +b.amount;
-              for (let j = state.transactions.length - 1; j >= 0; j--) {
-                const t = state.transactions[j];
-                if (t.type === 'expense' && +t.amount === bAmt &&
-                    (t.description || '').trim().toLowerCase() === bName &&
-                    (t.date || '').startsWith(curM)) { txnIdx = j; break; }
-              }
-            }
-            if (txnIdx !== -1) await api.deleteTransaction(txnIdx);
+          // Remove every logged expense for this bill (re-find each time — indices shift on delete)
+          for (const id of loggedIds) {
+            const ti = state.transactions.findIndex(t => t._billTxnId === id);
+            if (ti !== -1) await api.deleteTransaction(ti);
           }
           state.bills.splice(i, 1);
           await api.saveBills(state.bills);
@@ -6153,7 +6185,7 @@ function attachBills() {
   });
 
   // ── calendar day click ────────────────────────────────────────────────────
-  const curM2   = new Date().toISOString().slice(0, 7);
+  const curM2   = billsMonth;
   const detailEl = document.getElementById('bcal-day-detail');
   let activeDay  = null;
 
@@ -6174,10 +6206,9 @@ function attachBills() {
       document.querySelectorAll('#bcal-grid .bcal-cell').forEach(c => c.classList.remove('bcal-selected'));
       cell.classList.add('bcal-selected');
 
-      const now  = new Date();
-      const mo   = now.toLocaleDateString('en-US', { month: 'long' });
+      const mo   = monthKeyLabel(curM2).split(' ')[0];
       const rows = bills.map((b, idx) => {
-        const paid    = b.paidMonth === curM2;
+        const paid    = isBillPaidFor(b, curM2);
         const color   = CAT_COLORS[b.category] || '#9896a4';
         const billIdx = state.bills.indexOf(b);
         return `
@@ -6199,12 +6230,17 @@ function attachBills() {
         ${rows}`;
       detailEl.style.display = '';
 
-      // Quick-pay from detail panel (no expense log prompt)
+      // Quick-pay from detail panel (marks paid only — never logs/deducts)
       detailEl.querySelectorAll('.bcal-quick-paid').forEach(btn => {
         btn.addEventListener('click', async () => {
           const bi   = parseInt(btn.dataset.bidx);
           const wasPaid = btn.dataset.paid === 'true';
-          state.bills[bi].paidMonth = wasPaid ? null : curM2;
+          if (wasPaid) {
+            const txnId = markBillUnpaid(state.bills[bi], curM2);
+            if (txnId) { const ti = state.transactions.findIndex(t => t._billTxnId === txnId); if (ti !== -1) await api.deleteTransaction(ti); }
+          } else {
+            markBillPaid(state.bills[bi], curM2, null);
+          }
           await api.saveBills(state.bills);
           // Re-render detail without full page render
           btn.dataset.paid = String(!wasPaid);
@@ -8327,7 +8363,7 @@ function getDawgNotifications() {
   const now = new Date(); now.setHours(0,0,0,0);
   const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   (state.bills||[]).forEach(b => {
-    if (b.paidMonth === curMonth) return; // already paid this month
+    if (isBillPaidFor(b, curMonth)) return; // already paid this month
     const d = getDaysUntilDue(b.dueDay);
     if (d >= 0 && d <= 3) {
       notes.push({ type:'bill', icon:'📄', title:`${b.name} due`, body: d===0 ? 'Due today!' : `Due in ${d} day${d===1?'':'s'}` });
