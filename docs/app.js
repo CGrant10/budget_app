@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.18.6';
+const VERSION = '5.18.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.18.7', date: '2026-06-02', changes: [
+    'Weekly Planner: week-by-week breakdown now always extends through the current week — fixes the new month (e.g. June) failing to appear when the saved paycheck date had already passed',
+  ]},
   { version: '5.18.6', date: '2026-05-31', changes: [
     'Weekly Planner: Forfeit button on past weeks — dims the week and auto-opens Start New Cycle so you can move on; tap ↩ Undo to restore it',
   ]},
@@ -5708,8 +5711,15 @@ function calcWeekly() {
   const monLabel = monday.toLocaleDateString('en-US',{month:'short',day:'numeric'});
   const paydate  = paydateStr ? new Date(paydateStr+'T00:00:00') : new Date(now.getTime()+(days-1)*86400000);
 
+  // The list must always run through at least the current week, even when the saved
+  // paydate has already passed (cycle ended but no new one started yet) — otherwise the
+  // span collapses to the past and the current week (e.g. the new month) never renders.
+  const curWeekEnd = new Date(monday); curWeekEnd.setDate(monday.getDate() + 6);
+  const listEnd    = paydate > curWeekEnd ? paydate : curWeekEnd;
+  const listEndStr = listEnd.toISOString().split('T')[0];
+
   // ── Unified week list: find the earliest Monday that has data (up to 12 weeks back)
-  // then build one continuous list through to paydate — no weeks ever shift or disappear.
+  // then build one continuous list through to listEnd — no weeks ever shift or disappear.
   let startMonday = new Date(monday);
   for (let i = 12; i >= 1; i--) {
     const m  = new Date(monday); m.setDate(monday.getDate() - i*7);
@@ -5719,7 +5729,7 @@ function calcWeekly() {
     if (state.transactions.some(t => t.date >= mS && t.date <= mES)) { startMonday = m; break; }
   }
 
-  const totalDaysSpan = Math.round((paydate - startMonday) / 86400000) + 1;
+  const totalDaysSpan = Math.round((listEnd - startMonday) / 86400000) + 1;
   const totalWeeks    = Math.max(1, Math.ceil(totalDaysSpan / 7));
 
   const txnRow = t => `<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`;
@@ -5730,13 +5740,14 @@ function calcWeekly() {
   Array.from({length: totalWeeks}, (_, w) => {
     const sd = new Date(startMonday); sd.setDate(startMonday.getDate() + w*7);
     const ed = new Date(startMonday); ed.setDate(startMonday.getDate() + (w+1)*7 - 1);
-    if (ed > paydate) ed.setTime(paydate.getTime());
+    if (ed > listEnd) ed.setTime(listEnd.getTime());
     const sdS = sd.toISOString().split('T')[0];
     const edS = ed.toISOString().split('T')[0];
     const isCurrent  = sdS <= mondayStr && mondayStr <= edS;
     const isPast     = edS < mondayStr;
-    // Skip degenerate future weeks that start on or after the paydate (e.g. "Jun 1 – Jun 1")
-    if (!isPast && paydateStr && sdS >= paydateStr) return;
+    // Skip degenerate future weeks that start on or after the list end (e.g. "Jun 1 – Jun 1"),
+    // but never skip the current week — listEnd is always ≥ the current week's end.
+    if (!isPast && !isCurrent && sdS >= listEndStr) return;
     const monthLabel = sd.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const lbl = `${sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
     const wkTxns = state.transactions.filter(t=>t.date>=sdS&&t.date<=edS);
