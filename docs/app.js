@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.20.1';
+const VERSION = '5.20.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.20.2', date: '2026-06-02', changes: [
+    'Ledger now keeps your scroll position after editing or deleting a transaction — no more jumping back to the top',
+    'A search filter you have active also stays put when you delete a row',
+  ]},
   { version: '5.20.1', date: '2026-06-02', changes: [
     'Any transaction can now be excluded from your weekly spending — tick "Don\'t count toward weekly spending" when adding a transaction, or when editing one in the ledger',
     'Excluded transactions show a "not in weekly" tag in the ledger and are left out of the weekly/daily trackers, breakdown, and dashboard tiles (same treatment as bills)',
@@ -3412,6 +3416,9 @@ function _applyStagger(container) {
 }
 
 function _applyPageTransition(main, oldHTML, transType) {
+  // In-place re-render (e.g. editing/deleting a ledger row): no scroll reset, no animation.
+  // The caller restores scrollTop after render() so the user stays where they were.
+  if (transType === 'none') { _pageTransition = 'fade'; return; }
   // Always reset scroll to top on every navigation
   main.scrollTop = 0;
   // Reset global flag immediately so re-entrant calls default to fade
@@ -3521,6 +3528,17 @@ function _applyPageTransition(main, oldHTML, transType) {
     updateNotesBadge();
     updateDawgTopbar();
   }, dur + 84);
+}
+
+// Re-render the current tab without scrolling back to the top or replaying the page
+// animation — used for in-place mutations (ledger edit/delete) so the user keeps position.
+function rerenderKeepScroll() {
+  const main = document.getElementById('main-content');
+  const y = main ? main.scrollTop : 0;
+  _pageTransition = 'none';
+  render();
+  const m2 = document.getElementById('main-content');
+  if (m2) m2.scrollTop = y;
 }
 
 function render() {
@@ -8345,7 +8363,7 @@ function attachSwipeDelete() {
         title: 'Delete Transaction', danger: true,
         message: 'Delete this transaction? This cannot be undone.',
         confirmText: 'Delete',
-        onConfirm: async () => { await api.deleteTransaction(idx); ledgerFilter = ''; render(); },
+        onConfirm: async () => { await api.deleteTransaction(idx); rerenderKeepScroll(); },
       });
     });
   });
@@ -9059,7 +9077,7 @@ function attachLedger() {
         excludeFromBudget: !!edit.querySelector('.ie-exclude')?.checked,
       });
       await autoUpdateWeeklyPlan(); // keep dashboard per-week/day in sync after the edit
-      render();
+      rerenderKeepScroll();
     });
   });
 
@@ -9080,7 +9098,7 @@ function attachLedger() {
         title: 'Delete Transaction', danger: true,
         message: `Delete "${t.description}" (${fmt(t.amount)})? This cannot be undone.`,
         confirmText: 'Delete',
-        onConfirm: async () => { await api.deleteTransaction(idx); selectedLedgerIdx = null; ledgerFilter = ''; render(); },
+        onConfirm: async () => { await api.deleteTransaction(idx); selectedLedgerIdx = null; rerenderKeepScroll(); },
       });
     });
   });
