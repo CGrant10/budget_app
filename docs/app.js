@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.18.9';
+const VERSION = '5.19.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.19.0', date: '2026-06-02', changes: [
+    'Ledger now has two tabs — Transactions and Bills — so bill payments (logged via the Bills tab) are separated from your normal spending',
+    'Bills no longer count as overspending — bill payments are excluded from the weekly/daily spend tracker and the week-by-week breakdown, since they are already reserved via the "Fixed bills" field',
+    'Dashboard Per Week and Per Day tiles now use the same month-based math as the Weekly Planner, so the numbers match across both pages',
+  ]},
   { version: '5.18.9', date: '2026-06-02', changes: [
     'Weekly Planner is now month-based — "This Month" shows your spendable balance for the current calendar month, and the per-week / per-day limits spread that balance across the weeks and days left in the month',
     'Week-by-week breakdown shows every week of the current month (not just until your next paycheck), with the month total ("· $X to spend") labeled on the month header',
@@ -2281,6 +2286,7 @@ let selectedLedgerIdx = null;
 let ledgerFilter = '';
 let ledgerSort = 'date-desc';
 let ledgerTypeFilter = 'all';
+let ledgerView = 'transactions';   // 'transactions' (non-bill) | 'bills'
 let ledgerCatFilter = '';
 let ledgerDateFrom = '';
 let ledgerDateTo = '';
@@ -2297,7 +2303,7 @@ function showTab(key) {
   _navPush();
   if (currentTab === 'ledger' && key !== 'ledger') {
     ledgerFilter = ''; ledgerSort = 'date-desc'; ledgerTypeFilter = 'all';
-    ledgerCatFilter = ''; ledgerDateFrom = ''; ledgerDateTo = '';
+    ledgerCatFilter = ''; ledgerDateFrom = ''; ledgerDateTo = ''; ledgerView = 'transactions';
   }
   if (_insightTimer) { clearInterval(_insightTimer); _insightTimer = null; }
   if (_dawgSparkGlobal) { _dawgSparkGlobal.destroy(); _dawgSparkGlobal = null; }
@@ -4194,7 +4200,8 @@ function renderDashboardDawg() {
   let _wkExp = 0, _wkInc = 0, _dayExp = 0, _dayInc = 0;
   for (const t of state.transactions) {
     if (t.date >= _monStr) {
-      if (t.type === 'expense') { _wkExp += t.amount; if (t.date === _todayStr2) _dayExp += t.amount; }
+      // Bills are reserved separately — exclude them from discretionary spend (matches planner).
+      if (t.type === 'expense') { if (!isBillTxn(t)) { _wkExp += t.amount; if (t.date === _todayStr2) _dayExp += t.amount; } }
       else if (t.type === 'income') { _wkInc += t.amount; if (t.date === _todayStr2) _dayInc += t.amount; }
     }
   }
@@ -4206,12 +4213,9 @@ function renderDashboardDawg() {
   const _dashLiveBal = (state.startingBalance || 0) + _dashTotalInc - _dashTotalExp;
   const _dashBills   = parseFloat(_wp?.bills   || 0) || 0;
   const _dashStopAt  = parseFloat(_wp?.stop_at || 0) || 0;
-  const _dashPdDate  = _wp?.paydate
-    ? new Date(_wp.paydate + 'T00:00:00')
-    : (() => { const d = new Date(); d.setDate(d.getDate() + 14); return d; })();
-  const _dashDays  = Math.max(1, Math.round((_dashPdDate - _wkNow) / 86400000) + 1);
+  // Month-based window — same math as the Weekly Planner so the per-week / per-day tiles match.
+  const { daysLeft: _dashDays, weeksLeft: _dashWeeks } = monthWindow(_wkNow, _wkMon);
   const _dashAvail = Math.max(0, _dashLiveBal - _dashStopAt - _dashBills);
-  const _dashWeeks = Math.ceil(_dashDays / 7) || 1;
 
   // The committed per-week/day limit.
   // Priority: fresh live computation → budget_per_week → per_week → saved_date reconstruction
@@ -5451,6 +5455,10 @@ function renderLedger() {
     `<option value="${c}"${c === ledgerCatFilter ? ' selected' : ''}>${c}</option>`).join('');
 
   let rows = state.transactions.map((t, i) => ({ ...t, _i: i }));
+  // Split into Bills (logged from the Bills tab) vs normal Transactions before any other filter.
+  const _allBillRows = rows.filter(isBillTxn);
+  const _allTxnRows  = rows.filter(t => !isBillTxn(t));
+  rows = ledgerView === 'bills' ? _allBillRows : _allTxnRows;
   if (ledgerTypeFilter !== 'all') rows = rows.filter(t => t.type === ledgerTypeFilter);
   if (ledgerCatFilter)  rows = rows.filter(t => t.category === ledgerCatFilter);
   if (ledgerDateFrom)   rows = rows.filter(t => t.date >= ledgerDateFrom);
@@ -5516,7 +5524,11 @@ function renderLedger() {
   return `
     <div class="page">
       <h1 class="page-title">Ledger</h1>
-      <p class="page-sub">${rows.length} transaction${rows.length !== 1 ? 's' : ''}</p>
+      <p class="page-sub">${rows.length} ${ledgerView === 'bills' ? 'bill' : 'transaction'}${rows.length !== 1 ? 's' : ''}</p>
+      <div class="ledger-view-tabs">
+        <button class="lv-tab${ledgerView === 'transactions' ? ' active' : ''}" data-view="transactions">Transactions${_allTxnRows.length ? ` <span class="lv-count">${_allTxnRows.length}</span>` : ''}</button>
+        <button class="lv-tab${ledgerView === 'bills' ? ' active' : ''}" data-view="bills">Bills${_allBillRows.length ? ` <span class="lv-count">${_allBillRows.length}</span>` : ''}</button>
+      </div>
       <div class="ledger-filter-bar">
         <div class="lf-row1">
           <input type="search" id="ledger-search" class="form-input lf-search" placeholder="Search…" value="${ledgerFilter}">
@@ -5548,7 +5560,9 @@ function renderLedger() {
       <div class="ledger-list">
         ${rowsHtml || (state.transactions.length === 0
           ? emptyState('No transactions yet', 'Tap Add to log your first one')
-          : '<p style="padding:24px 0;text-align:center;color:var(--muted);font-size:.85rem">No matching transactions</p>')}
+          : ledgerView === 'bills'
+            ? '<p style="padding:24px 0;text-align:center;color:var(--muted);font-size:.85rem">No bills logged yet — tap "Mark Paid" on a bill in the Bills tab</p>'
+            : '<p style="padding:24px 0;text-align:center;color:var(--muted);font-size:.85rem">No matching transactions</p>')}
       </div>
     </div>`;
 }
@@ -5631,6 +5645,21 @@ function weeksFromMonday(startMon, end) {
   return Math.max(1, c);
 }
 
+// Days and weekly rows remaining in the calendar month containing `refDate`. Shared by the
+// Weekly Planner and the dashboard budget tiles so the two always show the same numbers.
+function monthWindow(refDate, monday) {
+  const d = new Date(refDate); d.setHours(0, 0, 0, 0);
+  const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  return {
+    monthEnd,
+    daysLeft:  Math.max(1, Math.round((monthEnd - d) / 86400000) + 1),
+    weeksLeft: weeksFromMonday(monday, monthEnd),
+  };
+}
+
+// A "bill" transaction is one logged from the Bills tab's "Mark Paid" action.
+function isBillTxn(t) { return !!(t && t._billTxnId); }
+
 function calcWeekly() {
   const { income: _wkInc, expense: _wkExp } = totals();
   const liveBalance = (state.startingBalance || 0) + _wkInc - _wkExp;
@@ -5646,9 +5675,7 @@ function calcWeekly() {
   // Spend the current spendable balance across THIS calendar month. The weekly and
   // daily limits spread that balance over the time still remaining in the month.
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const days       = Math.max(1, Math.round((monthEnd - now) / 86400000) + 1);  // days left, incl today
-  const weeks      = weeksFromMonday(monday, monthEnd);                          // weeks left this month
+  const { monthEnd, daysLeft: days, weeksLeft: weeks } = monthWindow(now, monday);
   const currentMonthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   const available  = Math.max(0, liveBalance - stopAt - bills);
@@ -5656,9 +5683,14 @@ function calcWeekly() {
   lastCalcPerWeek  = perWeek;
   lastCalcPerDay   = days > 0 ? available / days : 0;
   const perDay     = lastCalcPerDay;
+  // Bills (logged from the Bills tab) are reserved separately via the "Fixed bills" field,
+  // so they must NOT count toward discretionary weekly/daily spending.
   let weekExpenses = 0, weekIncomeOffset = 0;
   for (const t of state.transactions) {
-    if (t.date >= mondayStr) { if (t.type==='expense') weekExpenses+=t.amount; else weekIncomeOffset+=t.amount; }
+    if (t.date >= mondayStr) {
+      if (t.type==='expense') { if (!isBillTxn(t)) weekExpenses+=t.amount; }
+      else weekIncomeOffset+=t.amount;
+    }
   }
   const weekNet  = Math.max(0, weekExpenses - weekIncomeOffset);
   // Effective weekly limit. Prefer the live monthly figure; only fall back to a saved or
@@ -5758,7 +5790,7 @@ function calcWeekly() {
     const monthLabel = sd.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const lbl = `${sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
     const wkTxns = state.transactions.filter(t=>t.date>=sdS&&t.date<=edS);
-    const wkExp  = wkTxns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+    const wkExp  = wkTxns.filter(t=>t.type==='expense' && !isBillTxn(t)).reduce((s,t)=>s+t.amount,0);
     const wkInc  = wkTxns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
     const wkNet  = Math.max(0, wkExp - wkInc);
     const txnHtml = wkTxns.length
@@ -8623,16 +8655,15 @@ function attachHandlers() {
 
 async function autoUpdateWeeklyPlan() {
   const wp = state.weekly_plan;
-  if (!wp || !wp.paydate) return;
+  if (!wp) return;
   const { income, expense } = totals();
   const liveBalance = (state.startingBalance || 0) + income - expense;
   const bills    = parseFloat(wp.bills   || 0) || 0;
   const stopAt   = parseFloat(wp.stop_at || 0) || 0;
-  const paydate  = new Date(wp.paydate + 'T00:00:00');
   const now      = new Date(); now.setHours(0,0,0,0);
-  const days     = Math.max(1, Math.round((paydate - now) / 86400000) + 1);
+  const monday   = new Date(now); monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
+  const { daysLeft: days, weeksLeft: weeks } = monthWindow(now, monday);  // month-based, matches planner
   const available = Math.max(0, liveBalance - stopAt - bills);
-  const weeks    = Math.ceil(days / 7) || 1;
   const perWeek  = available / weeks;
   const perDay   = available / days;
   // budget_per_week/day = the committed limit — only updated when budget is positive,
@@ -8933,6 +8964,13 @@ function attachLedger() {
   document.querySelectorAll('.type-pill').forEach(btn => {
     btn.addEventListener('click', () => {
       ledgerTypeFilter = btn.dataset.type;
+      render();
+    });
+  });
+  document.querySelectorAll('.lv-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (ledgerView === btn.dataset.view) return;
+      ledgerView = btn.dataset.view;
       render();
     });
   });

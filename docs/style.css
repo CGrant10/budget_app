@@ -2006,6 +2006,47 @@ body.light .section-title::before {
   color: #fff;
 }
 
+/* ── ledger view tabs (Transactions vs Bills) ──────────────────────────────── */
+.ledger-view-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.lv-tab {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all .15s;
+}
+.lv-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.lv-count {
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: rgba(0,0,0,.18);
+  color: inherit;
+}
+.lv-tab:not(.active) .lv-count {
+  background: var(--border);
+  color: var(--muted);
+}
+
 /* ── custom categories list ───────────────────────────────────────────────── */
 .custom-cat-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
 .custom-cat-row { display: flex; align-items: center; gap: 8px; }
