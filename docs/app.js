@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.20.6';
+const VERSION = '5.20.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.20.7', date: '2026-06-04', changes: [
+    'Accessibility: keyboard focus outlines, screen-reader labels on the ledger edit/delete buttons, and the week-by-week rows can now be expanded with the keyboard (Enter/Space)',
+  ]},
   { version: '5.20.6', date: '2026-06-04', changes: [
     'Added a developer test page (tests.html) covering the budget/date math, so future changes are less likely to reintroduce calculation bugs',
   ]},
@@ -5587,8 +5590,8 @@ function renderLedger() {
           <div class="ledger-right">
             <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
             <div class="ledger-running-bal">bal: ${fmt(runBal[t._i])}</div>
-            <button class="ledger-edit-btn" data-idx="${t._i}" title="Edit">✏️</button>
-            <button class="ledger-delete" data-idx="${t._i}">✕</button>
+            <button class="ledger-edit-btn" data-idx="${t._i}" title="Edit" aria-label="Edit ${t.description||'transaction'}">✏️</button>
+            <button class="ledger-delete" data-idx="${t._i}" aria-label="Delete ${t.description||'transaction'}">✕</button>
           </div>
         </div>
         <div class="ledger-inline-edit">
@@ -5935,7 +5938,7 @@ function calcWeekly() {
       const forfeitBtn   = `<button class="wkb-forfeit-btn" data-week="${sdS}">${forfeited ? '↩ Undo' : 'Forfeit'}</button>`;
       const displayLabel = forfeited ? `<span class="wkb-forfeited-badge">FORFEITED</span>` : `<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span>`;
       if (monthLabel !== lastMonth) { lastMonth = monthLabel; const _mhBudget = monthLabel === currentMonthLabel ? ` <span style="font-weight:600;color:var(--accent);font-size:.82em">· ${fmt(available)} to spend</span>` : ''; allRowsHtml.push(`<div class="wkb-month-header">${monthLabel}${_mhBudget}</div>`); }
-      allRowsHtml.push(`<div class="wkb-row wkb-past${forfeited ? ' wkb-forfeited' : ''}"><div class="wkb-header"><span class="week-dates">${lbl}</span>${forfeited ? '<span style="flex:1"></span>' : miniBar}${displayLabel}${forfeitBtn}<span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
+      allRowsHtml.push(`<div class="wkb-row wkb-past${forfeited ? ' wkb-forfeited' : ''}"><div class="wkb-header" role="button" tabindex="0" aria-expanded="false"><span class="week-dates">${lbl}</span>${forfeited ? '<span style="flex:1"></span>' : miniBar}${displayLabel}${forfeitBtn}<span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     } else {
       // Current + future weeks — live, recalculated on every settings change
       const _rowDenominator = _effectivePerWeek > 0 ? _effectivePerWeek : (wkNet > 0 ? wkNet : perWeek);
@@ -5943,7 +5946,7 @@ function calcWeekly() {
       const wkColor = isCurrent && _wkFailed ? 'var(--danger)' : wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
       const badge   = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
       if (monthLabel !== lastMonth) { lastMonth = monthLabel; const _mhBudget = monthLabel === currentMonthLabel ? ` <span style="font-weight:600;color:var(--accent);font-size:.82em">· ${fmt(available)} to spend</span>` : ''; allRowsHtml.push(`<div class="wkb-month-header">${monthLabel}${_mhBudget}</div>`); }
-      allRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(_rowDenominator)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
+      allRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header" role="button" tabindex="0" aria-expanded="false">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(_rowDenominator)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     }
   });
 
@@ -5984,12 +5987,17 @@ function calcWeekly() {
   if (allEl) {
     allEl.innerHTML = allRowsHtml.join('');
     allEl.querySelectorAll('.wkb-header').forEach(hdr => {
-      hdr.addEventListener('click', () => {
+      const toggle = () => {
         const txns = hdr.nextElementSibling;
         const tog  = hdr.querySelector('.pw-week-toggle');
         const open = txns.style.display !== 'block';
         txns.style.display = open ? 'block' : 'none';
+        hdr.setAttribute('aria-expanded', String(open));
         if (tog) tog.textContent = open ? '▲' : '▼';
+      };
+      hdr.addEventListener('click', toggle);
+      hdr.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
       });
     });
   }

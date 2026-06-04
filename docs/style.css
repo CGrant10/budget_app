@@ -2027,6 +2027,20 @@ body.light .section-title::before {
   color: #fff;
 }
 
+/* ── accessibility: keyboard focus indicator ───────────────────────────────── */
+/* Only shows for keyboard users (:focus-visible), never on mouse/touch tap. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 /* ── ledger view tabs (Transactions vs Bills) ──────────────────────────────── */
 .ledger-view-tabs {
   display: flex;
