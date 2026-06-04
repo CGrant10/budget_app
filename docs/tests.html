@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budget DAWGs — Tests</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; background:#0f0f14; color:#e6e6ea; margin:0; padding:20px; }
+  h1 { font-size:1.1rem; }
+  #summary { font-size:1rem; font-weight:700; margin:12px 0; padding:10px 14px; border-radius:10px; }
+  .ok   { background:rgba(50,215,75,.15); color:#5fe08a; }
+  .bad  { background:rgba(255,69,58,.15); color:#ff6b6b; }
+  ul { list-style:none; padding:0; margin:0; }
+  li { padding:6px 10px; border-bottom:1px solid #26262e; font-size:.85rem; display:flex; gap:8px; }
+  .pass::before { content:'✓'; color:#5fe08a; font-weight:700; }
+  .fail::before { content:'✕'; color:#ff6b6b; font-weight:700; }
+  .fail { color:#ff9a9a; }
+  code { color:#9aa0ff; }
+</style>
+</head>
+<body>
+  <h1>Budget DAWGs — money-math tests</h1>
+  <div id="summary">Running…</div>
+  <ul id="results"></ul>
+
+  <!-- Boot guard: load app.js for its helpers without starting the app -->
+  <script>window.__APP_TEST__ = true;</script>
+  <!-- minimal DOM the top-level code touches (all null-guarded, but be safe) -->
+  <div id="main-content" style="display:none"></div>
+  <script src="./app.js"></script>
+
+  <script>
+  (function () {
+    const results = [];
+    function test(name, fn) {
+      try { fn(); results.push({ name, ok: true }); }
+      catch (e) { results.push({ name, ok: false, msg: e.message }); }
+    }
+    function eq(a, b, label) {
+      const sa = JSON.stringify(a), sb = JSON.stringify(b);
+      if (sa !== sb) throw new Error(`${label || ''} expected ${sb}, got ${sa}`);
+    }
+    function ok(v, label) { if (!v) throw new Error(label || 'expected truthy'); }
+
+    // ── date helpers ─────────────────────────────────────────────────────────
+    test('localMonthKey returns local YYYY-MM', () => {
+      eq(localMonthKey(new Date(2026, 5, 2)), '2026-06', 'June');
+      eq(localMonthKey(new Date(2026, 0, 31)), '2026-01', 'Jan');
+    });
+    test('localDateStr returns local YYYY-MM-DD', () => {
+      eq(localDateStr(new Date(2026, 5, 2)), '2026-06-02');
+      eq(localDateStr(new Date(2026, 11, 9)), '2026-12-09');
+    });
+    test('shiftMonthKey wraps year boundaries', () => {
+      eq(shiftMonthKey('2026-12', 1), '2027-01');
+      eq(shiftMonthKey('2026-01', -1), '2025-12');
+      eq(shiftMonthKey('2026-06', 0), '2026-06');
+    });
+    test('monthKeyLabel is human readable', () => {
+      eq(monthKeyLabel('2026-06'), 'June 2026');
+    });
+
+    // ── week/month window ──────────────────────────────────────────────────────
+    test('weeksFromMonday counts Mondays inclusive', () => {
+      // June 2026: Mondays 1, 8, 15, 22, 29 = 5
+      eq(weeksFromMonday(new Date(2026, 5, 1), new Date(2026, 5, 30)), 5, 'June');
+      // Feb 2026: Mondays 2, 9, 16, 23 = 4
+      eq(weeksFromMonday(new Date(2026, 1, 2), new Date(2026, 1, 28)), 4, 'Feb');
+      // never returns 0
+      eq(weeksFromMonday(new Date(2026, 5, 30), new Date(2026, 5, 1)), 1, 'min 1');
+    });
+    test('monthWindow gives days/weeks left in month', () => {
+      const w = monthWindow(new Date(2026, 5, 2), new Date(2026, 5, 1));
+      eq(w.daysLeft, 29, 'days left Jun 2');   // Jun 2..30 inclusive
+      eq(w.weeksLeft, 5, 'weeks left');
+      eq(localDateStr(w.monthEnd), '2026-06-30', 'month end');
+    });
+
+    // ── transaction classifiers ────────────────────────────────────────────────
+    test('isBillTxn detects bill payments', () => {
+      ok(isBillTxn({ _billTxnId: 'billtxn-abc' }), 'has id');
+      ok(!isBillTxn({}), 'plain');
+      ok(!isBillTxn(null), 'null');
+    });
+    test('isExcludedFromSpend covers bills + flagged', () => {
+      ok(isExcludedFromSpend({ _billTxnId: 'x' }), 'bill');
+      ok(isExcludedFromSpend({ excludeFromBudget: true }), 'flagged');
+      ok(!isExcludedFromSpend({ amount: 10 }), 'normal');
+    });
+
+    // ── bill multi-month model + migration ──────────────────────────────────────
+    test('bill paid model migrates legacy single paidMonth', () => {
+      const b = { paidMonth: '2026-05', loggedTxnId: 't1' };
+      ok(isBillPaidFor(b, '2026-05'), 'legacy paid');
+      eq(billPaidMonths(b), ['2026-05'], 'migrated array');
+      eq(billLoggedTxns(b)['2026-05'], 't1', 'migrated txn map');
+    });
+    test('pay ahead keeps both months paid', () => {
+      const b = { paidMonths: ['2026-06'], loggedTxns: {} };
+      markBillPaid(b, '2026-07', 't2');
+      ok(isBillPaidFor(b, '2026-06') && isBillPaidFor(b, '2026-07'), 'both paid');
+      const removed = markBillUnpaid(b, '2026-06');
+      ok(!isBillPaidFor(b, '2026-06'), 'June cleared');
+      ok(isBillPaidFor(b, '2026-07'), 'July still paid');
+      eq(removed, null, 'no txn logged for June');
+      eq(billLoggedTxns(b)['2026-07'], 't2', 'July txn retained');
+    });
+
+    // ── balanceAsOf (state-driven) ──────────────────────────────────────────────
+    test('balanceAsOf sums through a date', () => {
+      const saved = { sb: state.startingBalance, tx: state.transactions };
+      state.startingBalance = 100;
+      state.transactions = [
+        { date: '2026-06-01', type: 'income',  amount: 50 },
+        { date: '2026-06-05', type: 'expense', amount: 20 },
+      ];
+      try {
+        eq(balanceAsOf('2026-06-03'), 150, 'before expense');
+        eq(balanceAsOf('2026-06-10'), 130, 'after expense');
+        eq(balanceAsOf('2026-05-31'), 100, 'before any');
+      } finally {
+        state.startingBalance = saved.sb; state.transactions = saved.tx;
+      }
+    });
+
+    // ── render ──────────────────────────────────────────────────────────────────
+    const passed = results.filter(r => r.ok).length;
+    const failed = results.length - passed;
+    const sum = document.getElementById('summary');
+    sum.textContent = `${passed}/${results.length} passed` + (failed ? ` — ${failed} FAILED` : ' — all green');
+    sum.className = failed ? 'bad' : 'ok';
+    const ul = document.getElementById('results');
+    ul.innerHTML = results.map(r =>
+      `<li class="${r.ok ? 'pass' : 'fail'}"><span>${r.name}</span>${r.ok ? '' : `<code>${r.msg}</code>`}</li>`
+    ).join('');
+  })();
+  </script>
+</body>
+</html>

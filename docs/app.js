@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.20.5';
+const VERSION = '5.20.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.20.6', date: '2026-06-04', changes: [
+    'Added a developer test page (tests.html) covering the budget/date math, so future changes are less likely to reintroduce calculation bugs',
+  ]},
   { version: '5.20.5', date: '2026-06-04', changes: [
     'Backup reminder — the dashboard now shows a banner when it has been over 30 days (or never) since your last backup, and Settings shows when you last backed up',
     'Backups are now complete — they also include your challenges, notes, starting balance, and settings (not just transactions/bills/goals/accounts)',
@@ -10101,6 +10104,8 @@ window.addEventListener('popstate', () => {
 });
 
 (async () => {
+  // Test harness (tests.html) loads app.js only to exercise the pure helpers — skip boot.
+  if (window.__APP_TEST__) return;
   // If a lock is configured, cover the app content immediately so it can't be
   // glimpsed between the splash fading out and the biometric/PIN overlay appearing.
   const _hasLock = !!localStorage.getItem('slawminyaw_pin') || !!localStorage.getItem('slawminyaw_biometric_cred');
