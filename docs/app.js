@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.20.2';
+const VERSION = '5.20.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.20.3', date: '2026-06-04', changes: [
+    'Weekly Planner is fully month-based now — removed the leftover "Next paycheck date" field and "Start New Cycle" button that no longer affected anything',
+    'Dashboard "Weekly Plan" tile now shows This Month / Per Day / Days Left in the month (matching the planner) instead of paycheck-based payday info',
+  ]},
   { version: '5.20.2', date: '2026-06-02', changes: [
     'Ledger now keeps your scroll position after editing or deleting a transaction — no more jumping back to the top',
     'A search filter you have active also stays put when you delete a row',
@@ -4459,7 +4463,7 @@ function renderDashboardDawg() {
             }`;
         }
         // ── Per-day tile: truly dynamic daily allowance ──────────────────────
-        // Limit = available-above-buffer / days-to-paydate.
+        // Limit = available-above-buffer / days left in the current month.
         // When below buffer this is exactly $0 — no allowance until recovered.
         // When above buffer it auto-adjusts each day so you never bust the floor.
         const _perDayLimit = _dashAvail > 0 ? _dashAvail / _dashDays : 0;
@@ -4656,15 +4660,12 @@ function renderDashboardDawg() {
         }
       }
 
-      // Weekly Plan Snapshot
+      // Weekly Plan Snapshot — month-based, mirrors the Weekly Planner page
       {
-        const _perDay   = parseFloat(_wp?.per_day || 0);
-        const _paydate  = _wp?.paydate;
-        if (_paydate && !isPastDash) {
-          const _pd      = new Date(_paydate + 'T00:00:00');
-          const _now2    = new Date(); _now2.setHours(0,0,0,0);
-          const _daysL   = Math.max(0, Math.round((_pd - _now2) / 86400000) + 1);
-          const _billAmt = parseFloat(_wp?.bills || 0);
+        const _perDay   = _livePerDay;                 // available ÷ days left this month
+        const _billAmt  = parseFloat(_wp?.bills || 0);
+        if (!isPastDash && (_perDay > 0 || _dashAvail > 0 || _billAmt > 0)) {
+          const _monName = _wkNow.toLocaleDateString('en-US', { month: 'long' });
           const _overDay = _perDay > 0 && daySpent > _perDay;
           const _pdColor = _overDay ? 'var(--danger)'
             : dayBudget > 0
@@ -4677,6 +4678,10 @@ function renderDashboardDawg() {
             <div class="dawg-card-title">WEEKLY PLAN</div>
             <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
               <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:.72rem;color:var(--muted)">THIS MONTH</span>
+                <span style="font-size:.88rem;font-weight:700;color:var(--accent)">${fmt(_dashAvail)}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
                 <span style="font-size:.72rem;color:var(--muted)">PER DAY</span>
                 ${_perDayDisplay}
               </div>
@@ -4685,15 +4690,11 @@ function renderDashboardDawg() {
                 <span style="font-size:.88rem;font-weight:600;color:var(--text)">${fmt(daySpent)}</span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:.72rem;color:var(--muted)">DAYS LEFT</span>
-                <span style="font-size:.88rem;font-weight:600;color:var(--text)">${_daysL}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:.72rem;color:var(--muted)">PAYDAY</span>
-                <span style="font-size:.78rem;color:var(--text)">${_pd.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+                <span style="font-size:.72rem;color:var(--muted)">DAYS LEFT IN ${_monName.toUpperCase()}</span>
+                <span style="font-size:.88rem;font-weight:600;color:var(--text)">${_dashDays}</span>
               </div>
               ${_billAmt > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px solid var(--border)">
-                <span style="font-size:.72rem;color:var(--muted)">BILLS DUE</span>
+                <span style="font-size:.72rem;color:var(--muted)">BILLS RESERVED</span>
                 <span style="font-size:.78rem;color:var(--warn)">${fmt(_billAmt)}</span>
               </div>` : ''}
             </div>
@@ -5608,9 +5609,6 @@ function renderWeekly() {
   const wp = state.weekly_plan;
   const defStopAt  = wp.stop_at  ?? '0';
   const defBills   = wp.bills    ?? '0';
-  const defPaydate = wp.paydate  ?? (() => {
-    const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split('T')[0];
-  })();
   const balance  = (state.startingBalance || 0) + income - expense;
   const balColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
   return `
@@ -5633,38 +5631,12 @@ function renderWeekly() {
           <label class="form-label">Stop at — minimum balance ($)</label>
           <input type="number" id="wk-stop-at" class="form-input" value="${defStopAt}" step="0.01" inputmode="decimal" placeholder="0">
         </div>
-        <div class="form-row">
-          <label class="form-label">Next paycheck date</label>
-          <input type="date" id="wk-paydate" class="form-input" value="${defPaydate}">
-        </div>
         <div class="btn-row">
           <button id="wk-save" class="btn-primary">Save</button>
           <span id="wk-save-status" class="status-inline"></span>
         </div>
       </div>
       <div id="wk-live"></div>
-      <div id="wk-next-cycle-wrap" style="margin:0 0 20px">
-        <button id="wk-next-cycle-btn" class="btn-secondary" style="width:100%">🔄 Start New Cycle</button>
-        <div id="wk-next-cycle-form" class="form-card" style="display:none;margin-top:10px">
-          <h2 class="section-title" style="margin:0 0 10px">New Pay Cycle</h2>
-          <div class="form-row">
-            <label class="form-label">Next paycheck date</label>
-            <input type="date" id="wk-nc-paydate" class="form-input">
-          </div>
-          <div class="form-row">
-            <label class="form-label">Fixed bills to reserve ($)</label>
-            <input type="number" id="wk-nc-bills" class="form-input" step="0.01" inputmode="decimal">
-          </div>
-          <div class="form-row">
-            <label class="form-label">Stop-at — minimum balance ($)</label>
-            <input type="number" id="wk-nc-stopat" class="form-input" step="0.01" inputmode="decimal" placeholder="0">
-          </div>
-          <div class="btn-row" style="gap:8px">
-            <button id="wk-nc-confirm" class="btn-primary" style="flex:1">✓ Start Cycle</button>
-            <button id="wk-nc-cancel" class="btn-secondary" style="flex:1">Cancel</button>
-          </div>
-        </div>
-      </div>
       <div id="wk-week-section" style="display:none">
         <h2 class="section-title" style="margin-bottom:10px">Week-by-week breakdown</h2>
         <div class="wkb-rows" id="wk-all-rows"></div>
@@ -5755,7 +5727,6 @@ function calcWeekly() {
   const liveBalance = (state.startingBalance || 0) + _wkInc - _wkExp;
   const bills      = parseFloat(document.getElementById('wk-bills')?.value)   || 0;
   const stopAt     = parseFloat(document.getElementById('wk-stop-at')?.value) || 0;
-  const paydateStr = document.getElementById('wk-paydate')?.value || '';
   const now    = new Date(); now.setHours(0,0,0,0);
   const monday = new Date(now);
   monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
@@ -8032,7 +8003,7 @@ const WALKTHROUGH_STEPS = [
   // ── 7. Weekly Planner ─────────────────────────────────────────────────────
   { tab: null, target: null,
     title: 'Weekly Planner',
-    body: 'Enter your balance, upcoming bills, and next paydate. Tap "Calculate" to get a safe daily spending limit. This limit feeds the Per Day ring tile on your dashboard.',
+    body: 'Set your fixed bills and a minimum balance to keep. The planner spreads what\'s left across the weeks and days remaining in the current month, and feeds the Per Week / Per Day tiles on your dashboard.',
     icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="26" height="24" rx="2"/><line x1="5" y1="14" x2="31" y2="14"/><line x1="12" y1="4" x2="12" y2="10"/><line x1="24" y1="4" x2="24" y2="10"/><rect x="10" y="19" width="4" height="4" rx=".5"/><rect x="22" y="19" width="4" height="4" rx=".5"/></svg>`,
     anim: `<div style="padding:10px 16px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;">
   <div style="display:flex;gap:6px;">
@@ -9110,15 +9081,15 @@ function attachLedger() {
 
 function attachWeekly() {
   const _debouncedCalc = () => { clearTimeout(_wkCalcTimer); _wkCalcTimer = setTimeout(calcWeekly, 300); };
-  ['wk-paydate','wk-bills','wk-stop-at'].forEach(id => {
+  ['wk-bills','wk-stop-at'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', _debouncedCalc);
     document.getElementById(id)?.addEventListener('input',  _debouncedCalc);
   });
   document.getElementById('wk-save')?.addEventListener('click', async () => {
     const plan = {
+      ...state.weekly_plan,
       bills:           document.getElementById('wk-bills').value,
       stop_at:         document.getElementById('wk-stop-at').value,
-      paydate:         document.getElementById('wk-paydate').value,
       per_week:        lastCalcPerWeek,
       per_day:         lastCalcPerDay,
       budget_per_week: lastCalcPerWeek > 0 ? lastCalcPerWeek : (parseFloat(state.weekly_plan?.budget_per_week) || 0),
@@ -9128,54 +9099,6 @@ function attachWeekly() {
     await api.saveWeeklyPlan(plan);
     const el = document.getElementById('wk-save-status');
     if (el) { el.textContent = '✓ Saved'; setTimeout(() => { el.textContent = ''; }, 3000); }
-  });
-
-  // ── Start New Cycle ─────────────────────────────────────────────────────
-  document.getElementById('wk-next-cycle-btn')?.addEventListener('click', () => {
-    const form = document.getElementById('wk-next-cycle-form');
-    if (!form) return;
-    const isOpen = form.style.display !== 'none';
-    if (isOpen) { form.style.display = 'none'; return; }
-    // Pre-fill: next paydate = current paydate + cycle gap (or +14 days if none saved)
-    const wp       = state.weekly_plan;
-    const curPay   = wp.paydate ? new Date(wp.paydate + 'T00:00:00') : new Date();
-    const prevPay  = wp.prev_paydate ? new Date(wp.prev_paydate + 'T00:00:00') : null;
-    const gap      = prevPay ? Math.round((curPay - prevPay) / 86400000) : 14;
-    const nextPay  = new Date(curPay); nextPay.setDate(curPay.getDate() + Math.max(7, gap));
-    document.getElementById('wk-nc-paydate').value = nextPay.toISOString().split('T')[0];
-    document.getElementById('wk-nc-bills').value   = wp.bills  || '0';
-    document.getElementById('wk-nc-stopat').value  = wp.stop_at || '0';
-    form.style.display = '';
-    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  });
-
-  document.getElementById('wk-nc-cancel')?.addEventListener('click', () => {
-    document.getElementById('wk-next-cycle-form').style.display = 'none';
-  });
-
-  document.getElementById('wk-nc-confirm')?.addEventListener('click', async () => {
-    const newPaydate = document.getElementById('wk-nc-paydate').value;
-    const newBills   = document.getElementById('wk-nc-bills').value;
-    const newStopAt  = document.getElementById('wk-nc-stopat').value;
-    if (!newPaydate) {
-      showAlert('Please pick a next paycheck date.');
-      return;
-    }
-    // Carry forward current paydate as prev_paydate so we can infer cycle gap next time
-    const plan = {
-      bills:           newBills,
-      stop_at:         newStopAt,
-      paydate:         newPaydate,
-      prev_paydate:    state.weekly_plan.paydate || null,
-      per_week:        0,
-      per_day:         0,
-      budget_per_week: 0,
-      budget_per_day:  0,
-      saved_date:      today(),
-    };
-    await api.saveWeeklyPlan(plan);
-    haptic([20, 40, 20]);
-    render();
   });
 
   // ── Forfeit / undo forfeit past week ────────────────────────────────────
@@ -9192,13 +9115,6 @@ function attachWeekly() {
     wp.forfeitedWeeks = forfeited;
     await api.saveWeeklyPlan(wp);
     calcWeekly();
-    // If forfeiting (not undoing) and no future cycle is set up, open the Start New Cycle form
-    if (idx === -1) {
-      const np = document.getElementById('wk-next-cycle-form');
-      if (np && np.style.display === 'none') {
-        document.getElementById('wk-next-cycle-btn')?.click();
-      }
-    }
   });
 }
 
