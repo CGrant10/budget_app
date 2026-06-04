@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bills · Debt · Goals — Hybrid Mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#0b0b0d; --card:#1a1a1c; --surface2:#222; --text:#f0f0f2; --muted:#7a7a83;
+         --border:rgba(255,255,255,.08); --accent:#4ecb8d; --success:#32d74b; --danger:#ff5a4d; --warn:#ffd60a; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:#050507; color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; padding:22px 14px 60px; font-variant-numeric:tabular-nums; }
+  h1{ font-size:1.15rem; font-weight:800; text-align:center; }
+  .lead{ text-align:center; color:var(--muted); font-size:.82rem; margin:4px 0 26px; }
+  .row{ display:flex; gap:22px; justify-content:center; flex-wrap:wrap; align-items:flex-start; }
+  .col{ width:300px; max-width:100%; }
+  .tag{ text-align:center; font-weight:700; margin-bottom:10px; }
+  .phone{ height:560px; border-radius:26px; overflow:hidden; border:1px solid var(--border); background:var(--bg); display:flex; flex-direction:column; }
+  .hd-static{ padding:16px 14px 12px; flex-shrink:0; border-bottom:1px solid var(--border); }
+  .scroll{ flex:1; overflow-y:auto; padding:4px 14px 16px; }
+  .scroll::-webkit-scrollbar{ width:6px; } .scroll::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.14); border-radius:3px; }
+  .ic{ width:17px; height:17px; }
+  .ttl{ font-size:1.3rem; font-weight:800; letter-spacing:-.02em; }
+  .lbl{ font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); font-weight:700; }
+  .meter{ height:8px; border-radius:99px; background:rgba(255,255,255,.07); overflow:hidden; margin:8px 0 6px; }
+  .meter i{ display:block; height:100%; border-radius:99px; }
+  .grp{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:700; margin:16px 2px 6px; }
+  .pos{ color:var(--success); } .neg{ color:var(--danger); } .warnc{ color:var(--warn); }
+
+  /* generic calm row */
+  .lrow{ display:flex; align-items:center; gap:12px; padding:13px 2px; border-bottom:1px solid var(--border); }
+  .lico{ width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .lname{ font-size:14px; font-weight:600; } .lmeta{ font-size:11px; color:var(--muted); margin-top:2px; }
+  .lright{ margin-left:auto; text-align:right; } .lamt{ font-weight:700; font-size:14px; }
+  .badge{ font-size:9.5px; font-weight:700; letter-spacing:.05em; padding:2px 7px; border-radius:20px; text-transform:uppercase; }
+  .b-paid{ background:rgba(50,215,75,.16); color:var(--success); }
+  .b-due{ background:rgba(255,214,10,.15); color:var(--warn); }
+  .mnav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .mnav button{ width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:1.1rem;line-height:1;cursor:pointer; }
+  .mnav .m{ font-weight:700; font-size:.92rem; }
+  .pbar{ height:6px; border-radius:99px; background:rgba(255,255,255,.07); overflow:hidden; margin-top:7px; }
+  .pbar i{ display:block;height:100%;border-radius:99px;background:var(--success); }
+  .subnote{ font-size:11px; color:var(--muted); margin-top:5px; }
+</style>
+</head>
+<body>
+<h1>Bills · Debt · Goals — hybrid look</h1>
+<div class="lead">Calm hairline lists, colored summary headers, line icons. Scroll inside each phone.</div>
+<div class="row">
+
+  <!-- BILLS -->
+  <div class="col">
+    <div class="tag">Bills</div>
+    <div class="phone">
+      <div class="hd-static">
+        <div class="mnav"><button>‹</button><span class="m">June 2026</span><button>›</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span class="lbl">Still due</span>
+          <span style="font-weight:800;font-size:1.15rem" class="warnc">$1,418</span>
+        </div>
+        <div class="meter"><i style="width:47%;background:var(--success)"></i></div>
+        <div class="subnote">$1,240 paid of $2,658 · 3 of 6 bills</div>
+      </div>
+      <div class="scroll">
+        <div class="lrow">
+          <div class="lico" style="background:rgba(124,111,255,.16);color:#9a8fff"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+          <div><div class="lname">Netflix</div><div class="lmeta">Entertainment · day 5</div></div>
+          <div class="lright"><div class="lamt">$15.49</div><span class="badge b-paid">Paid</span></div>
+        </div>
+        <div class="lrow">
+          <div class="lico" style="background:rgba(78,203,141,.16);color:var(--accent)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+          <div><div class="lname">Rent</div><div class="lmeta">Home · day 1</div></div>
+          <div class="lright"><div class="lamt">$1,200</div><span class="badge b-paid">Paid</span></div>
+        </div>
+        <div class="lrow">
+          <div class="lico" style="background:rgba(255,90,77,.16);color:var(--danger)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+          <div><div class="lname">Car Payment <svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="var(--muted)" stroke-width="2" style="vertical-align:-1px"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></div><div class="lmeta">Car · day 12 · pays Boat Loan</div></div>
+          <div class="lright"><div class="lamt">$343</div><span class="badge b-due">in 6d</span></div>
+        </div>
+        <div class="lrow">
+          <div class="lico" style="background:rgba(78,174,203,.16);color:#4eaecb"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+          <div><div class="lname">Electric</div><div class="lmeta">Home · day 18</div></div>
+          <div class="lright"><div class="lamt">$95</div><span class="badge b-due">in 12d</span></div>
+        </div>
+        <div class="lrow" style="border:none">
+          <div class="lico" style="background:rgba(247,150,106,.16);color:#f7936a"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div><div class="lname">Gym</div><div class="lmeta">Health · day 22</div></div>
+          <div class="lright"><div class="lamt">$45</div><span class="badge b-due">in 16d</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEBT -->
+  <div class="col">
+    <div class="tag">Debt</div>
+    <div class="phone">
+      <div class="hd-static">
+        <div class="lbl">Total owed</div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between">
+          <span style="font-size:1.7rem;font-weight:800;letter-spacing:-.5px" class="neg">$25,540</span>
+          <span class="subnote">$453/mo min</span>
+        </div>
+        <div class="meter"><i style="width:34%;background:var(--success)"></i></div>
+        <div class="subnote">34% paid off · $38,700 original</div>
+      </div>
+      <div class="scroll">
+        <div style="padding:14px 2px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="lico" style="background:rgba(255,90,77,.16);color:var(--danger)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+            <div class="lname">Credit Card</div>
+            <div class="lright lamt neg">$1,240</div>
+          </div>
+          <div class="pbar"><i style="width:75%"></i></div>
+          <div class="subnote">75% paid · last −$200 on Mar 2</div>
+        </div>
+        <div style="padding:14px 2px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="lico" style="background:rgba(255,214,10,.16);color:var(--warn)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="3" y1="21" x2="21" y2="21"/><polyline points="5 7 12 3.5 19 7"/><line x1="6" y1="10" x2="6" y2="18"/><line x1="12" y1="10" x2="12" y2="18"/><line x1="18" y1="10" x2="18" y2="18"/></svg></div>
+            <div class="lname">Boat Loan</div>
+            <div class="lright lamt neg">$9,800</div>
+          </div>
+          <div class="pbar"><i style="width:30%"></i></div>
+          <div class="subnote">30% paid · last −$343 on Jun 4</div>
+        </div>
+        <div style="padding:14px 2px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="lico" style="background:rgba(255,214,10,.16);color:var(--warn)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="3" y1="21" x2="21" y2="21"/><polyline points="5 7 12 3.5 19 7"/><line x1="6" y1="10" x2="6" y2="18"/><line x1="12" y1="10" x2="12" y2="18"/><line x1="18" y1="10" x2="18" y2="18"/></svg></div>
+            <div class="lname">Student Loans</div>
+            <div class="lright lamt neg">$14,500</div>
+          </div>
+          <div class="pbar"><i style="width:18%"></i></div>
+          <div class="subnote">18% paid · last −$250 on Jun 1</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GOALS -->
+  <div class="col">
+    <div class="tag">Goals</div>
+    <div class="phone">
+      <div class="hd-static">
+        <div class="lbl">Saved toward goals</div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between">
+          <span style="font-size:1.7rem;font-weight:800;letter-spacing:-.5px" class="pos">$8,200</span>
+          <span class="subnote">of $20,000</span>
+        </div>
+        <div class="meter"><i style="width:41%;background:var(--accent)"></i></div>
+        <div class="subnote">41% there · $11,800 to go</div>
+      </div>
+      <div class="scroll">
+        <div style="padding:14px 2px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between"><span class="lname">Emergency Fund</span><span class="lamt">$5,000 / $10,000</span></div>
+          <div class="pbar"><i style="width:50%"></i></div>
+          <div class="subnote">50% complete</div>
+        </div>
+        <div style="padding:14px 2px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between"><span class="lname">Vacation</span><span class="lamt">$2,200 / $4,000</span></div>
+          <div class="pbar"><i style="width:55%"></i></div>
+          <div class="subnote">55% complete</div>
+        </div>
+        <div style="padding:14px 2px">
+          <div style="display:flex;justify-content:space-between"><span class="lname">New Truck</span><span class="lamt">$1,000 / $6,000</span></div>
+          <div class="pbar"><i style="width:17%"></i></div>
+          <div class="subnote">17% complete</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
