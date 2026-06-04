@@ -2286,6 +2286,18 @@ textarea:focus-visible,
 .mode-opt-title { font-size: .85rem; font-weight: 700; }
 .mode-opt-sub   { font-size: .68rem; color: var(--muted); line-height: 1.25; }
 
+/* ── bill → loan link row ──────────────────────────────────────────────────── */
+.bill-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.bill-link-lbl { font-size: .72rem; color: var(--muted); white-space: nowrap; }
+.bill-link-select { flex: 1; font-size: .8rem; padding: 6px 8px; height: auto; }
+
 /* ── bills month navigator ─────────────────────────────────────────────────── */
 .bills-month-nav {
   display: flex;

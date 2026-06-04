@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.22.0';
+const VERSION = '5.23.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.23.0', date: '2026-06-04', changes: [
+    'Bills can now be linked to a loan or credit account ("Pays loan" on each bill, or when adding one) — marking the bill paid automatically pays down that loan\'s balance',
+    'When you mark a linked bill paid, the loan always updates; you still choose "Log & Deduct" (also take it from your checking balance) or "Just Mark Paid" (loan only). Marking it unpaid reverses the loan payment too',
+  ]},
   { version: '5.22.0', date: '2026-06-04', changes: [
     'Floating "+" button — add a transaction instantly from any screen',
     'Calculator keypad on the amount field — tap the calculator icon for fast thumb entry with live math (e.g. 12.50 + 3 = 15.50)',
@@ -5921,6 +5925,52 @@ function billBadgeHtml(b, mKey, isCurrentMonth) {
   return `<span class="bill-badge upcoming">day ${b.dueDay}</span>`;
 }
 
+// ── bill → loan link ─────────────────────────────────────────────────────────
+// Per-bill record of the payment txn posted to its linked loan account, keyed by month.
+function billLinkedTxns(b) {
+  if (!b.linkedTxns || typeof b.linkedTxns !== 'object') b.linkedTxns = {};
+  return b.linkedTxns;
+}
+// Post `txn` to another account's stored data WITHOUT switching the active account, so the
+// in-memory state (and any object references we're mid-mutation on) stay intact.
+function _postTxnToAccount(acctId, txn) {
+  if (acctId === currentAccountId) { state.transactions.push(txn); _save(); return; }
+  const key = accountDataKey(acctId);
+  const d = JSON.parse(localStorage.getItem(key) || '{}');
+  d.transactions = d.transactions || [];
+  d.transactions.push(txn);
+  localStorage.setItem(key, JSON.stringify(d));
+}
+function _removeTxnFromAccount(acctId, payId) {
+  if (acctId === currentAccountId) {
+    const i = state.transactions.findIndex(t => t._billPayId === payId);
+    if (i !== -1) { state.transactions.splice(i, 1); _save(); }
+    return;
+  }
+  const key = accountDataKey(acctId);
+  const d = JSON.parse(localStorage.getItem(key) || '{}');
+  if (!Array.isArray(d.transactions)) return;
+  const i = d.transactions.findIndex(t => t._billPayId === payId);
+  if (i !== -1) { d.transactions.splice(i, 1); localStorage.setItem(key, JSON.stringify(d)); }
+}
+// A loan/credit payment is an INCOME txn on that account (reduces "owed").
+function postLoanPayment(bill, mKey) {
+  const acctId = bill.linkedAccountId;
+  if (!acctId || !state.accounts.find(a => a.id === acctId)) return;
+  const payId = 'billpay-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+  _postTxnToAccount(acctId, {
+    type: 'income', amount: bill.amount, description: bill.name + ' payment',
+    category: 'Payment', date: today(), account: acctId, _billPayId: payId,
+  });
+  billLinkedTxns(bill)[mKey] = payId;
+}
+function removeLoanPayment(bill, mKey) {
+  const acctId = bill.linkedAccountId;
+  const payId  = billLinkedTxns(bill)[mKey];
+  delete billLinkedTxns(bill)[mKey];
+  if (acctId && payId) _removeTxnFromAccount(acctId, payId);
+}
+
 function calcWeekly() {
   const { income: _wkInc, expense: _wkExp } = totals();
   const liveBalance = (state.startingBalance || 0) + _wkInc - _wkExp;
@@ -6154,16 +6204,20 @@ function renderBills() {
   const isCurMonth = m === curMonthKey();
   const [mY, mM] = m.split('-').map(Number);
   const catOptions = getCategories().map(c => `<option>${c}</option>`).join('');
+  const debtAccts = state.accounts.filter(a => a.type === 'credit' || a.type === 'loan');
+  const linkOpts = sel => `<option value="">— not linked —</option>` +
+    debtAccts.map(a => `<option value="${a.id}"${a.id === sel ? ' selected' : ''}>${a.name}</option>`).join('');
   const billsHtml = state.bills.length ? state.bills.map((b, i) => {
     const paid  = isBillPaidFor(b, m);
     const badge = billBadgeHtml(b, m, isCurMonth);
+    const linkName = b.linkedAccountId ? (state.accounts.find(a => a.id === b.linkedAccountId)?.name) : null;
     return `
       <div class="bill-card${paid ? ' bill-card-paid' : ''}">
         <div class="bill-card-main">
           <span class="cat-dot" style="background:${CAT_COLORS[b.category]||'#9896a4'}"></span>
           <div class="bill-card-info">
             <div class="bill-card-name">${b.name}</div>
-            <div class="bill-card-meta">${b.category} · due day ${b.dueDay} of month</div>
+            <div class="bill-card-meta">${b.category} · due day ${b.dueDay}${linkName ? ` · 🔗 ${linkName}` : ''}</div>
           </div>
           <div class="bill-card-right">
             <div class="bill-card-amt">${fmt(b.amount)}</div>
@@ -6174,6 +6228,7 @@ function renderBills() {
           <button class="btn-xs bill-paid-btn${paid ? ' bill-unpaid-btn' : ''}" data-idx="${i}" data-paid="${paid}">${paid ? '↩ Mark Unpaid' : '✓ Mark Paid'}</button>
           <button class="btn-xs bill-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-idx="${i}">Delete</button>
         </div>
+        ${debtAccts.length ? `<div class="bill-link-row"><span class="bill-link-lbl">Pays loan</span><select class="bill-link-select form-input" data-idx="${i}">${linkOpts(b.linkedAccountId)}</select></div>` : ''}
       </div>`;
   }).join('') : emptyState('No bills yet', 'Add a recurring bill below to start tracking');
 
@@ -6252,6 +6307,10 @@ function renderBills() {
           <label class="form-label">Category</label>
           <select id="bill-cat" class="form-input form-select">${catOptions}</select>
         </div>
+        ${debtAccts.length ? `<div class="form-row">
+          <label class="form-label">Pays loan</label>
+          <select id="bill-link" class="form-input form-select">${linkOpts('')}</select>
+        </div>` : ''}
         <div id="bill-status" class="form-status"></div>
         <button id="bill-add-btn" class="btn-primary">Add Bill</button>
       </div>
@@ -6269,7 +6328,8 @@ function attachBills() {
     if (!name) { showStatus('bill-status', 'Enter a bill name.', 'error'); return; }
     if (isNaN(amount) || amount <= 0) { showStatus('bill-status', 'Enter a valid amount.', 'error'); return; }
     if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) { showStatus('bill-status', 'Enter a day 1–31.', 'error'); return; }
-    state.bills.push({ id: Date.now(), name, amount, dueDay, category, paidMonths: [], loggedTxns: {} });
+    const linkedAccountId = document.getElementById('bill-link')?.value || null;
+    state.bills.push({ id: Date.now(), name, amount, dueDay, category, paidMonths: [], loggedTxns: {}, linkedTxns: {}, linkedAccountId });
     await api.saveBills(state.bills);
     render();
   });
@@ -6278,6 +6338,16 @@ function attachBills() {
   document.getElementById('bills-month-prev')?.addEventListener('click', () => { billsMonth = shiftMonthKey(billsMonth, -1); render(); });
   document.getElementById('bills-month-next')?.addEventListener('click', () => { billsMonth = shiftMonthKey(billsMonth, +1); render(); });
   document.getElementById('bills-month-today')?.addEventListener('click', () => { billsMonth = curMonthKey(); render(); });
+
+  // Link a bill to a loan/credit account
+  document.querySelectorAll('.bill-link-select').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      const i = parseInt(sel.dataset.idx);
+      state.bills[i].linkedAccountId = sel.value || null;
+      await api.saveBills(state.bills);
+      render();
+    });
+  });
 
   document.querySelectorAll('.bill-paid-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -6318,6 +6388,7 @@ function attachBills() {
         // Marking unpaid — remove this month's logged expense (if one was logged)
         const b2          = state.bills[i];
         const storedTxnId = markBillUnpaid(b2, m);
+        if (b2.linkedAccountId) await removeLoanPayment(b2, m);   // reverse the loan payment
         let txnIdx        = -1;
         if (storedTxnId) txnIdx = state.transactions.findIndex(t => t._billTxnId === storedTxnId);
         if (txnIdx === -1) {
@@ -6340,14 +6411,19 @@ function attachBills() {
         }
         refreshCard();
       } else {
-        // Marking paid — mark first (no deduction), then offer to also log the expense
+        // Marking paid — mark, pay down the linked loan (if any), then ask about cash.
         const b = state.bills[i];
         markBillPaid(b, m, null);
+        if (b.linkedAccountId) await postLoanPayment(b, m);   // always pay down the loan
         await api.saveBills(state.bills);
         haptic([20, 40, 20]);
+        const linkName    = b.linkedAccountId ? (state.accounts.find(a => a.id === b.linkedAccountId)?.name) : null;
+        const curAcctName = state.accounts.find(a => a.id === currentAccountId)?.name || 'this account';
         showConfirmModal({
           title: 'Mark Paid',
-          message: `"${b.name}" is now marked paid for ${monthKeyLabel(m)}. Also log a ${fmt(b.amount)} expense and deduct it from your balance? Skip this if you've already recorded the payment.`,
+          message: linkName
+            ? `Paid ${fmt(b.amount)} toward ${linkName} — its balance is updated. Also deduct this from your ${curAcctName} balance as an expense?`
+            : `"${b.name}" is now marked paid for ${monthKeyLabel(m)}. Also log a ${fmt(b.amount)} expense and deduct it from your balance? Skip this if you've already recorded the payment.`,
           confirmText: 'Log & Deduct',
           cancelText: 'Just Mark Paid',
           onConfirm: async () => {
@@ -6383,6 +6459,8 @@ function attachBills() {
             const ti = state.transactions.findIndex(t => t._billTxnId === id);
             if (ti !== -1) await api.deleteTransaction(ti);
           }
+          // Reverse every linked loan payment this bill made
+          for (const mKey of Object.keys(billLinkedTxns(b))) await removeLoanPayment(b, mKey);
           state.bills.splice(i, 1);
           await api.saveBills(state.bills);
           render();
@@ -6445,8 +6523,10 @@ function attachBills() {
           if (wasPaid) {
             const txnId = markBillUnpaid(state.bills[bi], curM2);
             if (txnId) { const ti = state.transactions.findIndex(t => t._billTxnId === txnId); if (ti !== -1) await api.deleteTransaction(ti); }
+            if (state.bills[bi].linkedAccountId) await removeLoanPayment(state.bills[bi], curM2);
           } else {
             markBillPaid(state.bills[bi], curM2, null);
+            if (state.bills[bi].linkedAccountId) await postLoanPayment(state.bills[bi], curM2);
           }
           await api.saveBills(state.bills);
           // Re-render detail without full page render
