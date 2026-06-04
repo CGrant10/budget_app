@@ -2475,20 +2475,30 @@ textarea:focus-visible,
   font-weight: 500;
 }
 .acct-update-pill--subtle:active { background: var(--border); color: var(--text); }
-/* Net-worth summary on the accounts overview */
-.acct-networth {
-  margin: 0 14px 14px;
-  padding: 16px 18px;
-  border-radius: 18px;
-  background: radial-gradient(120% 130% at 0% 0%, color-mix(in srgb, var(--accent) 28%, var(--card)) 0%, var(--card) 60%);
-  border: 1px solid var(--glass-border);
+/* Net-worth summary (compact bar + assets-vs-debt meter) on the accounts overview */
+.acct-nw2 {
+  margin: 0 14px 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow-card);
 }
-.acct-nw-label { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-.acct-nw-value { font-size: 30px; font-weight: 800; letter-spacing: -.5px; margin: 2px 0 8px; }
-.acct-nw-split { display: flex; gap: 18px; font-size: .76rem; color: var(--muted); }
-.acct-nw-split span { display: inline-flex; align-items: center; }
-.acct-nw-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; display: inline-block; }
+.acct-nw2-top { display: flex; align-items: baseline; justify-content: space-between; }
+.acct-nw2-label { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.acct-nw2-value { font-size: 26px; font-weight: 800; letter-spacing: -.5px; }
+.acct-nw2-meter { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--danger) 30%, transparent); overflow: hidden; margin: 10px 0 6px; }
+.acct-nw2-meter i { display: block; height: 100%; background: var(--success); border-radius: 99px; }
+.acct-nw2-legend { display: flex; gap: 16px; font-size: .74rem; font-weight: 600; }
+
+/* Group headers in the account list */
+.acct-grp {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin: 14px 14px 6px;
+  font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); font-weight: 700;
+}
+.acct-grp span:last-child { letter-spacing: 0; font-size: .8rem; }
 
 .acct-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
 .acct-list-scroll {

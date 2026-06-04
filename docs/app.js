@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.29.0';
+const VERSION = '5.30.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.30.0', date: '2026-06-04', changes: [
+    'Accounts overview redesigned — a compact Net Worth bar with an assets-vs-debt meter, and your accounts grouped into Cash / Investing / Debt with a subtotal for each. The header stays put while the account list scrolls',
+  ]},
   { version: '5.29.0', date: '2026-06-04', changes: [
     'Accounts overview now leads with your Net Worth (assets − debts) in a clean summary card',
     'Removed the "spent this month" line from the balance card on cash accounts — it was always red and not useful (debt accounts still show payments made)',
@@ -3431,7 +3434,7 @@ function attachDebt() {
 function renderAccountPicker() {
   const TYPE_COLORS = { checking:'#5b8de8', savings:'#32d74b', credit:'#ff453a', loan:'#ffd60a', cash:'#52d68a', roth_ira:'#7c6fff', traditional_ira:'#5b8de8', '401k':'#32d74b', hsa:'#2dd4bf' };
   let _assets = 0, _debts = 0;
-  const rows = state.accounts.map(acct => {
+  const acctInfo = state.accounts.map(acct => {
     const d        = JSON.parse(localStorage.getItem(accountDataKey(acct.id)) || '{}');
     const txns     = d.transactions || [];
     const startBal = parseFloat(d.startingBalance) || 0;
@@ -3440,9 +3443,12 @@ function renderAccountPicker() {
     const isDebt   = acct.type === 'credit' || acct.type === 'loan';
     const balance  = isDebt ? Math.max(0, startBal + exp - inc) : startBal + inc - exp;
     if (isDebt) _debts += balance; else _assets += balance;
+    return { acct, isDebt, balance };
+  });
+  const rowHtml = ({ acct, isDebt, balance }) => {
     const balColor = isDebt ? 'var(--danger)' : (balance >= 0 ? 'var(--success)' : 'var(--danger)');
     const balLabel = isDebt ? `Owes ${fmt(balance)}` : fmt(balance);
-    const typeLbl  = acct.type.charAt(0).toUpperCase() + acct.type.slice(1);
+    const typeLbl  = acct.type.charAt(0).toUpperCase() + acct.type.slice(1).replace('_', ' ');
     const stripe   = TYPE_COLORS[acct.type] || 'var(--accent)';
     const icon     = _ACCT_SVG[acct.type] || _ACCT_SVG.checking;
     return `
@@ -3458,7 +3464,20 @@ function renderAccountPicker() {
         </div>
         <div class="acct-row-chevron">›</div>
       </div>`;
-  }).join('');
+  };
+  const GROUPS = [
+    { label: 'Cash',      types: ['checking','savings','cash'] },
+    { label: 'Investing', types: ['roth_ira','traditional_ira','401k','hsa'] },
+    { label: 'Debt',      types: ['credit','loan'] },
+  ];
+  const _knownTypes = new Set(GROUPS.flatMap(g => g.types));
+  const groupBlock = (label, items, isDebtGroup) => {
+    if (!items.length) return '';
+    const sub = items.reduce((s, x) => s + x.balance, 0);
+    return `<div class="acct-grp"><span>${label}</span><span style="color:${isDebtGroup ? 'var(--danger)' : 'var(--muted)'}">${isDebtGroup ? '−' : ''}${fmt(sub)}</span></div>${items.map(rowHtml).join('')}`;
+  };
+  const rows = GROUPS.map(g => groupBlock(g.label, acctInfo.filter(x => g.types.includes(x.acct.type)), g.label === 'Debt')).join('')
+    + groupBlock('Other', acctInfo.filter(x => !_knownTypes.has(x.acct.type)), false);
 
   const count = state.accounts.length;
   return `
@@ -3487,12 +3506,16 @@ function renderAccountPicker() {
       </div>
       ${count ? (() => {
         const nw = _assets - _debts;
-        return `<div class="acct-networth">
-          <div class="acct-nw-label">NET WORTH</div>
-          <div class="acct-nw-value" style="color:${nw >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(nw)}</div>
-          <div class="acct-nw-split">
-            <span><span class="acct-nw-dot" style="background:var(--success)"></span>${fmt(_assets)} assets</span>
-            ${_debts > 0 ? `<span><span class="acct-nw-dot" style="background:var(--danger)"></span>${fmt(_debts)} owed</span>` : ''}
+        const assetPct = (_assets + _debts) > 0 ? (_assets / (_assets + _debts) * 100) : 100;
+        return `<div class="acct-nw2">
+          <div class="acct-nw2-top">
+            <span class="acct-nw2-label">NET WORTH</span>
+            <span class="acct-nw2-value" style="color:${nw >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(nw)}</span>
+          </div>
+          <div class="acct-nw2-meter"><i style="width:${assetPct.toFixed(1)}%"></i></div>
+          <div class="acct-nw2-legend">
+            <span style="color:var(--success)">${fmt(_assets)} assets</span>
+            ${_debts > 0 ? `<span style="color:var(--danger)">${fmt(_debts)} debt</span>` : ''}
           </div>
         </div>`;
       })() : ''}
