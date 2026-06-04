@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budget DAWGs — Design Options</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #050507; color: #e9e9ee; font-family: 'Inter', sans-serif; padding: 24px 16px 60px; }
+  h1 { font-size: 1.2rem; font-weight: 800; text-align: center; margin-bottom: 4px; }
+  .sub { text-align: center; color: #8a8a93; font-size: .85rem; margin-bottom: 28px; }
+  .row { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; align-items: flex-start; }
+  .col { width: 300px; max-width: 100%; }
+  .tag { text-align: center; font-weight: 700; font-size: .95rem; margin-bottom: 4px; }
+  .note { text-align: center; color: #8a8a93; font-size: .72rem; line-height: 1.4; margin-bottom: 12px; min-height: 48px; }
+  .phone { border-radius: 26px; overflow: hidden; height: 540px; position: relative; }
+  .scr { padding: 18px 16px; height: 100%; overflow: hidden; }
+  .ic { width: 17px; height: 17px; display: inline-block; vertical-align: -3px; }
+
+  /* ============ A — CURRENT (bold / DAWG) ============ */
+  .v-current { background: #0e0e0f; border: 1px solid rgba(255,255,255,.07); }
+  .v-current .bal-card {
+    background: linear-gradient(170deg, rgba(255,255,255,.09), rgba(255,255,255,.01));
+    border: 1px solid rgba(255,255,255,.12);
+    box-shadow: 0 4px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.16);
+    border-radius: 18px; padding: 16px; margin-bottom: 14px;
+  }
+  .v-current .bl { font-size: 10px; letter-spacing: .12em; color: #6e6e73; font-weight: 700; text-transform: uppercase; }
+  .v-current .bv { font-size: 30px; font-weight: 800; color: #4ecb8d; letter-spacing: -.5px; margin-top: 2px; }
+  .v-current .chips { display: flex; gap: 10px; margin-bottom: 14px; }
+  .v-current .chip { flex: 1; background: linear-gradient(170deg, rgba(255,255,255,.09), rgba(255,255,255,.01)); border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 10px; }
+  .v-current .chip .t { font-size: 9px; letter-spacing: .1em; color: #6e6e73; font-weight: 700; text-transform: uppercase; }
+  .v-current .chip .v { font-size: 17px; font-weight: 800; margin-top: 3px; }
+  .v-current .bar { height: 16px; border-radius: 3px; background: #222; overflow: hidden; display: flex; margin-bottom: 16px; clip-path: polygon(2% 0,100% 0,98% 100%,0 100%); }
+  .v-current .bar i { height: 100%; }
+  .v-current .row-t { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #1c1c1e; border-radius: 14px; margin-bottom: 8px; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+  .v-current .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .v-current .rt-d { flex: 1; font-size: 13px; }
+  .v-current .rt-m { font-size: 11px; color: #6e6e73; }
+  .v-current .amt { font-weight: 800; font-size: 14px; }
+  .v-current .btn { margin-top: 6px; width: 100%; padding: 13px; border: none; border-radius: 11px; background: linear-gradient(135deg,#2d3830,#4ecb8d); color: #06140d; font-weight: 800; font-size: .9rem; }
+
+  /* ============ B — SLEEK (minimal) ============ */
+  .v-sleek { background: #0b0b0d; border: 1px solid rgba(255,255,255,.06); }
+  .v-sleek .scr { padding: 22px 18px; }
+  .v-sleek .hd { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #6b6b74; margin-bottom: 18px; }
+  .v-sleek .bv { font-size: 38px; font-weight: 600; letter-spacing: -1.5px; color: #fff; }
+  .v-sleek .bd { font-size: 12.5px; color: #5fcf97; margin: 4px 0 26px; font-weight: 500; }
+  .v-sleek .chips { display: flex; gap: 28px; margin-bottom: 26px; }
+  .v-sleek .chip .t { font-size: 11px; color: #6b6b74; }
+  .v-sleek .chip .v { font-size: 18px; font-weight: 600; margin-top: 4px; letter-spacing: -.3px; }
+  .v-sleek .bar { height: 6px; border-radius: 99px; background: rgba(255,255,255,.06); overflow: hidden; display: flex; margin-bottom: 26px; }
+  .v-sleek .bar i { height: 100%; }
+  .v-sleek .lbl { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #6b6b74; margin-bottom: 8px; }
+  .v-sleek .row-t { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .v-sleek .ico { width: 32px; height: 32px; border-radius: 9px; background: rgba(255,255,255,.05); display: flex; align-items: center; justify-content: center; color: #9a9aa3; flex-shrink: 0; }
+  .v-sleek .rt-d { flex: 1; font-size: 13.5px; font-weight: 500; }
+  .v-sleek .rt-m { font-size: 11.5px; color: #6b6b74; margin-top: 1px; }
+  .v-sleek .amt { font-weight: 600; font-size: 14px; letter-spacing: -.2px; }
+  .v-sleek .btn { margin-top: 24px; width: 100%; padding: 14px; border: none; border-radius: 13px; background: #fff; color: #0b0b0d; font-weight: 600; font-size: .9rem; }
+
+  /* ============ C — HYBRID ============ */
+  .v-hybrid { background: #0b0b0d; border: 1px solid rgba(255,255,255,.06); }
+  .v-hybrid .hero { background: radial-gradient(120% 120% at 0% 0%, #1c5e44 0%, #0f2e22 55%, #0b0b0d 100%); border-radius: 18px; padding: 18px; margin-bottom: 18px; }
+  .v-hybrid .hd { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+  .v-hybrid .bv { font-size: 32px; font-weight: 700; letter-spacing: -1px; color: #fff; margin-top: 2px; }
+  .v-hybrid .bd { font-size: 12px; color: #7fe3b0; margin-top: 4px; font-weight: 500; }
+  .v-hybrid .chips { display: flex; gap: 24px; margin-bottom: 22px; }
+  .v-hybrid .chip .t { font-size: 10.5px; color: #6b6b74; }
+  .v-hybrid .chip .v { font-size: 17px; font-weight: 600; margin-top: 3px; }
+  .v-hybrid .bar { height: 7px; border-radius: 99px; background: rgba(255,255,255,.06); overflow: hidden; display: flex; margin-bottom: 22px; }
+  .v-hybrid .bar i { height: 100%; }
+  .v-hybrid .lbl { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: #6b6b74; margin-bottom: 8px; }
+  .v-hybrid .row-t { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .v-hybrid .ico { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .v-hybrid .rt-d { flex: 1; font-size: 13.5px; font-weight: 500; }
+  .v-hybrid .rt-m { font-size: 11.5px; color: #6b6b74; margin-top: 1px; }
+  .v-hybrid .amt { font-weight: 600; font-size: 14px; }
+  .v-hybrid .btn { margin-top: 22px; width: 100%; padding: 14px; border: none; border-radius: 13px; background: #4ecb8d; color: #06140d; font-weight: 700; font-size: .9rem; }
+
+  .pos { color: #5fcf97; } .neg { color: #f0f0f2; }
+  .v-current .pos { color: #32d74b; } .v-current .neg { color: #f0f0f2; }
+</style>
+</head>
+<body>
+  <h1>Budget DAWGs — three looks, same screen</h1>
+  <div class="sub">Same data, three directions. Open on a wide screen to compare side by side.</div>
+
+  <div class="row">
+
+    <!-- A: CURRENT -->
+    <div class="col">
+      <div class="tag">A · Current (bold)</div>
+      <div class="note">Your look today: glass cards, green+brown, game-styled bar, emoji controls. Strong personality.</div>
+      <div class="phone v-current"><div class="scr">
+        <div class="bal-card">
+          <div class="bl">Total Balance</div>
+          <div class="bv">$4,182.50</div>
+        </div>
+        <div class="chips">
+          <div class="chip"><div class="t">Income</div><div class="v pos">+$3,200</div></div>
+          <div class="chip"><div class="t">Spent</div><div class="v">−$1,418</div></div>
+        </div>
+        <div class="bar"><i style="width:46%;background:#4ecb8d"></i><i style="width:30%;background:#f76a6a"></i><i style="width:24%;background:#8dcb4e"></i></div>
+        <div class="row-t"><span class="dot" style="background:#4ecb8d"></span><div><div class="rt-d">🛒 Groceries</div><div class="rt-m">Today · Food</div></div><div class="amt neg" style="margin-left:auto">−$84.20</div></div>
+        <div class="row-t"><span class="dot" style="background:#32d74b"></span><div><div class="rt-d">💵 Paycheck</div><div class="rt-m">Yesterday · Income</div></div><div class="amt pos" style="margin-left:auto">+$1,600</div></div>
+        <div class="row-t"><span class="dot" style="background:#f76a6a"></span><div><div class="rt-d">⛽ Gas</div><div class="rt-m">Mar 3 · Gas</div></div><div class="amt neg" style="margin-left:auto">−$48.10</div></div>
+        <button class="btn">+ Add Transaction</button>
+      </div></div>
+    </div>
+
+    <!-- B: SLEEK -->
+    <div class="col">
+      <div class="tag">B · Sleek (minimal)</div>
+      <div class="note">Restrained &amp; premium: one accent, hairline dividers, line icons, flat surfaces, lighter type, more air.</div>
+      <div class="phone v-sleek"><div class="scr">
+        <div class="hd">Main · Checking</div>
+        <div class="bv">$4,182.50</div>
+        <div class="bd">↑ $1,782 this month</div>
+        <div class="chips">
+          <div class="chip"><div class="t">Income</div><div class="v pos">$3,200</div></div>
+          <div class="chip"><div class="t">Spending</div><div class="v">$1,418</div></div>
+        </div>
+        <div class="bar"><i style="width:46%;background:#5fcf97"></i><i style="width:30%;background:#e0e0e6"></i><i style="width:24%;background:#6b6b74"></i></div>
+        <div class="lbl">Recent</div>
+        <div class="row-t"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></span><div class="rt-d">Groceries<div class="rt-m">Today · Food</div></div><div class="amt">−$84.20</div></div>
+        <div class="row-t"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><div class="rt-d">Paycheck<div class="rt-m">Yesterday · Income</div></div><div class="amt pos">+$1,600</div></div>
+        <div class="row-t"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 20V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v14"/><path d="M14 9h3a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-3-3"/></svg></span><div class="rt-d">Gas<div class="rt-m">Mar 3 · Gas</div></div><div class="amt">−$48.10</div></div>
+        <button class="btn">Add transaction</button>
+      </div></div>
+    </div>
+
+    <!-- C: HYBRID -->
+    <div class="col">
+      <div class="tag">C · Hybrid</div>
+      <div class="note">Calm minimal lists, but a colorful balance hero up top — keeps energy where it counts, clean everywhere else.</div>
+      <div class="phone v-hybrid"><div class="scr">
+        <div class="hero">
+          <div class="hd">Total Balance</div>
+          <div class="bv">$4,182.50</div>
+          <div class="bd">↑ $1,782 this month</div>
+        </div>
+        <div class="chips">
+          <div class="chip"><div class="t">Income</div><div class="v pos">$3,200</div></div>
+          <div class="chip"><div class="t">Spending</div><div class="v">$1,418</div></div>
+        </div>
+        <div class="bar"><i style="width:46%;background:#4ecb8d"></i><i style="width:30%;background:#c98b6a"></i><i style="width:24%;background:#6b6b74"></i></div>
+        <div class="lbl">Recent</div>
+        <div class="row-t"><span class="ico" style="background:rgba(78,203,141,.14);color:#5fcf97"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></span><div class="rt-d">Groceries<div class="rt-m">Today · Food</div></div><div class="amt">−$84.20</div></div>
+        <div class="row-t"><span class="ico" style="background:rgba(50,215,75,.14);color:#5fcf97"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><div class="rt-d">Paycheck<div class="rt-m">Yesterday · Income</div></div><div class="amt pos">+$1,600</div></div>
+        <div class="row-t"><span class="ico" style="background:rgba(201,139,106,.16);color:#d09a78"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 20V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v14"/><path d="M14 9h3a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-3-3"/></svg></span><div class="rt-d">Gas<div class="rt-m">Mar 3 · Gas</div></div><div class="amt">−$48.10</div></div>
+        <button class="btn">Add transaction</button>
+      </div></div>
+    </div>
+
+  </div>
+</body>
+</html>
