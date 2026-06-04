@@ -2286,6 +2286,17 @@ textarea:focus-visible,
 .mode-opt-title { font-size: .85rem; font-weight: 700; }
 .mode-opt-sub   { font-size: .68rem; color: var(--muted); line-height: 1.25; }
 
+/* ── bill cash-deduction status ────────────────────────────────────────────── */
+.bill-deduct-note { font-size: .68rem; margin-top: 6px; }
+.bill-deduct-note.is-deducted  { color: var(--success); }
+.bill-deduct-note.not-deducted { color: var(--warn); }
+.bill-deduct-btn {
+  background: var(--warn);
+  color: #1a1a1a;
+  border: 1px solid var(--warn);
+  font-weight: 700;
+}
+
 /* ── bill → loan link row ──────────────────────────────────────────────────── */
 .bill-link-row {
   display: flex;

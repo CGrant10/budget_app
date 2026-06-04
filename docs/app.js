@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.24.0';
+const VERSION = '5.24.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.24.1', date: '2026-06-04', changes: [
+    'Paid bills now clearly show whether the cash was deducted from your balance — if you marked one paid without deducting (e.g. tapped "Just Mark Paid" or dismissed the popup), it shows "Not deducted" with a one-tap "Deduct cash" button to fix it',
+    'This recovers any payment where the deduction was skipped — no need to unmark and re-mark',
+  ]},
   { version: '5.24.0', date: '2026-06-04', changes: [
     'Retirement accounts can now auto-contribute on a schedule you set (Settings → the account → Scheduled contribution): pick an amount, frequency, and next date and it posts your contribution automatically — even for dates missed while the app was closed',
     'Scheduled contributions are also factored into the retirement growth projection',
@@ -6242,6 +6246,7 @@ function renderBills() {
     const paid  = isBillPaidFor(b, m);
     const badge = billBadgeHtml(b, m, isCurMonth);
     const linkName = b.linkedAccountId ? (state.accounts.find(a => a.id === b.linkedAccountId)?.name) : null;
+    const deducted = paid && !!billLoggedTxns(b)[m];   // was the cash expense logged this month?
     return `
       <div class="bill-card${paid ? ' bill-card-paid' : ''}">
         <div class="bill-card-main">
@@ -6257,8 +6262,10 @@ function renderBills() {
         </div>
         <div class="bill-card-actions">
           <button class="btn-xs bill-paid-btn${paid ? ' bill-unpaid-btn' : ''}" data-idx="${i}" data-paid="${paid}">${paid ? '↩ Mark Unpaid' : '✓ Mark Paid'}</button>
+          ${paid && !deducted ? `<button class="btn-xs bill-deduct-btn" data-idx="${i}">💵 Deduct cash</button>` : ''}
           <button class="btn-xs bill-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-idx="${i}">Delete</button>
         </div>
+        ${paid ? `<div class="bill-deduct-note ${deducted ? 'is-deducted' : 'not-deducted'}">${deducted ? `✓ ${fmt(b.amount)} deducted from cash` : 'Not deducted from your cash balance'}</div>` : ''}
         ${debtAccts.length ? `<div class="bill-link-row"><span class="bill-link-lbl">Pays loan</span><select class="bill-link-select form-input" data-idx="${i}">${linkOpts(b.linkedAccountId)}</select></div>` : ''}
       </div>`;
   }).join('') : emptyState('No bills yet', 'Add a recurring bill below to start tracking');
@@ -6376,6 +6383,27 @@ function attachBills() {
       const i = parseInt(sel.dataset.idx);
       state.bills[i].linkedAccountId = sel.value || null;
       await api.saveBills(state.bills);
+      render();
+    });
+  });
+
+  // Deduct cash for a bill that's marked paid but never logged the expense (recovers a
+  // missed deduction without unmarking/re-marking).
+  document.querySelectorAll('.bill-deduct-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const i = parseInt(btn.dataset.idx);
+      const m = billsMonth;
+      const b = state.bills[i];
+      if (billLoggedTxns(b)[m]) { render(); return; }   // already deducted
+      const billTxnId = 'billtxn-' + Date.now().toString(36);
+      await api.addTransaction({
+        type: 'expense', amount: b.amount, description: b.name,
+        category: b.category, date: today(),
+        account: currentAccountId, _billTxnId: billTxnId,
+      });
+      markBillPaid(b, m, billTxnId);
+      await api.saveBills(state.bills);
+      showAlert(`✓ ${fmt(b.amount)} deducted for ${b.name}`);
       render();
     });
   });
