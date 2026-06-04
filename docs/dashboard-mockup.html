@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard — Hybrid Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#0b0b0d; --card:#161618; --surface2:#222; --text:#f0f0f2; --muted:#7a7a83;
+         --border:rgba(255,255,255,.08); --accent:#4ecb8d; --success:#32d74b; --danger:#ff5a4d; --warn:#ffd60a; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:#050507; color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; padding:22px 14px 60px; font-variant-numeric:tabular-nums; }
+  h1{ font-size:1.15rem; font-weight:800; text-align:center; }
+  .lead{ text-align:center; color:var(--muted); font-size:.82rem; margin:4px 0 24px; max-width:560px; margin-left:auto;margin-right:auto; }
+  .row{ display:flex; gap:24px; justify-content:center; flex-wrap:wrap; align-items:flex-start; }
+  .col{ width:320px; max-width:100%; }
+  .tag{ text-align:center; font-weight:700; margin-bottom:10px; }
+  .phone{ height:600px; border-radius:28px; overflow:hidden; border:1px solid var(--border); background:var(--bg); display:flex; flex-direction:column; }
+  .topbar{ display:flex; align-items:center; gap:10px; padding:12px 14px; flex-shrink:0; }
+  .tb-btn{ width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--muted); }
+  .tb-pill{ flex:1;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--card);display:flex;align-items:center;gap:8px;padding:0 12px;font-size:.82rem;font-weight:600; }
+  .scroll{ flex:1; overflow-y:auto; padding:0 14px 20px; }
+  .scroll::-webkit-scrollbar{ width:6px; } .scroll::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.14); border-radius:3px; }
+  .ic{ width:17px;height:17px; }
+  .lbl{ font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); font-weight:700; }
+
+  /* hero with dog + glitch (kept) */
+  .hero{ display:flex; align-items:center; gap:10px; padding:6px 2px 14px; }
+  .hero img{ width:62px;height:62px;object-fit:contain;flex-shrink:0; }
+  .glitch{ font-family:'Plus Jakarta Sans'; font-weight:900; font-style:italic; letter-spacing:.02em; font-size:1.05rem;
+           color:var(--accent); text-shadow:1.5px 0 var(--danger), -1.5px 0 #4af; }
+  .tagline{ font-size:.7rem; color:var(--muted); font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+
+  /* balance hero (colored) */
+  .bal{ background:radial-gradient(120% 130% at 0% 0%, #1c5e44, #11352780 55%, var(--card)); border:1px solid var(--border); border-radius:20px; padding:16px 18px; }
+  .bal .v{ font-size:34px; font-weight:800; letter-spacing:-1px; }
+  .bal .d{ font-size:12.5px; color:#7fe3b0; font-weight:600; margin-top:3px; }
+  .spark{ width:100%; height:42px; margin:10px 0 8px; display:block; }
+  .pills{ display:flex; gap:6px; }
+  .pill{ flex:1; text-align:center; font-size:.68rem; font-weight:700; padding:5px 0; border-radius:8px; background:rgba(255,255,255,.06); color:var(--muted); }
+  .pill.on{ background:var(--accent); color:#06140d; }
+  .mnav{ display:flex; align-items:center; justify-content:center; gap:14px; margin:14px 0 6px; color:var(--muted); font-size:.82rem; font-weight:600; }
+
+  .sec{ display:flex; align-items:center; justify-content:space-between; margin:18px 2px 8px; }
+  .sec .lbl{ font-size:11px; }
+  .custom{ font-size:.72rem; color:var(--accent); font-weight:600; display:flex; align-items:center; gap:4px; }
+
+  .tile{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; position:relative; margin-bottom:12px; }
+  .drag{ position:absolute; top:10px; right:12px; color:var(--muted); opacity:.4; letter-spacing:1px; font-size:.8rem; }
+  .tile .lbl{ margin-bottom:8px; }
+  .half-row{ display:flex; gap:12px; }
+  .half{ flex:1; }
+  .big{ font-size:20px; font-weight:800; letter-spacing:-.3px; }
+  .meter{ height:7px; border-radius:99px; background:rgba(255,255,255,.07); overflow:hidden; margin-top:8px; }
+  .meter i{ display:block;height:100%;border-radius:99px; }
+  .mrow{ display:flex; justify-content:space-between; align-items:center; font-size:13.5px; padding:5px 0; }
+  .catrow{ margin-bottom:9px; }
+  .cattop{ display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:4px; }
+  .dot{ width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:0; }
+  .trow{ display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .tico{ width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+  .tname{ font-size:13px; font-weight:600; } .tmeta{ font-size:10.5px; color:var(--muted); }
+  .tamt{ margin-left:auto; font-weight:700; font-size:13px; }
+  .pos{ color:var(--success); } .neg{ color:var(--text); }
+  .customize-btn{ width:100%; margin-top:6px; padding:12px; border-radius:12px; border:1px dashed var(--border); background:transparent; color:var(--muted); font-weight:600; font-size:.85rem; display:flex;align-items:center;justify-content:center;gap:7px; }
+</style>
+</head>
+<body>
+<h1>Dashboard — hybrid look</h1>
+<div class="lead">Keeps the DAWG hero + glitch and the customizable tiles (drag dots + "Customize layout"), restyled into calm cards with meters, line icons, and a colored balance hero.</div>
+
+<div class="row">
+  <div class="col">
+    <div class="tag">Dashboard</div>
+    <div class="phone">
+      <div class="topbar">
+        <div class="tb-btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div>
+        <div class="tb-pill"><span class="dot" style="background:#5b8de8;margin:0"></span>Main · Checking</div>
+        <div class="tb-btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+      </div>
+      <div class="scroll">
+        <div class="hero">
+          <img src="./doberman.png" alt="" onerror="this.style.display='none'">
+          <div>
+            <div class="glitch" data-text="LOCK TF IN.">LOCK TF IN.</div>
+            <div class="tagline">Your dawg is watching</div>
+          </div>
+        </div>
+
+        <div class="bal">
+          <div class="lbl" style="color:rgba(255,255,255,.55)">Total Balance</div>
+          <div class="v">$4,182.50</div>
+          <div class="d">↑ $1,782 this month</div>
+          <svg class="spark" viewBox="0 0 300 42" preserveAspectRatio="none"><polyline points="0,34 40,30 80,32 120,22 160,24 200,14 240,18 300,6" fill="none" stroke="#5fe0a0" stroke-width="2.5"/></svg>
+          <div class="pills"><span class="pill">1W</span><span class="pill on">1M</span><span class="pill">3M</span><span class="pill">6M</span><span class="pill">1Y</span><span class="pill">ALL</span></div>
+        </div>
+
+        <div class="mnav">‹ <span>June 2026 · Now</span> ›</div>
+
+        <div class="sec"><span class="lbl">Your dashboard</span><span class="custom"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>Customize</span></div>
+
+        <!-- Per week / per day meters -->
+        <div class="tile">
+          <span class="drag">⠿</span>
+          <div class="half-row">
+            <div class="half"><div class="lbl">Per Week</div><div class="big">$420</div><div class="meter"><i style="width:62%;background:var(--accent)"></i></div></div>
+            <div class="half"><div class="lbl">Per Day</div><div class="big">$60</div><div class="meter"><i style="width:40%;background:var(--accent)"></i></div></div>
+          </div>
+        </div>
+
+        <!-- This month -->
+        <div class="tile">
+          <span class="drag">⠿</span>
+          <div class="lbl">This Month</div>
+          <div class="mrow"><span>Income</span><span class="pos" style="font-weight:700">$3,200</span></div>
+          <div class="mrow"><span>Expenses</span><span style="font-weight:700">$1,418</span></div>
+          <div class="mrow" style="border-top:1px solid var(--border);margin-top:2px"><span>Net</span><span class="pos" style="font-weight:700">$1,782</span></div>
+        </div>
+
+        <!-- Spending breakdown -->
+        <div class="tile">
+          <span class="drag">⠿</span>
+          <div class="lbl">Spending Breakdown</div>
+          <div style="margin-top:6px"></div>
+          <div class="catrow"><div class="cattop"><span><span class="dot" style="background:#4ecb8d"></span>Food</span><span>$520</span></div><div class="meter"><i style="width:80%;background:#4ecb8d"></i></div></div>
+          <div class="catrow"><div class="cattop"><span><span class="dot" style="background:#f76a6a"></span>Gas</span><span>$310</span></div><div class="meter"><i style="width:48%;background:#f76a6a"></i></div></div>
+          <div class="catrow"><div class="cattop"><span><span class="dot" style="background:#8dcb4e"></span>Home</span><span>$240</span></div><div class="meter"><i style="width:37%;background:#8dcb4e"></i></div></div>
+        </div>
+
+        <!-- Recent transactions -->
+        <div class="tile">
+          <span class="drag">⠿</span>
+          <div class="lbl" style="margin-bottom:4px">Recent</div>
+          <div class="trow"><div class="tico" style="background:rgba(78,203,141,.16);color:#5fcf97"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></div><div><div class="tname">Groceries</div><div class="tmeta">Today · Food</div></div><div class="tamt">−$84.20</div></div>
+          <div class="trow"><div class="tico" style="background:rgba(50,215,75,.16);color:#5fcf97"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div><div class="tname">Paycheck</div><div class="tmeta">Yesterday · Income</div></div><div class="tamt pos">+$1,600</div></div>
+          <div class="trow" style="border:none"><div class="tico" style="background:rgba(247,106,106,.16);color:#f76a6a"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 20V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v14"/><path d="M14 9h3a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-3-3"/></svg></div><div><div class="tname">Gas</div><div class="tmeta">Mar 3 · Gas</div></div><div class="tamt">−$48.10</div></div>
+        </div>
+
+        <button class="customize-btn"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>Customize layout</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
