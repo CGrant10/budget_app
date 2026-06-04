@@ -2010,10 +2010,10 @@ body.light .section-title::before {
 /* ── floating quick-add button ─────────────────────────────────────────────── */
 .fab-add {
   position: fixed;
-  right: 16px;
-  bottom: calc(var(--nav-h) + 58px);
-  width: 54px;
-  height: 54px;
+  left: 16px;
+  bottom: calc(var(--nav-h) + 14px);
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: var(--accent);
   border: none;

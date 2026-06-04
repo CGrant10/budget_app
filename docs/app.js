@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.28.0';
+const VERSION = '5.28.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.28.1', date: '2026-06-04', changes: [
+    'Moved the floating + (quick-add) button to the bottom-left so it no longer crowds the tutorial button or sits over your transaction amounts',
+  ]},
   { version: '5.28.0', date: '2026-06-04', changes: [
     'Cleaner "hybrid" look (phase 1): the ledger is now a calm, hairline-separated list instead of chunky cards, and a couple of emoji buttons (Reconcile, CSV) became crisp line icons — all the DAWG branding and glitch effects stay',
   ]},
