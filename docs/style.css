@@ -608,10 +608,10 @@ body::before {
 .ledger-edit-bar .form-label { white-space: nowrap; font-size: 11px; }
 .ledger-edit-bar .form-input { flex: 1; min-width: 130px; padding: 7px 10px; font-size: 13px; }
 
-.ledger-list { display: flex; flex-direction: column; gap: 6px; }
+/* Calm divider list (hybrid look): hairline-separated rows, not chunky cards */
+.ledger-list { display: flex; flex-direction: column; gap: 0; }
 /* Compact density — tighter rows, smaller text, running balance hidden */
-.ledger-list.compact { gap: 3px; }
-.ledger-list.compact .ledger-row-inner { padding: 7px 12px; }
+.ledger-list.compact .ledger-row-inner { padding: 9px 4px; }
 .ledger-list.compact .ledger-desc { font-size: 12.5px; }
 .ledger-list.compact .ledger-meta { font-size: 10.5px; margin-top: 1px; }
 .ledger-list.compact .ledger-amt  { font-size: 13px; }
@@ -632,25 +632,23 @@ body::before {
 .ledger-row {
   position: relative;
   overflow: hidden;
-  border-radius: 14px;
   background: transparent;
   padding: 0;
-  border: 1px solid transparent;
-  transition: border-color .15s;
 }
-.ledger-row.selected { border-color: var(--accent); }
 .ledger-row-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
-  background: var(--card);
-  border-radius: 14px;
-  transition: transform .2s ease;
+  padding: 14px 4px;
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+  transition: transform .2s ease, background .15s;
   width: 100%;
   cursor: pointer;
 }
+.ledger-row:last-child .ledger-row-inner { border-bottom: none; }
+.ledger-row.selected .ledger-row-inner { background: var(--surface2); border-radius: 10px; border-bottom-color: transparent; }
 .swipe-delete-btn {
   position: absolute;
   right: 0;

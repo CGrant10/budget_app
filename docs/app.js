@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.27.1';
+const VERSION = '5.28.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.28.0', date: '2026-06-04', changes: [
+    'Cleaner "hybrid" look (phase 1): the ledger is now a calm, hairline-separated list instead of chunky cards, and a couple of emoji buttons (Reconcile, CSV) became crisp line icons — all the DAWG branding and glitch effects stay',
+  ]},
   { version: '5.27.1', date: '2026-06-04', changes: [
     'Dollar amounts now use fixed-width digits so they line up cleanly in columns across the ledger and cards',
   ]},
@@ -4737,7 +4740,7 @@ function renderDashboardDawg() {
       <div class="dawg-balance-amt" style="color:${balColor}">${fmt(balance)}</div>
       ${paymentDueStr ? `<div class="dawg-balance-due" style="color:${parseInt(_curAcctD?.payment_due_day)>0&&Math.round((new Date(new Date().getFullYear(),new Date().getMonth(),parseInt(_curAcctD.payment_due_day))-new Date())/86400000)<=3?'var(--warn)':'var(--muted)'}">${paymentDueStr}</div>` : ''}
       <div class="dawg-balance-delta" style="color:${deltaColor}">${deltaStr}</div>
-      ${isPastDash ? '' : '<button id="dash-reconcile" class="dash-reconcile-btn">⇄ Reconcile to bank</button>'}
+      ${isPastDash ? '' : '<button id="dash-reconcile" class="dash-reconcile-btn"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Reconcile to bank</button>'}
       <div class="dawg-sparkline-wrap"><canvas id="dawg-sparkline"></canvas></div>
       <div class="dawg-time-btns">
         <button class="dawg-tbtn" data-range="1w">1W</button>
@@ -5933,7 +5936,7 @@ function renderLedger() {
           <input type="date" id="ledger-date-from" class="form-input lf-date" value="${ledgerDateFrom}" title="From date">
           <span class="lf-dash">—</span>
           <input type="date" id="ledger-date-to" class="form-input lf-date" value="${ledgerDateTo}" title="To date">
-          <button id="ledger-export-csv" class="btn-xs">📥 CSV</button>
+          <button id="ledger-export-csv" class="btn-xs"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</button>
         </div>
         ${(ledgerFilter || ledgerTypeFilter !== 'all' || ledgerCatFilter || ledgerDateFrom || ledgerDateTo)
           ? `<button id="ledger-clear-filters" class="lf-clear-btn">✕ Clear filters</button>` : ''}
