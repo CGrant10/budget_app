@@ -2007,27 +2007,6 @@ body.light .section-title::before {
 }
 .tut-float:hover { background: var(--accent); color: #fff; }
 
-/* ── floating quick-add button ─────────────────────────────────────────────── */
-.fab-add {
-  position: fixed;
-  left: 16px;
-  bottom: calc(var(--nav-h) + 14px);
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  z-index: 51;
-  display: none;   /* shown by updateFab() after first render (kept off splash/lock) */
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 6px 20px rgba(0,0,0,.35);
-  transition: transform .12s ease, filter .12s ease;
-}
-.fab-add:active { transform: scale(.92); }
-.fab-add:hover  { filter: brightness(1.08); }
 
 /* ── amount field + calculator ─────────────────────────────────────────────── */
 .amount-wrap { flex: 1; display: flex; gap: 6px; }
@@ -2496,6 +2475,21 @@ textarea:focus-visible,
   font-weight: 500;
 }
 .acct-update-pill--subtle:active { background: var(--border); color: var(--text); }
+/* Net-worth summary on the accounts overview */
+.acct-networth {
+  margin: 0 14px 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: radial-gradient(120% 130% at 0% 0%, color-mix(in srgb, var(--accent) 28%, var(--card)) 0%, var(--card) 60%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card);
+}
+.acct-nw-label { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.acct-nw-value { font-size: 30px; font-weight: 800; letter-spacing: -.5px; margin: 2px 0 8px; }
+.acct-nw-split { display: flex; gap: 18px; font-size: .76rem; color: var(--muted); }
+.acct-nw-split span { display: inline-flex; align-items: center; }
+.acct-nw-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; display: inline-block; }
+
 .acct-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
 .acct-list-scroll {
   flex: 1;

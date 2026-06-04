@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.28.2';
+const VERSION = '5.29.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.29.0', date: '2026-06-04', changes: [
+    'Accounts overview now leads with your Net Worth (assets − debts) in a clean summary card',
+    'Removed the "spent this month" line from the balance card on cash accounts — it was always red and not useful (debt accounts still show payments made)',
+    'Removed the floating + button',
+  ]},
   { version: '5.28.2', date: '2026-06-04', changes: [
     'Swapped emoji icons for clean line icons across buttons and labels — Import/Export, Restore, Deduct cash, loan link, Credit/Loan tabs, the sounds toggle, and Force Update',
   ]},
@@ -3425,6 +3430,7 @@ function attachDebt() {
 // ── account picker ─────────────────────────────────────────────────────────
 function renderAccountPicker() {
   const TYPE_COLORS = { checking:'#5b8de8', savings:'#32d74b', credit:'#ff453a', loan:'#ffd60a', cash:'#52d68a', roth_ira:'#7c6fff', traditional_ira:'#5b8de8', '401k':'#32d74b', hsa:'#2dd4bf' };
+  let _assets = 0, _debts = 0;
   const rows = state.accounts.map(acct => {
     const d        = JSON.parse(localStorage.getItem(accountDataKey(acct.id)) || '{}');
     const txns     = d.transactions || [];
@@ -3433,6 +3439,7 @@ function renderAccountPicker() {
     for (const t of txns) { if (t.type === 'income') inc += t.amount; else exp += t.amount; }
     const isDebt   = acct.type === 'credit' || acct.type === 'loan';
     const balance  = isDebt ? Math.max(0, startBal + exp - inc) : startBal + inc - exp;
+    if (isDebt) _debts += balance; else _assets += balance;
     const balColor = isDebt ? 'var(--danger)' : (balance >= 0 ? 'var(--success)' : 'var(--danger)');
     const balLabel = isDebt ? `Owes ${fmt(balance)}` : fmt(balance);
     const typeLbl  = acct.type.charAt(0).toUpperCase() + acct.type.slice(1);
@@ -3478,6 +3485,17 @@ function renderAccountPicker() {
           </div>
         </div>
       </div>
+      ${count ? (() => {
+        const nw = _assets - _debts;
+        return `<div class="acct-networth">
+          <div class="acct-nw-label">NET WORTH</div>
+          <div class="acct-nw-value" style="color:${nw >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(nw)}</div>
+          <div class="acct-nw-split">
+            <span><span class="acct-nw-dot" style="background:var(--success)"></span>${fmt(_assets)} assets</span>
+            ${_debts > 0 ? `<span><span class="acct-nw-dot" style="background:var(--danger)"></span>${fmt(_debts)} owed</span>` : ''}
+          </div>
+        </div>`;
+      })() : ''}
       <div class="acct-list acct-list-scroll">${rows}</div>
     </div>`;
 }
@@ -3858,15 +3876,7 @@ function _applyPageTransition(main, oldHTML, transType) {
     updateBillBadge();
     updateNotesBadge();
     updateDawgTopbar();
-    updateFab();
   }, dur + 84);
-}
-
-// Floating quick-add button: visible everywhere except the Add screen / account picker.
-function updateFab() {
-  const fab = document.getElementById('fab-add');
-  if (!fab) return;
-  fab.style.display = (showingAccountPicker || currentTab === 'add') ? 'none' : 'flex';
 }
 
 // Re-render the current tab without scrolling back to the top or replaying the page
@@ -3942,7 +3952,6 @@ function render() {
   updateBillBadge();
   updateNotesBadge();
   updateDawgTopbar();
-  updateFab();
   // Negative balance warning — show once per session when dashboard is visible
   if (currentTab === 'dashboard' && !_shownNegativePopup) {
     const _curD  = state.accounts?.find(a => a.id === currentAccountId);
@@ -4761,7 +4770,7 @@ function renderDashboardDawg() {
       <div class="dawg-balance-label">${_isDebt ? (_curAcctD?.type==='loan' ? 'LOAN BALANCE' : 'BALANCE OWED') : 'TOTAL BALANCE'}</div>
       <div class="dawg-balance-amt" style="color:${balColor}">${fmt(balance)}</div>
       ${paymentDueStr ? `<div class="dawg-balance-due" style="color:${parseInt(_curAcctD?.payment_due_day)>0&&Math.round((new Date(new Date().getFullYear(),new Date().getMonth(),parseInt(_curAcctD.payment_due_day))-new Date())/86400000)<=3?'var(--warn)':'var(--muted)'}">${paymentDueStr}</div>` : ''}
-      <div class="dawg-balance-delta" style="color:${deltaColor}">${deltaStr}</div>
+      ${_isDebt ? `<div class="dawg-balance-delta" style="color:${deltaColor}">${deltaStr}</div>` : ''}
       ${isPastDash ? '' : '<button id="dash-reconcile" class="dash-reconcile-btn"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Reconcile to bank</button>'}
       <div class="dawg-sparkline-wrap"><canvas id="dawg-sparkline"></canvas></div>
       <div class="dawg-time-btns">
@@ -10749,7 +10758,6 @@ document.getElementById('dawg-acct-switch')?.addEventListener('click', () => {
   toggleDawgAcctDropdown();
 });
 // DAWG drawer close + item listeners (permanent HTML elements)
-document.getElementById('fab-add')?.addEventListener('click', () => { if (currentTab !== 'add') showTab('add'); });
 document.getElementById('dawg-drawer-close')?.addEventListener('click', closeDawgDrawer);
 document.getElementById('dawg-drawer-overlay')?.addEventListener('click', closeDawgDrawer);
 document.querySelectorAll('.dawg-drawer-item').forEach(btn =>
