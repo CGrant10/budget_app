@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accounts Overview — Options</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#0b0b0d; --card:#1a1a1c; --surface2:#222; --text:#f0f0f2; --muted:#7a7a83;
+         --border:rgba(255,255,255,.07); --accent:#4ecb8d; --success:#32d74b; --danger:#ff5a4d; --warn:#ffd60a; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:#050507; color:var(--text); font-family:'Plus Jakarta Sans',sans-serif; padding:22px 14px 60px; font-variant-numeric:tabular-nums; }
+  h1{ font-size:1.15rem; font-weight:800; text-align:center; }
+  .lead{ text-align:center; color:var(--muted); font-size:.82rem; margin:4px 0 26px; }
+  .row{ display:flex; gap:22px; justify-content:center; flex-wrap:wrap; align-items:flex-start; }
+  .col{ width:300px; max-width:100%; }
+  .tag{ text-align:center; font-weight:700; margin-bottom:4px; }
+  .note{ text-align:center; color:var(--muted); font-size:.72rem; line-height:1.45; margin-bottom:12px; min-height:54px; }
+  .phone{ height:540px; border-radius:26px; overflow:hidden; border:1px solid var(--border); background:var(--bg); display:flex; flex-direction:column; }
+  /* static header region + independently-scrolling list */
+  .hd-static{ padding:16px 14px 12px; flex-shrink:0; }
+  .scroll{ flex:1; overflow-y:auto; padding:0 14px 16px; }
+  .scroll::-webkit-scrollbar{ width:6px; } .scroll::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.14); border-radius:3px; }
+  .title{ font-size:1.4rem; font-weight:800; letter-spacing:-.02em; }
+  .ic{ width:18px; height:18px; }
+  .row-acct{ display:flex; align-items:center; gap:12px; }
+  .a-ico{ width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .a-name{ font-size:14px; font-weight:600; } .a-type{ font-size:11px; color:var(--muted); margin-top:1px; text-transform:uppercase; letter-spacing:.06em; }
+  .a-bal{ margin-left:auto; font-weight:700; font-size:14px; }
+  .pos{ color:var(--success); } .neg{ color:var(--danger); }
+  .grp{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:700; margin:16px 0 6px; display:flex; justify-content:space-between; }
+
+  /* ---- Option 1: gradient net-worth hero + tap cards ---- */
+  .o1 .nw{ background:radial-gradient(120% 130% at 0% 0%, #1c5e44, #0f2e22 55%, var(--card)); border:1px solid var(--border); border-radius:18px; padding:16px 18px; }
+  .o1 .nw .l{ font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.55); font-weight:700; }
+  .o1 .nw .v{ font-size:30px; font-weight:800; letter-spacing:-.5px; margin:2px 0 8px; }
+  .o1 .nw .s{ display:flex; gap:16px; font-size:.74rem; color:rgba(255,255,255,.7); }
+  .o1 .card{ display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:13px 14px; margin-top:10px; }
+
+  /* ---- Option 2: compact bar + grouped subtotals ---- */
+  .o2 .nwbar{ display:flex; align-items:baseline; justify-content:space-between; }
+  .o2 .nwbar .v{ font-size:28px; font-weight:800; letter-spacing:-.5px; }
+  .o2 .nwbar .l{ font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:700; }
+  .o2 .meter{ height:8px; border-radius:99px; background:rgba(255,90,77,.25); overflow:hidden; margin:10px 0 2px; }
+  .o2 .meter i{ display:block; height:100%; background:var(--success); border-radius:99px; }
+  .o2 .legend{ font-size:.7rem; color:var(--muted); display:flex; gap:14px; }
+  .o2 .card{ display:flex; align-items:center; gap:11px; padding:11px 2px; border-bottom:1px solid var(--border); }
+
+  /* ---- Option 3: minimal hairline list ---- */
+  .o3 .l{ font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:700; }
+  .o3 .v{ font-size:34px; font-weight:700; letter-spacing:-1px; margin-top:2px; }
+  .o3 .s{ font-size:12px; color:var(--muted); margin-top:4px; }
+  .o3 .card{ display:flex; align-items:center; gap:12px; padding:14px 2px; border-bottom:1px solid var(--border); }
+</style>
+</head>
+<body>
+<h1>Accounts Overview — three layouts</h1>
+<div class="lead">Header stays put; the account list scrolls on its own. Try scrolling inside each phone.</div>
+<div class="row">
+
+  <!-- OPTION 1 -->
+  <div class="col">
+    <div class="tag">1 · Net-worth hero + cards</div>
+    <div class="note">Bold gradient net-worth banner up top (static), tappable account cards below in their own scroll. Closest to today, just leading with net worth.</div>
+    <div class="phone o1">
+      <div class="hd-static">
+        <div class="title" style="margin-bottom:12px">My Accounts</div>
+        <div class="nw">
+          <div class="l">Net Worth</div>
+          <div class="v pos">$29,942.50</div>
+          <div class="s"><span>● $55,482 assets</span><span>● $25,540 owed</span></div>
+        </div>
+      </div>
+      <div class="scroll" id="s1"></div>
+    </div>
+  </div>
+
+  <!-- OPTION 2 -->
+  <div class="col">
+    <div class="tag">2 · Grouped + subtotals</div>
+    <div class="note">Compact net-worth line with an assets-vs-debt meter, then accounts grouped (Cash · Investing · Debt) with subtotals. Most informative.</div>
+    <div class="phone o2">
+      <div class="hd-static">
+        <div class="nwbar"><div><div class="l">Net Worth</div></div><div class="v pos">$29,942.50</div></div>
+        <div class="meter"><i style="width:68%"></i></div>
+        <div class="legend"><span style="color:var(--success)">$55,482 assets</span><span style="color:var(--danger)">$25,540 debt</span></div>
+      </div>
+      <div class="scroll" id="s2"></div>
+    </div>
+  </div>
+
+  <!-- OPTION 3 -->
+  <div class="col">
+    <div class="tag">3 · Minimal hairline</div>
+    <div class="note">Calm, premium: big net-worth number, then flat hairline-divided rows (no glassy cards). Sleekest / least busy.</div>
+    <div class="phone o3">
+      <div class="hd-static">
+        <div class="l">Net Worth</div>
+        <div class="v">$29,942.50</div>
+        <div class="s">↑ across 6 accounts · $25,540 in debt</div>
+      </div>
+      <div class="scroll" id="s3"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const ICON = {
+    checking:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>',
+    savings:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M19 5c-1.5-1.5-4-2-7-2S6.5 3.5 5 5 3 8 3 11s1 5 3 6v3h3v-2h6v2h3v-3c1-1 2-3 2-5"/><circle cx="16" cy="11" r="1"/></svg>',
+    invest:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+    card:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
+    bank:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="3" y1="21" x2="21" y2="21"/><polyline points="5 7 12 3.5 19 7"/><line x1="6" y1="10" x2="6" y2="18"/><line x1="12" y1="10" x2="12" y2="18"/><line x1="18" y1="10" x2="18" y2="18"/></svg>',
+  };
+  const A = [
+    { n:'Main Checking', t:'Checking', ic:'checking', c:'#5b8de8', bal:'$4,182.50', cls:'', grp:'Cash' },
+    { n:'Savings', t:'Savings', ic:'savings', c:'#32d74b', bal:'$12,400.00', cls:'', grp:'Cash' },
+    { n:'Roth IRA', t:'Roth IRA', ic:'invest', c:'#7c6fff', bal:'$38,900.00', cls:'', grp:'Investing' },
+    { n:'Credit Card', t:'Credit', ic:'card', c:'#ff5a4d', bal:'$1,240.00', cls:'neg', owe:1, grp:'Debt' },
+    { n:'Boat Loan', t:'Loan', ic:'bank', c:'#ffd60a', bal:'$9,800.00', cls:'neg', owe:1, grp:'Debt' },
+    { n:'Student Loans', t:'Loan', ic:'bank', c:'#ffd60a', bal:'$14,500.00', cls:'neg', owe:1, grp:'Debt' },
+  ];
+  const tint = c => c + '26';
+  // Option 1 — cards
+  document.getElementById('s1').innerHTML = A.map(a=>`<div class="card o1card">
+    <div class="a-ico" style="background:${tint(a.c)};color:${a.c}">${ICON[a.ic]}</div>
+    <div><div class="a-name">${a.n}</div><div class="a-type">${a.t}</div></div>
+    <div class="a-bal ${a.cls}">${a.owe?'Owes ':''}${a.bal}</div></div>`).join('').replace(/o1card/g,'card');
+  // Option 2 — grouped
+  (function(){
+    let html=''; const groups=['Cash','Investing','Debt'];
+    groups.forEach(g=>{
+      const items=A.filter(a=>a.grp===g);
+      html+=`<div class="grp"><span>${g}</span><span>${items.length} acct${items.length>1?'s':''}</span></div>`;
+      html+=items.map(a=>`<div class="card">
+        <div class="a-ico" style="background:${tint(a.c)};color:${a.c}">${ICON[a.ic]}</div>
+        <div><div class="a-name">${a.n}</div></div>
+        <div class="a-bal ${a.cls}">${a.bal}</div></div>`).join('');
+    });
+    document.getElementById('s2').innerHTML=html;
+  })();
+  // Option 3 — minimal
+  document.getElementById('s3').innerHTML = `<div class="grp" style="margin-top:10px"><span>Accounts</span></div>` + A.map(a=>`<div class="card">
+    <div class="a-ico" style="background:var(--surface2);color:${a.c}">${ICON[a.ic]}</div>
+    <div><div class="a-name">${a.n}</div><div class="a-type">${a.t}</div></div>
+    <div class="a-bal ${a.cls}">${a.owe?'−':''}${a.bal}</div></div>`).join('');
+</script>
+</body>
+</html>
