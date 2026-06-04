@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.25.0';
+const VERSION = '5.25.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.25.1', date: '2026-06-04', changes: [
+    'Loan-linked bill payments now reliably appear in that loan account\'s payment history — and linking a bill that\'s already paid back-posts the payments so the loan reflects them',
+    'Linked payments are dated to the month they pay for, so they land in the right month on the loan\'s history',
+  ]},
   { version: '5.25.0', date: '2026-06-04', changes: [
     'New Insights & Trends page (hamburger menu) — net worth across all accounts, savings rate, a 6-month spending trend chart, top categories with month-over-month change, and debt payoff progress',
   ]},
@@ -5995,14 +5999,24 @@ function _removeTxnFromAccount(acctId, payId) {
   const i = d.transactions.findIndex(t => t._billPayId === payId);
   if (i !== -1) { d.transactions.splice(i, 1); localStorage.setItem(key, JSON.stringify(d)); }
 }
+// Date a loan payment within the month it pays for (the bill's due day), or today if it's
+// the current month — so it lands in the right month on the loan's history.
+function _billPayDate(bill, mKey) {
+  if (mKey === localMonthKey()) return today();
+  const [y, mo] = mKey.split('-').map(Number);
+  const dim = new Date(y, mo, 0).getDate();
+  const day = Math.min(Math.max(1, parseInt(bill.dueDay) || 1), dim);
+  return `${mKey}-${String(day).padStart(2, '0')}`;
+}
 // A loan/credit payment is an INCOME txn on that account (reduces "owed").
 function postLoanPayment(bill, mKey) {
   const acctId = bill.linkedAccountId;
   if (!acctId || !state.accounts.find(a => a.id === acctId)) return;
+  if (billLinkedTxns(bill)[mKey]) return;   // already posted for this month
   const payId = 'billpay-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
   _postTxnToAccount(acctId, {
     type: 'income', amount: bill.amount, description: bill.name + ' payment',
-    category: 'Payment', date: today(), account: acctId, _billPayId: payId,
+    category: 'Payment', date: _billPayDate(bill, mKey), account: acctId, _billPayId: payId,
   });
   billLinkedTxns(bill)[mKey] = payId;
 }
@@ -6365,6 +6379,20 @@ function renderBills() {
 }
 
 function attachBills() {
+  // Reconcile: make sure every linked + already-paid bill has its loan payment posted.
+  // Covers bills linked (or paid) before this feature existed. The postLoanPayment guard
+  // (skip if linkedTxns[month] already set) prevents duplicates and respects manual deletes.
+  (async () => {
+    let changed = false;
+    for (const b of state.bills) {
+      if (!b.linkedAccountId) continue;
+      for (const mKey of billPaidMonths(b)) {
+        if (!billLinkedTxns(b)[mKey]) { postLoanPayment(b, mKey); changed = true; }
+      }
+    }
+    if (changed) await api.saveBills(state.bills);
+  })();
+
   document.getElementById('bill-add-btn')?.addEventListener('click', async () => {
     const name    = document.getElementById('bill-name').value.trim();
     const amount  = parseFloat(document.getElementById('bill-amount').value);
@@ -6384,12 +6412,22 @@ function attachBills() {
   document.getElementById('bills-month-next')?.addEventListener('click', () => { billsMonth = shiftMonthKey(billsMonth, +1); render(); });
   document.getElementById('bills-month-today')?.addEventListener('click', () => { billsMonth = curMonthKey(); render(); });
 
-  // Link a bill to a loan/credit account
+  // Link a bill to a loan/credit account — backfill payments for months already paid,
+  // and clean up payments on the previously-linked account.
   document.querySelectorAll('.bill-link-select').forEach(sel => {
     sel.addEventListener('change', async () => {
       const i = parseInt(sel.dataset.idx);
-      state.bills[i].linkedAccountId = sel.value || null;
+      const b = state.bills[i];
+      const newLink = sel.value || null;
+      // Remove any existing payments from the OLD account (while linkedAccountId still points there)
+      for (const mKey of Object.keys(billLinkedTxns(b))) removeLoanPayment(b, mKey);
+      b.linkedAccountId = newLink;
+      // Post a payment for every month this bill is currently marked paid
+      if (newLink) for (const mKey of billPaidMonths(b)) postLoanPayment(b, mKey);
       await api.saveBills(state.bills);
+      const acctName = newLink ? (state.accounts.find(a => a.id === newLink)?.name) : null;
+      const n = newLink ? billPaidMonths(b).length : 0;
+      if (acctName) showAlert(n ? `🔗 Linked to ${acctName} — posted ${n} payment${n !== 1 ? 's' : ''}` : `🔗 Linked to ${acctName}`);
       render();
     });
   });
