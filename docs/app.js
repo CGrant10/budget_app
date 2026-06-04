@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.20.3';
+const VERSION = '5.20.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.20.4', date: '2026-06-04', changes: [
+    'Fixed a timezone bug where the current month/day could roll over early in the evening — all "current month"/"today" keys now use your local time instead of UTC',
+  ]},
   { version: '5.20.3', date: '2026-06-04', changes: [
     'Weekly Planner is fully month-based now — removed the leftover "Next paycheck date" field and "Start New Cycle" button that no longer affected anything',
     'Dashboard "Weekly Plan" tile now shows This Month / Per Day / Days Left in the month (matching the planner) instead of paycheck-based payday info',
@@ -1376,7 +1379,7 @@ function showRoast(msg) {
 }
 
 function checkRoast(category) {
-  const m = new Date().toISOString().slice(0, 7);
+  const m = localMonthKey();
   const total = state.transactions
     .filter(t => t.type === 'expense' && t.category === category && t.date.startsWith(m))
     .reduce((s, t) => s + t.amount, 0);
@@ -1795,7 +1798,7 @@ function showAlert(msg) {
 }
 
 function checkSpendingAlert(category) {
-  const m = new Date().toISOString().slice(0, 7);
+  const m = localMonthKey();
   const spent = state.transactions
     .filter(t => t.type === 'expense' && t.category === category && t.date.startsWith(m))
     .reduce((s, t) => s + t.amount, 0);
@@ -2112,7 +2115,7 @@ const api = {
 
 // ── recurring ──────────────────────────────────────────────────────────────
 async function processRecurring() {
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = localMonthKey();
   const len = state.transactions.length;
   for (let i = 0; i < len; i++) {
     const t = state.transactions[i];
@@ -2179,6 +2182,11 @@ function localDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function today() { return localDateStr(new Date()); }
+// Returns YYYY-MM for any Date in LOCAL time. Use instead of toISOString().slice(0,7),
+// which uses UTC and can roll to the next month on the last evening of a month (US).
+function localMonthKey(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
 
 function showStatus(id, msg, type, ms = 3000) {
   const el = document.getElementById(id);
@@ -2202,7 +2210,7 @@ function initSoundsToggle() {
 
 // ── health score ───────────────────────────────────────────────────────────
 function calcHealthScore() {
-  const m = new Date().toISOString().slice(0, 7);
+  const m = localMonthKey();
   const { income, expense } = monthTotals(m);
 
   // ── Savings Rate (50 pts) ──────────────────────────────────────
@@ -2276,7 +2284,7 @@ function calcHealthScore() {
 
 // ── tabs ───────────────────────────────────────────────────────────────────
 let currentTab = 'dashboard';
-let dashMonth = new Date().toISOString().slice(0, 7);
+let dashMonth = localMonthKey();
 let debtSubTab = 'credit'; // 'credit' | 'loan'
 let _pendingAccountExpand = null; // account id to auto-expand when Accounts tab renders
 let _quickAddType = null;         // pre-select expense/income when navigating from Quick Add tile
@@ -2304,7 +2312,7 @@ let ledgerFilter = '';
 let ledgerSort = 'date-desc';
 let ledgerTypeFilter = 'all';
 let ledgerView = 'transactions';   // 'transactions' (non-bill) | 'bills'
-let billsMonth = new Date().toISOString().slice(0, 7);   // YYYY-MM shown on the Bills page
+let billsMonth = localMonthKey();   // YYYY-MM shown on the Bills page
 let ledgerCatFilter = '';
 let ledgerDateFrom = '';
 let ledgerDateTo = '';
@@ -2323,7 +2331,7 @@ function showTab(key) {
     ledgerFilter = ''; ledgerSort = 'date-desc'; ledgerTypeFilter = 'all';
     ledgerCatFilter = ''; ledgerDateFrom = ''; ledgerDateTo = ''; ledgerView = 'transactions';
   }
-  if (currentTab === 'bills' && key !== 'bills') billsMonth = new Date().toISOString().slice(0, 7);
+  if (currentTab === 'bills' && key !== 'bills') billsMonth = localMonthKey();
   if (_insightTimer) { clearInterval(_insightTimer); _insightTimer = null; }
   if (_dawgSparkGlobal) { _dawgSparkGlobal.destroy(); _dawgSparkGlobal = null; }
   // Re-apply the active theme if leaving the about page (about used to reset it; no longer needed)
@@ -2406,7 +2414,7 @@ function showCatModal(cat) {
 
 
 function getMonthCatData(monthStr) {
-  const m = monthStr || new Date().toISOString().slice(0, 7);
+  const m = monthStr || localMonthKey();
   const { bycat } = monthTotals(m);
   const entries = Object.entries(bycat).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
   return {
@@ -2550,7 +2558,7 @@ function attachDashboard() {
     render();
   });
   document.getElementById('dash-month-next')?.addEventListener('click', () => {
-    const now = new Date().toISOString().slice(0, 7);
+    const now = localMonthKey();
     if (dashMonth >= now) return;
     const yr = parseInt(dashMonth.slice(0,4)), mo = parseInt(dashMonth.slice(5,7)) - 1;
     const d = new Date(yr, mo + 1, 1);
@@ -2651,7 +2659,7 @@ function getDaysUntilDue(dueDay) {
 }
 
 function getUpcomingBills(days = 7) {
-  const m = new Date().toISOString().slice(0, 7);
+  const m = localMonthKey();
   return state.bills
     .filter(b => !isBillPaidFor(b, m) && getDaysUntilDue(b.dueDay) <= days)
     .sort((a, b) => getDaysUntilDue(a.dueDay) - getDaysUntilDue(b.dueDay));
@@ -2773,7 +2781,7 @@ function getSpendingInsights(monthStr) {
   if (cats.length > 0) insights.push(`🔺 Top spend: ${cats[0][0]} at ${fmt(cats[0][1])}`);
 
   // Monthly pace — only meaningful for the current month
-  const currentM = new Date().toISOString().slice(0, 7);
+  const currentM = localMonthKey();
   if (thisM === currentM) {
     const now2 = new Date();
     const day = now2.getDate();
@@ -4600,7 +4608,7 @@ function renderDashboardDawg() {
 
       // Upcoming Bills
       {
-        const _curMonth = new Date().toISOString().slice(0,7);
+        const _curMonth = localMonthKey();
         const _unpaid   = [...state.bills]
           .filter(b => !isBillPaidFor(b, _curMonth))
           .sort((a,b) => getDaysUntilDue(a.dueDay) - getDaysUntilDue(b.dueDay))
@@ -4881,7 +4889,7 @@ function getSmartBudgetSuggestions() {
 }
 
 function renderBudgets() {
-  const m = new Date().toISOString().slice(0, 7);
+  const m = localMonthKey();
   const { bycat } = monthTotals(m);
 
   // ── Income Budget Planner card ───────────────────────────────────────────
@@ -5701,7 +5709,7 @@ function markBillUnpaid(b, mKey) {
   delete logged[mKey];
   return txnId;
 }
-function curMonthKey() { return new Date().toISOString().slice(0, 7); }
+function curMonthKey() { return localMonthKey(); }
 function shiftMonthKey(mKey, delta) {
   const [y, mo] = mKey.split('-').map(Number);
   const d = new Date(y, mo - 1 + delta, 1);
@@ -6150,7 +6158,7 @@ function attachBills() {
             const billTxnId = 'billtxn-' + Date.now().toString(36);
             await api.addTransaction({
               type: 'expense', amount: b.amount, description: b.name,
-              category: b.category, date: new Date().toISOString().slice(0, 10),
+              category: b.category, date: today(),
               account: currentAccountId, _billTxnId: billTxnId,
             });
             markBillPaid(b, m, billTxnId);
@@ -8517,7 +8525,7 @@ function attachDashboardDawg() {
     render();
   });
   document.getElementById('dash-month-next')?.addEventListener('click', () => {
-    const now = new Date().toISOString().slice(0, 7);
+    const now = localMonthKey();
     if (dashMonth >= now) return;
     const yr = parseInt(dashMonth.slice(0,4)), mo = parseInt(dashMonth.slice(5,7));
     const d  = new Date(yr, mo, 1); // mo already 0-indexed offset by +1 = next month
@@ -8526,7 +8534,7 @@ function attachDashboardDawg() {
   });
 
   // Sparkline — clip to end of browsed month when navigating past months
-  const _isPastSpark = dashMonth < new Date().toISOString().slice(0,7);
+  const _isPastSpark = dashMonth < localMonthKey();
   const _sparkMaxDate = _isPastSpark ? (() => {
     const [sy, sm] = dashMonth.split('-').map(Number);
     return new Date(sy, sm, 0).toISOString().split('T')[0];
@@ -8842,7 +8850,7 @@ function attachAdd() {
         if (!splitAmt || splitAmt <= 0) continue;
         const t = { type, amount: splitAmt, description: desc, category: row.cat,
                     account: acct, date, recurring: isRecurring, ts: stamp + count };
-        if (isRecurring) t.recur_month = new Date().toISOString().slice(0, 7);
+        if (isRecurring) t.recur_month = localMonthKey();
         if (isExclude)   t.excludeFromBudget = true;
         await api.addTransaction(t);
         count++;
@@ -8904,7 +8912,7 @@ function attachAdd() {
       recurring:   isRecurring,
       ts:          Date.now()
     };
-    if (isRecurring) t.recur_month = new Date().toISOString().slice(0, 7);
+    if (isRecurring) t.recur_month = localMonthKey();
     if (isExclude)   t.excludeFromBudget = true;
     let prevBal = 0;
     for (const tx of state.transactions) prevBal += tx.type==='income' ? tx.amount : -tx.amount;
@@ -8974,7 +8982,7 @@ function exportCSV(allAccounts = false) {
   const a    = document.createElement('a');
   a.href     = URL.createObjectURL(blob);
   const suffix = allAccounts ? 'all-accounts' : (state.accounts.find(x=>x.id===currentAccountId)?.name||'account').toLowerCase().replace(/\s+/g,'-');
-  a.download = `budget-dawgs-${suffix}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `budget-dawgs-${suffix}-${today()}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
 }
@@ -9188,7 +9196,7 @@ function attachImport() {
     const blob = new Blob([payload], { type: 'application/json' });
     const a    = document.createElement('a');
     a.href     = URL.createObjectURL(blob);
-    a.download = `budget-dawgs-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `budget-dawgs-backup-${today()}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   });
