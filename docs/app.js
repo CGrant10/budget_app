@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.20.8';
+const VERSION = '5.20.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.20.9', date: '2026-06-04', changes: [
+    'Hamburger menu now labels the tab "Import / Export" instead of just "Import"',
+  ]},
   { version: '5.20.8', date: '2026-06-04', changes: [
     'Fixed ledger search closing the keyboard after a keystroke — typing now filters the list live without losing focus',
     'The backup reminder\'s "Back up" button now opens the Import/Export tab and scrolls right to the backup section',
