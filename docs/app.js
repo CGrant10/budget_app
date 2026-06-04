@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.20.9';
+const VERSION = '5.21.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.21.0', date: '2026-06-04', changes: [
+    'New "Simple Tracking" mode (Settings → App Mode) — strips the app down to balance + transactions: a clean dashboard, a simpler Add screen, and budgeting features hidden from the menu. Switch back to Full Budgeting anytime; nothing is deleted',
+  ]},
   { version: '5.20.9', date: '2026-06-04', changes: [
     'Hamburger menu now labels the tab "Import / Export" instead of just "Import"',
   ]},
@@ -1856,6 +1859,10 @@ function saveSettings(s) {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch(e) { console.warn('Budget DAWGs: settings save failed', e); }
 }
 function defaultAccounts() { return [{ id: 'main', name: 'Main', type: 'checking' }]; }
+
+// Simple (Tracker) mode hides the budgeting features for users who only want
+// to track balance + transactions. 'full' is the default for existing users.
+function isSimpleMode() { return loadSettings().appMode === 'simple'; }
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Dashboard', required: true,
@@ -3957,7 +3964,15 @@ const DASH_PRESETS = {
     { id:'quick-add',      size:'half', visible:false },
   ],
 };
+// Curated dashboard for Simple (Tracker) mode: balance card + sparkline stay (baked in),
+// plus a lean monthly summary, recent transactions, and quick-add. No budgeting tiles.
+const SIMPLE_DASH_LAYOUT = [
+  { id: 'monthly-stats',  size: 'full', visible: true  },
+  { id: 'transactions',   size: 'full', visible: true  },
+  { id: 'quick-add',      size: 'half', visible: true  },
+];
 function loadDashLayout() {
+  if (isSimpleMode()) return SIMPLE_DASH_LAYOUT.map(t => ({...t}));
   const saved = loadSettings().dashLayout;
   if (!saved || !Array.isArray(saved)) return DEFAULT_DASH_LAYOUT.map(t => ({...t}));
   const out = saved.filter(t => DASH_TILE_META[t.id]);
@@ -5478,6 +5493,7 @@ function _showChallengeComplete(ch) {
 
 // ── add ────────────────────────────────────────────────────────────────────
 function renderAdd() {
+  const _adv = isSimpleMode() ? ' style="display:none"' : '';   // hide advanced rows in Simple mode
   const catOptions  = getCategories().map(c => `<option>${c}</option>`).join('');
   const acctOptions = state.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
   const toAcctOptions = state.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
@@ -5509,7 +5525,7 @@ function renderAdd() {
             <input type="text" id="add-cat-custom" class="form-input" placeholder="Type custom category" style="display:none;margin-top:6px">
           </div>
         </div>
-        <div class="form-row" id="add-split-row">
+        <div class="form-row" id="add-split-row"${_adv}>
           <label class="form-label" style="align-self:flex-start;padding-top:2px">Split</label>
           <div style="flex:1">
             <label class="radio-label" style="margin-bottom:4px">
@@ -5534,11 +5550,11 @@ function renderAdd() {
           <label class="form-label">Date</label>
           <input type="date" id="add-date" class="form-input" value="${today()}">
         </div>
-        <div class="form-row" id="add-recurring-row">
+        <div class="form-row" id="add-recurring-row"${_adv}>
           <label class="form-label">Recurring</label>
           <label class="radio-label"><input type="checkbox" id="add-recurring"> Auto-add monthly</label>
         </div>
-        <div class="form-row" id="add-exclude-row">
+        <div class="form-row" id="add-exclude-row"${_adv}>
           <label class="form-label">Weekly budget</label>
           <label class="radio-label"><input type="checkbox" id="add-exclude-budget"> Don't count toward weekly spending</label>
         </div>
@@ -6923,9 +6939,25 @@ function renderSettings() {
     </button>`;
   };
 
+  const _mode = s.appMode === 'simple' ? 'simple' : 'full';
   return `
     <div class="page">
       <h1 class="page-title">Settings</h1>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:6px">App Mode</h2>
+        <p class="code-hint" style="margin-bottom:10px">Simple mode hides budgeting features for a clean balance + transactions tracker. Nothing is deleted — switch back anytime.</p>
+        <div class="mode-toggle">
+          <button class="mode-opt${_mode === 'full' ? ' active' : ''}" data-mode="full">
+            <span class="mode-opt-title">Full Budgeting</span>
+            <span class="mode-opt-sub">Planner, bills, goals, debt, breakdowns</span>
+          </button>
+          <button class="mode-opt${_mode === 'simple' ? ' active' : ''}" data-mode="simple">
+            <span class="mode-opt-title">Simple Tracking</span>
+            <span class="mode-opt-sub">Just balance &amp; transactions</span>
+          </button>
+        </div>
+      </div>
 
       <div class="form-card" style="cursor:pointer" id="goto-accounts-card">
         <div style="display:flex;align-items:center;justify-content:space-between">
@@ -7043,6 +7075,16 @@ function renderSettings() {
 }
 
 function attachSettings() {
+  // App mode (Full vs Simple/Tracker)
+  document.querySelectorAll('.mode-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      if (isSimpleMode() === (mode === 'simple')) return;  // no change
+      const s = loadSettings(); s.appMode = mode; saveSettings(s);
+      showTab('dashboard');  // land somewhere valid for the new mode
+    });
+  });
+
   // Font style switcher
   document.querySelectorAll('[data-font-style]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -8418,6 +8460,11 @@ function openDawgDrawer() {
   const overlay = document.getElementById('dawg-drawer-overlay');
   const drawer  = document.getElementById('dawg-drawer');
   if (!overlay || !drawer) return;
+  // Hide budgeting entries in Simple (Tracker) mode
+  const simple = isSimpleMode();
+  drawer.querySelectorAll('.dawg-drawer-item[data-budgeting]').forEach(el => {
+    el.style.display = simple ? 'none' : '';
+  });
   overlay.classList.remove('hidden');
   drawer.classList.remove('hidden');
   requestAnimationFrame(() => drawer.classList.add('open'));
@@ -8892,10 +8939,11 @@ function attachAdd() {
       const splitRow   = document.getElementById('add-split-row');
       if (toRow)    toRow.style.display    = isTransfer ? '' : 'none';
       if (catRow)   catRow.style.display   = isTransfer ? 'none' : (document.getElementById('split-toggle')?.checked ? 'none' : '');
-      if (recurRow) recurRow.style.display = isTransfer ? 'none' : '';
-      if (excludeRow) excludeRow.style.display = isTransfer ? 'none' : '';
+      const _hideAdv = isTransfer || isSimpleMode();   // advanced rows stay hidden in Simple mode
+      if (recurRow) recurRow.style.display = _hideAdv ? 'none' : '';
+      if (excludeRow) excludeRow.style.display = _hideAdv ? 'none' : '';
       if (descRow)  descRow.style.display  = isTransfer ? 'none' : '';
-      if (splitRow) splitRow.style.display = isTransfer ? 'none' : '';
+      if (splitRow) splitRow.style.display = _hideAdv ? 'none' : '';
     });
   });
 
