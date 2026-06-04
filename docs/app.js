@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.32.0';
+const VERSION = '5.32.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.32.1', date: '2026-06-04', changes: [
+    'Fixed the Per Week / Per Day meter bars not showing on the dashboard',
+    'Accounts overview now shows flat grouped rows (with tinted type icons) instead of cards, matching the design',
+    'Debt accounts flattened into the same calm list style',
+  ]},
   { version: '5.32.0', date: '2026-06-04', changes: [
     'Dashboard budget tiles (Per Week / Per Day) now use clean horizontal meters instead of rings — easier to read at a glance. Your customizable layout, tiles, and the DAWG hero are unchanged',
   ]},

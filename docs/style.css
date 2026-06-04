@@ -6265,10 +6265,46 @@ body.light::after {
 .bills-list .bill-card:last-child,
 .goals-list .goal-card:last-child { border-bottom: none !important; }
 
-/* Dashboard budget tiles — meter style (replaces the rings) */
-.dawg-meter-head { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+/* Dashboard budget tiles — meter style (replaces the rings).
+   The budget tile is a centered flex column, so these MUST be full width or they
+   collapse to zero (which hid the bar). */
+.dawg-budget-tile { align-items: stretch !important; text-align: left !important; }
+.dawg-meter-head { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 8px; }
 .dawg-meter-pct { font-size: .78rem; font-weight: 800; letter-spacing: .02em; }
-.dawg-meter { height: 8px; border-radius: 99px; background: rgba(255,255,255,.08); overflow: hidden; margin: 9px 0; }
-.dawg-meter i { display: block; height: 100%; border-radius: 99px; transition: width .3s ease; }
-.dawg-meter-amt { font-size: 1.05rem; font-weight: 800; letter-spacing: -.3px; }
+.dawg-meter { width: 100%; height: 9px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; margin: 9px 0; }
+.dawg-meter i { display: block; height: 100%; min-width: 3px; border-radius: 99px; transition: width .3s ease; }
+.dawg-meter-amt { width: 100%; font-size: 1.05rem; font-weight: 800; letter-spacing: -.3px; }
 .dawg-meter-amt span { font-size: .8rem; font-weight: 600; color: var(--muted); }
+
+/* ── Accounts overview: flat grouped rows (mockup option 2) ── */
+.acct-picker-page .acct-row,
+.acct-list .acct-row {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  margin: 0 14px !important;
+  padding: 13px 0 !important;
+}
+.acct-row::after { display: none !important; }
+.acct-list .acct-row:last-child { border-bottom: none !important; }
+.acct-row-stripe, .acct-row-chevron { display: none !important; }
+.acct-row-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+
+/* ── Debt: flatten the account cards into the calm list (keeps progress bars) ── */
+.debt-acct-list { display: flex; flex-direction: column; gap: 0; }
+.debt-acct-card {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding-bottom: 8px !important;
+}
+.debt-acct-card::after { display: none !important; }
+.debt-acct-list .debt-acct-card:last-child { border-bottom: none !important; }
