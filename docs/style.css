@@ -606,6 +606,26 @@ body::before {
 .ledger-edit-bar .form-input { flex: 1; min-width: 130px; padding: 7px 10px; font-size: 13px; }
 
 .ledger-list { display: flex; flex-direction: column; gap: 6px; }
+/* Compact density — tighter rows, smaller text, running balance hidden */
+.ledger-list.compact { gap: 3px; }
+.ledger-list.compact .ledger-row-inner { padding: 7px 12px; }
+.ledger-list.compact .ledger-desc { font-size: 12.5px; }
+.ledger-list.compact .ledger-meta { font-size: 10.5px; margin-top: 1px; }
+.ledger-list.compact .ledger-amt  { font-size: 13px; }
+.ledger-list.compact .ledger-running-bal { display: none; }
+.lf-density-btn {
+  flex-shrink: 0;
+  width: 38px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.lf-density-btn:active { background: var(--accent); color: #fff; }
 .ledger-row {
   position: relative;
   overflow: hidden;
@@ -1985,6 +2005,115 @@ body.light .section-title::before {
   transition: background .15s, color .15s;
 }
 .tut-float:hover { background: var(--accent); color: #fff; }
+
+/* ── floating quick-add button ─────────────────────────────────────────────── */
+.fab-add {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--nav-h) + 58px);
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  z-index: 51;
+  display: none;   /* shown by updateFab() after first render (kept off splash/lock) */
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  transition: transform .12s ease, filter .12s ease;
+}
+.fab-add:active { transform: scale(.92); }
+.fab-add:hover  { filter: brightness(1.08); }
+
+/* ── amount field + calculator ─────────────────────────────────────────────── */
+.amount-wrap { flex: 1; display: flex; gap: 6px; }
+.amount-wrap .form-input { flex: 1; min-width: 0; }
+.calc-trigger {
+  flex-shrink: 0;
+  width: 44px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface2);
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.calc-trigger:active { background: var(--accent); color: #fff; }
+
+.calc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.calc-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px 22px 0 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 16px 14px calc(16px + var(--safe-bottom, 0px));
+  box-shadow: 0 -8px 40px rgba(0,0,0,.5);
+}
+.calc-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  min-height: 56px;
+}
+.calc-display-nums { flex: 1; min-width: 0; text-align: right; }
+.calc-expr { font-size: 1.5rem; font-weight: 700; color: var(--text); word-break: break-all; }
+.calc-res  { font-size: .85rem; color: var(--muted); min-height: 1em; }
+.calc-back {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.calc-key {
+  padding: 16px 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.calc-key:active { background: var(--accent); color: #fff; }
+.calc-key.calc-op { color: var(--accent); font-weight: 700; }
+.calc-key.calc-fn { color: var(--warn); }
+.calc-actions { display: flex; gap: 8px; margin-top: 12px; }
+.calc-cancel, .calc-done {
+  flex: 1;
+  padding: 13px 0;
+  border-radius: 12px;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.calc-cancel { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+.calc-done   { background: var(--accent); border: 1px solid var(--accent); color: #fff; }
 
 /* ── ledger filter bar ────────────────────────────────────────────────────── */
 .ledger-filter-bar {

@@ -123,6 +123,15 @@
       }
     });
 
+    // ── calculator evaluator ────────────────────────────────────────────────────
+    test('calculator evaluator: precedence + decimals', () => {
+      eq(_evalExpr('12.50+3'), 15.5, 'add');
+      eq(_evalExpr('10-2-3'), 5, 'left-to-right minus');
+      eq(_evalExpr('2+3*4'), 14, 'times before plus');
+      eq(_evalExpr('100/4'), 25, 'divide');
+      eq(_evalExpr('5+'), 5, 'trailing operator ignored');
+    });
+
     // ── render ──────────────────────────────────────────────────────────────────
     const passed = results.filter(r => r.ok).length;
     const failed = results.length - passed;

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.21.2';
+const VERSION = '5.22.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.22.0', date: '2026-06-04', changes: [
+    'Floating "+" button — add a transaction instantly from any screen',
+    'Calculator keypad on the amount field — tap the calculator icon for fast thumb entry with live math (e.g. 12.50 + 3 = 15.50)',
+    'Ledger row density toggle (≡ / ≣) — switch between comfortable and compact rows; compact hides the running balance for a tighter list',
+  ]},
   { version: '5.21.2', date: '2026-06-04', changes: [
     'Accessibility: the app now respects your device\'s "Reduce Motion" setting (calms the dog/glitch animations and page transitions), and status messages/toasts are announced by screen readers',
   ]},
@@ -2270,6 +2275,92 @@ function showStatus(id, msg, type, ms = 3000) {
   if (ms) setTimeout(() => { el.textContent = ''; el.className = 'form-status'; }, ms);
 }
 
+// ── calculator keypad for amount entry ──────────────────────────────────────
+// Safe left-to-right evaluator for + − × ÷ with normal precedence. No eval().
+function _evalExpr(raw) {
+  let expr = String(raw).replace(/[×x]/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+  while (/[+\-*/.]$/.test(expr)) expr = expr.slice(0, -1);   // drop trailing operator/dot
+  if (!expr) return NaN;
+  const tokens = expr.match(/(\d*\.?\d+)|[+\-*/]/g);
+  if (!tokens) return NaN;
+  const mid = [];   // pass 1: resolve * and /
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t === '*' || t === '/') {
+      const a = mid.pop(), b = parseFloat(tokens[++i]);
+      if (!isFinite(a) || !isFinite(b)) return NaN;
+      mid.push(t === '*' ? a * b : a / b);
+    } else if (t === '+' || t === '-') { mid.push(t); }
+    else mid.push(parseFloat(t));
+  }
+  let res = mid[0];   // pass 2: resolve + and -
+  for (let i = 1; i < mid.length; i += 2) {
+    const op = mid[i], v = mid[i + 1];
+    if (!isFinite(v)) return NaN;
+    res = op === '+' ? res + v : res - v;
+  }
+  return isFinite(res) ? res : NaN;
+}
+
+// Opens an on-screen calculator keypad that writes its result into `target` (an input).
+function openCalcKeypad(target) {
+  if (!target) return;
+  document.getElementById('calc-overlay')?.remove();
+  let expr = (target.value !== '' && isFinite(parseFloat(target.value))) ? String(parseFloat(target.value)) : '';
+  const keys = [['7','7'],['8','8'],['9','9'],['/','÷'],['4','4'],['5','5'],['6','6'],['*','×'],['1','1'],['2','2'],['3','3'],['-','−'],['C','C'],['0','0'],['.','.'],['+','+']];
+  const ov = document.createElement('div');
+  ov.id = 'calc-overlay';
+  ov.className = 'calc-overlay';
+  ov.innerHTML = `
+    <div class="calc-card" role="dialog" aria-label="Calculator">
+      <div class="calc-display">
+        <div class="calc-display-nums"><div class="calc-expr" id="calc-expr">${expr || '0'}</div><div class="calc-res" id="calc-res"></div></div>
+        <button class="calc-back" id="calc-back" aria-label="Backspace">⌫</button>
+      </div>
+      <div class="calc-grid">
+        ${keys.map(([k, lbl]) => `<button class="calc-key${'+-*/'.includes(k) ? ' calc-op' : k === 'C' ? ' calc-fn' : ''}" data-k="${k}">${lbl}</button>`).join('')}
+      </div>
+      <div class="calc-actions">
+        <button class="calc-cancel" id="calc-cancel">Cancel</button>
+        <button class="calc-done" id="calc-done">Done</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const exprEl = ov.querySelector('#calc-expr');
+  const resEl  = ov.querySelector('#calc-res');
+  const refresh = () => {
+    exprEl.textContent = expr || '0';
+    const hasOp = /[+\-*/]/.test(expr.slice(1));
+    const r = _evalExpr(expr);
+    resEl.textContent = (hasOp && isFinite(r)) ? '= ' + fmt(Math.max(0, Math.round(r * 100) / 100)) : '';
+  };
+  const press = k => {
+    if (k === 'C') expr = '';
+    else if ('+-*/'.includes(k)) {
+      if (!expr) { if (k === '-') expr = '-'; }
+      else if ('+-*/'.includes(expr.slice(-1))) expr = expr.slice(0, -1) + k;
+      else expr += k;
+    } else if (k === '.') {
+      const seg = expr.split(/[+\-*/]/).pop();
+      if (!seg.includes('.')) expr += (seg === '' ? '0.' : '.');
+    } else expr += k;
+    refresh();
+  };
+  ov.querySelectorAll('.calc-key').forEach(b => b.addEventListener('click', () => press(b.dataset.k)));
+  ov.querySelector('#calc-back').addEventListener('click', () => { expr = expr.slice(0, -1); refresh(); });
+  const close = () => ov.remove();
+  ov.querySelector('#calc-cancel').addEventListener('click', close);
+  ov.querySelector('#calc-done').addEventListener('click', () => {
+    const r = _evalExpr(expr);
+    const v = isFinite(r) ? Math.max(0, Math.round(r * 100) / 100) : 0;
+    target.value = v || '';
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+    close();
+  });
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  refresh();
+}
+
 // ── sounds toggle ──────────────────────────────────────────────────────────
 function initSoundsToggle() {
   const btn = document.getElementById('sounds-toggle');
@@ -3613,7 +3704,15 @@ function _applyPageTransition(main, oldHTML, transType) {
     updateBillBadge();
     updateNotesBadge();
     updateDawgTopbar();
+    updateFab();
   }, dur + 84);
+}
+
+// Floating quick-add button: visible everywhere except the Add screen / account picker.
+function updateFab() {
+  const fab = document.getElementById('fab-add');
+  if (!fab) return;
+  fab.style.display = (showingAccountPicker || currentTab === 'add') ? 'none' : 'flex';
 }
 
 // Re-render the current tab without scrolling back to the top or replaying the page
@@ -3687,6 +3786,7 @@ function render() {
   updateBillBadge();
   updateNotesBadge();
   updateDawgTopbar();
+  updateFab();
   // Negative balance warning — show once per session when dashboard is visible
   if (currentTab === 'dashboard' && !_shownNegativePopup) {
     const _curD  = state.accounts?.find(a => a.id === currentAccountId);
@@ -5522,7 +5622,12 @@ function renderAdd() {
         </div>
         <div class="form-row">
           <label class="form-label">Amount ($)</label>
-          <input type="number" id="add-amount" class="form-input" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
+          <div class="amount-wrap">
+            <input type="number" id="add-amount" class="form-input" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
+            <button type="button" id="add-calc-btn" class="calc-trigger" aria-label="Open calculator" title="Calculator">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8" y2="11"/><line x1="12" y1="11" x2="12" y2="11"/><line x1="16" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="8" y2="15"/><line x1="12" y1="15" x2="12" y2="15"/><line x1="16" y1="15" x2="16" y2="18"/></svg>
+            </button>
+          </div>
         </div>
         <div class="form-row" id="add-desc-row">
           <label class="form-label">Description</label>
@@ -5577,6 +5682,7 @@ function renderAdd() {
 // ── ledger ─────────────────────────────────────────────────────────────────
 function renderLedger() {
   const cats = getCategories();
+  const density = loadSettings().ledgerDensity === 'compact' ? 'compact' : 'comfortable';
   const catOptFilter = cats.map(c =>
     `<option value="${c}"${c === ledgerCatFilter ? ' selected' : ''}>${c}</option>`).join('');
 
@@ -5666,6 +5772,7 @@ function renderLedger() {
             <option value="amount-desc"${ledgerSort === 'amount-desc' ? ' selected' : ''}>$ High</option>
             <option value="amount-asc"${ledgerSort === 'amount-asc' ? ' selected' : ''}>$ Low</option>
           </select>
+          <button id="ledger-density" class="lf-density-btn" title="Row density" aria-label="Toggle row density (currently ${density})">${density === 'compact' ? '≣' : '≡'}</button>
         </div>
         <div class="lf-row2">
           <div class="type-pills">
@@ -5685,7 +5792,7 @@ function renderLedger() {
           <button id="ledger-export-csv" class="btn-xs">📥 CSV</button>
         </div>
       </div>
-      <div class="ledger-list">
+      <div class="ledger-list${density === 'compact' ? ' compact' : ''}">
         ${rowsHtml || (state.transactions.length === 0
           ? emptyState('No transactions yet', 'Tap Add to log your first one')
           : ledgerView === 'bills'
@@ -8931,6 +9038,9 @@ function attachAdd() {
     if (document.getElementById('split-toggle')?.checked) updateSplitSummary();
   });
 
+  // Calculator keypad for the amount field
+  document.getElementById('add-calc-btn')?.addEventListener('click', () => openCalcKeypad(document.getElementById('add-amount')));
+
   // Show/hide custom category text input when "Custom…" is selected
   document.getElementById('add-cat')?.addEventListener('change', e => {
     const customInp = document.getElementById('add-cat-custom');
@@ -9163,6 +9273,16 @@ function attachLedger() {
       ledgerView = btn.dataset.view;
       render();
     });
+  });
+  document.getElementById('ledger-density')?.addEventListener('click', () => {
+    const s = loadSettings();
+    s.ledgerDensity = s.ledgerDensity === 'compact' ? 'comfortable' : 'compact';
+    saveSettings(s);
+    // Toggle in place — no full re-render, so scroll position and search focus are kept.
+    const list = document.querySelector('.ledger-list');
+    if (list) list.classList.toggle('compact', s.ledgerDensity === 'compact');
+    const btn = document.getElementById('ledger-density');
+    if (btn) { btn.textContent = s.ledgerDensity === 'compact' ? '≣' : '≡'; btn.setAttribute('aria-label', `Toggle row density (currently ${s.ledgerDensity})`); }
   });
 
   _attachLedgerRows();
@@ -10109,6 +10229,7 @@ document.getElementById('dawg-acct-switch')?.addEventListener('click', () => {
   toggleDawgAcctDropdown();
 });
 // DAWG drawer close + item listeners (permanent HTML elements)
+document.getElementById('fab-add')?.addEventListener('click', () => { if (currentTab !== 'add') showTab('add'); });
 document.getElementById('dawg-drawer-close')?.addEventListener('click', closeDawgDrawer);
 document.getElementById('dawg-drawer-overlay')?.addEventListener('click', closeDawgDrawer);
 document.querySelectorAll('.dawg-drawer-item').forEach(btn =>
