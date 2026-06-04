@@ -6243,3 +6243,24 @@ body.light::after {
   85% { filter: none; transform: none; }
   100%{ filter: none; transform: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HYBRID LIST PASS — flatten repeated list-item cards (Bills · Goals) into a
+   calm hairline list to match the accounts/ledger look. Summary "hero" cards
+   and the rich debt cards (with progress bars) keep their card treatment.
+   ══════════════════════════════════════════════════════════════════════════ */
+.bills-list, .goals-list { display: flex; flex-direction: column; gap: 0; }
+.bill-card,
+.goal-card {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 14px 4px !important;
+}
+.bill-card::after,
+.goal-card::after { display: none !important; }
+.bills-list .bill-card:last-child,
+.goals-list .goal-card:last-child { border-bottom: none !important; }

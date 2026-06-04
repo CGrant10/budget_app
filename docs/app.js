@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.30.0';
+const VERSION = '5.31.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.31.0', date: '2026-06-04', changes: [
+    'Hybrid look rolling out: Bills and Goals are now calm hairline lists (matching the ledger and accounts) instead of chunky cards',
+  ]},
   { version: '5.30.0', date: '2026-06-04', changes: [
     'Accounts overview redesigned — a compact Net Worth bar with an assets-vs-debt meter, and your accounts grouped into Cash / Investing / Debt with a subtotal for each. The header stays put while the account list scrolls',
   ]},
