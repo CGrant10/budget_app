@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.21.0';
+const VERSION = '5.21.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.21.1', date: '2026-06-04', changes: [
+    'Backups now include EVERY account, not just the one you\'re viewing — restoring a backup brings back all accounts and their full transaction history (older single-account backups still restore fine)',
+  ]},
   { version: '5.21.0', date: '2026-06-04', changes: [
     'New "Simple Tracking" mode (Settings → App Mode) — strips the app down to balance + transactions: a clean dashboard, a simpler Add screen, and budgeting features hidden from the menu. Switch back to Full Budgeting anytime; nothing is deleted',
   ]},
@@ -9298,27 +9301,45 @@ function attachImport() {
     reader.onload = ev => {
       try {
         const data = JSON.parse(ev.target.result);
-        if (!data.transactions) throw new Error('Invalid backup file');
-        const txnCount = (data.transactions || []).length;
-        const acctCount = (data.accounts || []).length;
+        const isMulti = data._multiAccount && data.accountData && typeof data.accountData === 'object';
+        if (!isMulti && !data.transactions) throw new Error('Invalid backup file');
+        const acctList  = data.accounts || defaultAccounts();
+        const acctCount = acctList.length;
+        const txnCount  = isMulti
+          ? Object.values(data.accountData).reduce((s, d) => s + ((d.transactions || []).length), 0)
+          : (data.transactions || []).length;
         showConfirmModal({
           title: 'Restore Backup?',
-          message: `This will replace ALL current data with the backup (${txnCount} transactions, ${acctCount} account${acctCount !== 1 ? 's' : ''}). This cannot be undone.`,
+          message: `This will replace ALL current data with the backup (${txnCount} transaction${txnCount !== 1 ? 's' : ''} across ${acctCount} account${acctCount !== 1 ? 's' : ''}). This cannot be undone.`,
           confirmText: 'Restore', danger: true,
           onConfirm: () => {
-            state.transactions = data.transactions || [];
-            state.weekly_plan  = data.weekly_plan  || {};
-            state.budgets      = data.budgets      || {};
-            state.bills        = data.bills        || [];
-            state.goals        = data.goals        || [];
-            state.challenges   = data.challenges   || [];
-            state.notes        = data.notes        || [];
-            if (typeof data.startingBalance === 'number') state.startingBalance = data.startingBalance;
-            state.accounts     = data.accounts     || defaultAccounts();
-            if (!state.accounts.length) state.accounts = defaultAccounts();
             if (data.settings && typeof data.settings === 'object') saveSettings(data.settings);
-            _save(); _saveAccounts();
-            showStatus('json-import-status', `✓ Restored ${state.transactions.length} transactions from backup.`, 'success', 0);
+            state.notes = data.notes || [];
+            saveNotes(state.notes);
+            if (isMulti) {
+              // Write every account's data back to its own key, then load the chosen account.
+              state.accounts = acctList.length ? acctList : defaultAccounts();
+              _saveAccounts();
+              Object.entries(data.accountData).forEach(([id, d]) => {
+                localStorage.setItem(accountDataKey(id), JSON.stringify(d || {}));
+              });
+              const startId = state.accounts.find(a => a.id === data.currentAccountId) ? data.currentAccountId : state.accounts[0].id;
+              currentAccountId = startId;
+              _loadAccountData(startId);
+            } else {
+              // Legacy single-account backup → restore into the current account.
+              state.transactions = data.transactions || [];
+              state.weekly_plan  = data.weekly_plan  || {};
+              state.budgets      = data.budgets      || {};
+              state.bills        = data.bills        || [];
+              state.goals        = data.goals        || [];
+              state.challenges   = data.challenges   || [];
+              if (typeof data.startingBalance === 'number') state.startingBalance = data.startingBalance;
+              state.accounts     = acctList.length ? acctList : defaultAccounts();
+              _save(); _saveAccounts();
+            }
+            updateAccountSwitcher();
+            showStatus('json-import-status', `✓ Restored ${txnCount} transaction${txnCount !== 1 ? 's' : ''} from backup.`, 'success', 0);
             render();
           },
         });
@@ -9334,18 +9355,29 @@ function attachImport() {
   document.getElementById('export-template-btn')?.addEventListener('click', exportCSVTemplate);
 
   document.getElementById('export-json-btn')?.addEventListener('click', () => {
+    _save();   // flush the current account so its stored data is fresh
+    // Collect EVERY account's data, not just the current one.
+    const accountData = {};
+    (state.accounts || []).forEach(a => {
+      try { accountData[a.id] = JSON.parse(localStorage.getItem(accountDataKey(a.id)) || '{}'); }
+      catch { accountData[a.id] = {}; }
+    });
     const payload = JSON.stringify({
+      _backupVersion: VERSION,
+      _multiAccount:  true,
+      accounts:       state.accounts,
+      currentAccountId,
+      accountData,                 // { accountId: {transactions, weekly_plan, budgets, bills, goals, challenges, startingBalance} }
+      notes:          state.notes, // notes are global (not per-account)
+      settings:       loadSettings(),
+      // Legacy single-account fields (current account) so older app versions can still restore:
       transactions:   state.transactions,
       weekly_plan:    state.weekly_plan,
       budgets:        state.budgets,
       bills:          state.bills,
       goals:          state.goals,
-      accounts:       state.accounts,
       challenges:     state.challenges,
-      notes:          state.notes,
       startingBalance: state.startingBalance,
-      settings:       loadSettings(),
-      _backupVersion: VERSION,
     }, null, 2);
     const blob = new Blob([payload], { type: 'application/json' });
     const a    = document.createElement('a');
