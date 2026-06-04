@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.24.1';
+const VERSION = '5.25.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.25.0', date: '2026-06-04', changes: [
+    'New Insights & Trends page (hamburger menu) — net worth across all accounts, savings rate, a 6-month spending trend chart, top categories with month-over-month change, and debt payoff progress',
+  ]},
   { version: '5.24.1', date: '2026-06-04', changes: [
     'Paid bills now clearly show whether the cash was deducted from your balance — if you marked one paid without deducting (e.g. tapped "Just Mark Paid" or dismissed the popup), it shows "Not deducted" with a one-tap "Deduct cash" button to fix it',
     'This recovers any payment where the deduction was skipped — no need to unmark and re-mark',
@@ -2506,7 +2509,7 @@ function _navPush() {
 // Tabs to its LEFT slide left-to-right when selected from dashboard (content comes from left = "move right").
 // Tabs to its RIGHT slide right-to-left when selected from dashboard (content comes from right = "move left").
 // Only these tabs get directional slides; hamburger-only pages fade.
-const NAV_TABS = ['dashboard','add','ledger','weekly','bills','debt','goals','import','budgets','retirement','settings'];
+const NAV_TABS = ['dashboard','add','ledger','weekly','bills','debt','goals','import','budgets','retirement','insights','settings'];
 let selectedLedgerIdx = null;
 let ledgerFilter = '';
 let ledgerSort = 'date-desc';
@@ -2580,6 +2583,8 @@ function showTab(key) {
 
 // ── chart ──────────────────────────────────────────────────────────────────
 let spendingChart = null;
+let _insightsChart = null;
+let _insTrend = { labels: [], data: [] };   // 6-month expense trend, set by renderInsights()
 
 function showCatModal(cat) {
   const m = dashMonth;
@@ -3763,6 +3768,7 @@ function rerenderKeepScroll() {
 
 function render() {
   if (spendingChart) { spendingChart.destroy(); spendingChart = null; }
+  if (_insightsChart) { _insightsChart.destroy(); _insightsChart = null; }
   const main = document.getElementById('main-content');
   const appEl = document.getElementById('app');
 
@@ -3805,6 +3811,7 @@ function render() {
     case 'ledger':    main.innerHTML = renderLedger();    break;
     case 'weekly':    main.innerHTML = renderWeekly();    break;
     case 'bills':     main.innerHTML = renderBills();     break;
+    case 'insights':  main.innerHTML = renderInsights();  break;
     case 'debt':      main.innerHTML = renderDebt();      break;
     case 'goals':     main.innerHTML = renderGoals();     break;
     case 'import':    main.innerHTML = renderImport();    break;
@@ -6607,6 +6614,155 @@ function attachBills() {
   });
 }
 
+// ── insights & trends ───────────────────────────────────────────────────────
+// Read any account's stored transactions + starting balance (current account uses live state).
+function _acctData(acctId) {
+  return (acctId === currentAccountId)
+    ? { transactions: state.transactions, startingBalance: state.startingBalance }
+    : JSON.parse(localStorage.getItem(accountDataKey(acctId)) || '{}');
+}
+// Asset-direction balance (startingBalance + income − expense).
+function _acctAssetBalance(acctId) {
+  const d = _acctData(acctId);
+  let inc = 0, exp = 0;
+  (d.transactions || []).forEach(t => { if (t.type === 'income') inc += t.amount; else exp += t.amount; });
+  return (parseFloat(d.startingBalance) || 0) + inc - exp;
+}
+// Debt-direction "owed" (startingBalance + charges − payments), floored at 0.
+function _acctOwed(acctId) {
+  const d = _acctData(acctId);
+  let inc = 0, exp = 0;
+  (d.transactions || []).forEach(t => { if (t.type === 'income') inc += t.amount; else exp += t.amount; });
+  const startingBal = parseFloat(d.startingBalance) || 0;
+  return { owed: Math.max(0, startingBal + exp - inc), startingBal };
+}
+
+function renderInsights() {
+  const curM    = localMonthKey();
+  const prevM   = shiftMonthKey(curM, -1);
+  const cur     = monthTotals(curM);
+  const prev    = monthTotals(prevM);
+  const net     = cur.income - cur.expense;
+  const rate    = cur.income > 0 ? (net / cur.income * 100) : 0;
+  const expDelta = prev.expense > 0 ? ((cur.expense - prev.expense) / prev.expense * 100) : null;
+
+  // 6-month expense trend
+  const labels = [], data = [];
+  for (let i = 5; i >= 0; i--) {
+    const d  = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+    const mk = localMonthKey(d);
+    labels.push(d.toLocaleDateString('en-US', { month: 'short' }));
+    data.push(+monthTotals(mk).expense.toFixed(2));
+  }
+  _insTrend = { labels, data };
+  const maxExp = Math.max(...data, 1);
+
+  // Top categories this month, with month-over-month change
+  const cd = getMonthCatData(curM);
+  const prevByCat = prev.bycat || {};
+  const topCats = cd.labels.map((lbl, idx) => ({
+    name: lbl, amt: cd.data[idx], color: cd.colors[idx] || '#9896a4', prev: prevByCat[lbl] || 0,
+  })).slice(0, 6);
+  const topMax = Math.max(...topCats.map(c => c.amt), 1);
+
+  // Net worth across all accounts
+  let assets = 0, debts = 0;
+  state.accounts.forEach(a => {
+    if (a.type === 'credit' || a.type === 'loan') debts += _acctOwed(a.id).owed;
+    else assets += _acctAssetBalance(a.id);
+  });
+  const netWorth = assets - debts;
+
+  // Debt payoff progress
+  const debtAccts = state.accounts.filter(a => a.type === 'credit' || a.type === 'loan');
+  const debtRows = debtAccts.map(a => {
+    const o = _acctOwed(a.id);
+    const pct = o.startingBal > 0 ? Math.min(100, Math.max(0, (o.startingBal - o.owed) / o.startingBal * 100)) : 0;
+    return { name: a.name, owed: o.owed, start: o.startingBal, pct };
+  });
+
+  const rateColor = rate >= 20 ? 'var(--success)' : rate >= 0 ? 'var(--warn)' : 'var(--danger)';
+  const deltaStr  = expDelta == null ? '' :
+    `<span style="color:${expDelta > 0 ? 'var(--danger)' : 'var(--success)'};font-weight:600">${expDelta > 0 ? '▲' : '▼'} ${Math.abs(expDelta).toFixed(0)}%</span> vs ${monthKeyLabel(prevM).split(' ')[0]}`;
+
+  return `
+    <div class="page">
+      <h1 class="page-title">Insights</h1>
+      <p class="page-sub">${monthKeyLabel(curM)}</p>
+
+      <div class="cards-grid" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card-title">NET WORTH</div>
+          <div class="card-value" style="color:${netWorth >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(netWorth)}</div>
+          <div class="card-sub">${fmt(assets)} assets − ${fmt(debts)} debt</div>
+        </div>
+        <div class="card">
+          <div class="card-title">SAVINGS RATE</div>
+          <div class="card-value" style="color:${rateColor}">${rate.toFixed(0)}%</div>
+          <div class="card-sub">${fmt(net)} kept this month</div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin:0 0 4px">Spending — last 6 months</h2>
+        <p class="code-hint" style="margin:0 0 10px">${fmt(cur.expense)} this month · ${deltaStr}</p>
+        <div style="height:170px"><canvas id="insights-trend"></canvas></div>
+      </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin:0 0 10px">This month's income vs spending</h2>
+        <div class="ins-row"><span>Income</span><span style="color:var(--success);font-weight:700">${fmt(cur.income)}</span></div>
+        <div class="ins-row"><span>Expenses</span><span style="color:var(--danger);font-weight:700">${fmt(cur.expense)}</span></div>
+        <div class="ins-row" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px"><span>Net</span><span style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:700">${fmt(net)}</span></div>
+      </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin:0 0 10px">Top categories</h2>
+        ${topCats.length ? topCats.map(c => {
+          const chg = c.amt - c.prev;
+          const chgStr = c.prev > 0 ? `<span style="color:${chg > 0 ? 'var(--danger)' : 'var(--success)'};font-size:.7rem">${chg > 0 ? '▲' : '▼'} ${fmt(Math.abs(chg))}</span>` : '<span style="color:var(--muted);font-size:.7rem">new</span>';
+          return `<div class="ins-cat">
+            <div class="ins-cat-top"><span><span class="cat-dot" style="background:${c.color}"></span>${c.name}</span><span>${fmt(c.amt)} ${chgStr}</span></div>
+            <div class="ins-bar-bg"><div class="ins-bar-fill" style="width:${(c.amt / topMax * 100).toFixed(1)}%;background:${c.color}"></div></div>
+          </div>`;
+        }).join('') : '<p class="code-hint" style="margin:0">No spending recorded this month yet.</p>'}
+      </div>
+
+      ${debtRows.length ? `<div class="form-card">
+        <h2 class="section-title" style="margin:0 0 10px">Debt payoff progress</h2>
+        ${debtRows.map(d => `<div class="ins-cat">
+          <div class="ins-cat-top"><span>${d.name}</span><span>${fmt(d.owed)} left${d.start > 0 ? ` · ${d.pct.toFixed(0)}% paid` : ''}</span></div>
+          <div class="ins-bar-bg"><div class="ins-bar-fill" style="width:${d.pct.toFixed(1)}%;background:var(--success)"></div></div>
+        </div>`).join('')}
+      </div>` : ''}
+
+      <button class="btn-secondary" id="insights-goto-ledger" style="width:100%">View full ledger ›</button>
+    </div>`;
+}
+
+function attachInsights() {
+  if (_insightsChart) { _insightsChart.destroy(); _insightsChart = null; }
+  const el = document.getElementById('insights-trend');
+  if (el && window.Chart) {
+    const cs     = getComputedStyle(document.documentElement);
+    const accent = (cs.getPropertyValue('--accent') || '#4ecb8d').trim();
+    const muted  = (cs.getPropertyValue('--muted')  || '#999').trim();
+    _insightsChart = new Chart(el, {
+      type: 'bar',
+      data: { labels: _insTrend.labels, datasets: [{ data: _insTrend.data, backgroundColor: accent, borderRadius: 6, maxBarThickness: 38 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => fmt(c.parsed.y) } } },
+        scales: {
+          x: { ticks: { color: muted }, grid: { display: false } },
+          y: { ticks: { color: muted, callback: v => '$' + v }, grid: { color: 'rgba(128,128,128,.12)' }, beginAtZero: true },
+        },
+      },
+    });
+  }
+  document.getElementById('insights-goto-ledger')?.addEventListener('click', () => showTab('ledger'));
+}
+
 // ── goals ──────────────────────────────────────────────────────────────────
 function renderGoals() {
   const health = calcHealthScore();
@@ -9098,6 +9254,7 @@ function attachHandlers() {
     case 'ledger':    attachLedger();    break;
     case 'weekly':    attachWeekly(); calcWeekly(); break;
     case 'bills':     attachBills();     break;
+    case 'insights':  attachInsights();  break;
     case 'debt':      attachDebt();      break;
     case 'goals':     attachGoals();     break;
     case 'import':    attachImport();    break;

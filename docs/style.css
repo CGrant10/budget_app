@@ -2286,6 +2286,15 @@ textarea:focus-visible,
 .mode-opt-title { font-size: .85rem; font-weight: 700; }
 .mode-opt-sub   { font-size: .68rem; color: var(--muted); line-height: 1.25; }
 
+/* ── insights & trends ─────────────────────────────────────────────────────── */
+.ins-row { display: flex; justify-content: space-between; align-items: center; font-size: .9rem; color: var(--text); padding: 5px 0; }
+.ins-cat { margin-bottom: 12px; }
+.ins-cat:last-child { margin-bottom: 0; }
+.ins-cat-top { display: flex; justify-content: space-between; align-items: center; font-size: .82rem; color: var(--text); margin-bottom: 4px; }
+.ins-cat-top .cat-dot { margin-right: 6px; }
+.ins-bar-bg { height: 8px; border-radius: 6px; background: var(--surface2); overflow: hidden; }
+.ins-bar-fill { height: 100%; border-radius: 6px; transition: width .3s ease; }
+
 /* ── bill cash-deduction status ────────────────────────────────────────────── */
 .bill-deduct-note { font-size: .68rem; margin-top: 6px; }
 .bill-deduct-note.is-deducted  { color: var(--success); }
