@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.31.0';
+const VERSION = '5.32.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.32.0', date: '2026-06-04', changes: [
+    'Dashboard budget tiles (Per Week / Per Day) now use clean horizontal meters instead of rings — easier to read at a glance. Your customizable layout, tiles, and the DAWG hero are unchanged',
+  ]},
   { version: '5.31.0', date: '2026-06-04', changes: [
     'Hybrid look rolling out: Bills and Goals are now calm hairline lists (matching the ledger and accounts) instead of chunky cards',
   ]},
@@ -4830,24 +4833,13 @@ function renderDashboardDawg() {
           const wkDash   = (C * (1 - wkPct / 100)).toFixed(1);
           _tileHtml['budget-week'] = `
             <div class="dawg-card-title">BUDGET OVERVIEW</div>
-            <div class="dawg-tile-period">PER WEEK</div>
-            <div class="dawg-tile-ring-wrap">
-              <svg class="dawg-tile-ring" viewBox="0 0 64 64">
-                <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
-                <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${wkColor};stroke-dasharray:${C};stroke-dashoffset:${wkDash}"/>
-              </svg>
-              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct${wkFailed ? ' ring-warn' : ''}" style="color:${wkColor}">${wkFailed ? '⚠' : wkPct.toFixed(0)+'%'}</div></div>
+            <div class="dawg-meter-head">
+              <span class="dawg-tile-period">PER WEEK</span>
+              <span class="dawg-meter-pct" style="color:${wkColor}">${wkFailed ? '⚠ OVER' : wkPct.toFixed(0) + '%'}</span>
             </div>
-            ${wkFailed
-              ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
-                 <div class="dawg-tile-sub" style="color:var(--danger)">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</div>
-                 ${_belowBuffer
-                   ? `<div class="dawg-tile-sub" style="color:var(--danger)">−${fmt(_bufferDeficit)} below buffer</div>`
-                   : `<div class="dawg-tile-sub" style="color:var(--danger)">+${fmt(weekSpent - _livePerWeek)} over</div>`
-                 }`
-              : `<div class="dawg-tile-amt">${fmt(weekSpent)}</div>
-                 <div class="dawg-tile-sub">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</div>`
-            }`;
+            <div class="dawg-meter"><i style="width:${Math.min(wkPct, 100).toFixed(1)}%;background:${wkColor}"></i></div>
+            <div class="dawg-meter-amt">${fmt(weekSpent)} <span>/ ${fmt(_livePerWeek)}</span></div>
+            ${wkFailed ? `<div class="dawg-tile-sub" style="color:var(--danger)">${_belowBuffer ? `−${fmt(_bufferDeficit)} below buffer` : `+${fmt(weekSpent - _livePerWeek)} over`}</div>` : ''}`;
         }
         // ── Per-day tile: truly dynamic daily allowance ──────────────────────
         // Limit = available-above-buffer / days left in the current month.
@@ -4861,21 +4853,13 @@ function renderDashboardDawg() {
           const dayDash   = (C * (1 - dayPct / 100)).toFixed(1);
           _tileHtml['budget-day'] = `
             <div class="dawg-card-title">BUDGET OVERVIEW</div>
-            <div class="dawg-tile-period">PER DAY</div>
-            <div class="dawg-tile-ring-wrap">
-              <svg class="dawg-tile-ring" viewBox="0 0 64 64">
-                <circle class="dawg-tile-ring-bg" cx="32" cy="32" r="28"/>
-                <circle class="dawg-tile-ring-fill" cx="32" cy="32" r="28" style="stroke:${dayColor};stroke-dasharray:${C};stroke-dashoffset:${dayDash}"/>
-              </svg>
-              <div class="dawg-tile-ring-center"><div class="dawg-tile-ring-pct${dayFailed ? ' ring-warn' : ''}" style="color:${dayColor}">${dayFailed ? '⚠' : dayPct.toFixed(0)+'%'}</div></div>
+            <div class="dawg-meter-head">
+              <span class="dawg-tile-period">PER DAY</span>
+              <span class="dawg-meter-pct" style="color:${dayColor}">${dayFailed ? '⚠ OVER' : dayPct.toFixed(0) + '%'}</span>
             </div>
-            ${dayFailed
-              ? `<div class="dawg-tile-amt dawg-tile-failed">FAILED</div>
-                 <div class="dawg-tile-sub" style="color:var(--danger)">${fmt(daySpent)} / ${fmt(_perDayLimit)}</div>
-                 <div class="dawg-tile-sub" style="color:var(--danger)">${_belowBuffer ? `−${fmt(_bufferDeficit)} below buffer` : `+${fmt(daySpent - _perDayLimit)} over`}</div>`
-              : `<div class="dawg-tile-amt">${fmt(daySpent)}</div>
-                 <div class="dawg-tile-sub">${fmt(daySpent)} / ${fmt(_perDayLimit)}</div>`
-            }`;
+            <div class="dawg-meter"><i style="width:${Math.min(dayPct, 100).toFixed(1)}%;background:${dayColor}"></i></div>
+            <div class="dawg-meter-amt">${fmt(daySpent)} <span>/ ${fmt(_perDayLimit)}</span></div>
+            ${dayFailed ? `<div class="dawg-tile-sub" style="color:var(--danger)">${_belowBuffer ? `−${fmt(_bufferDeficit)} below buffer` : `+${fmt(daySpent - _perDayLimit)} over`}</div>` : ''}`;
         }
 
         // Daily history tile — one row per day Mon through today

@@ -6264,3 +6264,11 @@ body.light::after {
 .goal-card::after { display: none !important; }
 .bills-list .bill-card:last-child,
 .goals-list .goal-card:last-child { border-bottom: none !important; }
+
+/* Dashboard budget tiles — meter style (replaces the rings) */
+.dawg-meter-head { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.dawg-meter-pct { font-size: .78rem; font-weight: 800; letter-spacing: .02em; }
+.dawg-meter { height: 8px; border-radius: 99px; background: rgba(255,255,255,.08); overflow: hidden; margin: 9px 0; }
+.dawg-meter i { display: block; height: 100%; border-radius: 99px; transition: width .3s ease; }
+.dawg-meter-amt { font-size: 1.05rem; font-weight: 800; letter-spacing: -.3px; }
+.dawg-meter-amt span { font-size: .8rem; font-weight: 600; color: var(--muted); }
