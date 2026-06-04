@@ -2286,6 +2286,34 @@ textarea:focus-visible,
 .mode-opt-title { font-size: .85rem; font-weight: 700; }
 .mode-opt-sub   { font-size: .68rem; color: var(--muted); line-height: 1.25; }
 
+/* ── reconcile to bank ─────────────────────────────────────────────────────── */
+.dash-reconcile-btn {
+  margin-top: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.dash-reconcile-btn:active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.reconcile-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px 22px 0 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 20px 18px calc(20px + var(--safe-bottom, 0px));
+  box-shadow: 0 -8px 40px rgba(0,0,0,.5);
+}
+.reconcile-title { font-size: 1rem; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.reconcile-cur   { font-size: .85rem; color: var(--muted); }
+.reconcile-diff  { font-size: .8rem; color: var(--muted); min-height: 1.2em; margin-top: 10px; }
+.reconcile-actions { display: flex; gap: 8px; margin-top: 16px; }
+
 /* ── insights & trends ─────────────────────────────────────────────────────── */
 .ins-row { display: flex; justify-content: space-between; align-items: center; font-size: .9rem; color: var(--text); padding: 5px 0; }
 .ins-cat { margin-bottom: 12px; }

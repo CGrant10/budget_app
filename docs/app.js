@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.25.1';
+const VERSION = '5.26.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.26.0', date: '2026-06-04', changes: [
+    'Reconcile to bank — tap "⇄ Reconcile to bank" on the dashboard balance, enter what your bank actually says, and the app logs a one-line adjustment to match it (works for cash and loan/credit accounts; adjustments are kept out of your weekly spending)',
+  ]},
   { version: '5.25.1', date: '2026-06-04', changes: [
     'Loan-linked bill payments now reliably appear in that loan account\'s payment history — and linking a bill that\'s already paid back-posts the payments so the loan reflects them',
     'Linked payments are dated to the month they pay for, so they land in the right month on the loan\'s history',
@@ -2403,6 +2406,73 @@ function openCalcKeypad(target) {
   refresh();
 }
 
+// ── reconcile to bank ────────────────────────────────────────────────────────
+// Sets the current account's balance to a number you type by logging a one-line
+// adjustment transaction (excluded from weekly spending).
+function showReconcileModal() {
+  const acct   = state.accounts.find(a => a.id === currentAccountId);
+  const isDebt = acct && (acct.type === 'credit' || acct.type === 'loan');
+  const { income, expense } = totals();
+  const net     = income - expense;
+  const start   = state.startingBalance || 0;
+  const current = isDebt ? Math.max(0, start - net) : (start + net);
+  const ov = document.createElement('div');
+  ov.id = 'reconcile-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center';
+  ov.innerHTML = `
+    <div class="reconcile-card" role="dialog" aria-label="Reconcile balance">
+      <div class="reconcile-title">Reconcile ${acct?.name || 'account'}</div>
+      <div class="reconcile-cur">In the app now: <strong>${fmt(current)}</strong>${isDebt ? ' owed' : ''}</div>
+      <label class="form-label" style="font-size:.74rem;margin-top:10px;display:block">${isDebt ? 'Actual balance owed ($)' : 'Actual balance from your bank ($)'}</label>
+      <input type="number" id="reconcile-input" class="form-input" inputmode="decimal" step="0.01" placeholder="${current.toFixed(2)}">
+      <div id="reconcile-diff" class="reconcile-diff"></div>
+      <div class="reconcile-actions">
+        <button id="reconcile-cancel" class="calc-cancel">Cancel</button>
+        <button id="reconcile-save" class="calc-done">Adjust</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const input  = ov.querySelector('#reconcile-input');
+  const diffEl = ov.querySelector('#reconcile-diff');
+  const close  = () => ov.remove();
+  const calcDelta = () => {
+    const target = parseFloat(input.value);
+    return isFinite(target) ? { target, delta: +(target - current).toFixed(2) } : null;
+  };
+  const refresh = () => {
+    const r = calcDelta();
+    if (!r) { diffEl.textContent = ''; return; }
+    if (Math.abs(r.delta) < 0.005) { diffEl.innerHTML = '<span style="color:var(--success)">✓ Already matches</span>'; return; }
+    const word = isDebt
+      ? (r.delta > 0 ? `record a ${fmt(r.delta)} charge` : `record a ${fmt(-r.delta)} payment`)
+      : (r.delta > 0 ? `add ${fmt(r.delta)} income` : `add a ${fmt(-r.delta)} expense`);
+    diffEl.innerHTML = `Off by <strong>${fmt(Math.abs(r.delta))}</strong> — will ${word}`;
+  };
+  input.addEventListener('input', refresh);
+  setTimeout(() => input.focus(), 50);
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  ov.querySelector('#reconcile-cancel').addEventListener('click', close);
+  ov.querySelector('#reconcile-save').addEventListener('click', async () => {
+    const r = calcDelta();
+    if (!r || Math.abs(r.delta) < 0.005) { close(); return; }
+    let type, amount;
+    if (isDebt) {
+      if (r.target > current) { type = 'expense'; amount = r.target - current; }  // more owed = charge
+      else                    { type = 'income';  amount = current - r.target; }  // less owed = payment
+    } else {
+      if (r.delta > 0) { type = 'income';  amount = r.delta; }
+      else             { type = 'expense'; amount = -r.delta; }
+    }
+    await api.addTransaction({
+      type, amount: +amount.toFixed(2), description: 'Balance adjustment',
+      category: 'Adjustment', date: today(), account: currentAccountId, excludeFromBudget: true,
+    });
+    close();
+    showAlert(`✓ Reconciled to ${fmt(r.target)}`);
+    render();
+  });
+}
+
 // ── sounds toggle ──────────────────────────────────────────────────────────
 function initSoundsToggle() {
   const btn = document.getElementById('sounds-toggle');
@@ -4652,6 +4722,7 @@ function renderDashboardDawg() {
       <div class="dawg-balance-amt" style="color:${balColor}">${fmt(balance)}</div>
       ${paymentDueStr ? `<div class="dawg-balance-due" style="color:${parseInt(_curAcctD?.payment_due_day)>0&&Math.round((new Date(new Date().getFullYear(),new Date().getMonth(),parseInt(_curAcctD.payment_due_day))-new Date())/86400000)<=3?'var(--warn)':'var(--muted)'}">${paymentDueStr}</div>` : ''}
       <div class="dawg-balance-delta" style="color:${deltaColor}">${deltaStr}</div>
+      ${isPastDash ? '' : '<button id="dash-reconcile" class="dash-reconcile-btn">⇄ Reconcile to bank</button>'}
       <div class="dawg-sparkline-wrap"><canvas id="dawg-sparkline"></canvas></div>
       <div class="dawg-time-btns">
         <button class="dawg-tbtn" data-range="1w">1W</button>
@@ -9090,6 +9161,7 @@ function attachDashboardDawg() {
     showTab('import');
     setTimeout(() => document.getElementById('backup-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
   });
+  document.getElementById('dash-reconcile')?.addEventListener('click', showReconcileModal);
 
   // LOCK TF IN tap glitch
   const _lockinEl = document.querySelector('.dawg-lockin');
