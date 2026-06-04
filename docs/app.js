@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.23.0';
+const VERSION = '5.24.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.24.0', date: '2026-06-04', changes: [
+    'Retirement accounts can now auto-contribute on a schedule you set (Settings → the account → Scheduled contribution): pick an amount, frequency, and next date and it posts your contribution automatically — even for dates missed while the app was closed',
+    'Scheduled contributions are also factored into the retirement growth projection',
+  ]},
   { version: '5.23.0', date: '2026-06-04', changes: [
     'Bills can now be linked to a loan or credit account ("Pays loan" on each bill, or when adding one) — marking the bill paid automatically pays down that loan\'s balance',
     'When you mark a linked bill paid, the loan always updates; you still choose "Log & Deduct" (also take it from your checking balance) or "Just Mark Paid" (loan only). Marking it unpaid reverses the loan payment too',
@@ -1660,6 +1664,29 @@ async function _checkPaychecks() {
       ps.nextPayDate   = _nextPayDate(payDate, ps.frequency);
       changed = true;
       if (acct.id === currentAccountId) _showPaycheckToast(ps.amount, ps.nextPayDate);
+    }
+  }
+  if (changed) { await api.saveAccounts(state.accounts); render(); }
+}
+
+// Auto-posts standalone retirement contributions on each scheduled date (incl. missed ones).
+async function _checkContributions() {
+  const todayStr = today();
+  let changed = false;
+  for (const acct of state.accounts) {
+    if (!RETIRE_TYPES.includes(acct.type)) continue;
+    const cs = acct.contribSchedule;
+    if (!cs?.enabled || !cs.amount || !cs.nextDate) continue;
+    let guard = 0;
+    while (cs.nextDate <= todayStr && cs.lastAutoAdded !== cs.nextDate && guard++ < 600) {
+      const d = cs.nextDate;
+      _postTxnToAccount(acct.id, {
+        type: 'income', amount: cs.amount, description: 'Scheduled contribution',
+        category: 'Income', date: d, account: acct.id,
+      });
+      cs.lastAutoAdded = d;
+      cs.nextDate = _nextPayDate(d, cs.frequency);
+      changed = true;
     }
   }
   if (changed) { await api.saveAccounts(state.accounts); render(); }
@@ -3891,6 +3918,10 @@ function renderRetirementDashboard(acct) {
     const empPerCheck   = (gross * (acct.myContribPct    || 0) / 100) + (acct.myContribAmt    || 0);
     const matchPerCheck = (gross * (acct.employerMatchPct || 0) / 100) + (acct.employerMatchAmt || 0);
     monthlyContrib = (empPerCheck + matchPerCheck) * periodsPerYear / 12;
+  } else if (acct.contribSchedule?.enabled && acct.contribSchedule.amount) {
+    const cs = acct.contribSchedule;
+    const periodsPerYear = { weekly:52, biweekly:26, semimonthly:24, monthly:12 }[cs.frequency] || 12;
+    monthlyContrib = cs.amount * periodsPerYear / 12;
   } else if (ytd > 0) {
     // Annualise YTD: divide by months elapsed so far this year
     const monthsElapsed = new Date().getMonth() + 1;
@@ -7535,6 +7566,11 @@ function _buildAccountCards() {
     const freqOpts = ['weekly','biweekly','semimonthly','monthly']
       .map(f => `<option value="${f}"${ps.frequency===f?' selected':''}>${{weekly:'Weekly',biweekly:'Bi-weekly',semimonthly:'Semi-monthly (1st & 15th)',monthly:'Monthly'}[f]}</option>`)
       .join('');
+    // Standalone retirement contribution schedule
+    const cs = a.contribSchedule || {};
+    const csFreqOpts = ['weekly','biweekly','semimonthly','monthly']
+      .map(f => `<option value="${f}"${cs.frequency===f?' selected':''}>${{weekly:'Weekly',biweekly:'Bi-weekly',semimonthly:'Semi-monthly (1st & 15th)',monthly:'Monthly'}[f]}</option>`)
+      .join('');
     // Paycheck accounts available to link to a retirement account
     const paycheckAcctOpts = state.accounts
       .filter(ac => ac.type !== 'credit' && ac.type !== 'loan' && !RETIRE_TYPES.includes(ac.type) && ac.paySchedule?.enabled)
@@ -7587,6 +7623,21 @@ function _buildAccountCards() {
               <p style="font-size:.69rem;color:var(--muted);margin:4px 0 0">When a paycheck fires on the linked account, contributions are automatically posted here using the gross pay amount above.</p>`
             : `<p style="font-size:.72rem;color:var(--muted);margin:4px 0 0">No paycheck schedule active. Enable a paycheck schedule on a checking/savings account first, then come back here to link it.</p>`
           }
+        </div>
+        <div class="form-row" style="margin-bottom:4px;padding-top:10px;border-top:1px solid var(--border)">
+          <label class="acct-pay-toggle-wrap" style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:6px">
+            <input type="checkbox" class="acct-contrib-enabled" data-id="${a.id}"${cs.enabled ? ' checked' : ''}>
+            <span style="font-size:.72rem;font-weight:600;color:var(--text)">Scheduled contribution</span>
+          </label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="position:relative">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.72rem;color:var(--muted);pointer-events:none">$</span>
+              <input type="number" class="form-input acct-contrib-sched-amt" data-id="${a.id}" value="${cs.amount != null ? cs.amount : ''}" placeholder="amount" inputmode="decimal" min="0" step="0.01" style="padding-left:22px">
+            </div>
+            <select class="form-input form-select acct-contrib-freq" data-id="${a.id}">${csFreqOpts}</select>
+          </div>
+          <input type="date" class="form-input acct-contrib-nextdate" data-id="${a.id}" value="${cs.nextDate || ''}" style="margin-top:8px">
+          <p style="font-size:.69rem;color:var(--muted);margin:4px 0 0">Auto-adds this contribution on each scheduled date — even dates missed while the app was closed.</p>
         </div>
       </div>` : '';
     const paycheckSection = (!isDebtAcct && !isRetireAcct) ? `
@@ -7999,6 +8050,20 @@ function attachAccounts() {
       if (matchAmtEl)   acct.employerMatchAmt   = matchAmtEl.value.trim()    !== '' ? parseFloat(matchAmtEl.value)    : undefined;
       const paycheckLinkEl = card.querySelector(`.acct-paycheck-link[data-id="${id}"]`);
       if (paycheckLinkEl) acct.linkedPaycheckAcctId = paycheckLinkEl.value || undefined;
+      // Standalone contribution schedule (retirement accounts)
+      const csEnabledEl = card.querySelector(`.acct-contrib-enabled[data-id="${id}"]`);
+      if (csEnabledEl) {
+        const csAmt  = parseFloat(card.querySelector(`.acct-contrib-sched-amt[data-id="${id}"]`)?.value || '0') || 0;
+        const csFreq = card.querySelector(`.acct-contrib-freq[data-id="${id}"]`)?.value || 'monthly';
+        const csDate = card.querySelector(`.acct-contrib-nextdate[data-id="${id}"]`)?.value || '';
+        acct.contribSchedule = {
+          ...(acct.contribSchedule || {}),
+          enabled:   csEnabledEl.checked,
+          amount:    csAmt,
+          frequency: csFreq,
+          nextDate:  csDate,
+        };
+      }
       // Paycheck schedule (non-debt, non-retirement accounts)
       const payEnabledEl  = card.querySelector(`.acct-pay-enabled[data-id="${id}"]`);
       if (payEnabledEl) {
@@ -10519,6 +10584,9 @@ window.addEventListener('popstate', () => {
     // Auto-add any paychecks that are due today or overdue
     _checkPaychecks();
     window.addEventListener('focus', _checkPaychecks);
+    // Auto-add any scheduled retirement contributions that are due/overdue
+    _checkContributions();
+    window.addEventListener('focus', _checkContributions);
 
     // Check for a new version on load, on focus, and every 2 minutes while open
     checkForUpdate();
