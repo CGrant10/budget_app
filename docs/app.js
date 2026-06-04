@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.32.1';
+const VERSION = '5.33.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.33.0', date: '2026-06-04', changes: [
+    'Transfers and payments now post to BOTH accounts reliably — use Add → Transfer, pick From and To/Pay, and it records money out of the source and into the destination. Transferring to a credit card or loan reduces what you owe (shows as a payment on that account)',
+    'Transfers are labeled clearly (Payment ↔ for loans/credit) and no longer count as discretionary weekly spending',
+  ]},
   { version: '5.32.1', date: '2026-06-04', changes: [
     'Fixed the Per Week / Per Day meter bars not showing on the dashboard',
     'Accounts overview now shows flat grouped rows (with tinted type icons) instead of cards, matching the design',
@@ -5851,7 +5855,7 @@ function renderAdd() {
           <select id="add-acct" class="form-input form-select">${acctOptions}</select>
         </div>
         <div class="form-row" id="add-to-acct-row" style="display:none">
-          <label class="form-label">To Account</label>
+          <label class="form-label">To / Pay</label>
           <select id="add-to-acct" class="form-input form-select">${toAcctOptions}</select>
         </div>
         <div class="form-row">
@@ -9642,17 +9646,25 @@ function attachAdd() {
       if (!toAcctId || toAcctId === curAcctId) {
         showStatus('add-status', 'Choose a different destination account.', 'error'); return;
       }
-      const toAcctName  = state.accounts.find(a => a.id === toAcctId)?.name  || 'Other';
+      const toAcct      = state.accounts.find(a => a.id === toAcctId);
+      const toAcctName  = toAcct?.name || 'Other';
       const curAcctName = state.accounts.find(a => a.id === curAcctId)?.name || 'Other';
-      // Add expense on current account
-      await api.addTransaction({ type: 'expense', amount, description: 'Transfer → ' + toAcctName, category: 'Transfer', date, account: curAcctId });
-      // Add income on destination account (direct localStorage write to avoid switching)
-      const destKey  = accountDataKey(toAcctId);
-      const destData = JSON.parse(localStorage.getItem(destKey) || '{}');
-      if (!destData.transactions) destData.transactions = [];
-      destData.transactions.push({ type: 'income', amount, description: 'Transfer ← ' + curAcctName, category: 'Transfer', date, account: toAcctId });
-      localStorage.setItem(destKey, JSON.stringify(destData));
-      showStatus('add-status', `✓ Transferred ${fmt(amount)}`, 'success');
+      const toIsDebt    = toAcct && (toAcct.type === 'credit' || toAcct.type === 'loan');
+      const stamp = Date.now();
+      // Money LEAVES the source account (excluded from weekly spend — it's a move, not spending)
+      _postTxnToAccount(curAcctId, {
+        type: 'expense', amount, date, category: 'Transfer',
+        description: (toIsDebt ? 'Payment → ' : 'Transfer → ') + toAcctName,
+        account: curAcctId, ts: stamp, excludeFromBudget: true, _xfer: 1,
+      });
+      // Money ARRIVES at the destination — for a credit/loan this income reduces what's owed
+      _postTxnToAccount(toAcctId, {
+        type: 'income', amount, date, category: toIsDebt ? 'Payment' : 'Transfer',
+        description: (toIsDebt ? 'Payment ← ' : 'Transfer ← ') + curAcctName,
+        account: toAcctId, ts: stamp + 1, _xfer: 1,
+      });
+      await autoUpdateWeeklyPlan();
+      showStatus('add-status', `✓ ${toIsDebt ? 'Paid' : 'Moved'} ${fmt(amount)} to ${toAcctName}`, 'success');
       document.getElementById('add-amount').value = '';
       render(); return;
     }
