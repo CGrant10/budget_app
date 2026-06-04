@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.20.7';
+const VERSION = '5.20.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,11 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.20.8', date: '2026-06-04', changes: [
+    'Fixed ledger search closing the keyboard after a keystroke — typing now filters the list live without losing focus',
+    'The backup reminder\'s "Back up" button now opens the Import/Export tab and scrolls right to the backup section',
+    'Added Settings to the hamburger menu, so you can always reach it even if you remove it from your nav bar',
+  ]},
   { version: '5.20.7', date: '2026-06-04', changes: [
     'Accessibility: keyboard focus outlines, screen-reader labels on the ledger edit/delete buttons, and the week-by-week rows can now be expanded with the keyboard (Enter/Space)',
   ]},
@@ -6447,7 +6452,7 @@ function renderImport() {
       <h1 class="page-title">Import / Export</h1>
       <p class="page-sub">Excel &amp; spreadsheet friendly</p>
 
-      <div class="form-card">
+      <div class="form-card" id="backup-section">
         <h2 class="section-title" style="margin-bottom:6px">📤 Export to Excel / CSV</h2>
         <p class="code-hint" style="margin-bottom:12px">Opens directly in Excel. Includes Date, Type, Category, Description, Amount, Signed Amount, Running Balance, Account, and Recurring columns.</p>
         <div style="display:flex;flex-direction:column;gap:8px">
@@ -8547,7 +8552,10 @@ function attachDashboardDawg() {
     _backupBannerDismissed = true;
     document.getElementById('backup-banner')?.remove();
   });
-  document.getElementById('backup-banner-go')?.addEventListener('click', () => showTab('settings'));
+  document.getElementById('backup-banner-go')?.addEventListener('click', () => {
+    showTab('import');
+    setTimeout(() => document.getElementById('backup-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+  });
 
   // LOCK TF IN tap glitch
   const _lockinEl = document.querySelector('.dawg-lockin');
@@ -9065,8 +9073,11 @@ function exportCSVTemplate() {
 
 function attachLedger() {
   document.getElementById('ledger-search')?.addEventListener('input', _debounce(e => {
-    ledgerFilter = e.target.value.toLowerCase(); render();
-  }, 220));
+    // Update ONLY the list — never re-render the whole page, or the search box would lose
+    // focus and the mobile keyboard would close after each keystroke.
+    ledgerFilter = e.target.value.toLowerCase();
+    _refreshLedgerList();
+  }, 200));
   document.getElementById('ledger-sort')?.addEventListener('change', e => {
     ledgerSort = e.target.value; render();
   });
@@ -9093,6 +9104,28 @@ function attachLedger() {
     });
   });
 
+  _attachLedgerRows();
+
+  document.getElementById('ledger-export-csv')?.addEventListener('click', () => exportCSV(false));
+}
+
+// Re-render ONLY the ledger list + count, leaving the filter bar (and the focused search
+// box) intact. Used while typing in search so the keyboard never closes.
+function _refreshLedgerList() {
+  const curList = document.querySelector('.ledger-list');
+  if (!curList) { render(); return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = renderLedger();
+  const newList = tmp.querySelector('.ledger-list');
+  if (newList) curList.innerHTML = newList.innerHTML;
+  const newSub = tmp.querySelector('.page-sub');
+  const curSub = document.querySelector('.page .page-sub');
+  if (newSub && curSub) curSub.textContent = newSub.textContent;
+  _attachLedgerRows();
+}
+
+// Attach edit / save / cancel / delete / swipe handlers to the ledger rows currently in the DOM.
+function _attachLedgerRows() {
   document.querySelectorAll('.ledger-edit-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
@@ -9146,8 +9179,6 @@ function attachLedger() {
   });
 
   attachSwipeDelete();
-
-  document.getElementById('ledger-export-csv')?.addEventListener('click', () => exportCSV(false));
 }
 
 function attachWeekly() {
