@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.28.1';
+const VERSION = '5.28.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -8,7 +8,26 @@ function getCategories() {
   return [...DEFAULT_CATEGORIES, ...(s.customCategories || [])];
 }
 
+// Reusable line-icon SVGs (Feather-style) — used in place of emoji on buttons/labels.
+function _svg(inner, size) {
+  return `<svg viewBox="0 0 24 24" width="${size||14}" height="${size||14}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px">${inner}</svg>`;
+}
+const ICONS = {
+  download: _svg('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'),
+  upload:   _svg('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>'),
+  dollar:   _svg('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'),
+  link:     _svg('<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>', 11),
+  card:     _svg('<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>'),
+  bank:     _svg('<line x1="3" y1="21" x2="21" y2="21"/><polyline points="5 7 12 3.5 19 7"/><line x1="5" y1="10" x2="5" y2="18"/><line x1="10" y1="10" x2="10" y2="18"/><line x1="14" y1="10" x2="14" y2="18"/><line x1="19" y1="10" x2="19" y2="18"/>'),
+  bell:     _svg('<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>'),
+  bellOff:  _svg('<path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.89 17.89 0 0 1 18 8"/><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/><path d="M18 8a6 6 0 0 0-9.33-5"/><line x1="1" y1="1" x2="23" y2="23"/>'),
+  refresh:  _svg('<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>'),
+};
+
 const CHANGELOG = [
+  { version: '5.28.2', date: '2026-06-04', changes: [
+    'Swapped emoji icons for clean line icons across buttons and labels — Import/Export, Restore, Deduct cash, loan link, Credit/Loan tabs, the sounds toggle, and Force Update',
+  ]},
   { version: '5.28.1', date: '2026-06-04', changes: [
     'Moved the floating + (quick-add) button to the bottom-left so it no longer crowds the tutorial button or sits over your transaction amounts',
   ]},
@@ -2497,11 +2516,11 @@ function showReconcileModal() {
 function initSoundsToggle() {
   const btn = document.getElementById('sounds-toggle');
   if (!btn) return;
-  btn.textContent = localStorage.getItem('sounds') === 'off' ? '🔕' : '🔔';
+  btn.innerHTML = localStorage.getItem('sounds') === 'off' ? ICONS.bellOff : ICONS.bell;
   btn.onclick = () => {
     const off = localStorage.getItem('sounds') === 'off';
     localStorage.setItem('sounds', off ? 'on' : 'off');
-    btn.textContent = off ? '🔔' : '🔕';
+    btn.innerHTML = off ? ICONS.bell : ICONS.bellOff;
   };
 }
 
@@ -3136,7 +3155,7 @@ function renderDebt() {
       <h1 class="page-title">Debt</h1>
       <p class="page-sub">credit cards &amp; loans</p>
       <div class="form-card" style="text-align:center;padding:32px 20px">
-        <div style="font-size:2rem;margin-bottom:12px">💳</div>
+        <div style="margin-bottom:12px;color:var(--muted)">${_svg('<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>', 34)}</div>
         <p style="color:var(--muted);font-size:.9rem">No credit card or loan accounts yet.</p>
         <p style="color:var(--muted);font-size:.82rem;margin-top:6px">Go to Settings → Accounts and add an account with type <strong>Credit</strong> or <strong>Loan</strong>, then set the starting balance to what you currently owe.</p>
       </div>
@@ -3165,8 +3184,8 @@ function renderDebt() {
 
   const subNavHtml = (hasCredit && hasLoans) ? `
     <div class="debt-subnav">
-      <button class="debt-pill${debtSubTab === 'credit' ? ' active' : ''}" data-sub="credit">💳 Credit Cards</button>
-      <button class="debt-pill${debtSubTab === 'loan'   ? ' active' : ''}" data-sub="loan">🏦 Loans</button>
+      <button class="debt-pill${debtSubTab === 'credit' ? ' active' : ''}" data-sub="credit">${ICONS.card} Credit Cards</button>
+      <button class="debt-pill${debtSubTab === 'loan'   ? ' active' : ''}" data-sub="loan">${ICONS.bank} Loans</button>
     </div>` : '';
 
   const acctList = debtSubTab === 'credit' ? creditAccts : loanAccts;
@@ -3227,7 +3246,7 @@ function renderDebt() {
       <div class="debt-acct-card">
         <div class="debt-acct-header">
           <div class="debt-acct-name">${acct.name}</div>
-          <div class="debt-acct-type">${acct.type === 'loan' ? '🏦 Loan' : '💳 Credit'}</div>
+          <div class="debt-acct-type">${acct.type === 'loan' ? `${ICONS.bank} Loan` : `${ICONS.card} Credit`}</div>
         </div>
         <div class="debt-owed-row">
           <span class="debt-owed-label">OWED</span>
@@ -6376,7 +6395,7 @@ function renderBills() {
           <span class="cat-dot" style="background:${CAT_COLORS[b.category]||'#9896a4'}"></span>
           <div class="bill-card-info">
             <div class="bill-card-name">${b.name}</div>
-            <div class="bill-card-meta">${b.category} · due day ${b.dueDay}${linkName ? ` · 🔗 ${linkName}` : ''}</div>
+            <div class="bill-card-meta">${b.category} · due day ${b.dueDay}${linkName ? ` · ${ICONS.link} ${linkName}` : ''}</div>
           </div>
           <div class="bill-card-right">
             <div class="bill-card-amt">${fmt(b.amount)}</div>
@@ -6385,7 +6404,7 @@ function renderBills() {
         </div>
         <div class="bill-card-actions">
           <button class="btn-xs bill-paid-btn${paid ? ' bill-unpaid-btn' : ''}" data-idx="${i}" data-paid="${paid}">${paid ? '↩ Mark Unpaid' : '✓ Mark Paid'}</button>
-          ${paid && !deducted ? `<button class="btn-xs bill-deduct-btn" data-idx="${i}">💵 Deduct cash</button>` : ''}
+          ${paid && !deducted ? `<button class="btn-xs bill-deduct-btn" data-idx="${i}">${ICONS.dollar} Deduct cash</button>` : ''}
           <button class="btn-xs bill-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-idx="${i}">Delete</button>
         </div>
         ${paid ? `<div class="bill-deduct-note ${deducted ? 'is-deducted' : 'not-deducted'}">${deducted ? `✓ ${fmt(b.amount)} deducted from cash` : 'Not deducted from your cash balance'}</div>` : ''}
@@ -7035,22 +7054,22 @@ function renderImport() {
       <p class="page-sub">Excel &amp; spreadsheet friendly</p>
 
       <div class="form-card" id="backup-section">
-        <h2 class="section-title" style="margin-bottom:6px">📤 Export to Excel / CSV</h2>
+        <h2 class="section-title" style="margin-bottom:6px">${ICONS.download} Export to Excel / CSV</h2>
         <p class="code-hint" style="margin-bottom:12px">Opens directly in Excel. Includes Date, Type, Category, Description, Amount, Signed Amount, Running Balance, Account, and Recurring columns.</p>
         <div style="display:flex;flex-direction:column;gap:8px">
-          <button id="export-csv-btn" class="btn-primary">⬇ Export This Account (CSV)</button>
-          <button id="export-csv-all-btn" class="btn-primary" style="background:var(--surface2);border:1px solid var(--border);color:var(--text)">⬇ Export All Accounts (CSV)</button>
-          <button id="export-json-btn" class="btn-primary" style="background:var(--surface2);border:1px solid var(--border);color:var(--text)">⬇ Download Budget DAWGs Backup (JSON)</button>
+          <button id="export-csv-btn" class="btn-primary">${ICONS.download} Export This Account (CSV)</button>
+          <button id="export-csv-all-btn" class="btn-primary" style="background:var(--surface2);border:1px solid var(--border);color:var(--text)">${ICONS.download} Export All Accounts (CSV)</button>
+          <button id="export-json-btn" class="btn-primary" style="background:var(--surface2);border:1px solid var(--border);color:var(--text)">${ICONS.download} Download Budget DAWGs Backup (JSON)</button>
         </div>
         ${backupStatusHtml()}
       </div>
 
       <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:6px">📥 Import from Excel / CSV</h2>
+        <h2 class="section-title" style="margin-bottom:6px">${ICONS.upload} Import from Excel / CSV</h2>
         <p class="code-hint">Accepts files saved from Excel as CSV. Required columns: <strong>Date</strong> and <strong>Amount</strong>. Optional: Type, Category, Description, Account.</p>
         <p class="code-hint" style="margin-top:6px">Date formats accepted: <code>2026-05-20</code>, <code>5/20/2026</code>, <code>05/20/26</code></p>
         <p class="code-hint" style="margin-top:4px">Also works with most bank export formats (Debit/Credit columns, accounting negatives, etc.)</p>
-        <button id="export-template-btn" class="btn-xs" style="margin-top:8px;margin-bottom:2px">⬇ Download blank template</button>
+        <button id="export-template-btn" class="btn-xs" style="margin-top:8px;margin-bottom:2px">${ICONS.download} Download blank template</button>
         <div style="display:flex;gap:8px;margin-top:12px;margin-bottom:4px">
           <button id="import-mode-append" class="import-mode-btn import-mode-active" data-mode="append" style="flex:1">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -7071,11 +7090,11 @@ function renderImport() {
       </div>
 
       <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:6px">📥 Restore from Backup</h2>
+        <h2 class="section-title" style="margin-bottom:6px">${ICONS.upload} Restore from Backup</h2>
         <p class="code-hint">Restores everything from a Budget DAWGs JSON backup file.</p>
         <div id="json-import-status" class="form-status" style="margin-top:6px"></div>
         <label class="btn-primary" style="display:inline-block;margin-top:8px;cursor:pointer;text-align:center;width:100%;box-sizing:border-box">
-          ⬆ Load Backup File
+          ${ICONS.upload} Load Backup File
           <input type="file" id="import-json-file" accept=".json" style="display:none">
         </label>
       </div>
@@ -8589,7 +8608,7 @@ function renderAbout() {
         <button id="open-tutorial-btn" class="btn-secondary" style="width:100%;margin-bottom:10px">📖 App Tutorial</button>
         <hr style="border:none;border-top:1px solid var(--border);margin:0 0 12px">
         <p class="code-hint" style="margin-bottom:12px">If the app feels out of date, tap below to clear the cache and reload the latest version.</p>
-        <button id="force-update-btn" class="btn-primary" style="width:100%">🔄 Force Update</button>
+        <button id="force-update-btn" class="btn-primary" style="width:100%">${ICONS.refresh} Force Update</button>
         <div id="force-update-status" class="form-status" style="margin-top:8px"></div>
       </div>
       <p style="text-align:center;font-size:.75rem;color:var(--muted);margin-top:8px">© ${built} SlawMinYaw's Budget DAWGs. All rights reserved.</p>
@@ -8969,7 +8988,7 @@ function attachAbout() {
     } catch(e) {
       status.textContent = 'Error: ' + e.message;
       btn.disabled = false;
-      btn.textContent = '🔄 Force Update';
+      btn.innerHTML = `${ICONS.refresh} Force Update`;
     }
   });
 }
