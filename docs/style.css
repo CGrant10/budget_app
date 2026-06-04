@@ -2068,6 +2068,44 @@ body.light .section-title::before {
   color: var(--muted);
 }
 
+/* ── backup reminder banner ────────────────────────────────────────────────── */
+.backup-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface));
+  border: 1px solid var(--warn);
+  font-size: .8rem;
+  color: var(--text);
+}
+.backup-banner-icon { color: var(--warn); font-size: 1rem; flex-shrink: 0; }
+.backup-banner-msg  { flex: 1; line-height: 1.35; }
+.backup-banner-go {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--warn);
+  background: var(--warn);
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: .76rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.backup-banner-x {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: .9rem;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
 /* ── bills month navigator ─────────────────────────────────────────────────── */
 .bills-month-nav {
   display: flex;

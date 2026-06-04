@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.20.4';
+const VERSION = '5.20.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,10 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.20.5', date: '2026-06-04', changes: [
+    'Backup reminder — the dashboard now shows a banner when it has been over 30 days (or never) since your last backup, and Settings shows when you last backed up',
+    'Backups are now complete — they also include your challenges, notes, starting balance, and settings (not just transactions/bills/goals/accounts)',
+  ]},
   { version: '5.20.4', date: '2026-06-04', changes: [
     'Fixed a timezone bug where the current month/day could roll over early in the evening — all "current month"/"today" keys now use your local time instead of UTC',
   ]},
@@ -2186,6 +2190,45 @@ function today() { return localDateStr(new Date()); }
 // which uses UTC and can roll to the next month on the last evening of a month (US).
 function localMonthKey(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+// ── backup reminder ──────────────────────────────────────────────────────────
+// Whole numbers of days since the last JSON backup, or null if never.
+function daysSinceBackup() {
+  const s = loadSettings();
+  if (!s.lastBackupDate) return null;
+  const last = new Date(s.lastBackupDate + 'T00:00:00');
+  const now  = new Date(); now.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.round((now - last) / 86400000));
+}
+function markBackupDone() {
+  const s = loadSettings(); s.lastBackupDate = today(); saveSettings(s);
+}
+const BACKUP_STALE_DAYS = 30;
+let _backupBannerDismissed = false;   // per-session
+function backupStatusHtml() {
+  const n = daysSinceBackup();
+  const hasData = (state.transactions?.length || 0) > 0;
+  let txt, color;
+  if (n === null)      { txt = hasData ? 'Never backed up yet — download one to be safe' : 'No backup yet'; color = hasData ? 'var(--warn)' : 'var(--muted)'; }
+  else if (n === 0)    { txt = '✓ Backed up today'; color = 'var(--success)'; }
+  else                 { txt = `Last backup: ${n} day${n !== 1 ? 's' : ''} ago`; color = n > BACKUP_STALE_DAYS ? 'var(--warn)' : 'var(--muted)'; }
+  return `<p class="code-hint" id="backup-status" style="margin-top:8px;color:${color}">${txt}</p>`;
+}
+// Banner shown atop the dashboard when a backup is overdue.
+function backupBannerHtml() {
+  if (_backupBannerDismissed) return '';
+  if ((state.transactions?.length || 0) === 0) return '';
+  const n = daysSinceBackup();
+  if (n !== null && n <= BACKUP_STALE_DAYS) return '';
+  const msg = n === null ? "You haven't backed up your data yet." : `It's been ${n} days since your last backup.`;
+  return `
+    <div class="backup-banner" id="backup-banner">
+      <span class="backup-banner-icon">⚠</span>
+      <span class="backup-banner-msg">${msg} Your data lives only on this device.</span>
+      <button class="backup-banner-go" id="backup-banner-go">Back up</button>
+      <button class="backup-banner-x" id="backup-banner-x" aria-label="Dismiss">✕</button>
+    </div>`;
 }
 
 function showStatus(id, msg, type, ms = 3000) {
@@ -4400,6 +4443,7 @@ function renderDashboardDawg() {
   const _curAcct  = state.accounts.find(a => a.id === currentAccountId);
   const _acctName = _curAcct?.name || 'Account';
   return `<div class="dawg-page">
+    ${backupBannerHtml()}
     <div class="dawg-hero">
       <div class="dawg-hero-glow"></div>
       <div class="dawg-hero-inner">
@@ -6400,6 +6444,7 @@ function renderImport() {
           <button id="export-csv-all-btn" class="btn-primary" style="background:var(--surface2);border:1px solid var(--border);color:var(--text)">⬇ Export All Accounts (CSV)</button>
           <button id="export-json-btn" class="btn-primary" style="background:var(--surface2);border:1px solid var(--border);color:var(--text)">⬇ Download Budget DAWGs Backup (JSON)</button>
         </div>
+        ${backupStatusHtml()}
       </div>
 
       <div class="form-card">
@@ -8486,6 +8531,13 @@ function toggleDawgBell() {
 }
 
 function attachDashboardDawg() {
+  // Backup reminder banner
+  document.getElementById('backup-banner-x')?.addEventListener('click', () => {
+    _backupBannerDismissed = true;
+    document.getElementById('backup-banner')?.remove();
+  });
+  document.getElementById('backup-banner-go')?.addEventListener('click', () => showTab('settings'));
+
   // LOCK TF IN tap glitch
   const _lockinEl = document.querySelector('.dawg-lockin');
   if (_lockinEl) {
@@ -9166,8 +9218,12 @@ function attachImport() {
             state.budgets      = data.budgets      || {};
             state.bills        = data.bills        || [];
             state.goals        = data.goals        || [];
+            state.challenges   = data.challenges   || [];
+            state.notes        = data.notes        || [];
+            if (typeof data.startingBalance === 'number') state.startingBalance = data.startingBalance;
             state.accounts     = data.accounts     || defaultAccounts();
             if (!state.accounts.length) state.accounts = defaultAccounts();
+            if (data.settings && typeof data.settings === 'object') saveSettings(data.settings);
             _save(); _saveAccounts();
             showStatus('json-import-status', `✓ Restored ${state.transactions.length} transactions from backup.`, 'success', 0);
             render();
@@ -9186,12 +9242,17 @@ function attachImport() {
 
   document.getElementById('export-json-btn')?.addEventListener('click', () => {
     const payload = JSON.stringify({
-      transactions: state.transactions,
-      weekly_plan:  state.weekly_plan,
-      budgets:      state.budgets,
-      bills:        state.bills,
-      goals:        state.goals,
-      accounts:     state.accounts,
+      transactions:   state.transactions,
+      weekly_plan:    state.weekly_plan,
+      budgets:        state.budgets,
+      bills:          state.bills,
+      goals:          state.goals,
+      accounts:       state.accounts,
+      challenges:     state.challenges,
+      notes:          state.notes,
+      startingBalance: state.startingBalance,
+      settings:       loadSettings(),
+      _backupVersion: VERSION,
     }, null, 2);
     const blob = new Blob([payload], { type: 'application/json' });
     const a    = document.createElement('a');
@@ -9199,6 +9260,11 @@ function attachImport() {
     a.download = `budget-dawgs-backup-${today()}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
+    markBackupDone();
+    const st = document.getElementById('backup-status');
+    if (st) { st.textContent = '✓ Backed up today'; st.style.color = 'var(--success)'; }
+    const banner = document.getElementById('backup-banner');
+    if (banner) banner.remove();
   });
 
   document.getElementById('import-file')?.addEventListener('change', e => {
