@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.26.0';
+const VERSION = '5.27.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,12 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.27.0', date: '2026-06-04', changes: [
+    'Duplicate-entry guard — if you add a transaction matching one you logged moments ago, the app asks "Possible duplicate — add anyway?"',
+    'Add screen now suggests descriptions you\'ve used before as you type',
+    'Debt page shows total minimum payment; Goals page shows total saved vs total target with a combined progress bar',
+    'Ledger gets a "✕ Clear filters" button when any search/filter is active',
+  ]},
   { version: '5.26.0', date: '2026-06-04', changes: [
     'Reconcile to bank — tap "⇄ Reconcile to bank" on the dashboard balance, enter what your bank actually says, and the app logs a one-line adjustment to match it (works for cash and loan/credit accounts; adjustments are kept out of your weekly spending)',
   ]},
@@ -1817,6 +1823,11 @@ function showConfirmModal({ title, message, confirmText = 'Confirm', cancelText 
   ov.addEventListener('click', e => { if (e.target === ov) close(onCancel); });
 }
 
+// Promise-based confirm (resolves true on confirm, false on cancel/dismiss).
+function confirmAsync(opts) {
+  return new Promise(res => showConfirmModal({ ...opts, onConfirm: () => res(true), onCancel: () => res(false) }));
+}
+
 function showPinSetupModal(onSuccess) {
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
@@ -3134,6 +3145,7 @@ function renderDebt() {
   }
 
   const totalOwed = allDebt.reduce((s, a) => s + getOwed(a).owed, 0);
+  const totalMinPmt = allDebt.reduce((s, a) => s + (getOwed(a).owed > 0 ? (parseFloat(a.monthly_payment) || 0) : 0), 0);
 
   // Determine which sub-tabs have accounts
   const hasCredit = creditAccts.length > 0;
@@ -3302,7 +3314,7 @@ function renderDebt() {
       <div class="debt-summary-card">
         <div class="debt-summary-label">TOTAL OWED</div>
         <div class="debt-summary-value" style="color:${totalOwed > 0 ? 'var(--danger)' : 'var(--success)'}">${fmt(totalOwed)}</div>
-        <div class="debt-summary-sub">${allDebt.length} account${allDebt.length !== 1 ? 's' : ''}</div>
+        <div class="debt-summary-sub">${allDebt.length} account${allDebt.length !== 1 ? 's' : ''}${totalMinPmt > 0 ? ` · ${fmt(totalMinPmt)}/mo minimum` : ''}</div>
       </div>
       ${payoffCalcHtml}
       ${subNavHtml}
@@ -5725,6 +5737,13 @@ function _showChallengeComplete(ch) {
 // ── add ────────────────────────────────────────────────────────────────────
 function renderAdd() {
   const _adv = isSimpleMode() ? ' style="display:none"' : '';   // hide advanced rows in Simple mode
+  // Autocomplete suggestions from past transaction descriptions (most recent first)
+  const _descSeen = new Set();
+  const _descSugg = [...state.transactions].reverse()
+    .map(t => t.description).filter(d => d && d !== '—')
+    .filter(d => { const k = d.trim().toLowerCase(); if (_descSeen.has(k)) return false; _descSeen.add(k); return true; })
+    .slice(0, 60)
+    .map(d => `<option value="${String(d).replace(/"/g, '&quot;')}"></option>`).join('');
   const catOptions  = getCategories().map(c => `<option>${c}</option>`).join('');
   const acctOptions = state.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
   const toAcctOptions = state.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
@@ -5752,7 +5771,8 @@ function renderAdd() {
         </div>
         <div class="form-row" id="add-desc-row">
           <label class="form-label">Description</label>
-          <input type="text" id="add-desc" class="form-input" placeholder="What was this for?">
+          <input type="text" id="add-desc" class="form-input" placeholder="What was this for?" list="desc-suggestions" autocomplete="off">
+          <datalist id="desc-suggestions">${_descSugg}</datalist>
         </div>
         <div class="form-row" id="add-cat-row">
           <label class="form-label">Category</label>
@@ -5912,6 +5932,8 @@ function renderLedger() {
           <input type="date" id="ledger-date-to" class="form-input lf-date" value="${ledgerDateTo}" title="To date">
           <button id="ledger-export-csv" class="btn-xs">📥 CSV</button>
         </div>
+        ${(ledgerFilter || ledgerTypeFilter !== 'all' || ledgerCatFilter || ledgerDateFrom || ledgerDateTo)
+          ? `<button id="ledger-clear-filters" class="lf-clear-btn">✕ Clear filters</button>` : ''}
       </div>
       <div class="ledger-list${density === 'compact' ? ' compact' : ''}">
         ${rowsHtml || (state.transactions.length === 0
@@ -6945,6 +6967,17 @@ function renderGoals() {
         <button id="goal-add-btn" class="btn-primary">Add Goal</button>
       </div>
       <h2 class="section-title">Savings Goals</h2>
+      ${state.goals.length ? (() => {
+        const saved  = state.goals.reduce((s, g) => s + (g.current || 0), 0);
+        const target = state.goals.reduce((s, g) => s + (g.target  || 0), 0);
+        const pct    = target > 0 ? Math.min(saved / target * 100, 100) : 0;
+        return `<div class="goals-total-card">
+          <div class="goals-total-row"><span>Total saved</span><span style="color:var(--success);font-weight:700">${fmt(saved)}</span></div>
+          <div class="goals-total-row"><span>Total target</span><span style="font-weight:700">${fmt(target)}</span></div>
+          <div class="breakdown-bar-bg" style="margin-top:6px"><div class="breakdown-bar-fill" style="width:${pct.toFixed(1)}%;background:var(--accent)"></div></div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${pct.toFixed(0)}% of all goals · ${fmt(Math.max(0, target - saved))} to go</div>
+        </div>`;
+      })() : ''}
       <div class="goals-list">${goalsHtml}</div>
     </div>`;
 }
@@ -9596,6 +9629,19 @@ function attachAdd() {
     };
     if (isRecurring) t.recur_month = localMonthKey();
     if (isExclude)   t.excludeFromBudget = true;
+    // Duplicate guard: warn if an identical entry was just added (same type/amount/desc/cat < 2 min ago)
+    const _dup = state.transactions.find(x =>
+      x.type === t.type && Math.abs((x.amount || 0) - t.amount) < 0.005 &&
+      (x.description || '').trim().toLowerCase() === t.description.trim().toLowerCase() &&
+      x.category === t.category && (Date.now() - (x.ts || 0)) < 120000);
+    if (_dup) {
+      const ok = await confirmAsync({
+        title: 'Possible duplicate',
+        message: `You just added "${t.description}" for ${fmt(t.amount)} a moment ago. Add it again?`,
+        confirmText: 'Add anyway', cancelText: 'Cancel',
+      });
+      if (!ok) { showStatus('add-status', 'Cancelled — duplicate not added.', 'error'); return; }
+    }
     let prevBal = 0;
     for (const tx of state.transactions) prevBal += tx.type==='income' ? tx.amount : -tx.amount;
     await api.addTransaction(t);
@@ -9723,6 +9769,12 @@ function attachLedger() {
     if (list) list.classList.toggle('compact', s.ledgerDensity === 'compact');
     const btn = document.getElementById('ledger-density');
     if (btn) { btn.textContent = s.ledgerDensity === 'compact' ? '≣' : '≡'; btn.setAttribute('aria-label', `Toggle row density (currently ${s.ledgerDensity})`); }
+  });
+
+  document.getElementById('ledger-clear-filters')?.addEventListener('click', () => {
+    ledgerFilter = ''; ledgerTypeFilter = 'all'; ledgerCatFilter = '';
+    ledgerDateFrom = ''; ledgerDateTo = '';
+    render();
   });
 
   _attachLedgerRows();
