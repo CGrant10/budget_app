@@ -2027,6 +2027,18 @@ body.light .section-title::before {
   color: #fff;
 }
 
+/* ── accessibility: respect reduced-motion preference ──────────────────────── */
+/* Users who set "Reduce Motion" get near-instant animations/transitions — the dog
+   bark loop, glitch effects, page slides, and tile stagger all settle immediately. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ── accessibility: keyboard focus indicator ───────────────────────────────── */
 /* Only shows for keyboard users (:focus-visible), never on mouse/touch tap. */
 a:focus-visible,

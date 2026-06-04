@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.21.1';
+const VERSION = '5.21.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.21.2', date: '2026-06-04', changes: [
+    'Accessibility: the app now respects your device\'s "Reduce Motion" setting (calms the dog/glitch animations and page transitions), and status messages/toasts are announced by screen readers',
+  ]},
   { version: '5.21.1', date: '2026-06-04', changes: [
     'Backups now include EVERY account, not just the one you\'re viewing — restoring a backup brings back all accounts and their full transaction history (older single-account backups still restore fine)',
   ]},
@@ -1810,6 +1813,8 @@ function _showSaveError() {
 function showAlert(msg) {
   const el = document.createElement('div');
   el.className = 'alert-toast';
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
   el.textContent = msg;
   const existingToasts = document.querySelectorAll('.roast-toast, .alert-toast');
   const offset = existingToasts.length * 60;
@@ -2258,6 +2263,8 @@ function backupBannerHtml() {
 function showStatus(id, msg, type, ms = 3000) {
   const el = document.getElementById(id);
   if (!el) return;
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   el.textContent = msg;
   el.className = `form-status ${type}`;
   if (ms) setTimeout(() => { el.textContent = ''; el.className = 'form-status'; }, ms);
