@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.27.0';
+const VERSION = '5.27.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -9,6 +9,9 @@ function getCategories() {
 }
 
 const CHANGELOG = [
+  { version: '5.27.1', date: '2026-06-04', changes: [
+    'Dollar amounts now use fixed-width digits so they line up cleanly in columns across the ledger and cards',
+  ]},
   { version: '5.27.0', date: '2026-06-04', changes: [
     'Duplicate-entry guard — if you add a transaction matching one you logged moments ago, the app asks "Possible duplicate — add anyway?"',
     'Add screen now suggests descriptions you\'ve used before as you type',

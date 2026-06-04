@@ -38,6 +38,9 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
+  /* Fixed-width digits so dollar amounts and dates align cleanly in columns */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
@@ -2301,11 +2304,12 @@ textarea:focus-visible,
 }
 .lf-clear-btn:active { background: var(--danger); color: #fff; border-color: var(--danger); }
 .goals-total-card {
-  background: var(--surface);
+  background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin-bottom: 12px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 14px 16px;
+  margin-bottom: 14px;
 }
 .goals-total-row { display: flex; justify-content: space-between; align-items: center; font-size: .85rem; color: var(--text); padding: 2px 0; }
 
