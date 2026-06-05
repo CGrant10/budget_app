@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Budget DAWGs — Animation Mockups</title>
+<title>Budget DAWGs — Datastream Animations</title>
 <style>
   :root{
     --bg:#0a0a0b; --surface:#141417; --surface2:#1d1d22; --border:#2a2a31;
@@ -11,17 +11,12 @@
     --accent:#4ecb8d; --danger:#ff453a; --success:#32d74b; --gold:#ffd60a;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  body{
-    margin:0;background:radial-gradient(120% 80% at 50% -10%,#15191b 0%,var(--bg) 60%);
-    color:var(--text);font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    -webkit-font-smoothing:antialiased;padding:22px 16px 60px;
-  }
+  body{margin:0;background:radial-gradient(120% 80% at 50% -10%,#15191b 0%,var(--bg) 60%);
+    color:var(--text);font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',sans-serif;
+    -webkit-font-smoothing:antialiased;padding:22px 16px 60px}
   h1{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
   .sub{color:var(--muted);font-size:.82rem;margin:0 0 18px;line-height:1.5}
-  .sub b{color:var(--accent)}
-  .legend{display:flex;gap:14px;font-size:.72rem;color:var(--muted);margin:0 0 16px}
-  .legend i{font-style:normal}
-  .dot{display:inline-block;width:8px;height:8px;border-radius:99px;margin-right:5px;vertical-align:middle}
+  .sub b{color:#5ef0c0}
 
   .types{display:flex;gap:8px;margin-bottom:20px;position:sticky;top:0;z-index:5;
     background:linear-gradient(to bottom,var(--bg) 60%,transparent);padding:6px 0 12px}
@@ -35,71 +30,25 @@
   .opt{background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden}
   .opt-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:15px 16px 0}
   .opt-name{font-size:1rem;font-weight:800}
-  .opt-tag{font-size:.6rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:4px 9px;border-radius:99px;flex-shrink:0}
-  .tag-clean{color:var(--accent);background:rgba(78,203,141,.12)}
-  .tag-glitch{color:#ff5b9a;background:rgba(255,91,154,.13)}
+  .opt-tag{font-size:.6rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:4px 9px;border-radius:99px;flex-shrink:0;color:#5ef0c0;background:rgba(94,240,192,.12)}
   .opt-desc{padding:6px 16px 0;color:var(--muted);font-size:.76rem;line-height:1.45}
-  .stage{position:relative;height:230px;margin:14px 12px;border-radius:16px;
-    background:radial-gradient(80% 70% at 50% 40%,#1b1b20,#101013);
-    border:1px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;height:230px;margin:14px 12px;border-radius:16px;overflow:hidden;
+    background:radial-gradient(80% 70% at 50% 40%,#101512,#0a0c0b);
+    border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
+  /* shared scanlines on every stage for the terminal feel */
+  .stage::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
+    background:repeating-linear-gradient(to bottom,transparent 0 2px,rgba(0,0,0,.22) 2px 3px);opacity:.55;mix-blend-mode:overlay}
   .replay{display:block;width:calc(100% - 24px);margin:0 12px 14px;padding:11px;border-radius:12px;
     background:var(--surface2);color:var(--text);font:800 .82rem inherit;cursor:pointer;
     border:1px solid var(--border);transition:.12s}
   .replay:active{transform:scale(.98)}
-  .replay:hover{border-color:var(--accent);color:var(--accent)}
+  .replay:hover{border-color:#5ef0c0;color:#5ef0c0}
 
-  .amt{font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-  .head{font-weight:800;letter-spacing:.05em;text-transform:uppercase}
-  .desc{color:var(--muted);font-size:.78rem;margin-top:3px}
+  .mono{font-family:'Cascadia Code',ui-monospace,'SF Mono',Consolas,monospace}
+  .amt{font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+  .head{font-weight:800;letter-spacing:.16em;text-transform:uppercase}
 
-  /* ===== 1 · Spring Pop (clean) ===== */
-  .o1{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
-  .o1 .badge{width:84px;height:84px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    position:relative;animation:o1pop .55s cubic-bezier(.2,1.4,.4,1) both}
-  .o1 .badge::before{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid currentColor;opacity:.5;animation:o1ring .7s ease-out .1s both}
-  .o1 svg{width:42px;height:42px}
-  .o1 .amt{font-size:2.1rem;animation:o1up .5s cubic-bezier(.2,1,.3,1) .12s both}
-  .o1 .head{font-size:.72rem;color:var(--muted);animation:o1up .5s ease .18s both}
-  @keyframes o1pop{from{transform:scale(0) rotate(-25deg);opacity:0}}
-  @keyframes o1ring{from{transform:scale(.7);opacity:.6}to{transform:scale(1.6);opacity:0}}
-  @keyframes o1up{from{transform:translateY(14px);filter:blur(6px);opacity:0}}
-
-  /* ===== 2 · Soft Rise (clean, ultra-minimal) ===== */
-  .o2{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;position:relative}
-  .o2 .halo{position:absolute;width:150px;height:150px;border-radius:50%;border:1px solid currentColor;opacity:0;animation:o2halo 1s ease-out both}
-  .o2 svg{width:34px;height:34px;animation:o2fade .6s ease both}
-  .o2 .amt{font-size:2.3rem;font-weight:700;animation:o2rise .7s cubic-bezier(.2,1,.3,1) .08s both}
-  .o2 .head{font-size:.68rem;color:var(--muted);letter-spacing:.14em;animation:o2fade .6s ease .22s both}
-  @keyframes o2rise{from{transform:translateY(18px);opacity:0}}
-  @keyframes o2fade{from{opacity:0}}
-  @keyframes o2halo{0%{transform:scale(.5);opacity:.5}100%{transform:scale(1.3);opacity:0}}
-
-  /* ===== 3 · Notify Pill (clean, notification style) ===== */
-  .o3{width:82%;animation:o3in .5s cubic-bezier(.2,1.3,.4,1) both}
-  .o3 .pill{display:flex;align-items:center;gap:13px;background:#16161b;border:1px solid var(--border);
-    border-radius:16px;padding:14px 16px;box-shadow:0 12px 30px rgba(0,0,0,.5)}
-  .o3 .pic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:color-mix(in srgb,currentColor 16%,transparent)}
-  .o3 svg{width:24px;height:24px}
-  .o3 .txt{flex:1;min-width:0;text-align:left}
-  .o3 .head{font-size:.66rem;color:var(--muted);letter-spacing:.08em}
-  .o3 .desc{margin-top:1px}
-  .o3 .amt{font-size:1.5rem;margin-left:auto}
-  @keyframes o3in{from{transform:translateY(40px) scale(.92);opacity:0}}
-
-  /* ===== 4 · Count Up (clean, satisfying) ===== */
-  .o4{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
-  .o4 .ring{width:78px;height:78px;animation:o4pop .5s cubic-bezier(.2,1.4,.4,1) both}
-  .o4 .amt{font-size:2.2rem}
-  .o4 .head{font-size:.7rem;color:var(--muted)}
-  @keyframes o4pop{from{transform:scale(0);opacity:0}}
-  .o4 .check{stroke-dasharray:40;stroke-dashoffset:40;animation:o4draw .4s ease .25s forwards}
-  @keyframes o4draw{to{stroke-dashoffset:0}}
-
-  /* ===== 5 · Glitch In (your RGB split) ===== */
-  .o5{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
-  .o5 svg{width:46px;height:46px;animation:gFlick .6s steps(1,end) both}
-  .o5 .amt{font-size:2.2rem;animation:gIn .55s steps(1,end) .05s both}
-  .o5 .head{font-size:.78rem;animation:gIn .5s steps(1,end) .12s both}
+  /* RGB-split glitch entrance (your effect) */
   @keyframes gIn{
     0%{opacity:0;transform:translateX(0)}
     8%{opacity:1;filter:brightness(1.9) drop-shadow(5px 0 0 rgba(255,48,48,.9)) drop-shadow(-5px 0 0 rgba(0,216,255,.9));transform:translateX(-4px) skewX(-8deg)}
@@ -109,32 +58,63 @@
     60%{filter:none;transform:none}
     100%{filter:none;transform:none;opacity:1}
   }
-  @keyframes gFlick{
-    0%{opacity:0}
-    10%{opacity:1;filter:brightness(2.2) drop-shadow(5px 0 0 rgba(255,48,48,.95)) drop-shadow(-5px 0 0 rgba(0,216,255,.95));transform:translateX(-4px) skewX(-8deg)}
-    18%{filter:brightness(1.8) drop-shadow(-6px 0 0 rgba(255,48,48,.75)) drop-shadow(6px 0 0 rgba(0,216,255,.75));transform:translateX(3px)}
-    26%{filter:none;transform:none}
-    70%{filter:brightness(1.9) drop-shadow(4px 0 0 rgba(0,216,255,.9)) drop-shadow(-4px 0 0 rgba(255,48,48,.85));transform:translateX(3px) skewX(-5deg)}
-    76%{filter:none;transform:none}
-    100%{filter:none}
-  }
 
-  /* ===== 6 · Datastream Scramble (glitch + HUD) ===== */
-  .o6{display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;position:relative;width:100%;height:100%;justify-content:center}
-  .o6::before{content:"";position:absolute;inset:0;pointer-events:none;
-    background:repeating-linear-gradient(to bottom,transparent 0 2px,rgba(0,0,0,.18) 2px 3px);opacity:.5;mix-blend-mode:overlay}
-  .o6 .amt{font-size:2.2rem;font-family:'Cascadia Code',ui-monospace,monospace;letter-spacing:.02em;animation:gIn .5s steps(1,end) both}
-  .o6 .head{font-size:.7rem;color:var(--muted);letter-spacing:.18em;font-family:ui-monospace,monospace}
-  .o6 .desc{font-family:ui-monospace,monospace;font-size:.7rem}
+  .col{display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;z-index:2}
+  .lbl{font-size:.66rem;color:var(--muted);letter-spacing:.2em}
+
+  /* 1 · Datastream */
+  .o-scr .amt{font-size:2.2rem;animation:gIn .5s steps(1,end) both}
+
+  /* 2 · Decrypt Sweep */
+  .o-dec{align-items:flex-start;gap:5px}
+  .o-dec .amt{font-size:2.1rem}
+  .o-dec .cur{color:currentColor;animation:blink .6s steps(1,end) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* 3 · Matrix Rain */
+  .rain{position:absolute;inset:0;z-index:1;overflow:hidden;opacity:.55}
+  .rcol{position:absolute;top:0;display:flex;flex-direction:column;font-size:.8rem;line-height:1.05;
+    color:#39ff14;text-shadow:0 0 6px #39ff14;animation:fall linear both}
+  @keyframes fall{from{transform:translateY(-100%)}to{transform:translateY(120%)}}
+  .o-mtx .amt{font-size:2.3rem;animation:gIn .5s steps(1,end) .15s both;position:relative;z-index:2}
+
+  /* 4 · Terminal Boot */
+  .term{width:88%;text-align:left;font-size:.86rem;line-height:1.7;z-index:2}
+  .term .ln{white-space:nowrap;overflow:hidden;width:0;animation:type .35s steps(30,end) forwards}
+  .term .ok{color:var(--success)}
+  .term .big{font-size:1.5rem;font-weight:800}
+  .term .cur{animation:blink .6s steps(1,end) infinite}
+  @keyframes type{to{width:100%}}
+
+  /* 5 · Glitch Slice */
+  .gs{position:relative;display:inline-block;font-size:2.3rem;font-weight:800;z-index:2}
+  .gs .base{opacity:0}
+  .gs .ly{position:absolute;left:0;top:0;width:100%}
+  .gs .l1{clip-path:inset(0 0 66% 0);animation:sla .55s steps(1,end) both}
+  .gs .l2{clip-path:inset(34% 0 33% 0);animation:slb .55s steps(1,end) both}
+  .gs .l3{clip-path:inset(67% 0 0 0);animation:slc .55s steps(1,end) both}
+  @keyframes sla{0%{opacity:0;transform:translateX(0)}10%{opacity:1;transform:translateX(-14px);filter:drop-shadow(4px 0 0 rgba(255,48,48,.9))}30%{transform:translateX(8px)}45%{transform:translateX(-4px)}60%,100%{transform:translateX(0);filter:none}}
+  @keyframes slb{0%{opacity:0;transform:translateX(0)}12%{opacity:1;transform:translateX(16px);filter:drop-shadow(-4px 0 0 rgba(0,216,255,.9))}32%{transform:translateX(-10px)}48%{transform:translateX(5px)}62%,100%{transform:translateX(0);filter:none}}
+  @keyframes slc{0%{opacity:0;transform:translateX(0)}14%{opacity:1;transform:translateX(-10px);filter:drop-shadow(4px 0 0 rgba(255,48,48,.8))}34%{transform:translateX(12px)}50%{transform:translateX(-3px)}64%,100%{transform:translateX(0);filter:none}}
+
+  /* 6 · HUD Lock-On */
+  .hud{position:relative;padding:16px 26px;z-index:2}
+  .hud .amt{font-size:2.1rem}
+  .hud .lbl{margin-top:4px}
+  .hud .cnr{position:absolute;width:20px;height:20px;border:2px solid currentColor;animation:lock .45s cubic-bezier(.2,1.4,.4,1) both}
+  .hud .tl{top:0;left:0;border-right:0;border-bottom:0}
+  .hud .tr{top:0;right:0;border-left:0;border-bottom:0}
+  .hud .bl{bottom:0;left:0;border-right:0;border-top:0}
+  .hud .br{bottom:0;right:0;border-left:0;border-top:0}
+  @keyframes lock{from{opacity:0;transform:scale(1.7)}}
+  .hud .sweep{position:absolute;left:0;right:0;height:2px;background:currentColor;box-shadow:0 0 10px currentColor;
+    top:0;opacity:.85;animation:sweep .7s ease both}
+  @keyframes sweep{0%{top:0;opacity:0}15%{opacity:.9}100%{top:100%;opacity:0}}
 </style>
 </head>
 <body>
-  <h1>Transaction Animations · v2</h1>
-  <p class="sub">You liked <b>Spring Pop</b> (#1). Here it is again plus 3 more clean options and 2 built on your <b>RGB-split glitch</b>. Pick a type, tap Replay, then tell me which to use for expense / income / transfer.</p>
-  <div class="legend">
-    <i><span class="dot" style="background:var(--accent)"></span>Clean</i>
-    <i><span class="dot" style="background:#ff5b9a"></span>Glitch</i>
-  </div>
+  <h1>Datastream-style Animations</h1>
+  <p class="sub">All six lean into the <b>terminal / HUD / glitch</b> look you liked. Pick a type, tap <b>Replay</b>, then tell me which to use for expense / income / transfer.</p>
 
   <div class="types">
     <button class="type-btn on" data-t="expense">Expense</button>
@@ -143,122 +123,97 @@
   </div>
 
   <div class="grid">
-    <div class="opt">
-      <div class="opt-hd"><span class="opt-name">1 · Spring Pop</span><span class="opt-tag tag-clean">Clean</span></div>
-      <div class="opt-desc">The one you liked. Icon badge springs in with a ring pulse; amount slides up from blur.</div>
-      <div class="stage" id="s1"></div><button class="replay" data-opt="1">▶ Replay</button>
-    </div>
-    <div class="opt">
-      <div class="opt-hd"><span class="opt-name">2 · Soft Rise</span><span class="opt-tag tag-clean">Clean</span></div>
-      <div class="opt-desc">Even more minimal — thin icon, big light-weight amount rising gently, a single expanding halo. Quiet & premium.</div>
-      <div class="stage" id="s2"></div><button class="replay" data-opt="2">▶ Replay</button>
-    </div>
-    <div class="opt">
-      <div class="opt-hd"><span class="opt-name">3 · Notify Pill</span><span class="opt-tag tag-clean">Clean</span></div>
-      <div class="opt-desc">A compact toast card slides up — icon, label + note on the left, amount on the right. Unobtrusive, doesn't cover the screen.</div>
-      <div class="stage" id="s3"></div><button class="replay" data-opt="3">▶ Replay</button>
-    </div>
-    <div class="opt">
-      <div class="opt-hd"><span class="opt-name">4 · Count Up</span><span class="opt-tag tag-clean">Clean</span></div>
-      <div class="opt-desc">Number rolls up to the total while a checkmark draws in. Satisfying, calm, a touch of feedback.</div>
-      <div class="stage" id="s4"></div><button class="replay" data-opt="4">▶ Replay</button>
-    </div>
-    <div class="opt">
-      <div class="opt-hd"><span class="opt-name">5 · Glitch In</span><span class="opt-tag tag-glitch">Glitch</span></div>
-      <div class="opt-desc">Your RGB chromatic-aberration jitter (the LOCK TF IN feel) — icon and amount snap in with red/cyan split and skew bursts.</div>
-      <div class="stage" id="s5"></div><button class="replay" data-opt="5">▶ Replay</button>
-    </div>
-    <div class="opt">
-      <div class="opt-hd"><span class="opt-name">6 · Datastream</span><span class="opt-tag tag-glitch">Glitch</span></div>
-      <div class="opt-desc">Terminal/HUD: digits scramble through random characters then lock onto the amount, over scanlines with a glitch flicker.</div>
-      <div class="stage" id="s6"></div><button class="replay" data-opt="6">▶ Replay</button>
-    </div>
+    <div class="opt"><div class="opt-hd"><span class="opt-name">1 · Datastream</span><span class="opt-tag">Scramble</span></div>
+      <div class="opt-desc">The original — digits scramble through random characters then lock onto the amount, over scanlines with a glitch flicker.</div>
+      <div class="stage" id="s1"></div><button class="replay" data-opt="1">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">2 · Decrypt Sweep</span><span class="opt-tag">Resolve</span></div>
+      <div class="opt-desc">Characters resolve left → right like a password decrypting, trailing a blinking cursor. Reads as "unlocking" the amount.</div>
+      <div class="stage" id="s2"></div><button class="replay" data-opt="2">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">3 · Matrix Rain</span><span class="opt-tag">Falling code</span></div>
+      <div class="opt-desc">Green code rains down the background while the amount materializes in front with a glitch snap.</div>
+      <div class="stage" id="s3"></div><button class="replay" data-opt="3">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">4 · Terminal Boot</span><span class="opt-tag">Typewriter</span></div>
+      <div class="opt-desc">A mini command log types itself out — auth ok, posting, then the amount on its own line with a live cursor.</div>
+      <div class="stage" id="s4"></div><button class="replay" data-opt="4">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">5 · Glitch Slice</span><span class="opt-tag">Datamosh</span></div>
+      <div class="opt-desc">The amount is sliced into horizontal bands that tear apart with red/cyan offset, then snap back into alignment.</div>
+      <div class="stage" id="s5"></div><button class="replay" data-opt="5">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">6 · HUD Lock-On</span><span class="opt-tag">Targeting</span></div>
+      <div class="opt-desc">Targeting brackets snap around the amount and a scan line sweeps through — sci-fi "lock acquired" feel.</div>
+      <div class="stage" id="s6"></div><button class="replay" data-opt="6">▶ Replay</button></div>
   </div>
 
 <script>
   let curType='expense';
-  const NUM  = { expense:-42.18, income:1250, transfer:300 };
-  const AMT  = { expense:'−$42.18', income:'+$1,250.00', transfer:'$300.00' };
-  const HEAD = {
-    expense:['MONEY GONE','GOT ROBBED','FUNDS WITHDRAWN'],
-    income:['CHA-CHING','PAYDAY','MONEY IN'],
-    transfer:['FUNDS MOVED','TRANSFERRED','MONEY SHIFTED'],
-  };
-  const DESC  = { expense:'Coffee', income:'Paycheck', transfer:'→ Savings' };
-  const COLOR = { expense:'var(--danger)', income:'var(--success)', transfer:'var(--accent)' };
-  const pick = a => a[Math.floor(Math.random()*a.length)];
+  const NUM={expense:-42.18,income:1250,transfer:300};
+  const AMT={expense:'−$42.18',income:'+$1,250.00',transfer:'$300.00'};
+  const HEAD={expense:['MONEY GONE','GOT ROBBED','FUNDS OUT'],income:['CHA-CHING','PAYDAY','MONEY IN'],transfer:['FUNDS MOVED','TRANSFERRED','SHIFTED']};
+  const DESC={expense:'Coffee',income:'Paycheck',transfer:'→ Savings'};
+  const COLOR={expense:'var(--danger)',income:'var(--success)',transfer:'var(--accent)'};
+  const CHARS='0123456789ABCDEF$#%&*';
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
 
-  function fmt(n){
-    const v=Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-    if(curType==='transfer') return '$'+v;
-    return (curType==='expense'?'−':'+')+'$'+v;
-  }
-  function icon(type){
-    const c=COLOR[type];
-    if(type==='expense') return `<svg viewBox="0 0 64 64" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="32" y1="14" x2="32" y2="42"/><polyline points="20,30 32,44 44,30"/><line x1="20" y1="52" x2="44" y2="52"/></svg>`;
-    if(type==='income')  return `<svg viewBox="0 0 64 64" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="32" y1="50" x2="32" y2="22"/><polyline points="20,34 32,20 44,34"/><line x1="20" y1="12" x2="44" y2="12"/></svg>`;
-    return `<svg viewBox="0 0 64 64" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 24 H46"/><polyline points="40,18 48,24 40,30"/><path d="M50 40 H18"/><polyline points="24,34 16,40 24,46"/></svg>`;
-  }
+  function play(opt,id){
+    const type=curType,c=COLOR[type],stage=document.getElementById(id);
+    stage.innerHTML='';const w=document.createElement('div');
 
-  function play(opt, stageId){
-    const type=curType, c=COLOR[type], stage=document.getElementById(stageId);
-    stage.innerHTML=''; const w=document.createElement('div');
-
-    if(opt==='1'){
-      w.className='o1'; w.style.color=c;
-      w.innerHTML=`<div class="badge" style="background:color-mix(in srgb,${c} 16%,transparent)">${icon(type)}</div>
-        <div class="amt" style="color:${c}">${AMT[type]}</div><div class="head">${pick(HEAD[type])}</div>`;
-    }
-    else if(opt==='2'){
-      w.className='o2'; w.style.color=c;
-      w.innerHTML=`<div class="halo"></div>${icon(type)}
-        <div class="amt" style="color:${c}">${AMT[type]}</div><div class="head">${pick(HEAD[type])}</div>`;
-    }
-    else if(opt==='3'){
-      w.className='o3'; w.style.color=c;
-      w.innerHTML=`<div class="pill"><div class="pic">${icon(type)}</div>
-        <div class="txt"><div class="head">${pick(HEAD[type])}</div><div class="desc">${DESC[type]}</div></div>
-        <div class="amt" style="color:${c}">${AMT[type]}</div></div>`;
-    }
-    else if(opt==='4'){
-      w.className='o4'; w.style.color=c;
-      w.innerHTML=`<svg class="ring" viewBox="0 0 64 64" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="27" opacity=".25"/><polyline class="check" points="21,33 29,41 44,24"/></svg>
-        <div class="amt" style="color:${c}">${fmt(0)}</div><div class="head">${pick(HEAD[type])}</div>`;
+    if(opt==='1'){ // Datastream
+      w.className='col o-scr';w.innerHTML=`<div class="head" style="color:${c}">${pick(HEAD[type])}</div><div class="amt mono" style="color:${c}">${AMT[type]}</div><div class="lbl">${DESC[type]}</div>`;
       stage.appendChild(w);
-      const el=w.querySelector('.amt'), target=NUM[type], t0=performance.now(), dur=650;
-      (function tick(now){const p=Math.min(1,(now-t0)/dur);const e=1-Math.pow(1-p,3);
-        el.textContent=fmt(target*e); if(p<1) requestAnimationFrame(tick); else el.textContent=AMT[type];})(t0);
+      const el=w.querySelector('.amt'),f=AMT[type];let fr=0,T=18;
+      const iv=setInterval(()=>{fr++;el.textContent=f.split('').map((ch,i)=>/[\s$,.−+]/.test(ch)?ch:(fr>T*(i/f.length)+4?ch:CHARS[Math.floor(Math.random()*CHARS.length)])).join('');if(fr>=T){clearInterval(iv);el.textContent=f;}},28);
       return;
     }
-    else if(opt==='5'){
-      w.className='o5'; w.style.color=c;
-      w.innerHTML=`${icon(type)}<div class="amt" style="color:${c}">${AMT[type]}</div><div class="head" style="color:${c}">${pick(HEAD[type])}</div>`;
-    }
-    else{
-      w.className='o6'; w.style.color=c;
-      w.innerHTML=`<div class="head">${pick(HEAD[type])}</div>
-        <div class="amt" style="color:${c}">${AMT[type]}</div><div class="desc">${DESC[type]}</div>`;
+    if(opt==='2'){ // Decrypt Sweep
+      w.className='col o-dec mono';w.style.color=c;
+      w.innerHTML=`<div class="head" style="color:${c}">DECRYPTING…</div><div class="amt" style="color:${c}"></div>`;
       stage.appendChild(w);
-      const el=w.querySelector('.amt'), final=AMT[type], chars='0123456789$#%&*';
-      let frame=0; const total=18;
-      const iv=setInterval(()=>{
-        frame++;
-        el.textContent=final.split('').map((ch,i)=>{
-          if(ch===' '||ch==='$'||ch===','||ch==='.'||ch==='−'||ch==='+') return ch;
-          return frame> total*(i/final.length)+4 ? ch : chars[Math.floor(Math.random()*chars.length)];
-        }).join('');
-        if(frame>=total){clearInterval(iv); el.textContent=final;}
-      },28);
+      const el=w.querySelector('.amt'),hd=w.querySelector('.head'),f=AMT[type];let fr=0;const per=3,T=f.length*per+6;
+      const iv=setInterval(()=>{fr++;const locked=Math.floor(fr/per);
+        el.innerHTML=f.split('').map((ch,i)=>{if(/[\s$,.−+]/.test(ch))return ch;return i<locked?ch:`<span style="opacity:.85">${CHARS[Math.floor(Math.random()*CHARS.length)]}</span>`;}).join('')+(fr<T?'<span class="cur">▋</span>':'');
+        if(fr>=T){clearInterval(iv);el.textContent=f;hd.textContent='DECRYPTED ✓';hd.classList.add('ok');hd.style.color='var(--success)';}},26);
       return;
     }
+    if(opt==='3'){ // Matrix Rain
+      const rain=document.createElement('div');rain.className='rain';
+      for(let k=0;k<11;k++){const col=document.createElement('div');col.className='rcol mono';
+        col.style.left=(k*9+1)+'%';col.style.animationDuration=(1+Math.random()*1.2)+'s';col.style.animationDelay=(-Math.random()*1.5)+'s';
+        let s='';for(let r=0;r<14;r++)s+=CHARS[Math.floor(Math.random()*CHARS.length)]+'<br>';col.innerHTML=s;rain.appendChild(col);}
+      stage.appendChild(rain);
+      w.className='col o-mtx';w.innerHTML=`<div class="amt mono" style="color:${c}">${AMT[type]}</div><div class="lbl" style="color:${c}">${pick(HEAD[type])}</div>`;
+      stage.appendChild(w);return;
+    }
+    if(opt==='4'){ // Terminal Boot
+      w.className='term mono';w.style.color=c;
+      const lines=[
+        `<span style="color:var(--muted)">&gt; auth user…</span> <span class="ok">ok</span>`,
+        `<span style="color:var(--muted)">&gt; posting ${type}…</span> <span class="ok">ok</span>`,
+        `<span style="color:${c}" class="big">${AMT[type]}</span> <span class="cur" style="color:${c}">▋</span>`,
+      ];
+      lines.forEach((html,i)=>{const d=document.createElement('div');d.className='ln';d.style.animationDelay=(i*0.4)+'s';d.innerHTML=html;w.appendChild(d);});
+      stage.appendChild(w);return;
+    }
+    if(opt==='5'){ // Glitch Slice
+      w.className='col';w.innerHTML=`<div class="head" style="color:${c};opacity:0;animation:gIn .5s steps(1,end) .25s both">${pick(HEAD[type])}</div>
+        <div class="gs mono" style="color:${c}"><span class="base">${AMT[type]}</span><span class="ly l1">${AMT[type]}</span><span class="ly l2">${AMT[type]}</span><span class="ly l3">${AMT[type]}</span></div>`;
+      stage.appendChild(w);return;
+    }
+    // 6 · HUD Lock-On
+    w.className='col';w.style.color=c;
+    w.innerHTML=`<div class="hud"><span class="sweep"></span><span class="cnr tl"></span><span class="cnr tr"></span><span class="cnr bl"></span><span class="cnr br"></span>
+      <div class="amt mono" style="color:${c};opacity:0;animation:gIn .5s steps(1,end) .2s both">${AMT[type]}</div>
+      <div class="lbl" style="color:${c};opacity:0;animation:gIn .4s steps(1,end) .35s both">LOCK ACQUIRED · ${pick(HEAD[type])}</div></div>`;
     stage.appendChild(w);
   }
 
   document.querySelectorAll('.type-btn').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('.type-btn').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on'); curType=b.dataset.t;
-    ['1','2','3','4','5','6'].forEach(o=>play(o,'s'+o));
-  }));
+    b.classList.add('on');curType=b.dataset.t;['1','2','3','4','5','6'].forEach(o=>play(o,'s'+o));}));
   document.querySelectorAll('.replay').forEach(b=>b.addEventListener('click',()=>play(b.dataset.opt,'s'+b.dataset.opt)));
   ['1','2','3','4','5','6'].forEach(o=>play(o,'s'+o));
 </script>
