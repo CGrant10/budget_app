@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.39.0';
+const VERSION = '5.40.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.40.0', date: '2026-06-05', changes: [
+    'New transaction animation — "Terminal Boot": a mini command line types itself out (auth → posting → memo) then drops your amount with an RGB-glitch snap and a blinking cursor. Works for expense, income, transfer, and auto-detected paychecks',
+    'Accounts overview polish: smaller "Track a Transaction" button, more breathing room between account rows, and slightly smaller header/row text',
+  ]},
   { version: '5.39.0', date: '2026-06-05', changes: [
     'Quick-add (Track a Transaction) now lets you pick which account the expense or income goes to — an Account row of chips, defaulting to your current account',
     'Quick-add gained a Transfer type: choose a From and To account to move money (or pay down a credit/loan) without leaving the sheet',
@@ -1619,6 +1623,11 @@ const _TRANSFER_MSGS = [
   'MONEY SHIFTED.',
 ];
 
+function _escHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
 function showRobbery(amount, desc) { _showTxnAnim('expense', amount, desc); }
 function showPayday(amount, desc)   { _showTxnAnim('income',  amount, desc); }
 function showTransfer(amount, desc) { _showTxnAnim('transfer', amount, desc); }
@@ -1640,65 +1649,33 @@ function _showTxnAnim(type, amount, desc) {
   const headline = msgs[Math.floor(Math.random() * msgs.length)];
   const amtStr   = isTransfer ? fmt(amount) : `${isExpense ? '−' : '+'}${fmt(amount)}`;
 
-  // ── Large centered SVG icons — draw-in via stroke-dashoffset ─────────────
-  let iconSvg, ringColor, particles;
+  // ── Terminal Boot: a mini command log types itself out, then the amount ──
+  const accent = isExpense ? 'var(--danger)' : isTransfer ? 'var(--accent)' : isPaycheck ? '#ffd60a' : 'var(--success)';
+  const verb   = isTransfer ? 'transfer' : isPaycheck ? 'deposit' : isExpense ? 'expense' : 'income';
+  const memo   = (desc && desc !== '—') ? _escHtml(desc) : '';
 
-  if (isExpense) {
-    ringColor = 'var(--danger)';
-    iconSvg = `<svg viewBox="0 0 64 64" fill="none" stroke="var(--danger)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="68" height="68">
-      <circle cx="32" cy="32" r="28" stroke="rgba(255,69,58,.15)" stroke-width="1" fill="rgba(255,69,58,.07)" class="txn-sd txn-sd--1" style="--dl:176"/>
-      <line x1="32" y1="17" x2="32" y2="39" class="txn-sd txn-sd--2" style="--dl:22"/>
-      <polyline points="21,31 32,42 43,31" class="txn-sd txn-sd--3" style="--dl:30"/>
-      <line x1="22" y1="49" x2="42" y2="49" class="txn-sd txn-sd--4" style="--dl:20"/>
-    </svg>`;
-    particles = `<span class="txn-p txn-p-exp--1">$</span><span class="txn-p txn-p-exp--2">$</span><span class="txn-p txn-p-exp--3">$</span>`;
-  } else if (isTransfer) {
-    ringColor = 'var(--accent)';
-    iconSvg = `<svg viewBox="0 0 64 64" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="68" height="68">
-      <circle cx="32" cy="32" r="28" stroke="rgba(78,203,141,.15)" stroke-width="1" fill="rgba(78,203,141,.07)" class="txn-sd txn-sd--1" style="--dl:176"/>
-      <path d="M16 23 Q32 13 48 23" class="txn-sd txn-sd--2" style="--dl:46"/>
-      <polyline points="42,17 48,23 42,29" class="txn-sd txn-sd--3" style="--dl:14"/>
-      <path d="M48 41 Q32 51 16 41" class="txn-sd txn-sd--4" style="--dl:46"/>
-      <polyline points="22,35 16,41 22,47" class="txn-sd txn-sd--3" style="--dl:14"/>
-    </svg>`;
-    particles = '';
-  } else if (isPaycheck) {
-    ringColor = '#ffd60a';
-    iconSvg = `<svg viewBox="0 0 64 64" fill="none" stroke="#ffd60a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="68" height="68">
-      <circle cx="32" cy="32" r="28" stroke="rgba(255,214,10,.15)" stroke-width="1" fill="rgba(255,214,10,.07)" class="txn-sd txn-sd--1" style="--dl:176"/>
-      <circle cx="32" cy="32" r="10" class="txn-sd txn-sd--2" style="--dl:63"/>
-      <line x1="32" y1="10" x2="32" y2="17" class="txn-sd txn-sd--3" style="--dl:7"/>
-      <line x1="32" y1="47" x2="32" y2="54" class="txn-sd txn-sd--3" style="--dl:7"/>
-      <line x1="10" y1="32" x2="17" y2="32" class="txn-sd txn-sd--3" style="--dl:7"/>
-      <line x1="47" y1="32" x2="54" y2="32" class="txn-sd txn-sd--3" style="--dl:7"/>
-    </svg>`;
-    particles = `<span class="txn-p txn-p-inc--1">✦</span><span class="txn-p txn-p-inc--2">✦</span><span class="txn-p txn-p-inc--3">✦</span><span class="txn-p txn-p-inc--4">$</span><span class="txn-p txn-p-inc--5">$</span>`;
-  } else {
-    // income
-    ringColor = 'var(--success)';
-    iconSvg = `<svg viewBox="0 0 64 64" fill="none" stroke="var(--success)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="68" height="68">
-      <circle cx="32" cy="32" r="28" stroke="rgba(50,215,75,.15)" stroke-width="1" fill="rgba(50,215,75,.07)" class="txn-sd txn-sd--1" style="--dl:176"/>
-      <line x1="32" y1="47" x2="32" y2="25" class="txn-sd txn-sd--2" style="--dl:22"/>
-      <polyline points="21,33 32,22 43,33" class="txn-sd txn-sd--3" style="--dl:30"/>
-      <path d="M23 41 Q27.5 46 32 41 Q36.5 36 41 41" class="txn-sd txn-sd--4" style="--dl:28"/>
-    </svg>`;
-    particles = `<span class="txn-p txn-p-inc--1">✦</span><span class="txn-p txn-p-inc--2">✦</span><span class="txn-p txn-p-inc--3">✦</span>`;
-  }
+  // line delays (seconds) — memo line is optional, so timings shift when absent
+  const dMemo = memo ? '0.78s' : null;
+  const dBig  = memo ? '1.12s' : '0.78s';
+  const dMsg  = memo ? '1.46s' : '1.12s';
 
   const el = document.createElement('div');
   el.id        = 'txn-anim';
   el.className = `txn-anim txn-anim--${variant}`;
+  el.style.setProperty('--txn-accent', accent);
   el.innerHTML = `
-    <div class="txn-anim-card">
-      <div class="txn-anim-icon-wrap">
-        <div class="txn-ring txn-ring--a" style="color:${ringColor}"></div>
-        <div class="txn-ring txn-ring--b" style="color:${ringColor}"></div>
-        ${iconSvg}
-        ${particles}
+    <div class="txn-anim-card txn-term">
+      <div class="txn-term-bar">
+        <span class="txn-term-dot"></span><span class="txn-term-dot"></span><span class="txn-term-dot"></span>
+        <span class="txn-term-title">budgetdawgs:~$</span>
       </div>
-      <div class="txn-anim-headline">${headline}</div>
-      <div class="txn-anim-amount">${amtStr}</div>
-      ${desc && desc !== '—' ? `<div class="txn-anim-desc">${desc}</div>` : ''}
+      <div class="txn-term-body">
+        <div class="txn-tline" style="--d:.06s">&gt; auth session… <span class="txn-ok">ok</span></div>
+        <div class="txn-tline" style="--d:.42s">&gt; posting ${verb}… <span class="txn-ok">ok</span></div>
+        ${memo ? `<div class="txn-tline" style="--d:${dMemo}">&gt; memo: ${memo}</div>` : ''}
+        <div class="txn-tbig" style="--d:${dBig}"><span class="txn-tamt">${amtStr}</span><span class="txn-tcur">▋</span></div>
+        <div class="txn-tline txn-tmsg" style="--d:${dMsg}">// ${headline}</div>
+      </div>
       <div class="txn-anim-progress"><div class="txn-anim-progress-bar"></div></div>
     </div>`;
 

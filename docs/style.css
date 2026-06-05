@@ -2462,7 +2462,7 @@ textarea:focus-visible,
   overflow: hidden;
 }
 .acct-picker-header { padding: 0 0 22px; }
-.acct-picker-title { font-size: 2rem; font-weight: 800; letter-spacing: -.04em; color: var(--text); line-height: 1.1; }
+.acct-picker-title { font-size: 1.6rem; font-weight: 800; letter-spacing: -.04em; color: var(--text); line-height: 1.1; }
 .acct-picker-sub { font-size: .72rem; color: var(--muted); margin-top: 6px; letter-spacing: .06em; }
 .acct-picker-ver { font-size: .65rem; color: var(--muted); margin-top: 5px; letter-spacing: .04em; opacity: .7; }
 .acct-update-pill {
@@ -2549,10 +2549,10 @@ textarea:focus-visible,
 .acct-row-icon { width:28px; height:28px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .acct-row-icon svg { width:22px; height:22px; }
 .acct-row-info { flex:1; min-width:0; }
-.acct-row-name { font-size:1rem; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.acct-row-name { font-size:.92rem; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .acct-row-type { font-size:.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-top:3px; }
 .acct-row-right { text-align:right; flex-shrink:0; }
-.acct-row-bal { font-size:1.1rem; font-weight:800; line-height:1.2; }
+.acct-row-bal { font-size:1.02rem; font-weight:800; line-height:1.2; }
 .acct-row-chevron { font-size:1.5rem; color:var(--muted); flex-shrink:0; line-height:1; opacity:.45; padding-right:2px; }
 .acct-home-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:4px 9px; font-size:1rem; cursor:pointer; line-height:1; }
 .acct-picker-hero { min-height:120px !important; padding-bottom:16px; }
@@ -5582,6 +5582,71 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
 .txn-anim--paycheck .txn-anim-progress-bar { background: #ffd60a; }
 .txn-anim--transfer .txn-anim-progress-bar { background: var(--accent); }
 
+/* ── Terminal Boot variant ──────────────────────────────────────────────── */
+.txn-anim-card.txn-term {
+  padding: 0;
+  width: min(90vw, 350px);
+  align-items: stretch;
+  background: #0b0e0d;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--txn-accent, #4ecb8d) 32%, #23272a);
+  box-shadow: 0 28px 80px rgba(0,0,0,.78),
+              0 0 0 1px color-mix(in srgb, var(--txn-accent, #4ecb8d) 22%, transparent),
+              0 0 60px color-mix(in srgb, var(--txn-accent, #4ecb8d) 14%, transparent);
+  font-family: 'Cascadia Code', ui-monospace, 'SF Mono', Consolas, monospace;
+}
+.txn-term-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 13px; background: #121614;
+  border-bottom: 1px solid #1f2421;
+}
+.txn-term-dot { width: 9px; height: 9px; border-radius: 50%; background: #3a3f3d; }
+.txn-term-dot:nth-child(1) { background: #ff5f57; }
+.txn-term-dot:nth-child(2) { background: #febc2e; }
+.txn-term-dot:nth-child(3) { background: #28c840; }
+.txn-term-title { margin-left: 7px; font-size: .66rem; color: var(--muted); letter-spacing: .03em; }
+.txn-term-body {
+  position: relative; padding: 16px 16px 14px;
+  font-size: .9rem; line-height: 1.8; color: #cdd5d0;
+}
+/* scanlines */
+.txn-term-body::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0,0,0,.22) 2px 3px);
+  opacity: .5; mix-blend-mode: overlay;
+}
+.txn-tline {
+  white-space: nowrap; overflow: hidden; width: 0;
+  animation: txn-type .34s steps(26, end) var(--d, 0s) both;
+}
+@keyframes txn-type { from { width: 0; } to { width: 100%; } }
+.txn-ok { color: var(--success, #32d74b); }
+.txn-tbig {
+  display: flex; align-items: baseline; gap: 5px; margin-top: 9px;
+  opacity: 0; animation: txn-amt-in .55s steps(1, end) var(--d, 0s) both;
+}
+.txn-tamt {
+  font-size: 1.95rem; font-weight: 800; letter-spacing: .005em;
+  color: var(--txn-accent, #4ecb8d);
+}
+.txn-tcur {
+  font-size: 1.6rem; font-weight: 700; color: var(--txn-accent, #4ecb8d);
+  animation: txn-cur-blink .62s steps(1, end) infinite;
+}
+@keyframes txn-cur-blink { 50% { opacity: 0; } }
+.txn-tmsg { margin-top: 6px; color: var(--txn-accent, #4ecb8d); opacity: .72; font-size: .74rem; letter-spacing: .05em; }
+.txn-term .txn-anim-progress { width: 100%; margin: 0; border-radius: 0 0 16px 16px; }
+/* RGB-split glitch entrance for the amount line */
+@keyframes txn-amt-in {
+  0%   { opacity: 0; transform: translateX(0); }
+  9%   { opacity: 1; filter: brightness(1.9) drop-shadow(5px 0 0 rgba(255,48,48,.9)) drop-shadow(-5px 0 0 rgba(0,216,255,.9)); transform: translateX(-4px) skewX(-8deg); }
+  18%  { filter: brightness(2.1) drop-shadow(-6px 0 0 rgba(255,48,48,.75)) drop-shadow(6px 0 0 rgba(0,216,255,.75)); transform: translateX(3px) skewX(5deg); }
+  28%  { filter: none; transform: none; }
+  58%  { filter: brightness(1.6) drop-shadow(4px 0 0 rgba(0,216,255,.85)) drop-shadow(-4px 0 0 rgba(255,48,48,.8)); transform: translateX(-2px) skewX(4deg); }
+  64%  { filter: none; transform: none; }
+  100% { opacity: 1; filter: none; transform: none; }
+}
+
 /* Flying particles — positioned relative to icon-wrap */
 .txn-p {
   position: absolute;
@@ -6272,7 +6337,7 @@ body.theme-ubuntu .section-title::before {
   border-bottom: 1px solid var(--border) !important;
   border-radius: 0 !important;
   margin: 0 14px !important;
-  padding: 13px 0 !important;
+  padding: 18px 0 !important;
 }
 .acct-row::after { display: none !important; }
 .acct-list .acct-row:last-child { border-bottom: none !important; }
@@ -6320,16 +6385,17 @@ body.theme-ubuntu .section-title::before {
 }
 .acct-qa-btn {
   width: 100%;
-  padding: 15px 0;
+  padding: 12px 0;
   background: var(--accent);
-  border: none; border-radius: 16px;
+  border: none; border-radius: 14px;
   color: #0a0a0b;
-  font-size: .95rem; font-weight: 800; font-family: inherit;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: .86rem; font-weight: 800; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
   cursor: pointer; pointer-events: all;
-  box-shadow: 0 4px 18px rgba(78,203,141,.3);
+  box-shadow: 0 4px 16px rgba(78,203,141,.28);
   transition: transform .1s ease, opacity .1s ease;
 }
+.acct-qa-btn svg { width: 16px; height: 16px; }
 .acct-qa-btn:active { transform: scale(.97); opacity: .9; }
 
 /* ── Fast-add bottom sheet ── */
