@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<title>Budget DAWGs — Sleek & Modern Mockups</title>
+<style>
+  :root{
+    --bg:#0a0a0b; --surface:#141417; --surface2:#1d1d22; --border:#2a2a31;
+    --text:#f2f2f5; --muted:#8a8a93; --accent:#4ecb8d; --accent2:#5ef0c0;
+    --danger:#ff453a; --gold:#ffd60a; --blue:#5e9bf0; --purple:#a78bfa;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:radial-gradient(120% 80% at 50% -10%,#15191b 0%,var(--bg) 60%);
+    color:var(--text);font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',sans-serif;
+    -webkit-font-smoothing:antialiased;padding:22px 16px 60px}
+  h1{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:.82rem;margin:0 0 20px;line-height:1.5}
+  .sub b{color:var(--accent2)}
+  .grid{display:grid;gap:16px}
+  .opt{background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+  .opt-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:15px 16px 0}
+  .opt-name{font-size:1rem;font-weight:800}
+  .opt-tag{font-size:.6rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:4px 9px;border-radius:99px;flex-shrink:0;color:var(--accent2);background:rgba(94,240,192,.12)}
+  .opt-desc{padding:6px 16px 0;color:var(--muted);font-size:.76rem;line-height:1.45}
+  .stage{position:relative;height:260px;margin:14px 12px;border-radius:18px;overflow:hidden;background:#0c0e10;border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
+  .replay{display:block;width:calc(100% - 24px);margin:0 12px 14px;padding:11px;border-radius:12px;background:var(--surface2);color:var(--text);font:800 .82rem inherit;cursor:pointer;border:1px solid var(--border);transition:.12s}
+  .replay:active{transform:scale(.98)}.replay:hover{border-color:var(--accent2);color:var(--accent2)}
+  .mono{font-family:'Cascadia Code',ui-monospace,monospace}
+
+  /* 1 · Count-up + aurora hero */
+  .hero{position:relative;width:86%;height:150px;border-radius:20px;overflow:hidden;border:1px solid #1d3a2c;background:#0c1310;display:flex;flex-direction:column;justify-content:center;padding:20px}
+  .hero .blob{position:absolute;border-radius:50%;filter:blur(34px);opacity:.55;mix-blend-mode:screen}
+  .hero .b1{width:160px;height:160px;background:var(--accent);left:-40px;top:-50px;animation:drift1 7s ease-in-out infinite}
+  .hero .b2{width:150px;height:150px;background:var(--blue);right:-40px;bottom:-50px;animation:drift2 9s ease-in-out infinite}
+  .hero .b3{width:120px;height:120px;background:var(--purple);right:60px;top:-40px;animation:drift1 11s ease-in-out infinite reverse}
+  @keyframes drift1{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,24px)}}
+  @keyframes drift2{0%,100%{transform:translate(0,0)}50%{transform:translate(-26px,-20px)}}
+  .hero .lbl{position:relative;font-size:.62rem;letter-spacing:.18em;color:#bfe9d6;font-weight:800}
+  .hero .val{position:relative;font-size:2.5rem;font-weight:800;margin-top:4px;letter-spacing:-.02em}
+  .hero .sb{position:relative;font-size:.74rem;color:#8fc7ad;margin-top:2px}
+
+  /* 2 · Gradient rings */
+  .rings{display:flex;gap:22px}
+  .ring{position:relative;width:96px;text-align:center}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .pct{position:absolute;top:34px;left:0;right:0;font-size:1.1rem;font-weight:800}
+  .ring .nm{font-size:.66rem;color:var(--muted);letter-spacing:.08em;margin-top:6px;text-transform:uppercase}
+
+  /* 3 · Bento grid */
+  .bento{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:58px;gap:9px;width:90%}
+  .tile{border-radius:14px;background:linear-gradient(150deg,#16181d,#101216);border:1px solid #23262d;padding:10px 12px;position:relative;overflow:hidden;opacity:0;transform:translateY(10px);animation:tileIn .5s cubic-bezier(.2,1,.3,1) both}
+  .tile .t-l{font-size:.56rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+  .tile .t-v{font-size:1.05rem;font-weight:800;margin-top:2px}
+  .tile.big{grid-row:span 2;background:radial-gradient(120% 100% at 0% 0%,#13241d,#0e1114)}
+  .tile.accent .t-v{color:var(--accent)}
+  .tile.glow{box-shadow:inset 0 0 0 1px rgba(78,203,141,.3),0 0 22px rgba(78,203,141,.12)}
+  @keyframes tileIn{to{opacity:1;transform:none}}
+
+  /* 4 · Skeleton shimmer */
+  .skel{width:88%;display:flex;flex-direction:column;gap:12px}
+  .sk{height:18px;border-radius:7px;background:#191b1f;position:relative;overflow:hidden}
+  .sk.w1{width:60%}.sk.w2{width:90%}.sk.w3{width:40%}.sk.big{height:46px;border-radius:12px}
+  .sk::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(94,240,192,.13),transparent);transform:translateX(-100%);animation:shimmer 1.3s infinite}
+  @keyframes shimmer{to{transform:translateX(100%)}}
+
+  /* 5 · Sparkline */
+  .spark{width:90%}
+  .spark .cap{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .spark .cap .v{font-size:1.6rem;font-weight:800}
+  .spark .cap .d{font-size:.72rem;color:var(--accent);font-weight:700}
+  .spark svg{width:100%;display:block}
+  .spark .ln{fill:none;stroke:url(#sg);stroke-width:2.5;stroke-linecap:round;stroke-dasharray:1000;stroke-dashoffset:1000;animation:draw 1.3s ease forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  .spark .dot{opacity:0;animation:dotIn .3s ease 1.1s forwards}
+  @keyframes dotIn{to{opacity:1}}
+  .spark .dot circle{animation:pulse 1.6s ease-out 1.3s infinite}
+  @keyframes pulse{0%{r:4}50%{r:6}100%{r:4}}
+
+  /* 6 · Segmented control */
+  .seg-demo{display:flex;flex-direction:column;align-items:center;gap:18px}
+  .seg{position:relative;display:flex;background:#16181d;border:1px solid var(--border);border-radius:12px;padding:4px}
+  .seg button{position:relative;z-index:2;border:none;background:none;color:var(--muted);font:700 .8rem inherit;padding:8px 16px;border-radius:9px;cursor:pointer;transition:color .2s}
+  .seg button.on{color:#08120d}
+  .seg .pill{position:absolute;z-index:1;top:4px;bottom:4px;border-radius:9px;background:var(--accent);transition:left .32s cubic-bezier(.3,1.3,.4,1),width .32s cubic-bezier(.3,1.3,.4,1);box-shadow:0 2px 12px rgba(78,203,141,.4)}
+
+  /* 7 · Goal celebration */
+  .cel{position:relative;text-align:center}
+  .cel svg{transform:rotate(-90deg)}
+  .cel .mid{position:absolute;top:50%;left:0;right:0;transform:translateY(-60%);font-size:.62rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  .cel .mid b{display:block;font-size:1.3rem;color:var(--accent);letter-spacing:0;margin-top:2px}
+  .conf{position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:2px;opacity:0}
+  .cel.go .conf{animation:conf .9s ease-out forwards}
+  @keyframes conf{0%{opacity:1;transform:translate(-50%,-50%) translate(0,0) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) translate(var(--cx),var(--cy)) scale(.3) rotate(var(--cr))}}
+
+  /* 8 · Tactile keypad */
+  .kp{display:grid;grid-template-columns:repeat(3,62px);gap:10px}
+  .kp .k{height:52px;border-radius:14px;background:linear-gradient(180deg,#202329,#171a1e);border:1px solid #2b2f37;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;box-shadow:0 2px 0 #0c0d10,inset 0 1px 0 rgba(255,255,255,.05);transition:transform .08s,box-shadow .08s;cursor:pointer}
+  .kp .k:active,.kp .k.press{transform:translateY(2px);box-shadow:0 0 0 #0c0d10,inset 0 1px 0 rgba(255,255,255,.05),0 0 16px rgba(78,203,141,.3);border-color:var(--accent)}
+</style>
+</head>
+<body>
+  <h1>Sleek &amp; modern ideas</h1>
+  <p class="sub">Polish concepts that fit your dark + <b>neon-green</b> aesthetic. Tap Replay on any to see the motion. Tell me which to build into the real app.</p>
+
+  <div class="grid">
+    <div class="opt"><div class="opt-hd"><span class="opt-name">1 · Aurora hero + count-up</span><span class="opt-tag">Dashboard</span></div>
+      <div class="opt-desc">Soft animated gradient blobs drift behind the net-worth card while the figure counts up. Premium, alive — not static.</div>
+      <div class="stage" id="s1"></div><button class="replay" data-k="1">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">2 · Gradient progress rings</span><span class="opt-tag">Budget / Goals</span></div>
+      <div class="opt-desc">Replace flat bars with glowing gradient rings that sweep to their value. Great for budget %, goals, weekly spend.</div>
+      <div class="stage" id="s2"></div><button class="replay" data-k="2">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">3 · Bento dashboard</span><span class="opt-tag">Layout</span></div>
+      <div class="opt-desc">A modern bento grid — mixed tile sizes, subtle gradients, one accent-glow hero tile. Cleaner than a stack of equal cards.</div>
+      <div class="stage" id="s3"></div><button class="replay" data-k="3">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">4 · Skeleton shimmer</span><span class="opt-tag">Loading</span></div>
+      <div class="opt-desc">While data loads, show shimmering placeholders instead of a blank screen or spinner. Feels instant and intentional.</div>
+      <div class="stage" id="s4"></div><button class="replay" data-k="4">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">5 · Animated sparkline</span><span class="opt-tag">Balance</span></div>
+      <div class="opt-desc">Balance trend draws itself in with a gradient line + soft area fill and a pulsing end dot. Modern fintech staple.</div>
+      <div class="stage" id="s5"></div><button class="replay" data-k="5">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">6 · Sliding segmented control</span><span class="opt-tag">Toggles</span></div>
+      <div class="opt-desc">The 1W / 1M / 3M / 1Y range switch gets a springy sliding pill instead of hard state swaps. Tap the options.</div>
+      <div class="stage" id="s6"></div><button class="replay" data-k="6">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">7 · Goal-hit celebration</span><span class="opt-tag">Delight</span></div>
+      <div class="opt-desc">When a goal ring fills to 100%, it bursts confetti and stamps GOAL HIT. A reward moment worth chasing.</div>
+      <div class="stage" id="s7"></div><button class="replay" data-k="7">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">8 · Tactile keypad</span><span class="opt-tag">Amount entry</span></div>
+      <div class="opt-desc">A chunky, glowing number pad for entering amounts — keys depress with an accent glow. Tap them.</div>
+      <div class="stage" id="s8"></div><button class="replay" data-k="8">▶ Replay</button></div>
+  </div>
+
+<script>
+  function ring(pct,color,size=96,sw=9){
+    const r=(size-sw)/2, c=2*Math.PI*r, off=c*(1-pct/100);
+    const id='g'+Math.floor(pct*97%9973);
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="${color[0]}"/><stop offset="1" stop-color="${color[1]}"/></linearGradient></defs>
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#23262d" stroke-width="${sw}"/>
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="url(#${id})" stroke-width="${sw}" stroke-linecap="round"
+        stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${c.toFixed(1)}"
+        style="filter:drop-shadow(0 0 5px ${color[1]}88);animation:ringFill 1.1s cubic-bezier(.3,1,.4,1) .1s forwards">
+      </circle></svg><style>@keyframes ringFill{to{stroke-dashoffset:${off.toFixed(1)}}}</style>`;
+  }
+  function countUp(el,target,prefix='$'){
+    const t0=performance.now(),dur=1100;
+    (function tick(now){const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,3);
+      el.textContent=prefix+(target*e).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+      if(p<1)requestAnimationFrame(tick);})(t0);
+  }
+
+  function play(k){
+    const st=document.getElementById('s'+k); st.innerHTML='';
+    if(k==='1'){
+      const w=document.createElement('div');w.className='hero';
+      w.innerHTML=`<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+        <div class="lbl">NET WORTH</div><div class="val" id="nwv">$0.00</div><div class="sb">▲ 4.2% this month</div>`;
+      st.appendChild(w);countUp(w.querySelector('#nwv'),48210.55);
+    }
+    else if(k==='2'){
+      const w=document.createElement('div');w.className='rings';
+      w.innerHTML=`
+        <div class="ring">${ring(72,['#4ecb8d','#5ef0c0'])}<div class="pct">72%</div><div class="nm">Budget</div></div>
+        <div class="ring">${ring(45,['#5e9bf0','#a78bfa'])}<div class="pct">45%</div><div class="nm">Goal</div></div>
+        <div class="ring">${ring(88,['#ffd60a','#ff9f0a'])}<div class="pct">88%</div><div class="nm">Week</div></div>`;
+      st.appendChild(w);
+    }
+    else if(k==='3'){
+      const w=document.createElement('div');w.className='bento';
+      const tiles=[
+        ['big accent glow','Balance','$12,480'],['','This week','$284'],['','Bills due','3'],
+        ['accent','Saved','$1,950'],['','Streak','12d']];
+      w.innerHTML=tiles.map((t,i)=>`<div class="tile ${t[0]}" style="animation-delay:${i*70}ms"><div class="t-l">${t[1]}</div><div class="t-v">${t[2]}</div></div>`).join('');
+      st.appendChild(w);
+    }
+    else if(k==='4'){
+      const w=document.createElement('div');w.className='skel';
+      w.innerHTML=`<div class="sk big"></div><div class="sk w2"></div><div class="sk w1"></div><div class="sk w3"></div><div class="sk w2"></div>`;
+      st.appendChild(w);
+    }
+    else if(k==='5'){
+      const pts=[6,5.4,5.8,4.9,5.6,4.2,5.0,3.6,4.4,3.0,3.8,2.6];
+      const W=300,H=110,max=6,min=2.2;
+      const path=pts.map((v,i)=>`${(i/(pts.length-1)*W).toFixed(1)},${(H-((v-min)/(max-min))*H).toFixed(1)}`);
+      const d='M'+path.join(' L');
+      const area=`M0,${H} L`+path.join(' L')+` L${W},${H} Z`;
+      const lx=W, ly=(H-((pts[pts.length-1]-min)/(max-min))*H).toFixed(1);
+      const w=document.createElement('div');w.className='spark';
+      w.innerHTML=`<div class="cap"><span class="v">$12,480</span><span class="d mono">▲ 18% · 90d</span></div>
+        <svg viewBox="0 0 ${W} ${H+6}" preserveAspectRatio="none">
+          <defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4ecb8d"/><stop offset="1" stop-color="#5ef0c0"/></linearGradient>
+          <linearGradient id="sa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4ecb8d" stop-opacity=".28"/><stop offset="1" stop-color="#4ecb8d" stop-opacity="0"/></linearGradient></defs>
+          <path d="${area}" fill="url(#sa)" opacity="0" style="animation:dotIn .5s ease .6s forwards"/>
+          <path class="ln" d="${d}"/>
+          <g class="dot"><circle cx="${lx}" cy="${ly}" r="4" fill="#5ef0c0" style="filter:drop-shadow(0 0 6px #5ef0c0)"/></g>
+        </svg>`;
+      st.appendChild(w);
+    }
+    else if(k==='6'){
+      const w=document.createElement('div');w.className='seg-demo';
+      const labels=['1W','1M','3M','1Y'];
+      w.innerHTML=`<div class="seg" id="seg6"><span class="pill"></span>${labels.map((l,i)=>`<button class="${i===1?'on':''}">${l}</button>`).join('')}</div><div class="mono" style="color:var(--muted);font-size:.72rem">tap a range →</div>`;
+      st.appendChild(w);
+      const seg=w.querySelector('#seg6'),pill=seg.querySelector('.pill'),btns=[...seg.querySelectorAll('button')];
+      const move=b=>{pill.style.left=b.offsetLeft+'px';pill.style.width=b.offsetWidth+'px';btns.forEach(x=>x.classList.remove('on'));b.classList.add('on');};
+      btns.forEach(b=>b.addEventListener('click',()=>move(b)));
+      requestAnimationFrame(()=>move(btns[1]));
+    }
+    else if(k==='7'){
+      const w=document.createElement('div');w.className='cel';
+      let conf='';const cols=['#4ecb8d','#5ef0c0','#ffd60a','#5e9bf0','#a78bfa'];
+      for(let i=0;i<18;i++){const a=(i/18)*Math.PI*2,dist=70+Math.random()*40;
+        conf+=`<span class="conf" style="--cx:${(Math.cos(a)*dist).toFixed(0)}px;--cy:${(Math.sin(a)*dist).toFixed(0)}px;--cr:${(Math.random()*360).toFixed(0)}deg;background:${cols[i%cols.length]};animation-delay:${(i*0.01).toFixed(2)}s"></span>`;}
+      w.innerHTML=`${ring(100,['#4ecb8d','#5ef0c0'],130,11)}<div class="mid">Emergency Fund<b>GOAL HIT 🎉</b></div>${conf}`;
+      st.appendChild(w);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>w.classList.add('go')));
+    }
+    else{
+      const w=document.createElement('div');w.className='kp';
+      w.innerHTML=[1,2,3,4,5,6,7,8,9,'.',0,'⌫'].map(n=>`<div class="k">${n}</div>`).join('');
+      st.appendChild(w);
+      const keys=[...w.querySelectorAll('.k')];
+      keys.forEach(k=>k.addEventListener('pointerdown',()=>{k.classList.add('press');setTimeout(()=>k.classList.remove('press'),120);}));
+      // demo press sequence
+      [0,1,4,9].forEach((idx,i)=>setTimeout(()=>{const el=keys[idx];el.classList.add('press');setTimeout(()=>el.classList.remove('press'),140);},400+i*260));
+    }
+  }
+  document.querySelectorAll('.replay').forEach(b=>b.addEventListener('click',()=>play(b.dataset.k)));
+  ['1','2','3','4','5','6','7','8'].forEach(play);
+</script>
+</body>
+</html>
