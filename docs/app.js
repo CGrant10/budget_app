@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.34.0';
+const VERSION = '5.34.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.34.1', date: '2026-06-05', changes: [
+    'Fix: swiping left/right on the accounts overview no longer accidentally changes tabs',
+    'Fix: nav bar now correctly highlights Dashboard after switching into an account',
+  ]},
   { version: '5.34.0', date: '2026-06-05', changes: [
     'Hybrid look: Notes & Reminders is now a calm hairline list to match Bills, Goals, Debt and the ledger. Overdue and due-today notes keep a faint colored wash so they still stand out at a glance',
   ]},
@@ -2224,6 +2228,11 @@ const api = {
     _loadAccountData(id);
     updateAccountSwitcher();
     currentTab = 'dashboard'; // always land on dashboard when switching accounts
+    // Sync nav active states — switchAccount bypasses showTab() so we do it here
+    document.querySelectorAll('.nav-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.tab === 'dashboard'));
+    document.querySelectorAll('.dawg-nav-btn[data-tab]').forEach(b =>
+      b.classList.toggle('dawg-nav-active', b.dataset.tab === 'dashboard'));
     render();
   },
   async addAccount(name, type) {
@@ -10962,6 +10971,8 @@ window.addEventListener('popstate', () => {
         swipeTouchTarget = e.target;
       }, { passive: true });
       mc.addEventListener('touchend', e => {
+        // Never swipe tabs when the accounts overview or an account is showing
+        if (showingAccountPicker) return;
         // Never swipe tabs when the gesture started on a ledger row (has its own swipe-to-delete)
         if (swipeTouchTarget?.closest('.ledger-row')) return;
         // Never swipe tabs when the gesture started on a range slider
