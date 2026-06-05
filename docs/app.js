@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.35.1';
+const VERSION = '5.36.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.36.0', date: '2026-06-05', changes: [
+    'Dashboard sparkline now defaults to ALL — your full balance history as one continuous line flowing month to month',
+    'Month boundary markers: subtle vertical hairlines with a month label (Jan, Feb…) appear where each month starts on the graph',
+  ]},
   { version: '5.35.1', date: '2026-06-05', changes: [
     'Removed CRT scanline overlay — cleaner look across all themes',
   ]},
@@ -9413,6 +9417,7 @@ function attachDashboardDawg() {
     const _DRAW_MS = 2200;  // ms per left→right pass
     const _easeIO  = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
 
+    const _MON_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const _pulsePlugin = {
       id: 'dawgPulse',
       afterInit(chart) {
@@ -9439,6 +9444,36 @@ function attachDashboardDawg() {
         const h       = (chartArea.bottom - chartArea.top) + 12;
         const y0      = chartArea.top - 6;
 
+        // Month boundary markers — subtle vertical hairlines with month label
+        // labels are "MM-DD" strings; draw a marker wherever the month number changes
+        const pts = meta.data;
+        if (labels.length > 1) {
+          let prevMo = labels[0].slice(0, 2);
+          for (let i = 1; i < labels.length; i++) {
+            const mo = labels[i].slice(0, 2);
+            if (mo !== prevMo && pts[i]) {
+              const mx = pts[i].getProps(['x'], true).x;
+              // Hairline
+              c.save();
+              c.strokeStyle = 'rgba(255,255,255,.09)';
+              c.lineWidth = 1;
+              c.setLineDash([3, 5]);
+              c.beginPath();
+              c.moveTo(mx, chartArea.top);
+              c.lineTo(mx, chartArea.bottom);
+              c.stroke();
+              // Month label
+              const moIdx = parseInt(mo, 10) - 1;
+              c.font = '500 9px "Plus Jakarta Sans", sans-serif';
+              c.fillStyle = 'rgba(110,110,115,.7)';
+              c.textAlign = 'center';
+              c.fillText(_MON_ABBR[moIdx] || mo, mx, chartArea.bottom + 10);
+              c.restore();
+            }
+            prevMo = mo;
+          }
+        }
+
         // Overwrite effect: fade the undrawn right portion proportional to how far
         // through the pass we are — new line overwrites old, old slowly ghosts away
         c.save();
@@ -9448,7 +9483,6 @@ function attachDashboardDawg() {
         c.restore();
 
         // Dot at the current draw tip
-        const pts  = meta.data;
         const total = pts.length - 1;
         const pos   = phase * total;
         const i0    = Math.min(Math.floor(pos), total - 1);
@@ -9489,7 +9523,10 @@ function attachDashboardDawg() {
       buildSparkline(btn.dataset.range);
     });
   });
-  buildSparkline('1m');
+  // Default to ALL so the graph shows the full balance history as one continuous line
+  document.querySelectorAll('.dawg-tbtn').forEach(b =>
+    b.classList.toggle('dawg-tbtn-active', b.dataset.range === 'all'));
+  buildSparkline('all');
 
 }
 

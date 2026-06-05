@@ -2774,7 +2774,7 @@ textarea:focus-visible,
 .dawg-due-body { display:flex; align-items:baseline; justify-content:space-between; margin-top:6px; }
 .dawg-due-date { font-size:1rem; font-weight:700; color:var(--text); }
 .dawg-due-apr  { font-size:.72rem; color:var(--muted); font-weight:600; }
-.dawg-sparkline-wrap { height:80px; margin-bottom:10px; }
+.dawg-sparkline-wrap { height:94px; margin-bottom:10px; }
 .dawg-time-btns { display:flex; gap:4px; }
 .dawg-tbtn {
   flex:1; padding:5px 2px; font-size:.68rem; font-weight:700; letter-spacing:.04em;
