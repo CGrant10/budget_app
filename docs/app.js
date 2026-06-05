@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.42.1';
+const VERSION = '5.43.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,12 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.0', date: '2026-06-05', changes: [
+    'Dashboard time-range switch (1W/1M/3M/6M/1Y/ALL) is now a sliding segmented control — a springy accent pill glides to the selected range',
+    'Bento dashboard — tile grid restyled with richer gradient surfaces and an accent glow on the budget stat tiles, keeping the HUD corner accents',
+    'Account switching shows a brief shimmer placeholder so a new account\'s data feels like it loads in',
+    'Lock screen keypad redesigned — chunky tactile keys that depress with an accent glow, and the PIN dots glow as you type',
+  ]},
   { version: '5.42.1', date: '2026-06-05', changes: [
     'Quick-add sheet: the phone back button now closes it instead of leaving the page',
     'Quick-add sheet feels lighter — softer backdrop, less blur, tighter spacing, smaller amount field, and a height cap so it no longer takes over the whole screen',
@@ -2250,7 +2256,7 @@ const api = {
     }
     _loadAccountData(currentAccountId);
   },
-  async switchAccount(id) {
+  async switchAccount(id, useSkeleton = false) {
     currentAccountId = id;
     _loadAccountData(id);
     _calcVer++; // new account's transactions — invalidate memos
@@ -2261,6 +2267,11 @@ const api = {
       b.classList.toggle('active', b.dataset.tab === 'dashboard'));
     document.querySelectorAll('.dawg-nav-btn[data-tab]').forEach(b =>
       b.classList.toggle('dawg-nav-active', b.dataset.tab === 'dashboard'));
+    // In-app switches show a brief shimmer so the new account's data feels loaded
+    if (useSkeleton) {
+      const _m = document.getElementById('main-content');
+      if (_m) { _pageTransition = 'fade'; _m.innerHTML = _dawgSkeleton(); await new Promise(r => setTimeout(r, 260)); }
+    }
     render();
   },
   async addAccount(name, type) {
@@ -4221,6 +4232,7 @@ function renderRetirementDashboard(acct) {
       </div>` : ''}
       <div class="dawg-sparkline-wrap ret-spark-wrap"><canvas id="dawg-sparkline"></canvas></div>
       <div class="dawg-time-btns ret-time-btns">
+        <span class="dawg-tbtn-pill"></span>
         <button class="dawg-tbtn" data-range="1w">1W</button>
         <button class="dawg-tbtn dawg-tbtn-active" data-range="1m">1M</button>
         <button class="dawg-tbtn" data-range="3m">3M</button>
@@ -4612,6 +4624,19 @@ function enterDashEditMode() {
 }
 
 // ── DAWG dashboard layout ──────────────────────────────────────────────────
+// Shimmer placeholder shown briefly while switching accounts — mirrors the dashboard shape
+function _dawgSkeleton() {
+  return `<div class="dawg-skel">
+    <div class="skbar" style="height:158px;margin-bottom:10px"></div>
+    <div class="skbar-grid">
+      <div class="skbar" style="height:92px"></div>
+      <div class="skbar" style="height:92px"></div>
+      <div class="skbar skbar-full" style="height:132px"></div>
+      <div class="skbar skbar-full" style="height:120px"></div>
+    </div>
+  </div>`;
+}
+
 function renderDashboardDawg() {
   const _curAcctD = state.accounts.find(a => a.id === currentAccountId);
   const _isDebt   = _curAcctD?.type === 'credit' || _curAcctD?.type === 'loan';
@@ -4874,6 +4899,7 @@ function renderDashboardDawg() {
       ${isPastDash ? '' : '<button id="dash-reconcile" class="dash-reconcile-btn"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Reconcile to bank</button>'}
       <div class="dawg-sparkline-wrap"><canvas id="dawg-sparkline"></canvas></div>
       <div class="dawg-time-btns">
+        <span class="dawg-tbtn-pill"></span>
         <button class="dawg-tbtn" data-range="1w">1W</button>
         <button class="dawg-tbtn dawg-tbtn-active" data-range="1m">1M</button>
         <button class="dawg-tbtn" data-range="3m">3M</button>
@@ -9289,7 +9315,7 @@ function toggleDawgAcctDropdown() {
     btn.addEventListener('click', async () => {
       panel.classList.add('hidden');
       if (btn.dataset.id !== currentAccountId) {
-        await api.switchAccount(btn.dataset.id);
+        await api.switchAccount(btn.dataset.id, true);
       }
     });
   });
@@ -9561,14 +9587,25 @@ function attachDashboardDawg() {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.dawg-tbtn').forEach(b => b.classList.remove('dawg-tbtn-active'));
       btn.classList.add('dawg-tbtn-active');
+      _moveTbtnPill();
       buildSparkline(btn.dataset.range);
     });
   });
   // Default to ALL so the graph shows the full balance history as one continuous line
   document.querySelectorAll('.dawg-tbtn').forEach(b =>
     b.classList.toggle('dawg-tbtn-active', b.dataset.range === 'all'));
+  requestAnimationFrame(_moveTbtnPill);
   buildSparkline('all');
 
+}
+
+// Slide the segmented-control pill under the active range button (per container)
+function _moveTbtnPill() {
+  document.querySelectorAll('.dawg-time-btns').forEach(c => {
+    const pill = c.querySelector('.dawg-tbtn-pill');
+    const act  = c.querySelector('.dawg-tbtn-active');
+    if (pill && act) { pill.style.left = act.offsetLeft + 'px'; pill.style.width = act.offsetWidth + 'px'; }
+  });
 }
 
 // ── Fast-add bottom sheet ──────────────────────────────────────────────────
@@ -11276,7 +11313,7 @@ window.addEventListener('popstate', () => {
     // web fonts are ready, so the first measurement uses the fallback font width.
     updateAccountSwitcher();
     document.getElementById('account-switcher')?.addEventListener('change', async e => {
-      await api.switchAccount(e.target.value);
+      await api.switchAccount(e.target.value, true);
     });
     if (state.accounts.length > 1) showingAccountPicker = true;
     // Seed base history entry — back button will hit popstate with an empty stack and exit cleanly
