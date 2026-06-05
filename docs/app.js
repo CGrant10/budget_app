@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.35.0';
+const VERSION = '5.35.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.35.1', date: '2026-06-05', changes: [
+    'Removed CRT scanline overlay — cleaner look across all themes',
+  ]},
   { version: '5.35.0', date: '2026-06-05', changes: [
     'Weekly planner: month sections are now collapsible — tap the month header to expand or collapse. Past months start collapsed so the current month is front and centre',
   ]},
