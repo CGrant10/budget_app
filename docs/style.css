@@ -6365,8 +6365,9 @@ body.theme-ubuntu .section-title::before {
   color: var(--muted); font-size: .82rem; font-weight: 700;
   font-family: inherit; cursor: pointer; transition: background .12s, color .12s, border-color .12s;
 }
-.fas-expense-active { background: rgba(255,69,58,.12); border-color: rgba(255,69,58,.4); color: var(--danger); }
-.fas-income-active  { background: rgba(50,215,75,.12);  border-color: rgba(50,215,75,.4);  color: var(--success); }
+.fas-expense-active  { background: rgba(255,69,58,.12); border-color: rgba(255,69,58,.4); color: var(--danger); }
+.fas-income-active   { background: rgba(50,215,75,.12);  border-color: rgba(50,215,75,.4);  color: var(--success); }
+.fas-transfer-active { background: rgba(78,203,141,.14); border-color: var(--accent);       color: var(--accent); }
 .fas-amount-row {
   display: flex; align-items: center;
   border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 14px;
@@ -6377,25 +6378,52 @@ body.theme-ubuntu .section-title::before {
   font-size: 2.4rem; font-weight: 800; color: var(--text);
   font-family: inherit; font-variant-numeric: tabular-nums; min-width: 0;
 }
+/* Labelled field group (account picker / category) */
+.fas-field { margin-bottom: 14px; }
+.fas-label {
+  display: block; font-size: .72rem; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+}
+/* Account picker chips (from / to) */
+.fas-accts {
+  display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.fas-accts::-webkit-scrollbar { display: none; }
+.fas-acct-chip {
+  flex-shrink: 0; padding: 9px 15px; border-radius: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-size: .85rem; font-weight: 700;
+  font-family: inherit; cursor: pointer; white-space: nowrap;
+  transition: background .1s, color .1s, border-color .1s;
+}
+.fas-acct-active { background: rgba(78,203,141,.16); border-color: var(--accent); color: var(--accent); }
+.fas-field.fas-shake { animation: fasShake .42s; }
+@keyframes fasShake {
+  0%,100% { transform: translateX(0); }
+  20%,60% { transform: translateX(-6px); }
+  40%,80% { transform: translateX(6px); }
+}
 .fas-cats {
-  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px;
+  display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px;
   scrollbar-width: none;
 }
 .fas-cats::-webkit-scrollbar { display: none; }
 .fas-cat-chip {
-  flex-shrink: 0; padding: 6px 13px; border-radius: 20px;
+  flex-shrink: 0; padding: 8px 14px; border-radius: 20px;
   background: var(--surface2); border: 1px solid var(--border);
-  color: var(--muted); font-size: .74rem; font-weight: 700;
+  color: var(--text); font-size: .82rem; font-weight: 700;
   font-family: inherit; cursor: pointer; white-space: nowrap;
   transition: background .1s, color .1s, border-color .1s;
 }
-.fas-cat-active { background: rgba(78,203,141,.13); border-color: var(--accent); color: var(--accent); }
+.fas-cat-active { background: rgba(78,203,141,.16); border-color: var(--accent); color: var(--accent); }
 .fas-desc-input {
   width: 100%; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 11px 14px; font-size: .85rem;
+  border-radius: 12px; padding: 13px 15px; font-size: .95rem;
   color: var(--text); font-family: inherit; margin-bottom: 14px;
   outline: none; -webkit-user-select: text; user-select: text;
 }
+.fas-desc-input:focus { border-color: var(--accent); }
 .fas-desc-input::placeholder { color: var(--muted); }
 .fas-submit-btn {
   width: 100%; padding: 14px; font-size: 1rem; font-weight: 800;

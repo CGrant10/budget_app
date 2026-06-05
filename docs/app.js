@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.38.1';
+const VERSION = '5.39.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.39.0', date: '2026-06-05', changes: [
+    'Quick-add (Track a Transaction) now lets you pick which account the expense or income goes to — an Account row of chips, defaulting to your current account',
+    'Quick-add gained a Transfer type: choose a From and To account to move money (or pay down a credit/loan) without leaving the sheet',
+    'Quick-add readability: larger account/category chips, a bigger description field with an accent focus ring, and clear uppercase section labels',
+  ]},
   { version: '5.38.1', date: '2026-06-05', changes: [
     'Moved Track Transaction button to the accounts overview page — full-width sticky bar at the bottom, reachable by either thumb. Removed the floating FAB from the dashboard.',
   ]},
@@ -9583,6 +9588,13 @@ function _showFastAdd() {
   if (document.getElementById('fast-add-sheet')) return;
   const cats     = getCategories();
   const todayStr = today();
+  const accounts = state.accounts || [];
+  const multiAcct = accounts.length > 1;
+
+  // Account chips for a picker; `selId` is highlighted (null = none selected yet)
+  const acctChips = (selId) => accounts.map(a =>
+    `<button class="fas-acct-chip${a.id === selId ? ' fas-acct-active' : ''}" data-acct="${a.id}">${a.name}</button>`
+  ).join('');
 
   const overlay = document.createElement('div');
   overlay.id        = 'fast-add-overlay';
@@ -9594,14 +9606,27 @@ function _showFastAdd() {
       <div class="fas-type-row">
         <button class="fas-type-btn fas-expense-active" data-type="expense">Expense</button>
         <button class="fas-type-btn" data-type="income">Income</button>
+        ${multiAcct ? `<button class="fas-type-btn" data-type="transfer">Transfer</button>` : ''}
       </div>
       <div class="fas-amount-row">
         <span class="fas-currency">$</span>
         <input type="number" id="fas-amount" class="fas-amount-input" placeholder="0.00"
                inputmode="decimal" step="0.01" min="0" autocomplete="off">
       </div>
-      <div class="fas-cats" id="fas-cats">
-        ${cats.map((c, i) => `<button class="fas-cat-chip${i === 0 ? ' fas-cat-active' : ''}" data-cat="${c}">${c}</button>`).join('')}
+      ${multiAcct ? `
+      <div class="fas-field">
+        <label class="fas-label" id="fas-from-label">Account</label>
+        <div class="fas-accts" id="fas-from-accts">${acctChips(currentAccountId)}</div>
+      </div>
+      <div class="fas-field" id="fas-to-field" style="display:none">
+        <label class="fas-label">To account</label>
+        <div class="fas-accts" id="fas-to-accts">${acctChips(null)}</div>
+      </div>` : ''}
+      <div class="fas-field" id="fas-cat-field">
+        <label class="fas-label">Category</label>
+        <div class="fas-cats" id="fas-cats">
+          ${cats.map((c, i) => `<button class="fas-cat-chip${i === 0 ? ' fas-cat-active' : ''}" data-cat="${c}">${c}</button>`).join('')}
+        </div>
       </div>
       <input type="text" id="fas-desc" class="fas-desc-input" placeholder="Description (optional)" autocomplete="off">
       <button id="fas-submit" class="fas-submit-btn btn-primary">Add</button>
@@ -9610,16 +9635,30 @@ function _showFastAdd() {
   document.body.appendChild(overlay);
   setTimeout(() => overlay.querySelector('#fas-amount')?.focus(), 80);
 
-  let selType = 'expense';
-  let selCat  = cats[0];
+  let selType  = 'expense';
+  let selCat   = cats[0];
+  let fromAcct = currentAccountId;
+  let toAcct   = null;
 
-  overlay.querySelectorAll('.fas-type-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      overlay.querySelectorAll('.fas-type-btn').forEach(b => b.classList.remove('fas-expense-active','fas-income-active'));
-      btn.classList.add(btn.dataset.type === 'income' ? 'fas-income-active' : 'fas-expense-active');
-      selType = btn.dataset.type;
-    });
-  });
+  function applyType(type) {
+    selType = type;
+    overlay.querySelectorAll('.fas-type-btn').forEach(b =>
+      b.classList.remove('fas-expense-active','fas-income-active','fas-transfer-active'));
+    const cls = type === 'income' ? 'fas-income-active' : type === 'transfer' ? 'fas-transfer-active' : 'fas-expense-active';
+    overlay.querySelector(`.fas-type-btn[data-type="${type}"]`)?.classList.add(cls);
+    const isXfer = type === 'transfer';
+    const toField  = overlay.querySelector('#fas-to-field');
+    const catField = overlay.querySelector('#fas-cat-field');
+    if (toField)  toField.style.display  = isXfer ? '' : 'none';
+    if (catField) catField.style.display = isXfer ? 'none' : '';
+    const fromLabel = overlay.querySelector('#fas-from-label');
+    if (fromLabel) fromLabel.textContent = isXfer ? 'From account' : 'Account';
+    overlay.querySelector('#fas-submit').textContent = isXfer ? 'Transfer' : 'Add';
+  }
+
+  overlay.querySelectorAll('.fas-type-btn').forEach(btn =>
+    btn.addEventListener('click', () => applyType(btn.dataset.type)));
+
   overlay.querySelectorAll('.fas-cat-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       overlay.querySelectorAll('.fas-cat-chip').forEach(c => c.classList.remove('fas-cat-active'));
@@ -9627,6 +9666,19 @@ function _showFastAdd() {
       selCat = chip.dataset.cat;
     });
   });
+
+  // Account pickers (from / to)
+  const wireAccts = (containerId, onPick) => {
+    overlay.querySelectorAll(`#${containerId} .fas-acct-chip`).forEach(chip => {
+      chip.addEventListener('click', () => {
+        overlay.querySelectorAll(`#${containerId} .fas-acct-chip`).forEach(c => c.classList.remove('fas-acct-active'));
+        chip.classList.add('fas-acct-active');
+        onPick(chip.dataset.acct);
+      });
+    });
+  };
+  wireAccts('fas-from-accts', id => { fromAcct = id; });
+  wireAccts('fas-to-accts',   id => { toAcct = id; });
 
   function close() {
     overlay.classList.add('fast-add-out');
@@ -9637,19 +9689,51 @@ function _showFastAdd() {
   overlay.querySelector('#fas-submit').addEventListener('click', async () => {
     const amount = parseFloat(overlay.querySelector('#fas-amount').value);
     if (!amount || amount <= 0) { overlay.querySelector('#fas-amount').focus(); return; }
-    const desc = overlay.querySelector('#fas-desc').value.trim() || selCat;
+    const desc = overlay.querySelector('#fas-desc').value.trim();
+
+    if (selType === 'transfer') {
+      if (!toAcct || toAcct === fromAcct) {
+        const toField = overlay.querySelector('#fas-to-field');
+        toField?.classList.add('fas-shake');
+        setTimeout(() => toField?.classList.remove('fas-shake'), 450);
+        return;
+      }
+      const toA = accounts.find(a => a.id === toAcct);
+      const frA = accounts.find(a => a.id === fromAcct);
+      const toIsDebt = toA && (toA.type === 'credit' || toA.type === 'loan');
+      const stamp = Date.now();
+      // Money leaves the source (excluded from weekly spend — it's a move, not spending)
+      _postTxnToAccount(fromAcct, {
+        type: 'expense', amount, date: todayStr, category: 'Transfer',
+        description: (toIsDebt ? 'Payment → ' : 'Transfer → ') + (toA?.name || 'Other'),
+        account: fromAcct, ts: stamp, excludeFromBudget: true, _xfer: 1,
+      });
+      // Money arrives at the destination — for a credit/loan this reduces what's owed
+      _postTxnToAccount(toAcct, {
+        type: 'income', amount, date: todayStr, category: toIsDebt ? 'Payment' : 'Transfer',
+        description: (toIsDebt ? 'Payment ← ' : 'Transfer ← ') + (frA?.name || 'Other'),
+        account: toAcct, ts: stamp + 1, _xfer: 1,
+      });
+      if (fromAcct === currentAccountId || toAcct === currentAccountId) await autoUpdateWeeklyPlan();
+      haptic([10]);
+      showTransfer(amount, desc || (toA?.name || ''));
+      close(); render(); return;
+    }
+
+    const finalDesc = desc || (selType === 'income' ? 'Income' : selCat);
     const t = {
       type: selType, amount,
-      description: desc,
+      description: finalDesc,
       category: selType === 'income' ? 'Income' : selCat,
-      account: currentAccountId,
+      account: fromAcct,
       date: todayStr,
       ts: Date.now(),
     };
-    await api.addTransaction(t);
+    _postTxnToAccount(fromAcct, t);
+    if (fromAcct === currentAccountId) await autoUpdateWeeklyPlan();
     haptic([10]);
-    if (selType === 'expense') { showRobbery(amount, desc); checkRoast(selCat); checkSpendingAlert(selCat); }
-    else showPayday(amount, desc);
+    if (selType === 'expense') { showRobbery(amount, finalDesc); checkRoast(selCat); checkSpendingAlert(selCat); }
+    else showPayday(amount, finalDesc);
     close();
     render();
   });
