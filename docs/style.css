@@ -5671,6 +5671,34 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
 @keyframes txn-cur-blink { 50% { opacity: 0; } }
 .txn-tmsg { margin-top: 6px; color: var(--txn-accent, #4ecb8d); opacity: .72; font-size: .74rem; letter-spacing: .05em; }
 .txn-term .txn-anim-progress { width: 100%; margin: 0; border-radius: 0 0 16px 16px; }
+/* ── Terminal update flow ───────────────────────────────────────────────── */
+.update-term-overlay {
+  position: fixed; inset: 0; z-index: 10050;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(5px);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  cursor: pointer; animation: faOverlayIn .2s ease both;
+}
+.update-term-overlay.update-term-out { animation: faOverlayOut .24s ease both; }
+.upd-term {
+  width: min(92vw, 360px);
+  background: #0b0e0d;
+  border: 1px solid color-mix(in srgb, var(--txn-accent, #4ecb8d) 32%, #23272a);
+  border-radius: 16px; overflow: hidden;
+  font-family: 'Cascadia Code', ui-monospace, 'SF Mono', Consolas, monospace;
+  box-shadow: 0 28px 80px rgba(0,0,0,.78),
+              0 0 0 1px color-mix(in srgb, var(--txn-accent, #4ecb8d) 22%, transparent),
+              0 0 60px color-mix(in srgb, var(--txn-accent, #4ecb8d) 14%, transparent);
+  animation: txnCardPop .4s cubic-bezier(.22,1,.36,1) both;
+}
+.upd-line {
+  font-size: .9rem; line-height: 1.9; color: #cdd5d0;
+  white-space: nowrap; overflow: hidden;
+  animation: splashBootType .32s steps(26, end) both;
+}
+.upd-ok  { color: var(--success, #32d74b); }
+.upd-big { margin-top: 6px; font-size: 1.05rem; font-weight: 700; color: var(--txn-accent, #4ecb8d); }
+.upd-dim { margin-top: 8px; color: var(--muted); font-size: .74rem; opacity: .8; }
+
 /* RGB-split glitch entrance for the amount line */
 @keyframes txn-amt-in {
   0%   { opacity: 0; transform: translateX(0); }

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.41.0';
+const VERSION = '5.42.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.42.0', date: '2026-06-05', changes: [
+    'Tapping the update button now opens a terminal window — it types "checking remote… / comparing version…" then either "vX.XX found — installing ▋" (and pulls the update) or "up to date ✓". Matches the boot-screen vibe',
+  ]},
   { version: '5.41.0', date: '2026-06-05', changes: [
     'Splash screen now boots up — under the title, a terminal log types itself out (mounting accounts… ok, syncing balances… ok, loading ledger… ok) then drops a green READY ▋ where the old progress bar was. The doberman bark and glitch are untouched',
     'Splash hold extended slightly (2.6s) so the boot sequence finishes before it wipes to the app',
@@ -4009,7 +4012,7 @@ function render() {
         await api.switchAccount(tile.dataset.id); // internally calls render() — no extra call needed
       });
     });
-    document.getElementById('acct-force-update-btn')?.addEventListener('click', () => forceUpdate());
+    document.getElementById('acct-force-update-btn')?.addEventListener('click', () => _showUpdateTerminal());
     document.getElementById('acct-qa-btn')?.addEventListener('click', _showFastAdd);
     document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="date"])').forEach(el => el.setAttribute('enterkeyhint', 'done'));
     updateDawgTopbar();
@@ -10600,6 +10603,53 @@ async function forceUpdate() {
   } catch (e) { /* best-effort — fall through to reload regardless */ }
   // Cache-busting navigation so the HTML itself is re-fetched from the network
   window.location.href = window.location.pathname + '?v=' + Date.now();
+}
+
+// Terminal-style update flow — types a boot log, then installs or reports up-to-date.
+function _showUpdateTerminal() {
+  if (document.getElementById('update-term-overlay')) return;
+  haptic([10]);
+
+  const overlay = document.createElement('div');
+  overlay.id        = 'update-term-overlay';
+  overlay.className = 'update-term-overlay';
+  overlay.style.setProperty('--txn-accent', 'var(--accent)');
+  overlay.innerHTML = `
+    <div class="upd-term">
+      <div class="txn-term-bar">
+        <span class="txn-term-dot"></span><span class="txn-term-dot"></span><span class="txn-term-dot"></span>
+        <span class="txn-term-title">budgetdawgs:~$ update</span>
+      </div>
+      <div class="txn-term-body" id="upd-term-body"></div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const body = overlay.querySelector('#upd-term-body');
+  const addLine = (html, cls = '') => {
+    const d = document.createElement('div');
+    d.className = 'upd-line' + (cls ? ' ' + cls : '');
+    d.innerHTML = html;
+    body.appendChild(d);
+  };
+  let canClose = false;
+  const close = () => { overlay.classList.add('update-term-out'); setTimeout(() => overlay.remove(), 260); };
+  overlay.addEventListener('click', () => { if (canClose) close(); });
+
+  setTimeout(() => addLine('&gt; checking remote……'), 200);
+  setTimeout(() => addLine('&gt; comparing version……'), 800);
+  setTimeout(async () => {
+    await checkForUpdate();
+    const newer = _latestVersion && _latestVersion !== VERSION;
+    if (newer) {
+      addLine(`&gt; <span class="upd-ok">v${_latestVersion} found</span> — installing <span class="txn-tcur">▋</span>`, 'upd-big');
+      setTimeout(() => forceUpdate(), 1200); // navigates away (reload)
+    } else {
+      addLine(`&gt; <span class="upd-ok">up to date ✓</span> (v${VERSION})`, 'upd-big');
+      addLine('// tap to close', 'upd-dim');
+      canClose = true;
+      setTimeout(() => { if (overlay.isConnected) close(); }, 2400);
+    }
+  }, 1450);
 }
 
 // ── what's new popup ──────────────────────────────────────────────────────
