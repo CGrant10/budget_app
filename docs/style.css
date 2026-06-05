@@ -6464,7 +6464,7 @@ body.theme-ubuntu .section-title::before {
 /* ── Fast-add bottom sheet ── */
 .fast-add-overlay {
   position: fixed; inset: 0; z-index: 8500;
-  background: rgba(0,0,0,.55); backdrop-filter: blur(5px);
+  background: rgba(0,0,0,.38); backdrop-filter: blur(2px);
   display: flex; align-items: flex-end;
   animation: faOverlayIn .22s ease both;
 }
@@ -6473,9 +6473,15 @@ body.theme-ubuntu .section-title::before {
 @keyframes faOverlayOut { to   { opacity: 0; } }
 .fast-add-sheet {
   width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  max-height: 88vh;
+  overflow-y: auto;
   background: var(--surface);
-  border-radius: 24px 24px 0 0;
-  padding: 0 20px calc(22px + env(safe-area-inset-bottom, 0px));
+  border-radius: 22px 22px 0 0;
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -12px 40px rgba(0,0,0,.4);
+  padding: 0 18px calc(16px + env(safe-area-inset-bottom, 0px));
   animation: faSheetUp .28s cubic-bezier(.22,1,.36,1) both;
 }
 .fast-add-overlay.fast-add-out .fast-add-sheet {
@@ -6485,9 +6491,9 @@ body.theme-ubuntu .section-title::before {
 @keyframes faSheetDown { to   { transform: translateY(100%); } }
 .fas-grabber {
   width: 36px; height: 4px; background: rgba(255,255,255,.13);
-  border-radius: 99px; margin: 10px auto 18px;
+  border-radius: 99px; margin: 9px auto 14px;
 }
-.fas-type-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.fas-type-row { display: flex; gap: 8px; margin-bottom: 12px; }
 .fas-type-btn {
   flex: 1; padding: 9px; border-radius: 12px;
   background: var(--surface2); border: 1px solid var(--border);
@@ -6499,19 +6505,19 @@ body.theme-ubuntu .section-title::before {
 .fas-transfer-active { background: rgba(78,203,141,.14); border-color: var(--accent);       color: var(--accent); }
 .fas-amount-row {
   display: flex; align-items: center;
-  border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 14px;
+  border-bottom: 2px solid var(--border); padding-bottom: 8px; margin-bottom: 12px;
 }
-.fas-currency { font-size: 2rem; font-weight: 800; color: var(--muted); margin-right: 4px; line-height: 1; }
+.fas-currency { font-size: 1.7rem; font-weight: 800; color: var(--muted); margin-right: 4px; line-height: 1; }
 .fas-amount-input {
   flex: 1; background: none; border: none; outline: none;
-  font-size: 2.4rem; font-weight: 800; color: var(--text);
+  font-size: 2rem; font-weight: 800; color: var(--text);
   font-family: inherit; font-variant-numeric: tabular-nums; min-width: 0;
 }
 /* Labelled field group (account picker / category) */
-.fas-field { margin-bottom: 14px; }
+.fas-field { margin-bottom: 11px; }
 .fas-label {
-  display: block; font-size: .72rem; font-weight: 800; letter-spacing: .06em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+  display: block; font-size: .7rem; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
 }
 /* Account picker chips (from / to) */
 .fas-accts {
@@ -6548,14 +6554,14 @@ body.theme-ubuntu .section-title::before {
 .fas-cat-active { background: rgba(78,203,141,.16); border-color: var(--accent); color: var(--accent); }
 .fas-desc-input {
   width: 100%; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 13px 15px; font-size: .95rem;
-  color: var(--text); font-family: inherit; margin-bottom: 14px;
+  border-radius: 12px; padding: 12px 14px; font-size: .92rem;
+  color: var(--text); font-family: inherit; margin-bottom: 12px;
   outline: none; -webkit-user-select: text; user-select: text;
 }
 .fas-desc-input:focus { border-color: var(--accent); }
 .fas-desc-input::placeholder { color: var(--muted); }
 .fas-submit-btn {
-  width: 100%; padding: 14px; font-size: 1rem; font-weight: 800;
+  width: 100%; padding: 13px; font-size: .98rem; font-weight: 800;
   letter-spacing: .02em;
 }
 

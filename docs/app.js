@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.42.0';
+const VERSION = '5.42.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.42.1', date: '2026-06-05', changes: [
+    'Quick-add sheet: the phone back button now closes it instead of leaving the page',
+    'Quick-add sheet feels lighter — softer backdrop, less blur, tighter spacing, smaller amount field, and a height cap so it no longer takes over the whole screen',
+  ]},
   { version: '5.42.0', date: '2026-06-05', changes: [
     'Tapping the update button now opens a terminal window — it types "checking remote… / comparing version…" then either "vX.XX found — installing ▋" (and pulls the update) or "up to date ✓". Matches the boot-screen vibe',
   ]},
@@ -9664,10 +9668,21 @@ function _showFastAdd() {
   wireAccts('fas-from-accts', id => { fromAcct = id; });
   wireAccts('fas-to-accts',   id => { toAcct = id; });
 
-  function close() {
+  // Push a history entry so the phone/browser back button closes the sheet
+  // instead of leaving the page. close(fromPop=true) is called by the popstate
+  // handler (the entry is already consumed); otherwise we pop it ourselves.
+  history.pushState({ dawgSheet: true }, '');
+  let _closing = false;
+  function close(fromPop) {
+    if (_closing) return;
+    _closing = true;
     overlay.classList.add('fast-add-out');
     setTimeout(() => overlay.remove(), 260);
+    if (!fromPop) {
+      try { if (history.state && history.state.dawgSheet) history.back(); } catch (e) {}
+    }
   }
+  overlay._closeFromPop = () => close(true);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
   overlay.querySelector('#fas-submit').addEventListener('click', async () => {
@@ -11196,6 +11211,9 @@ window.addEventListener('popstate', () => {
     history.pushState({ dawgLock: true }, '');
     return;
   }
+  // Close the quick-add sheet first if it's open (its history entry was just consumed)
+  const fastAdd = document.getElementById('fast-add-overlay');
+  if (fastAdd) { (fastAdd._closeFromPop || (() => fastAdd.remove()))(); return; }
   // Close any open modal/drawer first before actually going back
   const drawer = document.getElementById('dawg-drawer');
   if (drawer && !drawer.classList.contains('hidden')) { closeDawgDrawer(); history.pushState({ dawgNav: true }, ''); return; }
