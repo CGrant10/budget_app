@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.34.1';
+const VERSION = '5.35.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.35.0', date: '2026-06-05', changes: [
+    'Weekly planner: month sections are now collapsible — tap the month header to expand or collapse. Past months start collapsed so the current month is front and centre',
+  ]},
   { version: '5.34.1', date: '2026-06-05', changes: [
     'Fix: swiping left/right on the accounts overview no longer accidentally changes tabs',
     'Fix: nav bar now correctly highlights Dashboard after switching into an account',
@@ -6324,6 +6327,7 @@ function calcWeekly() {
       ? wkTxns.sort((a,b)=>b.date.localeCompare(a.date)).map(txnRow).join('')
       : '<p class="pw-empty">No transactions.</p>';
 
+    const isCurrentMonth = monthLabel === currentMonthLabel;
     if (isPast) {
       // Past weeks — reconstruct historical per_week from the balance at the START of that week.
       // This freezes each week's denominator to what the budget actually was during that week,
@@ -6345,7 +6349,13 @@ function calcWeekly() {
       const forfeited    = (state.weekly_plan.forfeitedWeeks || []).includes(sdS);
       const forfeitBtn   = `<button class="wkb-forfeit-btn" data-week="${sdS}">${forfeited ? '↩ Undo' : 'Forfeit'}</button>`;
       const displayLabel = forfeited ? `<span class="wkb-forfeited-badge">FORFEITED</span>` : `<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span>`;
-      if (monthLabel !== lastMonth) { lastMonth = monthLabel; const _mhBudget = monthLabel === currentMonthLabel ? ` <span style="font-weight:600;color:var(--accent);font-size:.82em">· ${fmt(available)} to spend</span>` : ''; allRowsHtml.push(`<div class="wkb-month-header">${monthLabel}${_mhBudget}</div>`); }
+      if (monthLabel !== lastMonth) {
+        if (lastMonth !== null) allRowsHtml.push(`</div>`); // close previous month body
+        lastMonth = monthLabel;
+        const _mhBudget = isCurrentMonth ? ` <span style="font-weight:600;color:var(--accent);font-size:.82em">· ${fmt(available)} to spend</span>` : '';
+        allRowsHtml.push(`<div class="wkb-month-header wkb-month-toggle" data-open="${isCurrentMonth}" role="button" tabindex="0" aria-expanded="${isCurrentMonth}">${monthLabel}${_mhBudget}<span class="wkb-month-chevron">${isCurrentMonth ? '▲' : '▶'}</span></div>`);
+        allRowsHtml.push(`<div class="wkb-month-body"${isCurrentMonth ? '' : ' style="display:none"'}>`);
+      }
       allRowsHtml.push(`<div class="wkb-row wkb-past${forfeited ? ' wkb-forfeited' : ''}"><div class="wkb-header" role="button" tabindex="0" aria-expanded="false"><span class="week-dates">${lbl}</span>${forfeited ? '<span style="flex:1"></span>' : miniBar}${displayLabel}${forfeitBtn}<span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     } else {
       // Current + future weeks — live, recalculated on every settings change
@@ -6353,10 +6363,17 @@ function calcWeekly() {
       const wkPct   = _rowDenominator > 0 ? Math.min(wkNet/_rowDenominator*100,100) : 0;
       const wkColor = isCurrent && _wkFailed ? 'var(--danger)' : wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
       const badge   = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
-      if (monthLabel !== lastMonth) { lastMonth = monthLabel; const _mhBudget = monthLabel === currentMonthLabel ? ` <span style="font-weight:600;color:var(--accent);font-size:.82em">· ${fmt(available)} to spend</span>` : ''; allRowsHtml.push(`<div class="wkb-month-header">${monthLabel}${_mhBudget}</div>`); }
+      if (monthLabel !== lastMonth) {
+        if (lastMonth !== null) allRowsHtml.push(`</div>`); // close previous month body
+        lastMonth = monthLabel;
+        const _mhBudget = isCurrentMonth ? ` <span style="font-weight:600;color:var(--accent);font-size:.82em">· ${fmt(available)} to spend</span>` : '';
+        allRowsHtml.push(`<div class="wkb-month-header wkb-month-toggle" data-open="${isCurrentMonth}" role="button" tabindex="0" aria-expanded="${isCurrentMonth}">${monthLabel}${_mhBudget}<span class="wkb-month-chevron">${isCurrentMonth ? '▲' : '▶'}</span></div>`);
+        allRowsHtml.push(`<div class="wkb-month-body"${isCurrentMonth ? '' : ' style="display:none"'}>`);
+      }
       allRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header" role="button" tabindex="0" aria-expanded="false">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(_rowDenominator)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
     }
   });
+  if (lastMonth !== null) allRowsHtml.push(`</div>`); // close last month body
 
   // ── Write summary + this-week tracker to #wk-live (always updated) ─────
   const liveEl = document.getElementById('wk-live');
@@ -6394,6 +6411,23 @@ function calcWeekly() {
   const allEl = document.getElementById('wk-all-rows');
   if (allEl) {
     allEl.innerHTML = allRowsHtml.join('');
+    // Month-section collapse/expand
+    allEl.querySelectorAll('.wkb-month-toggle').forEach(hdr => {
+      const toggle = () => {
+        const body    = hdr.nextElementSibling;
+        const chevron = hdr.querySelector('.wkb-month-chevron');
+        const open    = body.style.display === 'none';
+        body.style.display = open ? '' : 'none';
+        hdr.dataset.open = String(open);
+        hdr.setAttribute('aria-expanded', String(open));
+        if (chevron) chevron.textContent = open ? '▲' : '▶';
+      };
+      hdr.addEventListener('click', toggle);
+      hdr.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+    });
+    // Week-row expand/collapse
     allEl.querySelectorAll('.wkb-header').forEach(hdr => {
       const toggle = () => {
         const txns = hdr.nextElementSibling;
