@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<title>Budget DAWGs — Accounts Overview Mockups</title>
+<style>
+  :root{
+    --bg:#0a0a0b; --surface:#141417; --surface2:#1d1d22; --border:#2a2a31;
+    --text:#f2f2f5; --muted:#8a8a93; --accent:#4ecb8d; --accent2:#5ef0c0;
+    --danger:#ff453a; --gold:#ffd60a; --blue:#5e9bf0; --purple:#a78bfa;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:radial-gradient(120% 80% at 50% -10%,#15191b 0%,var(--bg) 60%);
+    color:var(--text);font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',sans-serif;
+    -webkit-font-smoothing:antialiased;padding:22px 16px 60px}
+  h1{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:.82rem;margin:0 0 20px;line-height:1.5}
+  .sub b{color:var(--accent2)}
+  .grid{display:grid;gap:16px}
+  .opt{background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+  .opt-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:15px 16px 0}
+  .opt-name{font-size:1rem;font-weight:800}
+  .opt-tag{font-size:.6rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:4px 9px;border-radius:99px;flex-shrink:0;color:var(--accent2);background:rgba(94,240,192,.12)}
+  .opt-desc{padding:6px 16px 0;color:var(--muted);font-size:.76rem;line-height:1.45}
+  .phone{position:relative;height:430px;margin:14px 12px;border-radius:22px;overflow:hidden;background:#0a0c0b;border:1px solid var(--border)}
+  .scr{position:absolute;inset:0;overflow-y:auto;padding:14px 14px 70px}
+  .scr::-webkit-scrollbar{display:none}
+  .replay{display:block;width:calc(100% - 24px);margin:0 12px 14px;padding:11px;border-radius:12px;background:var(--surface2);color:var(--text);font:800 .82rem inherit;cursor:pointer;border:1px solid var(--border);transition:.12s}
+  .replay:active{transform:scale(.98)}.replay:hover{border-color:var(--accent2);color:var(--accent2)}
+  .mono{font-family:'Cascadia Code',ui-monospace,monospace}
+
+  /* shared header */
+  .hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .hd img{width:42px;height:50px;object-fit:contain;flex-shrink:0}
+  .hd .t{font-size:1.4rem;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .hd .s{font-size:.62rem;color:var(--muted);letter-spacing:.06em;margin-top:3px}
+
+  /* track button (sticky-ish) */
+  .track{position:absolute;left:14px;right:14px;bottom:14px;padding:13px;border-radius:14px;background:var(--accent);color:#08120d;font-weight:800;font-size:.86rem;text-align:center;box-shadow:0 6px 20px rgba(78,203,141,.32);z-index:5}
+
+  /* account row */
+  .arow{display:flex;align-items:center;gap:12px;padding:13px 2px;border-bottom:1px solid var(--border)}
+  .arow:last-of-type{border-bottom:none}
+  .aic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem}
+  .ainfo{flex:1;min-width:0}
+  .anm{font-size:.9rem;font-weight:700}
+  .aty{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+  .abal{font-size:1rem;font-weight:800}
+  .grp{display:flex;justify-content:space-between;font-size:.64rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 2px}
+
+  /* A · bento */
+  .bento{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:auto;gap:9px;margin-bottom:8px}
+  .bt{border-radius:15px;background:linear-gradient(150deg,#16181d,#101216);border:1px solid #23262d;padding:12px 13px}
+  .bt .l{font-size:.56rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+  .bt .v{font-size:1.15rem;font-weight:800;margin-top:3px}
+  .bt.nw{grid-column:span 2;background:radial-gradient(120% 130% at 0% 0%,#13241d,#0e1114);box-shadow:inset 0 0 0 1px rgba(78,203,141,.25),0 0 26px rgba(78,203,141,.1)}
+  .bt.nw .v{font-size:2rem;color:var(--accent)}
+  .bt .up{color:var(--accent)}.bt .dn{color:var(--danger)}
+
+  /* B · donut */
+  .donutwrap{position:relative;border-radius:18px;overflow:hidden;border:1px solid #1d3a2c;background:#0c1310;padding:18px;display:flex;align-items:center;gap:16px;margin-bottom:8px}
+  .donutwrap .blob{position:absolute;border-radius:50%;filter:blur(34px);opacity:.5;mix-blend-mode:screen}
+  .donutwrap .b1{width:130px;height:130px;background:var(--accent);left:-30px;top:-40px;animation:drift 8s ease-in-out infinite}
+  .donutwrap .b2{width:120px;height:120px;background:var(--blue);right:-30px;bottom:-40px;animation:drift 10s ease-in-out infinite reverse}
+  @keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(22px,18px)}}
+  .donutwrap svg{position:relative;transform:rotate(-90deg);flex-shrink:0}
+  .dlbls{position:relative;flex:1}
+  .dlbls .nw{font-size:.6rem;letter-spacing:.16em;color:#bfe9d6;font-weight:800}
+  .dlbls .nwv{font-size:1.9rem;font-weight:800;margin:2px 0 8px}
+  .dleg{font-size:.72rem;display:flex;align-items:center;gap:6px;margin-top:4px;color:#c9d2cd}
+  .dot{width:9px;height:9px;border-radius:3px}
+
+  /* C · segmented */
+  .seg{position:relative;display:flex;background:#16181d;border:1px solid var(--border);border-radius:12px;padding:4px;margin:4px 0 12px}
+  .seg button{position:relative;z-index:2;flex:1;border:none;background:none;color:var(--muted);font:700 .72rem inherit;padding:7px 0;border-radius:9px;cursor:pointer;transition:color .2s}
+  .seg button.on{color:#08120d}
+  .seg .pill{position:absolute;z-index:1;top:4px;bottom:4px;border-radius:9px;background:var(--accent);transition:left .3s cubic-bezier(.3,1.3,.4,1),width .3s cubic-bezier(.3,1.3,.4,1);box-shadow:0 2px 10px rgba(78,203,141,.4)}
+  .nwline{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px}
+  .nwline .v{font-size:1.7rem;font-weight:800}
+  .nwline .l{font-size:.6rem;letter-spacing:.14em;color:var(--muted);font-weight:800}
+  .shareb{height:4px;border-radius:99px;background:#23262d;margin-top:7px;overflow:hidden}
+  .shareb i{display:block;height:100%;border-radius:99px}
+
+  /* D · cards + sparkline */
+  .acard{border-radius:15px;background:linear-gradient(150deg,#16181d,#101216);border:1px solid #23262d;padding:13px 14px;margin-bottom:9px;position:relative;overflow:hidden}
+  .acard .top{display:flex;align-items:center;gap:10px}
+  .acard .nm{font-size:.86rem;font-weight:700}
+  .acard .bal{margin-left:auto;font-size:1.1rem;font-weight:800}
+  .acard svg{display:block;width:100%;height:34px;margin-top:8px}
+
+  /* E · carousel */
+  .caro{display:flex;gap:11px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x mandatory;margin-bottom:6px}
+  .caro::-webkit-scrollbar{display:none}
+  .cc{scroll-snap-align:start;flex:0 0 74%;border-radius:16px;padding:15px;color:#08120d;position:relative;overflow:hidden;min-height:118px;display:flex;flex-direction:column;justify-content:space-between}
+  .cc.g1{background:linear-gradient(140deg,#5ef0c0,#37b88a)}
+  .cc.g2{background:linear-gradient(140deg,#7db4ff,#4e7fd1)}
+  .cc.g3{background:linear-gradient(140deg,#ff8f8a,#e0564e);color:#2a0a08}
+  .cc .ct{font-size:.7rem;font-weight:800;opacity:.8;letter-spacing:.04em}
+  .cc .cb{font-size:1.7rem;font-weight:800}
+  .cc .cf{font-size:.66rem;opacity:.7}
+</style>
+</head>
+<body>
+  <h1>Accounts overview — redesign options</h1>
+  <p class="sub">Same data, five layouts. Each uses the sleek elements you liked (<b>bento, segmented, sparklines</b>). Tap Replay, then tell me which direction.</p>
+
+  <div class="grid">
+    <div class="opt"><div class="opt-hd"><span class="opt-name">A · Bento</span><span class="opt-tag">Tiles</span></div>
+      <div class="opt-desc">Net Worth as a glowing hero tile, then assets / debt / this-month stat tiles, then the account list. Modern dashboard feel.</div>
+      <div class="phone" id="pA"></div><button class="replay" data-k="A">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">B · Aurora + donut</span><span class="opt-tag">Visual</span></div>
+      <div class="opt-desc">An aurora hero card with an assets-vs-debt donut ring and Net Worth in focus, then grouped accounts below.</div>
+      <div class="phone" id="pB"></div><button class="replay" data-k="B">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">C · Segmented filter</span><span class="opt-tag">Sleek list</span></div>
+      <div class="opt-desc">A sliding segmented control filters All / Cash / Invest / Debt, with colored type icons and a per-account share-of-net-worth bar.</div>
+      <div class="phone" id="pC"></div><button class="replay" data-k="C">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">D · Account cards + sparklines</span><span class="opt-tag">Rich</span></div>
+      <div class="opt-desc">Each account becomes a card with a mini balance trend line. More visual, great if you like seeing momentum per account.</div>
+      <div class="phone" id="pD"></div><button class="replay" data-k="D">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">E · Swipe carousel</span><span class="opt-tag">Playful</span></div>
+      <div class="opt-desc">Gradient account cards you swipe through up top (try scrolling them), with a compact summary list beneath.</div>
+      <div class="phone" id="pE"></div><button class="replay" data-k="E">▶ Replay</button></div>
+  </div>
+
+<script>
+  const ACCTS = [
+    {nm:'Checking', ty:'Checking', bal:4820.55, grp:'Cash', c:'var(--accent)', ic:'🏦'},
+    {nm:'Savings', ty:'Savings', bal:12300.00, grp:'Cash', c:'var(--accent)', ic:'💰'},
+    {nm:'Roth IRA', ty:'Roth IRA', bal:18450.00, grp:'Investing', c:'var(--blue)', ic:'📈'},
+    {nm:'401(k)', ty:'401(k)', bal:9200.00, grp:'Investing', c:'var(--blue)', ic:'📊'},
+    {nm:'Visa', ty:'Credit', bal:-1240.30, grp:'Debt', c:'var(--danger)', ic:'💳'},
+    {nm:'Car Loan', ty:'Loan', bal:-8900.00, grp:'Debt', c:'var(--danger)', ic:'🚗'},
+  ];
+  const assets = ACCTS.filter(a=>a.bal>0).reduce((s,a)=>s+a.bal,0);
+  const debt = -ACCTS.filter(a=>a.bal<0).reduce((s,a)=>s+a.bal,0);
+  const nw = assets - debt;
+  const $ = n => (n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const $0 = n => (n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:0});
+  const hdr = `<div class="hd"><img src="./doberman.png" alt=""><div><div class="t">My Accounts</div><div class="s">6 ACCOUNTS · TAP TO OPEN</div></div></div>`;
+
+  function donut(aPct){
+    const size=104,sw=13,r=(size-sw)/2,c=2*Math.PI*r;
+    const aLen=c*aPct, dLen=c*(1-aPct);
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#23262d" stroke-width="${sw}"/>
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--danger)" stroke-width="${sw}" stroke-dasharray="${c}" stroke-dashoffset="0"/>
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--accent)" stroke-width="${sw}" stroke-linecap="round"
+        stroke-dasharray="${aLen.toFixed(1)} ${c.toFixed(1)}" stroke-dashoffset="0" style="filter:drop-shadow(0 0 5px #4ecb8d88);animation:dgrow 1s ease forwards">
+      </circle></svg><style>@keyframes dgrow{from{stroke-dasharray:0 ${c.toFixed(1)}}}</style>`;
+  }
+  function sparkline(seed){
+    const pts=[];let v=50;for(let i=0;i<14;i++){v+=(Math.sin(i*1.3+seed)*7)+(seed%2?2:-1.2);pts.push(v);}
+    const mn=Math.min(...pts),mx=Math.max(...pts),W=260,H=30;
+    const path=pts.map((p,i)=>`${(i/(pts.length-1)*W).toFixed(1)},${(H-((p-mn)/(mx-mn||1))*H).toFixed(1)}`);
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="${path.join(' ')}" style="opacity:.85"/></svg>`;
+  }
+  function rows(list){
+    return list.map(a=>`<div class="arow"><div class="aic" style="background:color-mix(in srgb,${a.c} 16%,transparent)">${a.ic}</div>
+      <div class="ainfo"><div class="anm">${a.nm}</div><div class="aty">${a.ty}</div></div>
+      <div class="abal" style="color:${a.bal<0?'var(--danger)':'var(--text)'}">${a.bal<0?'-$'+Math.abs(a.bal).toLocaleString('en-US',{minimumFractionDigits:2}):'$'+a.bal.toLocaleString('en-US',{minimumFractionDigits:2})}</div></div>`).join('');
+  }
+  function grouped(){
+    let h='';['Cash','Investing','Debt'].forEach(g=>{
+      const items=ACCTS.filter(a=>a.grp===g);const sub=items.reduce((s,a)=>s+a.bal,0);
+      h+=`<div class="grp"><span>${g}</span><span style="color:${g==='Debt'?'var(--danger)':'var(--muted)'}">${$(sub)}</span></div>${rows(items)}`;
+    });
+    return h;
+  }
+
+  function play(k){
+    const p=document.getElementById('p'+k); p.innerHTML='';
+    const scr=document.createElement('div'); scr.className='scr'; p.appendChild(scr);
+    const track='<div class="track">＋ Track a Transaction</div>';
+
+    if(k==='A'){
+      scr.innerHTML=hdr+`<div class="bento">
+        <div class="bt nw"><div class="l">NET WORTH</div><div class="v">${$0(nw)}</div><div class="up" style="font-size:.7rem;font-weight:700;margin-top:2px">▲ 4.2% this month</div></div>
+        <div class="bt"><div class="l">Assets</div><div class="v up">${$0(assets)}</div></div>
+        <div class="bt"><div class="l">Debt</div><div class="v dn">${$0(debt)}</div></div>
+      </div>`+grouped();
+      p.innerHTML+=track;
+    }
+    else if(k==='B'){
+      const aPct=assets/(assets+debt);
+      scr.innerHTML=hdr+`<div class="donutwrap"><div class="blob b1"></div><div class="blob b2"></div>
+        ${donut(aPct)}
+        <div class="dlbls"><div class="nw">NET WORTH</div><div class="nwv">${$0(nw)}</div>
+        <div class="dleg"><span class="dot" style="background:var(--accent)"></span>${$0(assets)} assets</div>
+        <div class="dleg"><span class="dot" style="background:var(--danger)"></span>${$0(debt)} debt</div></div></div>`+grouped();
+      p.innerHTML+=track;
+    }
+    else if(k==='C'){
+      scr.innerHTML=hdr+`<div class="nwline"><span class="l">NET WORTH</span><span class="v">${$0(nw)}</span></div>
+        <div class="seg" id="segC"><span class="pill"></span>
+          <button class="on">All</button><button>Cash</button><button>Invest</button><button>Debt</button></div>
+        <div id="clist"></div>`;
+      const renderList=(filter)=>{
+        const list = filter==='All'?ACCTS:ACCTS.filter(a=> filter==='Invest'?a.grp==='Investing':a.grp===filter);
+        document.getElementById('clist').innerHTML=list.map(a=>{
+          const share=Math.min(100,Math.abs(a.bal)/assets*100);
+          return `<div class="arow" style="display:block;padding:11px 2px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="aic" style="background:color-mix(in srgb,${a.c} 16%,transparent)">${a.ic}</div>
+              <div class="ainfo"><div class="anm">${a.nm}</div><div class="aty">${a.ty}</div></div>
+              <div class="abal" style="color:${a.bal<0?'var(--danger)':'var(--text)'}">${$(a.bal)}</div></div>
+            <div class="shareb"><i style="width:${share}%;background:${a.c}"></i></div></div>`;
+        }).join('');
+      };
+      renderList('All');
+      const seg=scr.querySelector('#segC'),pill=seg.querySelector('.pill'),btns=[...seg.querySelectorAll('button')];
+      const move=b=>{pill.style.left=b.offsetLeft+'px';pill.style.width=b.offsetWidth+'px';btns.forEach(x=>x.classList.remove('on'));b.classList.add('on');renderList(b.textContent);};
+      btns.forEach(b=>b.addEventListener('click',()=>move(b)));
+      requestAnimationFrame(()=>move(btns[0]));
+      p.innerHTML+=track;
+    }
+    else if(k==='D'){
+      scr.innerHTML=hdr+`<div class="nwline" style="margin-bottom:12px"><span class="l">NET WORTH</span><span class="v">${$0(nw)}</span></div>`+
+        ACCTS.map((a,i)=>`<div class="acard"><div class="top"><div class="aic" style="background:color-mix(in srgb,${a.c} 16%,transparent)">${a.ic}</div>
+          <div class="nm">${a.nm}</div><div class="bal" style="color:${a.bal<0?'var(--danger)':'var(--text)'}">${$(a.bal)}</div></div>
+          ${sparkline(i+1)}</div>`).join('');
+      p.innerHTML+=track;
+    }
+    else{
+      const cards=[['g1','Checking','$4,820.55','Cash · tap to open'],['g2','Roth IRA','$18,450.00','Investing'],['g3','Visa','-$1,240.30','Credit']];
+      scr.innerHTML=hdr+`<div class="nwline" style="margin-bottom:10px"><span class="l">NET WORTH</span><span class="v">${$0(nw)}</span></div>
+        <div class="caro">${cards.map(c=>`<div class="cc ${c[0]}"><div class="ct">${c[1]}</div><div class="cb">${c[2]}</div><div class="cf">${c[3]}</div></div>`).join('')}</div>
+        <div style="font-size:.6rem;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin:10px 0 2px">ALL ACCOUNTS</div>`+rows(ACCTS);
+      p.innerHTML+=track;
+    }
+  }
+  ['A','B','C','D','E'].forEach(play);
+  document.querySelectorAll('.replay').forEach(b=>b.addEventListener('click',()=>play(b.dataset.k)));
+</script>
+</body>
+</html>
