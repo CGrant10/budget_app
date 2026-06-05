@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.36.1';
+const VERSION = '5.37.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.37.0', date: '2026-06-05', changes: [
+    'Hybrid pass: Insights page — income summary, top categories, and debt payoff are now calm hairline sections instead of separate cards',
+    'Fast-add FAB: a green + button appears on the dashboard. Tap it to log a transaction right there — amount, expense/income toggle, category chips, optional description — without navigating to the Add tab',
+    'Removed clean-mockup.html from the public site',
+  ]},
   { version: '5.36.1', date: '2026-06-05', changes: [
     'Fix: sparkline month labels now visible — added bottom layout padding so labels render inside the canvas instead of being clipped',
   ]},
@@ -2738,6 +2743,7 @@ function showTab(key) {
     b.classList.toggle('active', b.dataset.tab === key));
   document.querySelectorAll('.dawg-nav-btn[data-tab]').forEach(b =>
     b.classList.toggle('dawg-nav-active', b.dataset.tab === key));
+  _syncFastAddFab();
   _screenFlash(); // green flash + page title glitch on every tab change
   render();
 }
@@ -4015,6 +4021,7 @@ function render() {
   updateBillBadge();
   updateNotesBadge();
   updateDawgTopbar();
+  _syncFastAddFab();
   // Negative balance warning — show once per session when dashboard is visible
   if (currentTab === 'dashboard' && !_shownNegativePopup) {
     const _curD  = state.accounts?.find(a => a.id === currentAccountId);
@@ -6952,15 +6959,15 @@ function renderInsights() {
         <div style="height:170px"><canvas id="insights-trend"></canvas></div>
       </div>
 
-      <div class="form-card">
-        <h2 class="section-title" style="margin:0 0 10px">This month's income vs spending</h2>
+      <div class="ins-section">
+        <div class="ins-section-hdr">This month</div>
         <div class="ins-row"><span>Income</span><span style="color:var(--success);font-weight:700">${fmt(cur.income)}</span></div>
         <div class="ins-row"><span>Expenses</span><span style="color:var(--danger);font-weight:700">${fmt(cur.expense)}</span></div>
-        <div class="ins-row" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px"><span>Net</span><span style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:700">${fmt(net)}</span></div>
+        <div class="ins-row ins-row-net"><span>Net</span><span style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:700">${fmt(net)}</span></div>
       </div>
 
-      <div class="form-card">
-        <h2 class="section-title" style="margin:0 0 10px">Top categories</h2>
+      <div class="ins-section">
+        <div class="ins-section-hdr">Top categories</div>
         ${topCats.length ? topCats.map(c => {
           const chg = c.amt - c.prev;
           const chgStr = c.prev > 0 ? `<span style="color:${chg > 0 ? 'var(--danger)' : 'var(--success)'};font-size:.7rem">${chg > 0 ? '▲' : '▼'} ${fmt(Math.abs(chg))}</span>` : '<span style="color:var(--muted);font-size:.7rem">new</span>';
@@ -6971,8 +6978,8 @@ function renderInsights() {
         }).join('') : '<p class="code-hint" style="margin:0">No spending recorded this month yet.</p>'}
       </div>
 
-      ${debtRows.length ? `<div class="form-card">
-        <h2 class="section-title" style="margin:0 0 10px">Debt payoff progress</h2>
+      ${debtRows.length ? `<div class="ins-section">
+        <div class="ins-section-hdr">Debt payoff</div>
         ${debtRows.map(d => `<div class="ins-cat">
           <div class="ins-cat-top"><span>${d.name}</span><span>${fmt(d.owed)} left${d.start > 0 ? ` · ${d.pct.toFixed(0)}% paid` : ''}</span></div>
           <div class="ins-bar-bg"><div class="ins-bar-fill" style="width:${d.pct.toFixed(1)}%;background:var(--success)"></div></div>
@@ -9534,6 +9541,90 @@ function attachDashboardDawg() {
 
 }
 
+// ── Fast-add bottom sheet ──────────────────────────────────────────────────
+function _showFastAdd() {
+  if (document.getElementById('fast-add-sheet')) return;
+  const cats     = getCategories();
+  const todayStr = today();
+
+  const overlay = document.createElement('div');
+  overlay.id        = 'fast-add-overlay';
+  overlay.className = 'fast-add-overlay';
+
+  overlay.innerHTML = `
+    <div id="fast-add-sheet" class="fast-add-sheet">
+      <div class="fas-grabber"></div>
+      <div class="fas-type-row">
+        <button class="fas-type-btn fas-expense-active" data-type="expense">Expense</button>
+        <button class="fas-type-btn" data-type="income">Income</button>
+      </div>
+      <div class="fas-amount-row">
+        <span class="fas-currency">$</span>
+        <input type="number" id="fas-amount" class="fas-amount-input" placeholder="0.00"
+               inputmode="decimal" step="0.01" min="0" autocomplete="off">
+      </div>
+      <div class="fas-cats" id="fas-cats">
+        ${cats.map((c, i) => `<button class="fas-cat-chip${i === 0 ? ' fas-cat-active' : ''}" data-cat="${c}">${c}</button>`).join('')}
+      </div>
+      <input type="text" id="fas-desc" class="fas-desc-input" placeholder="Description (optional)" autocomplete="off">
+      <button id="fas-submit" class="fas-submit-btn btn-primary">Add</button>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.querySelector('#fas-amount')?.focus(), 80);
+
+  let selType = 'expense';
+  let selCat  = cats[0];
+
+  overlay.querySelectorAll('.fas-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      overlay.querySelectorAll('.fas-type-btn').forEach(b => b.classList.remove('fas-expense-active','fas-income-active'));
+      btn.classList.add(btn.dataset.type === 'income' ? 'fas-income-active' : 'fas-expense-active');
+      selType = btn.dataset.type;
+    });
+  });
+  overlay.querySelectorAll('.fas-cat-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      overlay.querySelectorAll('.fas-cat-chip').forEach(c => c.classList.remove('fas-cat-active'));
+      chip.classList.add('fas-cat-active');
+      selCat = chip.dataset.cat;
+    });
+  });
+
+  function close() {
+    overlay.classList.add('fast-add-out');
+    setTimeout(() => overlay.remove(), 260);
+  }
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+  overlay.querySelector('#fas-submit').addEventListener('click', async () => {
+    const amount = parseFloat(overlay.querySelector('#fas-amount').value);
+    if (!amount || amount <= 0) { overlay.querySelector('#fas-amount').focus(); return; }
+    const desc = overlay.querySelector('#fas-desc').value.trim() || selCat;
+    const t = {
+      type: selType, amount,
+      description: desc,
+      category: selType === 'income' ? 'Income' : selCat,
+      account: currentAccountId,
+      date: todayStr,
+      ts: Date.now(),
+    };
+    await api.addTransaction(t);
+    haptic([10]);
+    if (selType === 'expense') { showRobbery(amount, desc); checkRoast(selCat); checkSpendingAlert(selCat); }
+    else showPayday(amount, desc);
+    close();
+    render();
+  });
+}
+
+function _syncFastAddFab() {
+  const fab = document.getElementById('fast-add-fab');
+  if (!fab) return;
+  const show = !showingAccountPicker && currentTab === 'dashboard';
+  fab.classList.toggle('hidden', !show);
+}
+
 function attachHandlers() {
   switch (currentTab) {
     case 'dashboard':
@@ -10828,6 +10919,7 @@ document.querySelectorAll('.nav-btn').forEach(btn =>
 
 // DAWG bottom nav — built dynamically from saved layout
 renderDawgNav();
+document.getElementById('fast-add-fab')?.addEventListener('click', _showFastAdd);
 document.getElementById('dawg-nav-accts')?.addEventListener('click', () => {
   const _centerBtn = document.getElementById('dawg-nav-accts');
   if (_centerBtn) {

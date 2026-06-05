@@ -6296,6 +6296,105 @@ body.theme-ubuntu .section-title::before {
 .debt-acct-card::after { display: none !important; }
 .debt-acct-list .debt-acct-card:last-child { border-bottom: none !important; }
 
+/* ── Insights: plain hairline sections replace form-cards ── */
+.ins-section { margin: 18px 0 0; }
+.ins-section-hdr {
+  font-size: .6rem; font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--muted);
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+.ins-section .ins-row { border-bottom: 1px solid var(--border); padding: 10px 0; }
+.ins-section .ins-row:last-child { border-bottom: none; }
+.ins-row-net { font-weight: 700 !important; }
+.ins-section .ins-cat { margin-bottom: 0; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.ins-section .ins-cat:last-child { border-bottom: none; }
+
+/* ── Fast-add FAB ── */
+.fast-add-fab {
+  position: fixed;
+  bottom: calc(var(--nav-h) + 14px + env(safe-area-inset-bottom, 0px));
+  right: 18px;
+  width: 50px; height: 50px; border-radius: 50%;
+  background: var(--accent); border: none; color: #0a0a0b;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 500;
+  box-shadow: 0 4px 22px rgba(78,203,141,.45), 0 1px 4px rgba(0,0,0,.4);
+  transition: transform .12s ease, opacity .15s ease;
+}
+.fast-add-fab:active { transform: scale(.91); }
+.fast-add-fab.hidden { opacity: 0; pointer-events: none; transform: scale(.8); }
+
+/* ── Fast-add bottom sheet ── */
+.fast-add-overlay {
+  position: fixed; inset: 0; z-index: 8500;
+  background: rgba(0,0,0,.55); backdrop-filter: blur(5px);
+  display: flex; align-items: flex-end;
+  animation: faOverlayIn .22s ease both;
+}
+.fast-add-overlay.fast-add-out { animation: faOverlayOut .24s ease both; }
+@keyframes faOverlayIn  { from { opacity: 0; } }
+@keyframes faOverlayOut { to   { opacity: 0; } }
+.fast-add-sheet {
+  width: 100%;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  padding: 0 20px calc(22px + env(safe-area-inset-bottom, 0px));
+  animation: faSheetUp .28s cubic-bezier(.22,1,.36,1) both;
+}
+.fast-add-overlay.fast-add-out .fast-add-sheet {
+  animation: faSheetDown .24s ease both;
+}
+@keyframes faSheetUp   { from { transform: translateY(100%); } }
+@keyframes faSheetDown { to   { transform: translateY(100%); } }
+.fas-grabber {
+  width: 36px; height: 4px; background: rgba(255,255,255,.13);
+  border-radius: 99px; margin: 10px auto 18px;
+}
+.fas-type-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.fas-type-btn {
+  flex: 1; padding: 9px; border-radius: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); font-size: .82rem; font-weight: 700;
+  font-family: inherit; cursor: pointer; transition: background .12s, color .12s, border-color .12s;
+}
+.fas-expense-active { background: rgba(255,69,58,.12); border-color: rgba(255,69,58,.4); color: var(--danger); }
+.fas-income-active  { background: rgba(50,215,75,.12);  border-color: rgba(50,215,75,.4);  color: var(--success); }
+.fas-amount-row {
+  display: flex; align-items: center;
+  border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 14px;
+}
+.fas-currency { font-size: 2rem; font-weight: 800; color: var(--muted); margin-right: 4px; line-height: 1; }
+.fas-amount-input {
+  flex: 1; background: none; border: none; outline: none;
+  font-size: 2.4rem; font-weight: 800; color: var(--text);
+  font-family: inherit; font-variant-numeric: tabular-nums; min-width: 0;
+}
+.fas-cats {
+  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px;
+  scrollbar-width: none;
+}
+.fas-cats::-webkit-scrollbar { display: none; }
+.fas-cat-chip {
+  flex-shrink: 0; padding: 6px 13px; border-radius: 20px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); font-size: .74rem; font-weight: 700;
+  font-family: inherit; cursor: pointer; white-space: nowrap;
+  transition: background .1s, color .1s, border-color .1s;
+}
+.fas-cat-active { background: rgba(78,203,141,.13); border-color: var(--accent); color: var(--accent); }
+.fas-desc-input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 11px 14px; font-size: .85rem;
+  color: var(--text); font-family: inherit; margin-bottom: 14px;
+  outline: none; -webkit-user-select: text; user-select: text;
+}
+.fas-desc-input::placeholder { color: var(--muted); }
+.fas-submit-btn {
+  width: 100%; padding: 14px; font-size: 1rem; font-weight: 800;
+  letter-spacing: .02em;
+}
+
 /* ── Notes & Reminders: flatten note cards into the calm hairline list ── */
 .notes-list { gap: 0 !important; }
 .note-card {
