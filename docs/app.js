@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.40.0';
+const VERSION = '5.41.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.41.0', date: '2026-06-05', changes: [
+    'Splash screen now boots up — under the title, a terminal log types itself out (mounting accounts… ok, syncing balances… ok, loading ledger… ok) then drops a green READY ▋ where the old progress bar was. The doberman bark and glitch are untouched',
+    'Splash hold extended slightly (2.6s) so the boot sequence finishes before it wipes to the app',
+  ]},
   { version: '5.40.0', date: '2026-06-05', changes: [
     'New transaction animation — "Terminal Boot": a mini command line types itself out (auth → posting → memo) then drops your amount with an RGB-glitch snap and a blinking cursor. Works for expense, income, transfer, and auto-detected paychecks',
     'Accounts overview polish: smaller "Track a Transaction" button, more breathing room between account rows, and slightly smaller header/row text',

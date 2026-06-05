@@ -52,8 +52,11 @@
         <div class="splash-brand" data-glitch="Budget DAWGs">Budget DAWGs</div>
         <div class="splash-tagline">Money on a leash.</div>
       </div>
-      <div class="splash-bar-wrap">
-        <div class="splash-bar"></div>
+      <div class="splash-boot" aria-hidden="true">
+        <div class="splash-boot-line">&gt; mounting accounts… <span class="sb-ok">ok</span></div>
+        <div class="splash-boot-line">&gt; syncing balances… <span class="sb-ok">ok</span></div>
+        <div class="splash-boot-line">&gt; loading ledger…… <span class="sb-ok">ok</span></div>
+        <div class="splash-boot-ready">READY <span class="sb-cur">▋</span></div>
       </div>
       <div class="splash-tap-hint">tap to continue</div>
     </div>
@@ -237,8 +240,9 @@
       }
       // Tap anywhere to skip
       el.addEventListener('click', dismiss);
-      // Auto-dismiss at 2s (normal load) — app.js overrides with its own timing
-      setTimeout(dismiss, 2000);
+      // Auto-dismiss at 2.6s (normal load) — gives the boot log time to finish.
+      // app.js's runSplash may extend this further; whichever fires first wins.
+      setTimeout(dismiss, 2600);
       // Nuclear fallback at 6s regardless
       setTimeout(function() { if (!done) { done = true; if (el.parentNode) el.remove(); } }, 6000);
     })();
