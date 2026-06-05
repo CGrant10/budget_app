@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Budget DAWGs — Boot Vibe Placements</title>
+<style>
+  :root{
+    --bg:#0a0a0b; --surface:#141417; --surface2:#1d1d22; --border:#2a2a31;
+    --text:#f2f2f5; --muted:#8a8a93;
+    --accent:#4ecb8d; --danger:#ff453a; --success:#32d74b; --gold:#ffd60a;
+    --term:#5ef0c0;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:radial-gradient(120% 80% at 50% -10%,#15191b 0%,var(--bg) 60%);
+    color:var(--text);font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',sans-serif;
+    -webkit-font-smoothing:antialiased;padding:22px 16px 60px}
+  h1{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:.82rem;margin:0 0 20px;line-height:1.5}
+  .sub b{color:var(--term)}
+
+  .grid{display:grid;gap:16px}
+  .opt{background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+  .opt-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:15px 16px 0}
+  .opt-name{font-size:1rem;font-weight:800}
+  .opt-tag{font-size:.6rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:4px 9px;border-radius:99px;flex-shrink:0;color:var(--term);background:rgba(94,240,192,.12)}
+  .opt-desc{padding:6px 16px 0;color:var(--muted);font-size:.76rem;line-height:1.45}
+  .stage{position:relative;height:300px;margin:14px 12px;border-radius:18px;overflow:hidden;
+    background:#0a0c0b;border:1px solid var(--border)}
+  .replay{display:block;width:calc(100% - 24px);margin:0 12px 14px;padding:11px;border-radius:12px;
+    background:var(--surface2);color:var(--text);font:800 .82rem inherit;cursor:pointer;border:1px solid var(--border);transition:.12s}
+  .replay:active{transform:scale(.98)}.replay:hover{border-color:var(--term);color:var(--term)}
+
+  .mono{font-family:'Cascadia Code',ui-monospace,'SF Mono',Consolas,monospace}
+  /* phone chrome to make placements feel real */
+  .scr{position:absolute;inset:0;display:flex;flex-direction:column}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;font-size:.7rem;color:var(--muted);border-bottom:1px solid var(--border)}
+  .topbar b{color:var(--text);font-size:.9rem;font-weight:800;letter-spacing:.02em}
+  .scanlines::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:6;
+    background:repeating-linear-gradient(to bottom,transparent 0 2px,rgba(0,0,0,.22) 2px 3px);opacity:.5;mix-blend-mode:overlay}
+  .tline{white-space:nowrap;overflow:hidden;width:0;animation:type .34s steps(26,end) var(--d,0s) both}
+  @keyframes type{to{width:100%}}
+  .ok{color:var(--success)}.bad{color:var(--danger)}
+  .cur{animation:blink .6s steps(1,end) infinite}@keyframes blink{50%{opacity:0}}
+  @keyframes gIn{0%{opacity:0}8%{opacity:1;filter:brightness(1.9) drop-shadow(5px 0 0 rgba(255,48,48,.9)) drop-shadow(-5px 0 0 rgba(0,216,255,.9));transform:translateX(-4px) skewX(-8deg)}16%{filter:brightness(2.1) drop-shadow(-6px 0 0 rgba(255,48,48,.75)) drop-shadow(6px 0 0 rgba(0,216,255,.75));transform:translateX(3px) skewX(5deg)}24%{filter:none;transform:none}55%{filter:brightness(1.6) drop-shadow(4px 0 0 rgba(0,216,255,.85)) drop-shadow(-4px 0 0 rgba(255,48,48,.8));transform:translateX(-2px)}60%{filter:none;transform:none}100%{filter:none;transform:none;opacity:1}}
+
+  /* A · Boot gate */
+  .boot{flex:1;padding:18px 16px;font-size:.82rem;line-height:1.85;color:#cdd5d0}
+  .boot .hd{color:var(--term);font-weight:800;letter-spacing:.08em;margin-bottom:8px}
+  .boot .ready{color:var(--term);font-size:1.5rem;font-weight:800;margin-top:10px;opacity:0;animation:gIn .5s steps(1,end) both}
+  .dashpeek{position:absolute;inset:0;opacity:0;background:#0a0c0b;padding:16px;display:flex;flex-direction:column;gap:10px}
+  .dashpeek .hero{height:70px;border-radius:14px;background:linear-gradient(120deg,#10241b,#0c1411);border:1px solid #1d3a2c}
+  .dashpeek .row{height:34px;border-radius:10px;background:var(--surface2)}
+
+  /* C · Empty state */
+  .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#cdd5d0;font-size:.95rem}
+  .empty .big{color:var(--term);font-size:1.05rem}
+  .empty .hint{color:var(--muted);font-size:.78rem}
+
+  /* D · Toast */
+  .fakebg{flex:1;padding:14px;display:flex;flex-direction:column;gap:10px;opacity:.4}
+  .fakebg .row{height:40px;border-radius:10px;background:var(--surface2)}
+  .toast{position:absolute;left:14px;right:14px;bottom:16px;background:#0c1310;border:1px solid color-mix(in srgb,var(--term) 40%,#23272a);
+    border-radius:13px;padding:13px 15px;font-size:.86rem;color:var(--term);
+    box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 24px rgba(94,240,192,.12);
+    transform:translateY(80px);opacity:0;animation:toastIn .45s cubic-bezier(.2,1.3,.4,1) both}
+  @keyframes toastIn{to{transform:translateY(0);opacity:1}}
+
+  /* E · PIN */
+  .pin{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+  .pin .prompt{color:var(--term);font-size:.9rem}
+  .pin .dots{display:flex;gap:12px}
+  .pin .dot{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--muted)}
+  .pin .dot.f{background:var(--term);border-color:var(--term);box-shadow:0 0 8px var(--term)}
+  .pin .pad{display:grid;grid-template-columns:repeat(3,46px);gap:10px}
+  .pin .key{height:46px;border-radius:11px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700}
+  .pin .verdict{font-size:1.05rem;font-weight:800;letter-spacing:.05em;height:1.2em}
+
+  /* F · Net worth */
+  .nw{flex:1;padding:18px 16px;display:flex;flex-direction:column;gap:14px}
+  .nwcard{background:#0c1310;border:1px solid #1d3a2c;border-radius:16px;padding:16px}
+  .nwcard .lbl{font-size:.64rem;letter-spacing:.16em;color:var(--muted);font-weight:800}
+  .nwcard .val{font-size:2.1rem;font-weight:800;color:var(--term);margin-top:4px}
+  .nw .row{height:36px;border-radius:10px;background:var(--surface2)}
+
+  /* G · Update */
+  .upd{flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:0 18px}
+  .updpill{align-self:flex-start;padding:10px 16px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);font-weight:800;font-size:.82rem;color:var(--text)}
+  .updlog{font-size:.84rem;line-height:1.9;color:#cdd5d0;min-height:90px}
+</style>
+</head>
+<body>
+  <h1>Boot-vibe placements</h1>
+  <p class="sub">Your splash stays as-is. These are the <b>other</b> spots the terminal-boot look could live. Tap <b>Replay</b> on each to see it in context.</p>
+
+  <div class="grid">
+    <div class="opt"><div class="opt-hd"><span class="opt-name">A · Post-splash Boot Gate</span><span class="opt-tag">Launch</span></div>
+      <div class="opt-desc">Right after your splash, a quick boot log types out, hits READY, then wipes to the dashboard. Splash untouched — this is the hand-off moment.</div>
+      <div class="stage scanlines" id="sa"></div><button class="replay" data-k="a">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">B · Empty States</span><span class="opt-tag">Ledger/Bills/Goals</span></div>
+      <div class="opt-desc">One shared helper feeds Ledger, Bills &amp; Goals — so this single change shows up in all three when there's nothing yet.</div>
+      <div class="stage scanlines" id="sb"></div><button class="replay" data-k="b">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">C · Status Toasts</span><span class="opt-tag">App-wide</span></div>
+      <div class="opt-desc">Every save confirmation (add expense, save plan, etc.) slides up as a mono terminal line in accent green.</div>
+      <div class="stage scanlines" id="sc"></div><button class="replay" data-k="c">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">D · PIN / Lock Screen</span><span class="opt-tag">Auth</span></div>
+      <div class="opt-desc">The unlock screen becomes a terminal access prompt — dots fill as you type, then ACCESS GRANTED ✓ (or a red DENIED glitch).</div>
+      <div class="stage scanlines" id="sd"></div><button class="replay" data-k="d">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">E · Net Worth Reveal</span><span class="opt-tag">Accounts</span></div>
+      <div class="opt-desc">When the accounts overview opens, the Net Worth figure scrambles through digits and locks in (the Datastream effect).</div>
+      <div class="stage scanlines" id="se"></div><button class="replay" data-k="e">▶ Replay</button></div>
+
+    <div class="opt"><div class="opt-hd"><span class="opt-name">F · Update Check</span><span class="opt-tag">Settings/Accounts</span></div>
+      <div class="opt-desc">Tapping "Check for update" prints a live boot log — checking remote, version found / up to date.</div>
+      <div class="stage scanlines" id="sf"></div><button class="replay" data-k="f">▶ Replay</button></div>
+  </div>
+
+<script>
+  const CHARS='0123456789$#%&*';
+  function scramble(el, final, frames=18, speed=28){
+    let fr=0; const iv=setInterval(()=>{fr++;
+      el.textContent=final.split('').map((ch,i)=>/[\s$,.−+]/.test(ch)?ch:(fr>frames*(i/final.length)+4?ch:CHARS[Math.floor(Math.random()*CHARS.length)])).join('');
+      if(fr>=frames){clearInterval(iv);el.textContent=final;}},speed);
+  }
+
+  function play(k){
+    const stage=document.getElementById('s'+k); stage.innerHTML='';
+
+    if(k==='a'){
+      const scr=document.createElement('div');scr.className='scr';
+      scr.innerHTML=`<div class="boot mono">
+        <div class="hd">BUDGETDAWGS BIOS v5.40.0</div>
+        <div class="tline" style="--d:.1s">&gt; mounting accounts………… <span class="ok">ok</span></div>
+        <div class="tline" style="--d:.5s">&gt; syncing balances………… <span class="ok">ok</span></div>
+        <div class="tline" style="--d:.9s">&gt; loading ledger……………… <span class="ok">ok</span></div>
+        <div class="tline" style="--d:1.3s">&gt; weekly planner……………… <span class="ok">ok</span></div>
+        <div class="ready" style="animation-delay:1.7s">READY <span class="cur">▋</span></div>
+      </div>
+      <div class="dashpeek"><div class="hero"></div><div class="row"></div><div class="row"></div><div class="row"></div></div>`;
+      stage.appendChild(scr);
+      const peek=scr.querySelector('.dashpeek');
+      setTimeout(()=>{peek.style.transition='opacity .5s ease';peek.style.opacity='1';},2300);
+      return;
+    }
+    if(k==='b'){
+      const scr=document.createElement('div');scr.className='scr';
+      scr.innerHTML=`<div class="topbar"><b>Ledger</b><span class="mono">JUN 2026</span></div>
+        <div class="empty mono"><div class="big">&gt; no transactions found <span class="cur">▋</span></div>
+        <div class="hint">// tap + to log your first one</div></div>`;
+      stage.appendChild(scr);return;
+    }
+    if(k==='c'){
+      const scr=document.createElement('div');scr.className='scr';
+      scr.innerHTML=`<div class="topbar"><b>Add</b><span class="mono">expense</span></div>
+        <div class="fakebg"><div class="row"></div><div class="row"></div><div class="row"></div><div class="row"></div></div>
+        <div class="toast mono">&gt; ✓ expense logged: −$42.18 <span class="cur">▋</span></div>`;
+      stage.appendChild(scr);return;
+    }
+    if(k==='d'){
+      const scr=document.createElement('div');scr.className='scr';
+      scr.innerHTML=`<div class="pin mono">
+        <div class="prompt">&gt; enter access code</div>
+        <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+        <div class="pad">${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(n=>`<div class="key">${n}</div>`).join('')}</div>
+        <div class="verdict"></div></div>`;
+      stage.appendChild(scr);
+      const dots=scr.querySelectorAll('.dot'),verdict=scr.querySelector('.verdict');
+      dots.forEach((d,i)=>setTimeout(()=>d.classList.add('f'),300+i*350));
+      setTimeout(()=>{verdict.textContent='ACCESS GRANTED ✓';verdict.style.color='var(--success)';verdict.style.animation='gIn .5s steps(1,end) both';},300+4*350+250);
+      return;
+    }
+    if(k==='e'){
+      const scr=document.createElement('div');scr.className='scr';
+      scr.innerHTML=`<div class="topbar"><b>My Accounts</b><span class="mono">4 accts</span></div>
+        <div class="nw"><div class="nwcard"><div class="lbl">NET WORTH</div><div class="val mono" id="nwval">$0</div></div>
+        <div class="row"></div><div class="row"></div><div class="row"></div></div>`;
+      stage.appendChild(scr);
+      scramble(scr.querySelector('#nwval'),'$48,210.55',22,30);
+      return;
+    }
+    // f
+    const scr=document.createElement('div');scr.className='scr';
+    scr.innerHTML=`<div class="topbar"><b>Settings</b><span class="mono">v5.40.0</span></div>
+      <div class="upd"><div class="updpill">⟳ Check for update</div><div class="updlog mono" id="ulog"></div></div>`;
+    stage.appendChild(scr);
+    const log=scr.querySelector('#ulog');
+    const lines=['&gt; checking remote……','&gt; comparing version……','&gt; <span style="color:var(--term)">v5.41.0 found</span> — tap to install <span class="cur">▋</span>'];
+    lines.forEach((h,i)=>setTimeout(()=>{const d=document.createElement('div');d.className='tline';d.style.setProperty('--d','0s');d.innerHTML=h;log.appendChild(d);},i*600));
+  }
+
+  document.querySelectorAll('.replay').forEach(b=>b.addEventListener('click',()=>play(b.dataset.k)));
+  ['a','b','c','d','e','f'].forEach(play);
+</script>
+</body>
+</html>
