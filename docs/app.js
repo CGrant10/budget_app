@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.36.0';
+const VERSION = '5.36.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.36.1', date: '2026-06-05', changes: [
+    'Fix: sparkline month labels now visible — added bottom layout padding so labels render inside the canvas instead of being clipped',
+  ]},
   { version: '5.36.0', date: '2026-06-05', changes: [
     'Dashboard sparkline now defaults to ALL — your full balance history as one continuous line flowing month to month',
     'Month boundary markers: subtle vertical hairlines with a month label (Jan, Feb…) appear where each month starts on the graph',
@@ -9510,6 +9513,7 @@ function attachDashboardDawg() {
       plugins:[_pulsePlugin],
       options:{
         responsive:true, maintainAspectRatio:false,
+        layout:{ padding:{ bottom:14 } },
         plugins:{ legend:{display:false}, tooltip:{enabled:false} },
         scales:{ x:{display:false}, y:{display:false} },
         animation:{ duration:0 }   // plugin drives all animation
