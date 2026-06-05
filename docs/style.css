@@ -6308,3 +6308,18 @@ body.light::after {
 }
 .debt-acct-card::after { display: none !important; }
 .debt-acct-list .debt-acct-card:last-child { border-bottom: none !important; }
+
+/* ── Notes & Reminders: flatten note cards into the calm hairline list ── */
+.notes-list { gap: 0 !important; }
+.note-card {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  padding: 13px 4px !important;
+}
+.notes-list .note-card:last-child { border-bottom: none !important; }
+/* Urgency stays legible via a faint full-row wash; the date-tag pill carries the rest. */
+.note-card-overdue { background: color-mix(in srgb, var(--danger) 7%, transparent) !important; }
+.note-card-today   { background: color-mix(in srgb, var(--accent) 7%, transparent) !important; }

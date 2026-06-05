@@ -132,6 +132,98 @@
       eq(_evalExpr('5+'), 5, 'trailing operator ignored');
     });
 
+    // ── money movement: cross-account posting + loan payments ────────────────────
+    // These exercise the helpers behind Transfers/Payments (the v5.33.0 fix) and
+    // bill→loan links. They touch localStorage + globals, so each saves/restores
+    // state and clears the temp account key it creates.
+    const OTHER = '__test_other_acct__';
+    function withMoneyEnv(fn) {
+      const saved = {
+        tx: state.transactions, accts: state.accounts, cur: currentAccountId,
+      };
+      state.transactions = [];
+      state.accounts = [{ id: 'main', name: 'Main', type: 'checking' },
+                         { id: OTHER, name: 'Card', type: 'credit' }];
+      currentAccountId = 'main';
+      try { fn(); }
+      finally {
+        state.transactions = saved.tx; state.accounts = saved.accts;
+        currentAccountId = saved.cur;
+        localStorage.removeItem(accountDataKey(OTHER));
+      }
+    }
+    function otherTxns() {
+      return (JSON.parse(localStorage.getItem(accountDataKey(OTHER)) || '{}').transactions) || [];
+    }
+
+    test('_postTxnToAccount routes to the current account in-memory', () => {
+      withMoneyEnv(() => {
+        _postTxnToAccount('main', { type: 'expense', amount: 5, account: 'main' });
+        eq(state.transactions.length, 1, 'pushed to state');
+        eq(otherTxns().length, 0, 'other account untouched');
+      });
+    });
+
+    test('_postTxnToAccount routes to another account on disk, not state', () => {
+      withMoneyEnv(() => {
+        _postTxnToAccount(OTHER, { type: 'income', amount: 9, account: OTHER });
+        eq(state.transactions.length, 0, 'state untouched');
+        eq(otherTxns().length, 1, 'written to other account');
+        eq(otherTxns()[0].amount, 9, 'amount preserved');
+      });
+    });
+
+    test('_removeTxnFromAccount removes another account txn by _billPayId', () => {
+      withMoneyEnv(() => {
+        _postTxnToAccount(OTHER, { type: 'income', amount: 9, account: OTHER, _billPayId: 'pay-1' });
+        _postTxnToAccount(OTHER, { type: 'income', amount: 4, account: OTHER, _billPayId: 'pay-2' });
+        _removeTxnFromAccount(OTHER, 'pay-1');
+        eq(otherTxns().length, 1, 'one left');
+        eq(otherTxns()[0]._billPayId, 'pay-2', 'removed the right one');
+      });
+    });
+
+    test('transfer invariant: money out of source, into destination', () => {
+      // Mirrors the Add→Transfer handler: an excluded expense on the source and a
+      // matching income on the destination, so net worth is unchanged.
+      withMoneyEnv(() => {
+        _postTxnToAccount('main',  { type: 'expense', amount: 25, account: 'main',  category: 'Transfer', excludeFromBudget: true, _xfer: 1 });
+        _postTxnToAccount(OTHER,   { type: 'income',  amount: 25, account: OTHER,   category: 'Payment',  _xfer: 1 });
+        eq(state.transactions.length, 1, 'one leg on source');
+        ok(state.transactions[0].type === 'expense' && isExcludedFromSpend(state.transactions[0]), 'source leg is an excluded expense');
+        eq(otherTxns().length, 1, 'one leg on destination');
+        eq(otherTxns()[0].type, 'income', 'destination leg is income');
+      });
+    });
+
+    test('postLoanPayment posts once and is idempotent', () => {
+      withMoneyEnv(() => {
+        const bill = { name: 'Card', amount: 50, dueDay: 15, linkedAccountId: OTHER };
+        postLoanPayment(bill, '2026-04');
+        postLoanPayment(bill, '2026-04');   // second call must NOT double-post
+        eq(otherTxns().length, 1, 'posted exactly once');
+        eq(otherTxns()[0].type, 'income', 'payment reduces what is owed');
+        eq(otherTxns()[0].amount, 50, 'amount = bill amount');
+        ok(billLinkedTxns(bill)['2026-04'], 'link recorded for the month');
+      });
+    });
+
+    test('removeLoanPayment reverses the posted payment', () => {
+      withMoneyEnv(() => {
+        const bill = { name: 'Card', amount: 50, dueDay: 15, linkedAccountId: OTHER };
+        postLoanPayment(bill, '2026-04');
+        removeLoanPayment(bill, '2026-04');
+        eq(otherTxns().length, 0, 'payment removed');
+        ok(!billLinkedTxns(bill)['2026-04'], 'link cleared');
+      });
+    });
+
+    test('_billPayDate clamps to the due day within the paid month', () => {
+      eq(_billPayDate({ dueDay: 15 }, '2026-04'), '2026-04-15', 'mid-month');
+      eq(_billPayDate({ dueDay: 31 }, '2026-02'), '2026-02-28', 'clamps to Feb 28');
+      eq(_billPayDate({ dueDay: 15 }, localMonthKey()), today(), 'current month uses today');
+    });
+
     // ── render ──────────────────────────────────────────────────────────────────
     const passed = results.filter(r => r.ok).length;
     const failed = results.length - passed;

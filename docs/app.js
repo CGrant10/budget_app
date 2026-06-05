@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.33.0';
+const VERSION = '5.34.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.34.0', date: '2026-06-05', changes: [
+    'Hybrid look: Notes & Reminders is now a calm hairline list to match Bills, Goals, Debt and the ledger. Overdue and due-today notes keep a faint colored wash so they still stand out at a glance',
+  ]},
   { version: '5.33.0', date: '2026-06-04', changes: [
     'Transfers and payments now post to BOTH accounts reliably — use Add → Transfer, pick From and To/Pay, and it records money out of the source and into the destination. Transferring to a credit card or loan reduces what you owe (shows as a payment on that account)',
     'Transfers are labeled clearly (Payment ↔ for loans/credit) and no longer count as discretionary weekly spending',
