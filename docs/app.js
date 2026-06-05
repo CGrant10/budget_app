@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.38.0';
+const VERSION = '5.38.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.38.1', date: '2026-06-05', changes: [
+    'Moved Track Transaction button to the accounts overview page — full-width sticky bar at the bottom, reachable by either thumb. Removed the floating FAB from the dashboard.',
+  ]},
   { version: '5.38.0', date: '2026-06-05', changes: [
     'Performance: trimmed Google Fonts from 16 families to 2 — only Plus Jakarta Sans and Bangers load at startup; Cascadia Code loads on-demand for the PowerShell theme only',
     'Performance: totals() and monthTotals() are now memoized — they scan transactions once per save instead of ~16 times per render',
@@ -2772,7 +2775,6 @@ function showTab(key) {
     b.classList.toggle('active', b.dataset.tab === key));
   document.querySelectorAll('.dawg-nav-btn[data-tab]').forEach(b =>
     b.classList.toggle('dawg-nav-active', b.dataset.tab === key));
-  _syncFastAddFab();
   _screenFlash(); // green flash + page title glitch on every tab change
   render();
 }
@@ -3595,6 +3597,12 @@ function renderAccountPicker() {
         </div>`;
       })() : ''}
       <div class="acct-list acct-list-scroll">${rows}</div>
+      <div class="acct-qa-bar">
+        <button class="acct-qa-btn" id="acct-qa-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+          Track a Transaction
+        </button>
+      </div>
     </div>`;
 }
 
@@ -4016,6 +4024,7 @@ function render() {
       });
     });
     document.getElementById('acct-force-update-btn')?.addEventListener('click', () => forceUpdate());
+    document.getElementById('acct-qa-btn')?.addEventListener('click', _showFastAdd);
     document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="date"])').forEach(el => el.setAttribute('enterkeyhint', 'done'));
     updateDawgTopbar();
     return;
@@ -4050,7 +4059,6 @@ function render() {
   updateBillBadge();
   updateNotesBadge();
   updateDawgTopbar();
-  _syncFastAddFab();
   // Negative balance warning — show once per session when dashboard is visible
   if (currentTab === 'dashboard' && !_shownNegativePopup) {
     const _curD  = state.accounts?.find(a => a.id === currentAccountId);
@@ -9647,13 +9655,6 @@ function _showFastAdd() {
   });
 }
 
-function _syncFastAddFab() {
-  const fab = document.getElementById('fast-add-fab');
-  if (!fab) return;
-  const show = !showingAccountPicker && currentTab === 'dashboard';
-  fab.classList.toggle('hidden', !show);
-}
-
 function attachHandlers() {
   switch (currentTab) {
     case 'dashboard':
@@ -10948,7 +10949,6 @@ document.querySelectorAll('.nav-btn').forEach(btn =>
 
 // DAWG bottom nav — built dynamically from saved layout
 renderDawgNav();
-document.getElementById('fast-add-fab')?.addEventListener('click', _showFastAdd);
 document.getElementById('dawg-nav-accts')?.addEventListener('click', () => {
   const _centerBtn = document.getElementById('dawg-nav-accts');
   if (_centerBtn) {

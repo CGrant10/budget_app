@@ -6310,20 +6310,27 @@ body.theme-ubuntu .section-title::before {
 .ins-section .ins-cat { margin-bottom: 0; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .ins-section .ins-cat:last-child { border-bottom: none; }
 
-/* ── Fast-add FAB ── */
-.fast-add-fab {
-  position: fixed;
-  bottom: calc(var(--nav-h) + 14px + env(safe-area-inset-bottom, 0px));
-  right: 18px;
-  width: 50px; height: 50px; border-radius: 50%;
-  background: var(--accent); border: none; color: #0a0a0b;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; z-index: 500;
-  box-shadow: 0 4px 22px rgba(78,203,141,.45), 0 1px 4px rgba(0,0,0,.4);
-  transition: transform .12s ease, opacity .15s ease;
+/* ── Accounts overview: sticky Track Transaction bar ── */
+.acct-qa-bar {
+  position: sticky;
+  bottom: 0;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to bottom, transparent, var(--bg) 36%);
+  pointer-events: none;
 }
-.fast-add-fab:active { transform: scale(.91); }
-.fast-add-fab.hidden { opacity: 0; pointer-events: none; transform: scale(.8); }
+.acct-qa-btn {
+  width: 100%;
+  padding: 15px 0;
+  background: var(--accent);
+  border: none; border-radius: 16px;
+  color: #0a0a0b;
+  font-size: .95rem; font-weight: 800; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer; pointer-events: all;
+  box-shadow: 0 4px 18px rgba(78,203,141,.3);
+  transition: transform .1s ease, opacity .1s ease;
+}
+.acct-qa-btn:active { transform: scale(.97); opacity: .9; }
 
 /* ── Fast-add bottom sheet ── */
 .fast-add-overlay {
