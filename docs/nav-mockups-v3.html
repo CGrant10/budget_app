@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nav bar mockups — minimal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#e2e2df; --surface:#eaeae7; --card:#e4e4e1; --surface2:#d8d8d5;
+    --accent:#5ab592; --text:#181820; --muted:#606070; --border:rgba(0,0,0,.10);
+  }
+  body.on, body.dark{
+    --bg:#0e0e0f; --surface:#161617; --card:#1c1c1e; --surface2:#222223;
+    --accent:#4ecb8d; --text:#f0f0f2; --muted:#8a8a92; --border:rgba(255,255,255,.08);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Plus Jakarta Sans',-apple-system,system-ui,sans-serif;
+    background:var(--bg); color:var(--text);
+    -webkit-font-smoothing:antialiased; padding:32px 20px 80px;
+    transition:background .25s ease,color .25s ease;
+  }
+  .page-head{max-width:1100px; margin:0 auto 32px; text-align:center;}
+  h1{font-size:26px; font-weight:800; letter-spacing:-.5px;}
+  .sub{color:var(--muted); font-size:14px; margin-top:6px; font-weight:500;}
+  /* toggle */
+  .toggle{display:inline-flex; margin-top:18px; background:var(--surface2);
+    border:1px solid var(--border); border-radius:999px; padding:4px; gap:2px;}
+  .toggle button{font:inherit; font-size:13px; font-weight:600; color:var(--muted);
+    background:transparent; border:none; cursor:pointer; padding:7px 18px; border-radius:999px;
+    transition:all .2s ease;}
+  .toggle button.on{background:var(--accent); color:#0a0a0a;}
+  body.dark .toggle button.on{color:#06140d;}
+
+  /* layout grid */
+  .grid{max-width:1100px; margin:0 auto; display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:28px;}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:20px;
+    padding:22px; transition:background .25s ease,border-color .25s ease;}
+  .card-head{margin-bottom:18px;}
+  .tag{display:inline-block; font-size:12px; font-weight:700; letter-spacing:.3px;
+    color:var(--accent); background:color-mix(in srgb,var(--accent) 14%,transparent);
+    padding:4px 10px; border-radius:8px;}
+  .desc{font-size:13px; color:var(--muted); margin-top:8px; line-height:1.5; font-weight:500;}
+  .glitch-note{font-size:11px; color:var(--muted); margin-top:10px; opacity:.8;
+    font-weight:500; font-style:italic;}
+
+  /* phone slice */
+  .phones{display:flex; gap:16px; margin-top:18px; flex-wrap:wrap;}
+  .phone{width:300px; max-width:100%; flex:1 1 280px;}
+  .phone-label{font-size:11px; font-weight:600; color:var(--muted); margin-bottom:6px;
+    text-transform:uppercase; letter-spacing:.5px;}
+  .screen{background:var(--bg); border:1px solid var(--border); border-radius:24px;
+    overflow:hidden; transition:background .25s ease;}
+  .content{height:110px; padding:16px; display:flex; flex-direction:column; gap:8px;}
+  .ph-line{height:10px; border-radius:6px; background:var(--surface2);}
+  .ph-line.w70{width:70%;} .ph-line.w90{width:90%;} .ph-line.w50{width:50%;}
+  .ph-block{flex:1; border-radius:10px; background:var(--surface);
+    border:1px solid var(--border); margin-top:4px;}
+
+  /* ---- shared bar base ---- */
+  .nav{position:relative; display:flex; align-items:center; justify-content:space-around;
+    background:var(--surface); border-top:1px solid var(--border);
+    padding:8px 6px calc(8px + env(safe-area-inset-bottom,0px));
+    transition:background .25s ease;}
+  .nav button{background:none; border:none; cursor:pointer; color:var(--muted);
+    font:inherit; display:flex; flex-direction:column; align-items:center; gap:4px;
+    flex:1; padding:6px 2px; transition:color .2s ease; position:relative;}
+  .nav svg{width:22px; height:22px; display:block; transition:transform .2s ease;}
+  .nav .lbl{font-size:10px; font-weight:600; letter-spacing:.2px;}
+  .nav .active{color:var(--accent);}
+
+  /* center dog — modest, inside the bar */
+  .dog{flex:0 0 auto; padding:0;}
+  .dog .ring{width:42px; height:42px; border-radius:50%; overflow:hidden;
+    border:1.5px solid var(--border); background:var(--surface2);
+    display:flex; align-items:center; justify-content:center; transition:border-color .2s ease;}
+  .dog img{width:100%; height:100%; object-fit:cover; display:block;}
+  .dog.active .ring{border-color:var(--accent);}
+
+  /* RGB-split glitch — tasteful, periodic on the active icon */
+  @keyframes rgbSplit{
+    0%,92%,100%{ text-shadow:none; filter:none; }
+    94%{ filter:drop-shadow(-1.2px 0 0 rgba(255,0,80,.7)) drop-shadow(1.2px 0 0 rgba(0,220,255,.7)); }
+    96%{ filter:drop-shadow(1.2px 0 0 rgba(255,0,80,.7)) drop-shadow(-1.2px 0 0 rgba(0,220,255,.7)); }
+    98%{ filter:drop-shadow(-.6px 0 0 rgba(255,0,80,.6)) drop-shadow(.6px 0 0 rgba(0,220,255,.6)); }
+  }
+  .nav .active svg{animation:rgbSplit 7s infinite;}
+  /* dog idle "bark" glitch ring */
+  @keyframes barkGlitch{
+    0%,93%,100%{ filter:none; }
+    95%{ filter:drop-shadow(-1px 0 0 rgba(255,0,80,.6)) drop-shadow(1px 0 0 rgba(0,220,255,.6)); }
+    97%{ filter:drop-shadow(1px 0 0 rgba(255,0,80,.5)) drop-shadow(-1px 0 0 rgba(0,220,255,.5)); }
+  }
+  .dog.active .ring{animation:barkGlitch 7.5s infinite;}
+
+  /* ===== A · Clean line ===== */
+  .navA .dot{position:absolute; bottom:1px; width:4px; height:4px; border-radius:50%;
+    background:var(--accent); opacity:0; transition:opacity .2s ease;}
+  .navA .active .dot{opacity:1;}
+
+  /* ===== B · Icon-only ===== */
+  .navB{justify-content:space-around; padding-top:12px; padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));}
+  .navB button{gap:6px;}
+  .navB .lbl{display:none;}
+  .navB .dot{width:5px; height:5px; border-radius:50%; background:var(--accent);
+    opacity:0; transition:opacity .2s ease;}
+  .navB .active .dot{opacity:1;}
+  .navB .dog .ring{width:46px; height:46px; border:none;
+    background:var(--surface2); box-shadow:0 0 0 1.5px var(--border);}
+  .navB .dog.active .ring{box-shadow:0 0 0 2px var(--accent);}
+
+  /* ===== C · Minimal + active pill ===== */
+  .navC button{z-index:1;}
+  .navC .pill-wrap{position:relative;}
+  .navC .active .pillbg{position:absolute; top:-4px; left:50%; transform:translateX(-50%);
+    width:46px; height:32px; border-radius:12px;
+    background:color-mix(in srgb,var(--accent) 16%,transparent); z-index:-1;}
+</style>
+</head>
+<body class="dark">
+  <div class="page-head">
+    <h1>Nav bar mockups — minimal</h1>
+    <p class="sub">Budget DAWGs · 3 restrained directions — legibility first, glitch kept tasteful</p>
+    <div class="toggle">
+      <button id="t-light" onclick="setMode('light')">Light</button>
+      <button id="t-dark" class="on" onclick="setMode('dark')">Dark</button>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- ============ A ============ -->
+    <div class="card">
+      <div class="card-head">
+        <span class="tag">A · Clean line</span>
+        <p class="desc">Flat bar, thin line icons, tiny labels. Active = accent icon + a small 4px accent dot. The understated default.</p>
+        <p class="glitch-note">Live: quick RGB-split flash on tap; dog idle bark-glitch (subtle red/cyan offset every ~7s).</p>
+      </div>
+      <div class="phones">
+        <div class="phone">
+          <div class="phone-label">Dashboard active</div>
+          <div class="screen">
+            <div class="content">
+              <div class="ph-line w50"></div><div class="ph-line w90"></div><div class="ph-block"></div>
+            </div>
+            <nav class="nav navA">
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span class="lbl">Track it</span><span class="dot"></span></button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg><span class="lbl">Ledger</span><span class="dot"></span></button>
+              <button class="dog active"><span class="ring"><img src="./doberman.png" alt="Dashboard"></span></button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">Weekly</span><span class="dot"></span></button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl">Settings</span><span class="dot"></span></button>
+            </nav>
+          </div>
+        </div>
+        <div class="phone">
+          <div class="phone-label">Ledger active</div>
+          <div class="screen">
+            <div class="content">
+              <div class="ph-line w50"></div><div class="ph-line w90"></div><div class="ph-block"></div>
+            </div>
+            <nav class="nav navA">
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span class="lbl">Track it</span><span class="dot"></span></button>
+              <button class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg><span class="lbl">Ledger</span><span class="dot"></span></button>
+              <button class="dog"><span class="ring"><img src="./doberman.png" alt="Dashboard"></span></button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">Weekly</span><span class="dot"></span></button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl">Settings</span><span class="dot"></span></button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ B ============ -->
+    <div class="card">
+      <div class="card-head">
+        <span class="tag">B · Icon-only</span>
+        <p class="desc">No labels — evenly spaced line icons, max whitespace. Active = accent icon with a soft dot below. Dog = clean circular button.</p>
+        <p class="glitch-note">Live: quick RGB-split flash on tap; dog idle bark-glitch (subtle red/cyan offset every ~7s).</p>
+      </div>
+      <div class="phones">
+        <div class="phone">
+          <div class="phone-label">Dashboard active</div>
+          <div class="screen">
+            <div class="content">
+              <div class="ph-line w50"></div><div class="ph-line w70"></div><div class="ph-block"></div>
+            </div>
+            <nav class="nav navB">
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span class="dot"></span></button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg><span class="dot"></span></button>
+              <button class="dog active"><span class="ring"><img src="./doberman.png" alt="Dashboard"></span></button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="dot"></span></button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="dot"></span></button>
+            </nav>
+          </div>
+        </div>
+        <div class="phone">
+          <div class="phone-label">Ledger active</div>
+          <div class="screen">
+            <div class="content">
+              <div class="ph-line w50"></div><div class="ph-line w70"></div><div class="ph-block"></div>
+            </div>
+            <nav class="nav navB">
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span class="dot"></span></button>
+              <button class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg><span class="dot"></span></button>
+              <button class="dog"><span class="ring"><img src="./doberman.png" alt="Dashboard"></span></button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="dot"></span></button>
+              <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="dot"></span></button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ C ============ -->
+    <div class="card">
+      <div class="card-head">
+        <span class="tag">C · Minimal + active pill</span>
+        <p class="desc">Flat bar, line icons + tiny labels. The only ornament: a subtle accent-tinted rounded pill behind the active icon. Dog clean.</p>
+        <p class="glitch-note">Live: quick RGB-split flash on tap; dog idle bark-glitch (subtle red/cyan offset every ~7s).</p>
+      </div>
+      <div class="phones">
+        <div class="phone">
+          <div class="phone-label">Dashboard active</div>
+          <div class="screen">
+            <div class="content">
+              <div class="ph-line w50"></div><div class="ph-line w90"></div><div class="ph-block"></div>
+            </div>
+            <nav class="nav navC">
+              <button><span class="pill-wrap"><span class="pillbg"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="lbl">Track it</span></button>
+              <button><span class="pill-wrap"><span class="pillbg"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></span><span class="lbl">Ledger</span></button>
+              <button class="dog active"><span class="ring"><img src="./doberman.png" alt="Dashboard"></span></button>
+              <button><span class="pill-wrap"><span class="pillbg"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="lbl">Weekly</span></button>
+              <button><span class="pill-wrap"><span class="pillbg"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="lbl">Settings</span></button>
+            </nav>
+          </div>
+        </div>
+        <div class="phone">
+          <div class="phone-label">Ledger active</div>
+          <div class="screen">
+            <div class="content">
+              <div class="ph-line w50"></div><div class="ph-line w90"></div><div class="ph-block"></div>
+            </div>
+            <nav class="nav navC">
+              <button><span class="pill-wrap"><span class="pillbg"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="lbl">Track it</span></button>
+              <button class="active"><span class="pill-wrap"><span class="pillbg"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></span><span class="lbl">Ledger</span></button>
+              <button class="dog"><span class="ring"><img src="./doberman.png" alt="Dashboard"></span></button>
+              <button><span class="pill-wrap"><span class="pillbg"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="lbl">Weekly</span></button>
+              <button><span class="pill-wrap"><span class="pillbg"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="lbl">Settings</span></button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  function setMode(m){
+    document.body.className=m;
+    document.getElementById('t-light').classList.toggle('on',m==='light');
+    document.getElementById('t-dark').classList.toggle('on',m==='dark');
+  }
+</script>
+</body>
+</html>
