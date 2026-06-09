@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.6';
+const VERSION = '5.43.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.7', date: '2026-06-09', changes: [
+    'Reverted the nav bar change — that was only meant to be a mockup, not installed. The bottom nav is back to the original floating Doberman button. (Bills calendar layout stays.)',
+  ]},
   { version: '5.43.6', date: '2026-06-09', changes: [
     'Bills page redesigned (calendar-forward): a Total / Remaining / Paid summary, the month calendar promoted to the top with a clear paid (green) / due (amber) / overdue (red) dot system + legend, then the bill list',
     'Nav bar refresh: the Doberman button is now centered inside the bar (no longer floating above it), the top edge is a clean continuous hairline, and the active tab gets an accent pill behind its icon — bark and glitch effects kept',

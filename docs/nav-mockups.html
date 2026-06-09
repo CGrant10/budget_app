@@ -121,7 +121,9 @@
   .dog.dim:hover{transform:translateY(-2px)}
 
   /* ============================================================
-     OPTION A — Refined current (floating dog + notch + pill)
+     OPTION A — Refined current, dog CENTERED in the bar (+ active pill)
+     Note: the live app's bark/idle/tap glitch effects are kept — they
+     just aren't reproduced in this static mockup.
      ============================================================ */
   .navA{
     position:absolute;left:0;right:0;bottom:0;height:72px;
@@ -129,22 +131,15 @@
     box-shadow:var(--nav-shadow);
     display:flex;align-items:stretch;padding:0 6px;
   }
-  .navA .tab{padding-top:6px}
   .navA .tab .iconpill{
     display:flex;align-items:center;justify-content:center;
     width:46px;height:30px;border-radius:999px;transition:background .2s ease;
   }
   .navA .tab.active .iconpill{background:color-mix(in srgb,var(--accent) 18%,transparent)}
-  .navA .centerslot{width:78px;flex:none;position:relative}
-  /* notch cut into top border */
-  .navA .notch{
-    position:absolute;top:-1px;left:50%;transform:translateX(-50%);
-    width:84px;height:42px;background:var(--bg);
-    border-bottom-left-radius:42px;border-bottom-right-radius:42px;
-    border-bottom:1px solid var(--border);
-  }
-  .navA .dog{position:absolute;top:-30px;left:50%;transform:translateX(-50%)}
-  .navA .dog.dim{top:-22px}
+  /* center the dog vertically + horizontally inside the bar (no float / no notch) */
+  .navA .centerslot{width:78px;flex:none;display:flex;align-items:center;justify-content:center}
+  .navA .centerslot .dog{position:static;transform:none}
+  .navA .centerslot .dog.dim{transform:none}
 
   /* ============================================================
      OPTION B — Floating pill bar (detached, soft shadow)
@@ -256,7 +251,7 @@ function navA(active){
   return `<div class="navwrap"><div class="navA">
     <button class="tab ${a('track')}"><span class="iconpill">${svg('track')}</span><span class="lbl">Track it</span></button>
     <button class="tab ${a('ledger')}"><span class="iconpill">${svg('ledger')}</span><span class="lbl">Ledger</span></button>
-    <div class="centerslot"><div class="notch"></div><div class="dog ${dim}"></div></div>
+    <div class="centerslot"><div class="dog ${dim}"></div></div>
     <button class="tab ${a('weekly')}"><span class="iconpill">${svg('weekly')}</span><span class="lbl">Weekly</span></button>
     <button class="tab ${a('settings')}"><span class="iconpill">${svg('settings')}</span><span class="lbl">Settings</span></button>
   </div></div>`;
@@ -298,7 +293,7 @@ function navD(active){
 }
 
 const OPTIONS=[
-  {id:'A',name:'Refined current',desc:'Floating Doberman center button with a cleaner notch cutout, soft elevation ring, and an accent pill behind the active icon.',build:navA},
+  {id:'A',name:'Refined current',desc:'Doberman centered in the bar (vertically + horizontally — no float/notch), soft elevation ring, and an accent pill behind the active icon. The live app keeps the bark + glitch effects.',build:navA},
   {id:'B',name:'Floating pill',desc:'The whole bar detaches into a rounded pill that hovers above the screen edge with a soft drop shadow.',build:navB},
   {id:'C',name:'Indicator bar',desc:'Flat edge-to-edge bar with an animated accent underline that slides under the active tab; dog rides inline as a mini-FAB.',build:navC},
   {id:'D',name:'Labels-on-active',desc:'Inactive tabs are icon-only; the active tab expands into an accent pill that reveals its label. Very clean and modern.',build:navD}

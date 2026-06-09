@@ -6695,37 +6695,3 @@ body.theme-ubuntu .section-title::before {
 .bcal-legend3 .lg-paid { background: var(--success); }
 .bcal-legend3 .lg-soon { background: var(--warn); }
 .bcal-legend3 .lg-over { background: var(--danger); }
-
-/* ════════════════════════════════════════════════════════════════════════
-   NAV — refined "A": dog button centered INSIDE the bar (no float/notch),
-   continuous top hairline, and an accent pill behind the active tab. Glitch
-   animations (dog bark/idle, tap glitch) are intentionally left intact.
-═══════════════════════════════════════════════════════════════════════════ */
-/* Center the dog within the bar — drop the upward float, fit within nav height */
-.dawg-nav-center-btn {
-  flex: 0 0 52px !important; width: 52px !important; height: 52px !important;
-  transform: none !important;
-  box-shadow: 0 2px 10px rgba(0,0,0,.28) !important;
-  align-self: center;
-}
-.dawg-nav-dob { width: 44px; height: 44px; }
-/* Symmetric neon ring pulse (base shadow was offset upward for the floating version) */
-@keyframes center-btn-pulse {
-  0%, 100% { box-shadow: 0 2px 10px rgba(0,0,0,.28),
-              0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent),
-              0 0 12px color-mix(in srgb, var(--accent) 15%, transparent); }
-  50%      { box-shadow: 0 2px 10px rgba(0,0,0,.28),
-              0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent),
-              0 0 18px color-mix(in srgb, var(--accent) 30%, transparent),
-              0 0 36px color-mix(in srgb, var(--accent) 15%, transparent); }
-}
-/* Continuous top hairline — no notch now that the dog sits in-bar */
-#dawg-bottom-nav::before { background: var(--border); }
-
-/* Active tab: accent pill behind the icon (replaces the tiny dot) */
-.dawg-nav-btn.dawg-nav-active::after { display: none; }
-.dawg-nav-btn.dawg-nav-active .dawg-nav-icon {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  border-radius: 999px;
-  padding: 4px 15px;
-}
