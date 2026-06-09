@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.13';
+const VERSION = '5.43.14';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.14', date: '2026-06-09', changes: [
+    'Dialed back the green glow throughout — softer halo on the doberman, fainter hero glow, calmer nav (smaller active dot, gentler center-button pulse, dimmer top line), and budget tiles no longer cast a green halo. The RGB-split glitch effects are untouched',
+  ]},
   { version: '5.43.13', date: '2026-06-09', changes: [
     'Fixed: the update button now applies the new version immediately instead of only after leaving and reopening the app. It no longer unregisters the service worker before reloading, so the reload pulls fresh files on the spot',
   ]},

@@ -2649,7 +2649,7 @@ textarea:focus-visible,
 .dawg-hero-glow {
   position:absolute; top:-40%; right:-10%; width:65%; height:180%;
   background:var(--accent);
-  opacity:.08;
+  opacity:.035;
   border-radius:50%;
   filter:blur(50px);
   pointer-events:none;
@@ -2726,7 +2726,7 @@ textarea:focus-visible,
 .dawg-hero-dob {
   width:145px; flex-shrink:0;
   display: grid;                /* stacks idle + bark in the same cell */
-  filter:drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8));
+  filter:drop-shadow(0 0 9px rgba(78,203,141,.16)) drop-shadow(0 4px 8px rgba(0,0,0,.8));
   will-change: transform;
   animation: dawgHeroBarkGlitch 8s linear 2s infinite;
 }
@@ -2751,9 +2751,9 @@ textarea:focus-visible,
 }
 /* Wrapper glitch — fires once before the single bark */
 @keyframes dawgHeroBarkGlitch {
-  0%,   52.4% { filter: drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8)); }
-  52.5%,53.9% { filter: drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8)) drop-shadow(-7px 0 0 rgba(0,216,255,.75)) drop-shadow(7px 0 0 rgba(255,48,48,.75)) brightness(1.5); }
-  54%,  100%  { filter: drop-shadow(0 0 24px rgba(57,255,20,.4)) drop-shadow(0 4px 8px rgba(0,0,0,.8)); }
+  0%,   52.4% { filter: drop-shadow(0 0 9px rgba(78,203,141,.16)) drop-shadow(0 4px 8px rgba(0,0,0,.8)); }
+  52.5%,53.9% { filter: drop-shadow(0 0 9px rgba(78,203,141,.16)) drop-shadow(0 4px 8px rgba(0,0,0,.8)) drop-shadow(-7px 0 0 rgba(0,216,255,.75)) drop-shadow(7px 0 0 rgba(255,48,48,.75)) brightness(1.5); }
+  54%,  100%  { filter: drop-shadow(0 0 9px rgba(78,203,141,.16)) drop-shadow(0 4px 8px rgba(0,0,0,.8)); }
 }
 
 .dawg-balance-card {
@@ -2784,7 +2784,7 @@ textarea:focus-visible,
 .dawg-tbtn-pill {
   position:absolute; z-index:1; top:3px; bottom:3px; left:3px; width:0;
   border-radius:8px; background:var(--accent);
-  box-shadow:0 2px 10px rgba(78,203,141,.4);
+  box-shadow:0 2px 8px rgba(78,203,141,.18);
   transition:left .32s cubic-bezier(.3,1.3,.4,1), width .32s cubic-bezier(.3,1.3,.4,1);
 }
 
@@ -2851,8 +2851,8 @@ textarea:focus-visible,
 }
 /* The two budget stat tiles read as the bento "hero" — subtle accent glow */
 .dawg-tile-grid .dawg-budget-tile {
-  background: radial-gradient(125% 130% at 0% 0%, color-mix(in srgb, var(--accent) 14%, var(--card)), var(--card) 70%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), 0 0 22px rgba(78,203,141,.09);
+  background: radial-gradient(125% 130% at 0% 0%, color-mix(in srgb, var(--accent) 9%, var(--card)), var(--card) 70%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 16%, transparent);
 }
 /* Light mode: the dark→black bento gradient reads as muddy grey on a light page.
    Use clean light surfaces with a soft top-light instead, and keep the accent tint
@@ -2864,8 +2864,8 @@ body.light .dawg-tile-grid .dawg-budget-tile {
   box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 18px rgba(0,0,0,.06);
 }
 body.light .dawg-tile-grid .dawg-budget-tile {
-  background: linear-gradient(170deg, #ffffff 0%, color-mix(in srgb, var(--accent) 6%, #ffffff) 100%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent), 0 6px 18px color-mix(in srgb, var(--accent) 12%, transparent);
+  background: linear-gradient(170deg, #ffffff 0%, color-mix(in srgb, var(--accent) 4%, #ffffff) 100%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent), 0 6px 18px rgba(0,0,0,.06);
 }
 
 /* ── Skeleton shimmer (shown briefly while switching accounts) ────────────── */
@@ -6231,7 +6231,7 @@ body.theme-ubuntu .section-title::before {
   position: relative; /* needed for ::after dot */
 }
 .dawg-nav-btn.dawg-nav-active .dawg-nav-icon svg {
-  filter: drop-shadow(0 0 4px var(--accent));
+  filter: drop-shadow(0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent));
 }
 .dawg-nav-btn.dawg-nav-active::after {
   content: '';
@@ -6241,12 +6241,7 @@ body.theme-ubuntu .section-title::before {
   width: 4px; height: 4px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 5px var(--accent), 0 0 10px var(--accent);
-  animation: nav-dot-pulse 2.4s ease-in-out infinite;
-}
-@keyframes nav-dot-pulse {
-  0%, 100% { box-shadow: 0 0 4px var(--accent), 0 0 8px var(--accent); }
-  50%       { box-shadow: 0 0 8px var(--accent), 0 0 18px var(--accent), 0 0 28px color-mix(in srgb, var(--accent) 30%, transparent); }
+  box-shadow: 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 /* ── Center nav button — pulsing neon ring ───────────────────────────── */
@@ -6256,15 +6251,12 @@ body.theme-ubuntu .section-title::before {
 @keyframes center-btn-pulse {
   0%, 100% {
     box-shadow: 0 -3px 12px rgba(0,0,0,.25),
-                0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent),
-                0 0 12px color-mix(in srgb, var(--accent) 15%, transparent),
-                0 0 24px color-mix(in srgb, var(--accent) 8%, transparent);
+                0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
   }
   50% {
     box-shadow: 0 -3px 12px rgba(0,0,0,.25),
-                0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent),
-                0 0 18px color-mix(in srgb, var(--accent) 30%, transparent),
-                0 0 36px color-mix(in srgb, var(--accent) 15%, transparent);
+                0 0 0 1.25px color-mix(in srgb, var(--accent) 38%, transparent),
+                0 0 10px color-mix(in srgb, var(--accent) 10%, transparent);
   }
 }
 
@@ -6376,7 +6368,7 @@ body.theme-ubuntu .section-title::before {
 }
 /* Picker title — HUD / terminal style */
 .acct-picker-title {
-  text-shadow: 0 0 20px color-mix(in srgb, var(--accent) 25%, transparent);
+  text-shadow: none;
 }
 /* Balance value on picker rows */
 .acct-row-bal {
@@ -6391,7 +6383,7 @@ body.theme-ubuntu .section-title::before {
   top: 0; left: 10%; right: 10%;
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: .5;
+  opacity: .28;
 }
 
 /* ── Glitch page-title on tab change (class added/removed via JS) ────── */
@@ -6716,8 +6708,8 @@ body.theme-ubuntu .section-title::before {
   gap: 10px; margin-top: 14px;
 }
 .acct-picker-ver { display: flex; align-items: center; gap: 7px; margin-top: 0; opacity: 1; }
-.acct-ver-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); flex-shrink: 0; }
-.acct-ver-dot.stale { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+.acct-ver-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.acct-ver-dot.stale { background: var(--danger); }
 .acct-hero-foot .acct-update-pill { margin-top: 0; }
 
 /* Net worth — compact + de-emphasized (it's the least important thing here):
