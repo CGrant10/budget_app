@@ -2654,20 +2654,6 @@ textarea:focus-visible,
   pointer-events:none;
   z-index:1;
 }
-.dawg-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent 0px,
-    transparent 2px,
-    rgba(0,0,0,.07) 2px,
-    rgba(0,0,0,.07) 3px
-  );
-  pointer-events: none;
-  z-index: 0;
-}
 .dawg-hero::after {
   content:''; position:absolute; bottom:0; left:0; right:0; height:44px;
   background:linear-gradient(to bottom,transparent,var(--bg)); pointer-events:none; z-index:1;
@@ -2866,6 +2852,19 @@ textarea:focus-visible,
 .dawg-tile-grid .dawg-budget-tile {
   background: radial-gradient(125% 130% at 0% 0%, color-mix(in srgb, var(--accent) 14%, var(--card)), var(--card) 70%);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), 0 0 22px rgba(78,203,141,.09);
+}
+/* Light mode: the dark→black bento gradient reads as muddy grey on a light page.
+   Use clean light surfaces with a soft top-light instead, and keep the accent tint
+   on the two hero budget tiles. */
+body.light .dawg-tile-grid .dawg-section-card,
+body.light .dawg-tile-grid .dawg-budget-tile {
+  background: linear-gradient(170deg, #f3f3f0 0%, #e9e9e5 100%);
+  border: 1px solid rgba(0,0,0,.07);
+  box-shadow: 0 2px 12px rgba(0,0,0,.05), inset 0 1px 0 rgba(255,255,255,.75);
+}
+body.light .dawg-tile-grid .dawg-budget-tile {
+  background: linear-gradient(170deg, #eef6f0 0%, #e3ede6 100%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 2px 14px rgba(90,181,146,.12);
 }
 
 /* ── Skeleton shimmer (shown briefly while switching accounts) ────────────── */
@@ -3874,6 +3873,15 @@ body.light .dawg-dob-bark { animation: dawgHeroBarkFlip 8s linear 2s infinite; }
   animation: splashFadeUp .4s ease .62s both;
   position: relative;
   display: inline-block;
+}
+/* Light mode: dark brand text gets lost where the dog overlaps it. Give it a crisp
+   white outline + halo so "Budget DAWGs" stays legible over the dog and the light bg. */
+body.light .splash-brand {
+  color: #16161c;
+  text-shadow:
+    -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff,
+    -1.5px  1.5px 0 #fff, 1.5px  1.5px 0 #fff,
+    0 0 10px rgba(255,255,255,.95), 0 2px 16px rgba(255,255,255,.8);
 }
 .splash-glitch-on .splash-brand {
   animation: splashFadeUp .4s ease .62s both, sg-main 3.5s steps(1, end) 1.4s infinite;

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.2';
+const VERSION = '5.43.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,13 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.3', date: '2026-06-09', changes: [
+    'Cleaner look: removed the CRT scan-line texture from the dashboard hero banner',
+    'Light mode: dashboard bento tiles no longer use the dark→black gradient (it read as muddy grey) — they now use clean light surfaces with the accent kept on the budget tiles',
+    'Light mode: "Budget DAWGs" on the splash screen now has a white outline + halo so it stays legible over the dog',
+    'ADJ. PER DAY card now says how far off pace you are in dollars (e.g. "↓ $42 behind pace" / "↑ $357 ahead of pace") instead of a vague label — measured against spreading your weekly budget evenly across the 7 days',
+    'Weekly Planner is now hidden for credit-card and loan accounts (you pay those down, not budget them) — the nav swaps in the Debt tab and the planner page redirects there',
+  ]},
   { version: '5.43.2', date: '2026-06-09', changes: [
     'Fixed: scheduled paychecks could post twice (or flood the ledger from a stale pay date) — auto-entry now ignores overlapping runs and caps catch-up at 600 periods',
     'Fixed: the Daily History tile counted bill payments and excluded items against your discretionary daily budget, showing bogus "over budget" days',
@@ -2033,6 +2040,11 @@ function saveSettings(s) {
 }
 function defaultAccounts() { return [{ id: 'main', name: 'Main', type: 'checking' }]; }
 
+// Credit cards and loans are debt — you pay these down, you don't budget weekly spending
+// against them, so the Weekly Planner is hidden for them.
+function _isDebtAcct(a) { return !!a && (a.type === 'credit' || a.type === 'loan'); }
+function _currentAcct() { return state.accounts.find(a => a.id === currentAccountId); }
+
 // Simple (Tracker) mode hides the budgeting features for users who only want
 // to track balance + transactions. 'full' is the default for existing users.
 function isSimpleMode() { return loadSettings().appMode === 'simple'; }
@@ -2294,6 +2306,8 @@ const api = {
     _calcVer++; // new account's transactions — invalidate memos
     updateAccountSwitcher();
     currentTab = 'dashboard'; // always land on dashboard when switching accounts
+    // Rebuild the bottom nav for this account (e.g. hide Weekly for debt accounts)
+    renderDawgNav();
     // Sync nav active states — switchAccount bypasses showTab() so we do it here
     document.querySelectorAll('.nav-btn').forEach(b =>
       b.classList.toggle('active', b.dataset.tab === 'dashboard'));
@@ -2763,6 +2777,8 @@ function showAccountEdit(acctId) {
 }
 
 function showTab(key) {
+  // Weekly Planner is not applicable to debt accounts — send them to the Debt view instead.
+  if (key === 'weekly' && _isDebtAcct(_currentAcct())) key = 'debt';
   _navPush();
   if (currentTab === 'ledger' && key !== 'ledger') {
     ledgerFilter = ''; ledgerSort = 'date-desc'; ledgerTypeFilter = 'all';
@@ -6126,6 +6142,19 @@ function renderLedger() {
 
 // ── weekly ─────────────────────────────────────────────────────────────────
 function renderWeekly() {
+  // Debt accounts (credit cards, loans) aren't budgeted weekly — they're paid down.
+  if (_isDebtAcct(_currentAcct())) {
+    return `
+      <div class="page">
+        <h1 class="page-title">Weekly Planner</h1>
+        <div class="form-card" style="text-align:center;padding:28px 20px">
+          <div style="font-size:2rem;margin-bottom:8px">💳</div>
+          <p style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:6px">Not for debt accounts</p>
+          <p class="page-sub" style="margin-bottom:18px">Credit cards and loans aren't budgeted week-to-week — the goal is to pay them off. Use the Debt view to track payoff progress.</p>
+          <button class="btn-primary" onclick="showTab('debt')">Go to Debt</button>
+        </div>
+      </div>`;
+  }
   const { income, expense } = totals();
   const wp = state.weekly_plan;
   const defStopAt  = wp.stop_at  ?? '0';
@@ -6361,13 +6390,22 @@ function calcWeekly() {
   const _todayWkIdx   = now.getDay() === 0 ? 6 : now.getDay() - 1; // 0=Mon … 6=Sun
   const _daysLeftWk   = Math.max(1, 7 - _todayWkIdx);
   const adjustedPerDay = _effectivePerWeek > 0 ? Math.max(0, _effectivePerWeek - weekNet) / _daysLeftWk : 0;
-  const _adjDiff       = adjustedPerDay - perDay;
-  const _adjSub        = _adjDiff >  0.005 ? '↑ ahead of pace'
-                       : _adjDiff < -0.005 ? '↓ behind pace'
+  // Pace = how you're tracking against spreading the weekly budget evenly across the 7 days.
+  // By end of day N you "should" have spent (weeklyBudget/7 × N). The gap is the dollar amount
+  // you're over (spent faster → behind) or under (spent slower → ahead) that even pace.
+  const _wkDailyTarget = _effectivePerWeek > 0 ? _effectivePerWeek / 7 : 0;
+  const _daysElapsedWk = _todayWkIdx + 1;                       // Mon=1 … today
+  const _expectedByNow = _wkDailyTarget * _daysElapsedWk;
+  const _paceGap       = weekNet - _expectedByNow;              // + = behind (overspent), − = ahead
+  const _paceThresh    = Math.max(1, _wkDailyTarget * 0.05);    // ignore rounding noise
+  const _adjSub        = _effectivePerWeek <= 0      ? 'set a weekly budget'
+                       : _paceGap >  _paceThresh     ? `↓ ${fmt(_paceGap)} behind pace`
+                       : _paceGap < -_paceThresh     ? `↑ ${fmt(-_paceGap)} ahead of pace`
                        : 'on track';
-  const _adjColor      = adjustedPerDay >= perDay * 0.95 ? 'var(--success)'
-                       : adjustedPerDay >= perDay * 0.5  ? 'var(--warn)'
-                       : 'var(--danger)';
+  const _adjColor      = _effectivePerWeek <= 0  ? 'var(--muted)'
+                       : _paceGap >  _paceThresh ? 'var(--danger)'
+                       : _paceGap < -_paceThresh ? 'var(--success)'
+                       : 'var(--accent)';
 
   const _reservedLabel  = [stopAt > 0 ? `${fmt(stopAt)} stop-at` : '', bills > 0 ? `${fmt(bills)} bills` : ''].filter(Boolean).join(' + ');
   const _perWeekCardVal = _effectivePerWeek;
@@ -11015,11 +11053,22 @@ function makeDawgNavBtn(key) {
   return btn;
 }
 
+// For debt accounts, swap the (inapplicable) Weekly slot for the next sensible tab.
+function _navKeyForAccount(key, layout) {
+  if (key === 'weekly' && _isDebtAcct(_currentAcct())) {
+    for (const alt of ['debt', 'ledger', 'bills', 'budgets']) {
+      if (!layout.includes(alt)) return alt;
+    }
+    return 'debt';
+  }
+  return key;
+}
+
 function renderDawgNav() {
   const nav    = document.getElementById('dawg-bottom-nav');
   const center = nav?.querySelector('.dawg-nav-center-btn');
   if (!nav || !center) return;
-  const layout = loadNavLayout(); // 4 keys
+  const layout = loadNavLayout().map((k, _i, arr) => _navKeyForAccount(k, arr)); // 4 keys
 
   // Remove old configurable buttons
   nav.querySelectorAll('.dawg-nav-btn:not(.dawg-nav-center-btn)').forEach(b => b.remove());
