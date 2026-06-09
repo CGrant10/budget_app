@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.3';
+const VERSION = '5.43.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.4', date: '2026-06-09', changes: [
+    'Fixed the update button — version.txt had drifted behind the app version, so the updater could never reconcile (it kept offering a phantom update or stayed silent). Releases now keep version.txt in lockstep with the app version',
+    'Accounts overview: account-type icons toned down from neon to deeper, readable tones and given a stronger tinted chip — much easier to read in both light and dark mode',
+  ]},
   { version: '5.43.3', date: '2026-06-09', changes: [
     'Cleaner look: removed the CRT scan-line texture from the dashboard hero banner',
     'Light mode: dashboard bento tiles no longer use the dark→black gradient (it read as muddy grey) — they now use clean light surfaces with the accent kept on the budget tiles',
@@ -3561,7 +3565,10 @@ function attachDebt() {
 
 // ── account picker ─────────────────────────────────────────────────────────
 function renderAccountPicker() {
-  const TYPE_COLORS = { checking:'#5b8de8', savings:'#32d74b', credit:'#ff453a', loan:'#ffd60a', cash:'#52d68a', roth_ira:'#7c6fff', traditional_ira:'#5b8de8', '401k':'#32d74b', hsa:'#2dd4bf' };
+  // Deeper, lower-glare tones than the raw status palette — neon green/yellow washed out
+  // in light mode and glared in dark mode. These keep the per-type coding but stay readable
+  // as both the icon stroke and its tinted chip on either background.
+  const TYPE_COLORS = { checking:'#4a82d6', savings:'#28a048', credit:'#e23b30', loan:'#b8910a', cash:'#2faf72', roth_ira:'#7568e8', traditional_ira:'#4a82d6', '401k':'#28a048', hsa:'#1aa99a' };
   let _assets = 0, _debts = 0;
   const acctInfo = state.accounts.map(acct => {
     const d        = JSON.parse(localStorage.getItem(accountDataKey(acct.id)) || '{}');

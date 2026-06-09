@@ -6461,8 +6461,10 @@ body.theme-ubuntu .section-title::before {
 .acct-row-stripe, .acct-row-chevron { display: none !important; }
 .acct-row-icon {
   width: 36px; height: 36px; border-radius: 10px;
-  background: color-mix(in srgb, currentColor 16%, transparent);
+  background: color-mix(in srgb, currentColor 20%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 32%, transparent);
 }
+.acct-row-icon svg { stroke-width: 2; }
 
 /* ── Debt: flatten the account cards into the calm list (keeps progress bars) ── */
 .debt-acct-list { display: flex; flex-direction: column; gap: 0; }
