@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.0';
+const VERSION = '5.43.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.1', date: '2026-06-09', changes: [
+    'Income no longer erases what you\'ve spent — money you spent this week/today stays counted as spent. Income only raises your spendable balance (how much you\'re able to spend), not how much you\'ve already spent. Removed the "spent − income = net" line from the week tracker',
+  ]},
   { version: '5.43.0', date: '2026-06-05', changes: [
     'Dashboard time-range switch (1W/1M/3M/6M/1Y/ALL) is now a sliding segmented control — a springy accent pill glides to the selected range',
     'Bento dashboard — tile grid restyled with richer gradient surfaces and an accent glow on the budget stat tiles, keeping the HUD corner accents',
@@ -4722,8 +4725,11 @@ function renderDashboardDawg() {
       else if (t.type === 'income') { _wkInc += t.amount; if (t.date === _todayStr2) _dayInc += t.amount; }
     }
   }
-  const weekSpent = Math.max(0, _wkExp - _wkInc);
-  const daySpent  = Math.max(0, _dayExp - _dayInc);
+  // Spent stands on its own — what you spent this week/today stays put. Income does NOT
+  // erase it; income only lifts the spendable balance (via _dashLiveBal below), i.e. how
+  // much you're *able* to spend, never how much you've already spent.
+  const weekSpent = _wkExp;
+  const daySpent  = _dayExp;
 
   // Plan settings
   const { income: _dashTotalInc, expense: _dashTotalExp } = totals();
@@ -6288,14 +6294,16 @@ function calcWeekly() {
   const perDay     = lastCalcPerDay;
   // Bills (logged from the Bills tab) are reserved separately via the "Fixed bills" field,
   // so they must NOT count toward discretionary weekly/daily spending.
-  let weekExpenses = 0, weekIncomeOffset = 0;
+  let weekExpenses = 0;
   for (const t of state.transactions) {
     if (t.date >= mondayStr) {
       if (t.type==='expense') { if (!isExcludedFromSpend(t)) weekExpenses+=t.amount; }
-      else weekIncomeOffset+=t.amount;
     }
   }
-  const weekNet  = Math.max(0, weekExpenses - weekIncomeOffset);
+  // What you've spent this week stands on its own — income does NOT cancel it out.
+  // Income only lifts the spendable balance (liveBalance → available → perWeek), i.e.
+  // how much you're *able* to spend, never how much you've already spent.
+  const weekNet  = weekExpenses;
   // Effective weekly limit. Prefer the live monthly figure; only fall back to a saved or
   // reconstructed value when the spendable balance has hit 0 (user dipped into the buffer).
   let _effectivePerWeek;
@@ -6394,8 +6402,7 @@ function calcWeekly() {
     const lbl = `${sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
     const wkTxns = state.transactions.filter(t=>t.date>=sdS&&t.date<=edS);
     const wkExp  = wkTxns.filter(t=>t.type==='expense' && !isExcludedFromSpend(t)).reduce((s,t)=>s+t.amount,0);
-    const wkInc  = wkTxns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-    const wkNet  = Math.max(0, wkExp - wkInc);
+    const wkNet  = wkExp;   // spent stands alone — income lifts the budget, not this
     const txnHtml = wkTxns.length
       ? wkTxns.sort((a,b)=>b.date.localeCompare(a.date)).map(txnRow).join('')
       : '<p class="pw-empty">No transactions.</p>';
@@ -6464,7 +6471,6 @@ function calcWeekly() {
         <span class="wt-of" style="color:${barColor}"> / ${fmt(weekBudget)}</span>
       </div>
       ${_wkFailed ? `<div class="wt-offset" style="color:var(--danger);font-weight:700">+${fmt(weekNet - _effectivePerWeek)} over limit</div>` : ''}
-      ${weekIncomeOffset?`<div class="wt-offset">${fmt(weekExpenses)} spent − ${fmt(weekIncomeOffset)} income = ${fmt(weekNet)} net</div>`:''}
       <div class="progress-bar-bg">
         <div class="progress-bar-fill" style="width:${Math.min(weekPct*100, 100).toFixed(1)}%;background:${barColor}"></div>
       </div>
