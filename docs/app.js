@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.8';
+const VERSION = '5.43.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.9', date: '2026-06-09', changes: [
+    'Fixed the update button loading the splash screen twice — the page no longer double-reloads when the fresh service worker takes over after a forced update',
+    'Transfers now play the transaction animation like income/expense do (it was being skipped)',
+    'The transaction + update animation box now follows your current theme instead of always being dark — in light mode it\'s light, and the terminal themes (CMD, PowerShell, VS Code, Kali, Mint, Ubuntu) render it in their own palette',
+  ]},
   { version: '5.43.8', date: '2026-06-09', changes: [
     'Accounts overview tightened: larger net-worth value, a crisper rounded gradient assets-vs-debt meter, and slightly larger balances/names — same layout, just sharper',
   ]},
@@ -10115,6 +10120,9 @@ function attachAdd() {
       await autoUpdateWeeklyPlan();
       showStatus('add-status', `✓ ${toIsDebt ? 'Paid' : 'Moved'} ${fmt(amount)} to ${toAcctName}`, 'success');
       document.getElementById('add-amount').value = '';
+      playSound('transfer');
+      haptic([20, 40, 20]);
+      showTransfer(amount, (toIsDebt ? 'Payment → ' : 'Transfer → ') + toAcctName);
       render(); return;
     }
 
@@ -11520,8 +11528,15 @@ window.addEventListener('popstate', () => {
         reg.update();
         window.addEventListener('focus', () => reg.update());
       }).catch(() => {});
-      // Auto-reload when a new service worker takes over — delivers updates silently
+      // Auto-reload when a NEW service worker takes over a page that was ALREADY
+      // controlled (a genuine background update). Skip the first-claim case: right
+      // after a forced update the page reloads uncontrolled, then the fresh SW claims
+      // it via clients.claim() — reloading again there caused a double splash.
+      let _swReloaded = false;
+      const _wasControlled = !!navigator.serviceWorker.controller;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!_wasControlled || _swReloaded) return;
+        _swReloaded = true;
         window.location.reload();
       });
     }
