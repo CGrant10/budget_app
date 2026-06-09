@@ -22,7 +22,7 @@
   <!-- Anti-flash: runs before first paint — stamps the saved theme's bg so the
        splash background matches the app instead of always showing dark.
        Only 'light' needs special handling; all other themes are dark variants. -->
-  <script>!function(){try{var s=JSON.parse(localStorage.getItem('slawminyaw_settings')||'{}');var lightThemes=['light','lightsky','lightrose','lightsand'];if(lightThemes.indexOf(s.theme)!==-1){var r=document.documentElement.style;r.setProperty('--bg','#f3f3f3');r.setProperty('--text','#181820');r.setProperty('--muted','#606070');document.body.classList.add('light');}}catch(e){}}();</script>
+  <script>!function(){try{var s=JSON.parse(localStorage.getItem('slawminyaw_settings')||'{}');var lightThemes=['light','lightsky','lightrose','lightsand','lightsilver','customlight'];if(lightThemes.indexOf(s.theme)!==-1){var r=document.documentElement.style;r.setProperty('--bg','#f5f5f7');r.setProperty('--text','#1d1d1f');r.setProperty('--muted','#6e6e73');document.body.classList.add('light');}}catch(e){}}();</script>
   <!-- Force-reset: add ?reset to the URL to wipe all SW caches and start fresh -->
   <script>
     if (location.search.indexOf('reset') !== -1) {

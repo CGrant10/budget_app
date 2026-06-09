@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.10';
+const VERSION = '5.43.11';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.11', date: '2026-06-09', changes: [
+    'Brighter "Crisp" light mode — near-white background (#f5f5f7) with clean white cards that lift off the page via soft shadows + hairline borders, stronger text contrast, and a green accent tuned for white. Applied to every light theme (Light, Sky, Rose, Sand, Silver, Custom Light)',
+  ]},
   { version: '5.43.10', date: '2026-06-09', changes: [
     'Accounts overview hero now matches the "Tightened" mockup: the barking Doberman + "My Accounts" sit in a row, with a version-status dot and the update button on their own row below. The dog stays fully visible (never cropped) and keeps its bark + glitch animation',
     'Net worth meter is now a two-segment assets/debt bar (green + red) with the larger value',
@@ -1432,10 +1435,10 @@ const THEMES = {
   },
   light: {
     label:'Light', shortLabel:'Mint',
-    bg:'#e2e2df', surface:'#eaeae7', surface2:'#d8d8d5', card:'#e4e4e1',
-    accent:'#5ab592', accent2:'#9a7850', success:'#4aaa80', warn:'#988018', danger:'#a84040',
+    bg:'#f5f5f7', surface:'#ffffff', surface2:'#ececef', card:'#ffffff',
+    accent:'#2fa56f', accent2:'#9a7850', success:'#3a9e6e', warn:'#9a7d12', danger:'#cc3b30',
     grad:'linear-gradient(135deg, #1a4030 0%, #5ab592 100%)',
-    text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
+    text:'#1d1d1f', muted:'#6e6e73', border:'#e3e3e6', light:true, font:'default',
     cats:{ Food:'#4aaa80', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
   },
   denim: {
@@ -1472,42 +1475,42 @@ const THEMES = {
   },
   customlight: {
     label:'Custom', shortLabel:'Custom',
-    bg:'#e2e2df', surface:'#eaeae7', surface2:'#d8d8d5', card:'#e4e4e1',
-    text:'#1e1e20', muted:'#606068', border:'#d5d5d5', light:true, font:'default',
+    bg:'#f5f5f7', surface:'#ffffff', surface2:'#ececef', card:'#ffffff',
+    text:'#1d1d1f', muted:'#6e6e73', border:'#e3e3e6', light:true, font:'default',
     accent:'#5ab592', accent2:'#5ab592', success:'#5ab592', warn:'#a08030', danger:'#c05050',
     grad:'linear-gradient(135deg, #d8d8d5 0%, #5ab592 100%)',
   },
   // ── Light mode accent variants ──────────────────────────────────────────
   lightsky: {
     label:'Sky', shortLabel:'Sky',
-    bg:'#e2e2df', surface:'#eaeae7', surface2:'#d8d8d5', card:'#e4e4e1',
+    bg:'#f5f5f7', surface:'#ffffff', surface2:'#ececef', card:'#ffffff',
     accent:'#5492bc', accent2:'#c07840', success:'#2e9a68', warn:'#b07800', danger:'#a84040',
     grad:'linear-gradient(135deg, #1a304a 0%, #5492bc 100%)',
-    text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
+    text:'#1d1d1f', muted:'#6e6e73', border:'#e3e3e6', light:true, font:'default',
     cats:{ Food:'#2e9a68', Gas:'#a84040', Car:'#5492bc', Boat:'#2888a8', Tools:'#986030', Home:'#608038', Entertainment:'#7848a8', Health:'#3888a0', Other:'#606078' },
   },
   lightrose: {
     label:'Rose', shortLabel:'Rose',
-    bg:'#e2e2df', surface:'#eaeae7', surface2:'#d8d8d5', card:'#e4e4e1',
+    bg:'#f5f5f7', surface:'#ffffff', surface2:'#ececef', card:'#ffffff',
     accent:'#b05878', accent2:'#987838', success:'#2ea870', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #4a1a2c 0%, #b05878 100%)',
-    text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
+    text:'#1d1d1f', muted:'#6e6e73', border:'#e3e3e6', light:true, font:'default',
     cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a8', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#b05878', Health:'#308898', Other:'#606078' },
   },
   lightsand: {
     label:'Sand', shortLabel:'Sand',
-    bg:'#e2e2df', surface:'#eaeae7', surface2:'#d8d8d5', card:'#e4e4e1',
+    bg:'#f5f5f7', surface:'#ffffff', surface2:'#ececef', card:'#ffffff',
     accent:'#a8843c', accent2:'#c05830', success:'#2ea870', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #4a3010 0%, #a8843c 100%)',
-    text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
+    text:'#1d1d1f', muted:'#6e6e73', border:'#e3e3e6', light:true, font:'default',
     cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#a8843c', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
   },
   lightsilver: {
     label:'Silver', shortLabel:'Silver',
-    bg:'#e2e2df', surface:'#eaeae7', surface2:'#d8d8d5', card:'#e4e4e1',
+    bg:'#f5f5f7', surface:'#ffffff', surface2:'#ececef', card:'#ffffff',
     accent:'#70788a', accent2:'#8a8080', success:'#4a9870', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #282c38 0%, #70788a 100%)',
-    text:'#181820', muted:'#606070', border:'#d5d5d5', light:true, font:'default',
+    text:'#1d1d1f', muted:'#6e6e73', border:'#e3e3e6', light:true, font:'default',
     cats:{ Food:'#4a9870', Gas:'#a84040', Car:'#5068a0', Boat:'#407890', Tools:'#986030', Home:'#608038', Entertainment:'#706890', Health:'#407890', Other:'#606078' },
   },
 };
