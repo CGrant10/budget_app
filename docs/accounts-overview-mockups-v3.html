@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accounts overview — refined (v3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e0e0f; --surface:#161617; --card:#1c1c1e; --accent:#4ecb8d;
+  --success:#32d74b; --warn:#ffd60a; --danger:#ff453a;
+  --text:#f0f0f2; --muted:#8a8a92; --border:rgba(255,255,255,.08);
+  --ring:rgba(255,255,255,.06);
+}
+body.light{
+  --bg:#e2e2df; --surface:#eaeae7; --card:#e4e4e1; --accent:#5ab592;
+  --success:#4aaa80; --warn:#988018; --danger:#a84040;
+  --text:#181820; --muted:#606070; --border:rgba(0,0,0,.10);
+  --ring:rgba(0,0,0,.05);
+}
+
+/* type icon colors */
+:root{
+  --c-checking:#4a82d6; --c-savings:#28a048; --c-credit:#e23b30;
+  --c-loan:#b8910a; --c-cash:#2faf72; --c-roth_ira:#7568e8;
+  --c-401k:#28a048; --c-hsa:#1aa99a;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--text);
+  font-family:'Plus Jakarta Sans',-apple-system,system-ui,sans-serif;
+  transition:background .25s ease,color .25s ease;}
+
+.page{max-width:1240px;margin:0 auto;padding:40px 28px 80px;}
+.page-head{margin-bottom:8px;}
+.page-head h1{font-size:30px;font-weight:800;letter-spacing:-.02em;}
+.page-head p.sub{color:var(--muted);font-size:15px;font-weight:500;margin-top:6px;max-width:680px;line-height:1.5;}
+
+/* toggle */
+.toggle{display:inline-flex;gap:4px;margin:22px 0 36px;padding:4px;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;}
+.toggle button{appearance:none;border:0;background:transparent;color:var(--muted);
+  font-family:inherit;font-weight:700;font-size:13px;padding:8px 18px;border-radius:9px;cursor:pointer;
+  transition:all .18s ease;letter-spacing:.01em;}
+.toggle button.on{background:var(--card);color:var(--text);
+  box-shadow:0 1px 3px rgba(0,0,0,.25),0 0 0 1px var(--border);}
+
+/* gallery */
+.gallery{display:flex;flex-wrap:wrap;gap:44px;align-items:flex-start;}
+.option{flex:0 0 auto;width:360px;}
+.opt-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.10em;
+  text-transform:uppercase;color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 14%,transparent);
+  border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);
+  padding:5px 11px;border-radius:999px;margin-bottom:10px;}
+.opt-desc{color:var(--muted);font-size:13px;font-weight:500;margin-bottom:16px;line-height:1.5;max-width:340px;}
+
+/* phone frame */
+.phone{width:360px;border-radius:40px;background:var(--bg);
+  border:1px solid var(--border);
+  box-shadow:0 28px 70px -24px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.04);
+  overflow:hidden;position:relative;}
+.screen{display:flex;flex-direction:column;height:760px;background:var(--bg);}
+.scrollarea{flex:1;overflow-y:auto;padding:0 18px;}
+.scrollarea::-webkit-scrollbar{width:0;}
+
+/* ===== HERO ===== */
+.hero{padding:26px 20px 20px;}
+.hero-row{display:flex;align-items:center;gap:14px;}
+.hero img{width:70px;height:70px;border-radius:18px;object-fit:cover;flex:0 0 auto;}
+.hero-text h2{font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.05;}
+.hero-text .accts{color:var(--muted);font-size:13.5px;font-weight:600;margin-top:4px;}
+.hero-foot{display:flex;align-items:center;justify-content:space-between;margin-top:16px;gap:10px;}
+.ver{font-size:12px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px;}
+.ver .dot{width:6px;height:6px;border-radius:50%;background:var(--success);
+  box-shadow:0 0 8px var(--success);}
+.upd{appearance:none;border:1px solid var(--border);background:var(--surface);
+  color:var(--text);font-family:inherit;font-weight:700;font-size:12px;
+  padding:7px 13px;border-radius:999px;cursor:pointer;white-space:nowrap;}
+
+/* ===== NET WORTH ===== */
+.nw{margin:4px 18px 16px;background:var(--card);border:1px solid var(--border);
+  border-radius:22px;padding:20px;
+  box-shadow:0 1px 0 rgba(255,255,255,.03) inset;}
+.nw-label{font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;}
+.nw-val{font-size:38px;font-weight:800;letter-spacing:-.025em;margin-top:4px;line-height:1;}
+.meter{height:12px;border-radius:999px;background:var(--surface);overflow:hidden;
+  display:flex;margin-top:18px;border:1px solid var(--border);}
+.meter .seg-a{background:linear-gradient(90deg,var(--success),color-mix(in srgb,var(--success) 70%,#fff 0%));}
+.meter .seg-d{background:linear-gradient(90deg,color-mix(in srgb,var(--danger) 80%,#000 0%),var(--danger));}
+.legend{display:flex;justify-content:space-between;margin-top:12px;font-size:12.5px;font-weight:600;}
+.legend .a{color:var(--success);} .legend .d{color:var(--danger);}
+.legend .a::before,.legend .d::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle;}
+.legend .a::before{background:var(--success);} .legend .d::before{background:var(--danger);}
+
+/* ===== GROUPS / ROWS ===== */
+.group{margin-top:10px;}
+.group-head{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 6px 8px;}
+.group-head .gname{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.group-head .gsub{font-size:13px;font-weight:700;color:var(--text);}
+
+.row{display:flex;align-items:center;gap:13px;padding:13px 6px;position:relative;}
+.row + .row::before, .group-head + .row::before{}
+.row:not(:last-child){border-bottom:1px solid var(--border);}
+.chip{width:42px;height:42px;border-radius:13px;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;position:relative;}
+.chip svg{width:22px;height:22px;}
+.chip::after{content:"";position:absolute;inset:0;border-radius:13px;
+  border:1px solid currentColor;opacity:.32;}
+.row .info{flex:1;min-width:0;}
+.row .nm{font-size:15.5px;font-weight:700;letter-spacing:-.01em;line-height:1.15;}
+.row .ty{font-size:12.5px;font-weight:500;color:var(--muted);margin-top:2px;}
+.row .bal{font-size:15.5px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;}
+.row .bal.owe{color:var(--danger);}
+.row .chev{color:var(--muted);opacity:.5;font-size:18px;font-weight:600;margin-left:2px;}
+
+/* chip tints */
+.t-checking{color:var(--c-checking);background:color-mix(in srgb,var(--c-checking) 20%,transparent);}
+.t-savings{color:var(--c-savings);background:color-mix(in srgb,var(--c-savings) 20%,transparent);}
+.t-credit{color:var(--c-credit);background:color-mix(in srgb,var(--c-credit) 20%,transparent);}
+.t-loan{color:var(--c-loan);background:color-mix(in srgb,var(--c-loan) 20%,transparent);}
+.t-roth_ira{color:var(--c-roth_ira);background:color-mix(in srgb,var(--c-roth_ira) 20%,transparent);}
+.t-k401{color:var(--c-401k);background:color-mix(in srgb,var(--c-401k) 20%,transparent);}
+
+/* ===== BOTTOM BUTTON ===== */
+.foot{padding:14px 18px 22px;border-top:1px solid var(--border);background:var(--bg);}
+.cta{width:100%;appearance:none;border:0;cursor:pointer;font-family:inherit;
+  font-weight:800;font-size:15.5px;letter-spacing:.01em;color:#06251a;
+  background:var(--accent);padding:16px;border-radius:16px;
+  box-shadow:0 8px 22px -8px color-mix(in srgb,var(--accent) 80%,transparent);}
+body.light .cta{color:#fff;}
+
+/* ============ OPTION A · Tightened ============ */
+.optA .nw-val{font-size:40px;}
+.optA .meter{height:13px;}
+.optA .row .bal{font-size:16.5px;}
+.optA .hero-text h2{font-size:23px;}
+
+/* ============ OPTION B · Warmer hero ============ */
+.optB .hero{position:relative;overflow:hidden;padding-bottom:22px;}
+.optB .hero::before{content:"";position:absolute;left:6px;top:8px;width:150px;height:150px;
+  border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 42%,transparent),transparent 68%);
+  filter:blur(14px);pointer-events:none;}
+.optB .hero img{box-shadow:0 8px 26px -6px color-mix(in srgb,var(--accent) 60%,transparent);
+  border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);}
+.optB .hero-text h2{background:linear-gradient(92deg,var(--text),color-mix(in srgb,var(--text) 65%,var(--accent)));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.optB .ver{background:var(--surface);border:1px solid var(--border);padding:5px 10px;border-radius:999px;}
+.optB .group-head .gname{background:var(--surface);border:1px solid var(--border);
+  padding:4px 11px;border-radius:999px;letter-spacing:.06em;color:var(--text);}
+
+/* ============ OPTION C · Richer net-worth ============ */
+.optC .nw{padding:22px 20px;}
+.optC .nw-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.optC .trend{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;
+  color:var(--success);background:color-mix(in srgb,var(--success) 16%,transparent);
+  border:1px solid color-mix(in srgb,var(--success) 30%,transparent);
+  padding:5px 9px;border-radius:999px;}
+.optC .meter{height:14px;gap:3px;background:transparent;border:0;overflow:visible;margin-top:20px;}
+.optC .meter .seg-a,.optC .meter .seg-d{border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-size:9.5px;font-weight:800;color:#fff;letter-spacing:.02em;text-shadow:0 1px 1px rgba(0,0,0,.3);}
+.optC .spark{margin-top:16px;display:block;width:100%;height:34px;overflow:visible;}
+.optC .legend{margin-top:14px;}
+</style>
+</head>
+<body class="light">
+
+<div class="page">
+  <div class="page-head">
+    <h1>Accounts overview — refined</h1>
+    <p class="sub">Three polish passes on the <strong>current</strong> Accounts Overview — same hero, same net-worth summary, same grouped hairline list. Just tighter type, a warmer hero, and a richer net-worth stat. Nothing reinvented.</p>
+  </div>
+
+  <div class="toggle">
+    <button id="t-light" class="on" onclick="setMode('light')">Light</button>
+    <button id="t-dark" onclick="setMode('dark')">Dark</button>
+  </div>
+
+  <div class="gallery">
+
+    <!-- ============ OPTION A ============ -->
+    <div class="option">
+      <span class="opt-tag">A · Tightened</span>
+      <div class="opt-desc">Same layout, sharper. Better type scale & alignment, crisper rounded-end gradient meter, slightly larger balances.</div>
+      <div class="phone">
+        <div class="screen optA">
+          <div class="scrollarea">
+
+            <div class="hero">
+              <div class="hero-row">
+                <img src="./doberman.png" alt="Budget DAWGs">
+                <div class="hero-text">
+                  <h2>My Accounts</h2>
+                  <div class="accts">5 accounts · tap to open</div>
+                </div>
+              </div>
+              <div class="hero-foot">
+                <div class="ver"><span class="dot"></span>v5.43.5 · up to date</div>
+                <button class="upd">⟳ Check for update</button>
+              </div>
+            </div>
+
+            <div class="nw">
+              <div class="nw-label">Net Worth</div>
+              <div class="nw-val">$21,335</div>
+              <div class="meter">
+                <div class="seg-a" style="width:73.7%"></div>
+                <div class="seg-d" style="width:26.3%"></div>
+              </div>
+              <div class="legend"><span class="a">$33,175 assets</span><span class="d">$11,840 debt</span></div>
+            </div>
+
+            <!-- groups -->
+            <div class="group">
+              <div class="group-head"><span class="gname">Cash</span><span class="gsub">$4,775</span></div>
+              <div class="row">
+                <div class="chip t-checking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/></svg></div>
+                <div class="info"><div class="nm">Main Checking</div><div class="ty">Checking</div></div>
+                <div class="bal">$3,200</div><span class="chev">›</span>
+              </div>
+              <div class="row">
+                <div class="chip t-savings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9c0-3-3.5-5-7-5S5 6 5 9c0 1.7 1 3 1 3v4a1 1 0 0 0 1 1h1.5"/><circle cx="12" cy="12" r="6.5"/><path d="M12 9.5v5M10 12h4"/></svg></div>
+                <div class="info"><div class="nm">Savings</div><div class="ty">Savings</div></div>
+                <div class="bal">$1,575</div><span class="chev">›</span>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-head"><span class="gname">Investing</span><span class="gsub">$16,560</span></div>
+              <div class="row">
+                <div class="chip t-roth_ira"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M6 19V9l6-4 6 4v10"/><path d="M10 19v-5h4v5"/></svg></div>
+                <div class="info"><div class="nm">Roth IRA</div><div class="ty">Investment</div></div>
+                <div class="bal">$8,400</div><span class="chev">›</span>
+              </div>
+              <div class="row">
+                <div class="chip t-k401"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16"/><path d="M8 15l3.5-4 3 2.5L20 7"/></svg></div>
+                <div class="info"><div class="nm">401(k)</div><div class="ty">Investment</div></div>
+                <div class="bal">$8,160</div><span class="chev">›</span>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-head"><span class="gname">Debt</span><span class="gsub" style="color:var(--danger)">−$11,840</span></div>
+              <div class="row">
+                <div class="chip t-credit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19M6 15h4"/></svg></div>
+                <div class="info"><div class="nm">Visa</div><div class="ty">Credit Card</div></div>
+                <div class="bal owe">Owes $640</div><span class="chev">›</span>
+              </div>
+              <div class="row">
+                <div class="chip t-loan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-6 9 6"/><path d="M5 10v8h14v-8"/><circle cx="8" cy="14" r="1.3"/><path d="M11.5 18v-3.5h3V18"/></svg></div>
+                <div class="info"><div class="nm">Car Loan</div><div class="ty">Loan</div></div>
+                <div class="bal owe">Owes $11,200</div><span class="chev">›</span>
+              </div>
+            </div>
+
+          </div>
+          <div class="foot"><button class="cta">+ Track a Transaction</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ OPTION B ============ -->
+    <div class="option">
+      <span class="opt-tag">B · Warmer hero</span>
+      <div class="opt-desc">Same layout, premium hero. Soft accent glow behind the dog, refined title & version pill, group headers as uppercase pills.</div>
+      <div class="phone">
+        <div class="screen optB">
+          <div class="scrollarea">
+
+            <div class="hero">
+              <div class="hero-row">
+                <img src="./doberman.png" alt="Budget DAWGs">
+                <div class="hero-text">
+                  <h2>My Accounts</h2>
+                  <div class="accts">5 accounts · tap to open</div>
+                </div>
+              </div>
+              <div class="hero-foot">
+                <div class="ver"><span class="dot"></span>v5.43.5 · up to date</div>
+                <button class="upd">⟳ Check for update</button>
+              </div>
+            </div>
+
+            <div class="nw">
+              <div class="nw-label">Net Worth</div>
+              <div class="nw-val">$21,335</div>
+              <div class="meter">
+                <div class="seg-a" style="width:73.7%"></div>
+                <div class="seg-d" style="width:26.3%"></div>
+              </div>
+              <div class="legend"><span class="a">$33,175 assets</span><span class="d">$11,840 debt</span></div>
+            </div>
+
+            <div class="group">
+              <div class="group-head"><span class="gname">Cash</span><span class="gsub">$4,775</span></div>
+              <div class="row">
+                <div class="chip t-checking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/></svg></div>
+                <div class="info"><div class="nm">Main Checking</div><div class="ty">Checking</div></div>
+                <div class="bal">$3,200</div><span class="chev">›</span>
+              </div>
+              <div class="row">
+                <div class="chip t-savings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9c0-3-3.5-5-7-5S5 6 5 9c0 1.7 1 3 1 3v4a1 1 0 0 0 1 1h1.5"/><circle cx="12" cy="12" r="6.5"/><path d="M12 9.5v5M10 12h4"/></svg></div>
+                <div class="info"><div class="nm">Savings</div><div class="ty">Savings</div></div>
+                <div class="bal">$1,575</div><span class="chev">›</span>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-head"><span class="gname">Investing</span><span class="gsub">$16,560</span></div>
+              <div class="row">
+                <div class="chip t-roth_ira"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M6 19V9l6-4 6 4v10"/><path d="M10 19v-5h4v5"/></svg></div>
+                <div class="info"><div class="nm">Roth IRA</div><div class="ty">Investment</div></div>
+                <div class="bal">$8,400</div><span class="chev">›</span>
+              </div>
+              <div class="row">
+                <div class="chip t-k401"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16"/><path d="M8 15l3.5-4 3 2.5L20 7"/></svg></div>
+                <div class="info"><div class="nm">401(k)</div><div class="ty">Investment</div></div>
+                <div class="bal">$8,160</div><span class="chev">›</span>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-head"><span class="gname">Debt</span><span class="gsub" style="color:var(--danger)">−$11,840</span></div>
+              <div class="row">
+                <div class="chip t-credit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19M6 15h4"/></svg></div>
+                <div class="info"><div class="nm">Visa</div><div class="ty">Credit Card</div></div>
+                <div class="bal owe">Owes $640</div><span class="chev">›</span>
+              </div>
+              <div class="row">
+                <div class="chip t-loan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-6 9 6"/><path d="M5 10v8h14v-8"/><circle cx="8" cy="14" r="1.3"/><path d="M11.5 18v-3.5h3V18"/></svg></div>
+                <div class="info"><div class="nm">Car Loan</div><div class="ty">Loan</div></div>
+                <div class="bal owe">Owes $11,200</div><span class="chev">›</span>
+              </div>
+            </div>
+
+          </div>
+          <div class="foot"><button class="cta">+ Track a Transaction</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ OPTION C ============ -->
+    <div class="option">
+      <span class="opt-tag">C · Richer net-worth</span>
+      <div class="opt-desc">Same layout, upgraded stat. Segmented assets/debt bar with inline %, a trend chip and subtle sparkline. List below identical to current.</div>
+      <div class="phone">
+        <div class="screen optC">
+          <div class="scrollarea">
+
+            <div class="hero">
+              <div class="hero-row">
+                <img src="./doberman.png" alt="Budget DAWGs">
+                <div class="hero-text">
+                  <h2>My Accounts</h2>
+                  <div class="accts">5 accounts · tap to open</div>
+                </div>
+              </div>
+              <div class="hero-foot">
+                <div class="ver"><span class="dot"></span>v5.43.5 · up to date</div>
+                <button class="upd">⟳ Check for update</button>
+              </div>
+            </div>
+
+            <div class="nw">
+              <div class="nw-top">
+                <div>
+                  <div class="nw-label">Net Worth</div>
+                  <div class="nw-val">$21,335</div>
+                </div>
+                <span class="trend">▲ 4.2% mo</span>
+              </div>
+              <svg class="spark" viewBox="0 0 300 34" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--success)" stop-opacity=".30"/>
+                    <stop offset="100%" stop-color="var(--success)" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0 26 L40 24 L80 27 L120 18 L160 21 L200 12 L240 14 L300 5 L300 34 L0 34 Z" fill="url(#sparkFill)"/>
+                <path d="M0 26 L40 24 L80 27 L120 18 L160 21 L200 12 L240 14 L300 5" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <div class="meter">
+                <div class="seg-a" style="width:73.7%">74%</div>
+                <div class="seg-d" style="width:26.3%">26%</div>
+              </div>
+              <div class="legend"><span class="a">$33,175 assets</span><span class="d">$11,840 debt</span></div>
+            </div>
+
+            <div class="group">
+              <div class="group-head"><span class="gname">Cash</span><span class="gsub">$4,775</span></div>
+              <div class="row">
+                <div class="chip t-checking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/></svg></div>
+                <div class="info"><div class="nm">Main Checking</div><div class="ty">Checking</div></div>
+                <div class="bal">$3,200</div><span class="chev">›</span>
+              </div>
+              <div class="row">
+                <div class="chip t-savings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9c0-3-3.5-5-7-5S5 6 5 9c0 1.7 1 3 1 3v4a1 1 0 0 0 1 1h1.5"/><circle cx="12" cy="12" r="6.5"/><path d="M12 9.5v5M10 12h4"/></svg></div>
+                <div class="info"><div class="nm">Savings</div><div class="ty">Savings</div></div>
+                <div class="bal">$1,575</div><span class="chev">›</span>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-head"><span class="gname">Investing</span><span class="gsub">$16,560</span></div>
+              <div class="row">
+                <div class="chip t-roth_ira"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M6 19V9l6-4 6 4v10"/><path d="M10 19v-5h4v5"/></svg></div>
+                <div class="info"><div class="nm">Roth IRA</div><div class="ty">Investment</div></div>
+                <div class="bal">$8,400</div><span class="chev">›</span>
+              </div>
+              <div class="row">
+                <div class="chip t-k401"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16"/><path d="M8 15l3.5-4 3 2.5L20 7"/></svg></div>
+                <div class="info"><div class="nm">401(k)</div><div class="ty">Investment</div></div>
+                <div class="bal">$8,160</div><span class="chev">›</span>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-head"><span class="gname">Debt</span><span class="gsub" style="color:var(--danger)">−$11,840</span></div>
+              <div class="row">
+                <div class="chip t-credit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19M6 15h4"/></svg></div>
+                <div class="info"><div class="nm">Visa</div><div class="ty">Credit Card</div></div>
+                <div class="bal owe">Owes $640</div><span class="chev">›</span>
+              </div>
+              <div class="row">
+                <div class="chip t-loan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-6 9 6"/><path d="M5 10v8h14v-8"/><circle cx="8" cy="14" r="1.3"/><path d="M11.5 18v-3.5h3V18"/></svg></div>
+                <div class="info"><div class="nm">Car Loan</div><div class="ty">Loan</div></div>
+                <div class="bal owe">Owes $11,200</div><span class="chev">›</span>
+              </div>
+            </div>
+
+          </div>
+          <div class="foot"><button class="cta">+ Track a Transaction</button></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function setMode(m){
+  document.body.className=m;
+  document.getElementById('t-light').classList.toggle('on',m==='light');
+  document.getElementById('t-dark').classList.toggle('on',m==='dark');
+}
+</script>
+</body>
+</html>
