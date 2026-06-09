@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget DAWGs — Light Mode Palette Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background: #cfcfcf;
+    color: #1a1a1a;
+    padding: 40px 24px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page-head {
+    max-width: 1400px;
+    margin: 0 auto 36px;
+    text-align: center;
+  }
+  .page-head h1 {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #111;
+  }
+  .page-head p {
+    margin-top: 8px;
+    font-size: 15px;
+    color: #555;
+    font-weight: 500;
+  }
+
+  .grid {
+    max-width: 1500px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 28px;
+    justify-items: center;
+  }
+
+  .option {
+    width: 100%;
+    max-width: 380px;
+  }
+  .opt-head { margin-bottom: 14px; padding: 0 4px; }
+  .tag {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #333;
+    background: #fff;
+    border: 1px solid #bdbdbd;
+    border-radius: 999px;
+    padding: 5px 12px;
+    margin-bottom: 8px;
+  }
+  .opt-desc {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #555;
+    font-weight: 500;
+  }
+  .opt-desc code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    background: rgba(0,0,0,0.06);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: #333;
+  }
+
+  /* ----- Phone frame ----- */
+  .phone {
+    width: 100%;
+    border-radius: 30px;
+    padding: 14px;
+    background: #1c1c1e;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.25);
+  }
+  .screen {
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--bg);
+    padding: 18px 16px 22px;
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  /* ----- App slice (all token-driven) ----- */
+  .app-head { margin-bottom: 18px; }
+  .app-head h2 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .app-head .sub {
+    font-size: 12.5px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .bento {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .tile {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .tile::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--accent-tint);
+    pointer-events: none;
+  }
+  .tile > * { position: relative; }
+  .tile .lbl {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .tile .amt {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    margin-top: 6px;
+    letter-spacing: -0.02em;
+  }
+  .tile .amt small {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .section-lbl {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .big-amt {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.025em;
+    margin-top: 6px;
+  }
+  .big-amt .of {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .bar {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--track);
+    margin: 12px 0 10px;
+    overflow: hidden;
+  }
+  .bar > span {
+    display: block;
+    height: 100%;
+    width: 18%;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+  .ahead {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--success);
+  }
+
+  .mb { margin-bottom: 14px; }
+
+  /* net worth meter */
+  .meter {
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    display: flex;
+    margin: 12px 0 10px;
+  }
+  .meter .seg-a { background: var(--success); }
+  .meter .seg-d { background: var(--danger); }
+  .legend {
+    display: flex;
+    gap: 16px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .legend .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 5px; vertical-align: middle;
+  }
+
+  /* account list */
+  .acct-list { padding: 6px 0; }
+  .acct {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .acct:last-child { border-bottom: none; }
+  .chip {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .chip svg { width: 18px; height: 18px; }
+  .acct .info { flex: 1; min-width: 0; }
+  .acct .name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .acct .type { font-size: 11.5px; font-weight: 500; color: var(--muted); margin-top: 1px; }
+  .acct .bal { font-size: 14.5px; font-weight: 700; color: var(--text); }
+  .acct .bal.neg { color: var(--danger); }
+
+  .btns { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .btn {
+    width: 100%;
+    border: none;
+    border-radius: 14px;
+    padding: 13px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .mt { margin-top: 14px; }
+</style>
+</head>
+<body>
+
+  <div class="page-head">
+    <h1>Light mode — palette options</h1>
+    <p>Same screen in four light palettes. Pick the brightest / cleanest.</p>
+  </div>
+
+  <div class="grid">
+
+    <!-- ============ OPTION 1 — CURRENT (TOO DARK) ============ -->
+    <div class="option">
+      <div class="opt-head">
+        <span class="tag">1 · Current (too dark)</span>
+        <p class="opt-desc">Baseline. Grayish bg <code>#e2e2df</code>, gray cards <code>#e4e4e1</code>, low contrast — cards don't pop.</p>
+      </div>
+      <div class="phone">
+        <div class="screen" style="
+          --bg:#e2e2df; --surface:#eaeae7; --surface2:#d8d8d5; --card:#e4e4e1;
+          --accent:#5ab592; --success:#4aaa80; --warn:#988018; --danger:#a84040;
+          --text:#181820; --muted:#606070; --border:#d5d5d5;
+          --shadow:0 1px 2px rgba(0,0,0,0.04);
+          --track:#d2d2cf; --accent-tint:rgba(90,181,146,0.07);
+          --accent-glow:rgba(90,181,146,0.30);">
+          <!-- slice -->
+          <div class="app-head">
+            <h2>Dashboard</h2>
+            <div class="sub">Tuesday · Week 23 in review</div>
+          </div>
+          <div class="bento">
+            <div class="tile"><div class="lbl">Per Week</div><div class="amt">$1,250</div></div>
+            <div class="tile"><div class="lbl">Per Day</div><div class="amt">$208 <small>left</small></div></div>
+          </div>
+          <div class="card mb">
+            <div class="section-lbl">This Week</div>
+            <div class="big-amt">$225 <span class="of">/ $1,250</span></div>
+            <div class="bar"><span></span></div>
+            <div class="ahead">↑ $357 ahead of pace</div>
+          </div>
+          <div class="card mb">
+            <div class="section-lbl">Net Worth</div>
+            <div class="big-amt">$21,335</div>
+            <div class="meter"><div class="seg-a" style="width:78%"></div><div class="seg-d" style="width:22%"></div></div>
+            <div class="legend">
+              <span><span class="dot" style="background:var(--success)"></span>Assets $27,400</span>
+              <span><span class="dot" style="background:var(--danger)"></span>Debt $6,065</span>
+            </div>
+          </div>
+          <div class="card acct-list" style="padding:0;">
+            <div class="acct">
+              <div class="chip" style="background:rgba(90,181,146,0.16);color:var(--success)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>
+              </div>
+              <div class="info"><div class="name">Main Checking</div><div class="type">Checking</div></div>
+              <div class="bal">$3,200</div>
+            </div>
+            <div class="acct">
+              <div class="chip" style="background:rgba(74,170,128,0.16);color:var(--success)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v18"/><path d="M7 8h7a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h8"/></svg>
+              </div>
+              <div class="info"><div class="name">Savings</div><div class="type">Savings</div></div>
+              <div class="bal">$1,575</div>
+            </div>
+            <div class="acct">
+              <div class="chip" style="background:rgba(168,64,64,0.16);color:var(--danger)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+              </div>
+              <div class="info"><div class="name">Visa</div><div class="type">Credit card · Owes</div></div>
+              <div class="bal neg">$640</div>
+            </div>
+          </div>
+          <div class="btns">
+            <button class="btn btn-primary">+ Track a Transaction</button>
+            <button class="btn btn-ghost">View all accounts</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ OPTION 2 — PAPER ============ -->
+    <div class="option">
+      <div class="opt-head">
+        <span class="tag">2 · Paper</span>
+        <p class="opt-desc">Claude-like warm white. Bg <code>#faf9f7</code>, pure white cards <code>#fff</code>, warm hairline <code>#ececea</code>, near-black text.</p>
+      </div>
+      <div class="phone">
+        <div class="screen" style="
+          --bg:#faf9f7; --surface:#ffffff; --surface2:#f2f1ee; --card:#ffffff;
+          --accent:#2f9e6e; --success:#2f9e6e; --warn:#8a7414; --danger:#c0392b;
+          --text:#1a1a18; --muted:#6b6b66; --border:#ececea;
+          --shadow:0 1px 2px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.05);
+          --track:#eeece9; --accent-tint:rgba(47,158,110,0.05);
+          --accent-glow:rgba(47,158,110,0.28);">
+          <div class="app-head">
+            <h2>Dashboard</h2>
+            <div class="sub">Tuesday · Week 23 in review</div>
+          </div>
+          <div class="bento">
+            <div class="tile"><div class="lbl">Per Week</div><div class="amt">$1,250</div></div>
+            <div class="tile"><div class="lbl">Per Day</div><div class="amt">$208 <small>left</small></div></div>
+          </div>
+          <div class="card mb">
+            <div class="section-lbl">This Week</div>
+            <div class="big-amt">$225 <span class="of">/ $1,250</span></div>
+            <div class="bar"><span></span></div>
+            <div class="ahead">↑ $357 ahead of pace</div>
+          </div>
+          <div class="card mb">
+            <div class="section-lbl">Net Worth</div>
+            <div class="big-amt">$21,335</div>
+            <div class="meter"><div class="seg-a" style="width:78%"></div><div class="seg-d" style="width:22%"></div></div>
+            <div class="legend">
+              <span><span class="dot" style="background:var(--success)"></span>Assets $27,400</span>
+              <span><span class="dot" style="background:var(--danger)"></span>Debt $6,065</span>
+            </div>
+          </div>
+          <div class="card acct-list" style="padding:0;">
+            <div class="acct">
+              <div class="chip" style="background:rgba(47,158,110,0.12);color:var(--success)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>
+              </div>
+              <div class="info"><div class="name">Main Checking</div><div class="type">Checking</div></div>
+              <div class="bal">$3,200</div>
+            </div>
+            <div class="acct">
+              <div class="chip" style="background:rgba(47,158,110,0.12);color:var(--success)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v18"/><path d="M7 8h7a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h8"/></svg>
+              </div>
+              <div class="info"><div class="name">Savings</div><div class="type">Savings</div></div>
+              <div class="bal">$1,575</div>
+            </div>
+            <div class="acct">
+              <div class="chip" style="background:rgba(192,57,43,0.12);color:var(--danger)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+              </div>
+              <div class="info"><div class="name">Visa</div><div class="type">Credit card · Owes</div></div>
+              <div class="bal neg">$640</div>
+            </div>
+          </div>
+          <div class="btns">
+            <button class="btn btn-primary">+ Track a Transaction</button>
+            <button class="btn btn-ghost">View all accounts</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ OPTION 3 — CRISP ============ -->
+    <div class="option">
+      <div class="opt-head">
+        <span class="tag">3 · Crisp</span>
+        <p class="opt-desc">Apple / iOS-like cool. Bg <code>#f5f5f7</code>, white cards <code>#fff</code>, border <code>#e3e3e6</code>, text <code>#1d1d1f</code>.</p>
+      </div>
+      <div class="phone">
+        <div class="screen" style="
+          --bg:#f5f5f7; --surface:#ffffff; --surface2:#ededf0; --card:#ffffff;
+          --accent:#2fa56f; --success:#2fa56f; --warn:#8a7414; --danger:#d0342c;
+          --text:#1d1d1f; --muted:#6e6e73; --border:#e3e3e6;
+          --shadow:0 1px 2px rgba(0,0,0,0.05), 0 8px 20px rgba(0,0,0,0.06);
+          --track:#e6e6e9; --accent-tint:rgba(47,165,111,0.05);
+          --accent-glow:rgba(47,165,111,0.28);">
+          <div class="app-head">
+            <h2>Dashboard</h2>
+            <div class="sub">Tuesday · Week 23 in review</div>
+          </div>
+          <div class="bento">
+            <div class="tile"><div class="lbl">Per Week</div><div class="amt">$1,250</div></div>
+            <div class="tile"><div class="lbl">Per Day</div><div class="amt">$208 <small>left</small></div></div>
+          </div>
+          <div class="card mb">
+            <div class="section-lbl">This Week</div>
+            <div class="big-amt">$225 <span class="of">/ $1,250</span></div>
+            <div class="bar"><span></span></div>
+            <div class="ahead">↑ $357 ahead of pace</div>
+          </div>
+          <div class="card mb">
+            <div class="section-lbl">Net Worth</div>
+            <div class="big-amt">$21,335</div>
+            <div class="meter"><div class="seg-a" style="width:78%"></div><div class="seg-d" style="width:22%"></div></div>
+            <div class="legend">
+              <span><span class="dot" style="background:var(--success)"></span>Assets $27,400</span>
+              <span><span class="dot" style="background:var(--danger)"></span>Debt $6,065</span>
+            </div>
+          </div>
+          <div class="card acct-list" style="padding:0;">
+            <div class="acct">
+              <div class="chip" style="background:rgba(47,165,111,0.12);color:var(--success)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>
+              </div>
+              <div class="info"><div class="name">Main Checking</div><div class="type">Checking</div></div>
+              <div class="bal">$3,200</div>
+            </div>
+            <div class="acct">
+              <div class="chip" style="background:rgba(47,165,111,0.12);color:var(--success)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v18"/><path d="M7 8h7a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h8"/></svg>
+              </div>
+              <div class="info"><div class="name">Savings</div><div class="type">Savings</div></div>
+              <div class="bal">$1,575</div>
+            </div>
+            <div class="acct">
+              <div class="chip" style="background:rgba(208,52,44,0.12);color:var(--danger)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+              </div>
+              <div class="info"><div class="name">Visa</div><div class="type">Credit card · Owes</div></div>
+              <div class="bal neg">$640</div>
+            </div>
+          </div>
+          <div class="btns">
+            <button class="btn btn-primary">+ Track a Transaction</button>
+            <button class="btn btn-ghost">View all accounts</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ OPTION 4 — SOFT UI ============ -->
+    <div class="option">
+      <div class="opt-head">
+        <span class="tag">4 · Soft UI</span>
+        <p class="opt-desc">Notion / Linear-like neutral. Bg <code>#fbfbfa</code>, white cards <code>#fff</code>, very subtle border <code>#e9e9e7</code>, airy.</p>
+      </div>
+      <div class="phone">
+        <div class="screen" style="
+          --bg:#fbfbfa; --surface:#ffffff; --surface2:#f3f3f1; --card:#ffffff;
+          --accent:#359e72; --success:#359e72; --warn:#8a7414; --danger:#c8453b;
+          --text:#20201e; --muted:#5f6368; --border:#e9e9e7;
+          --shadow:0 1px 3px rgba(0,0,0,0.04), 0 10px 24px rgba(0,0,0,0.04);
+          --track:#efefed; --accent-tint:rgba(53,158,114,0.045);
+          --accent-glow:rgba(53,158,114,0.26);">
+          <div class="app-head">
+            <h2>Dashboard</h2>
+            <div class="sub">Tuesday · Week 23 in review</div>
+          </div>
+          <div class="bento">
+            <div class="tile"><div class="lbl">Per Week</div><div class="amt">$1,250</div></div>
+            <div class="tile"><div class="lbl">Per Day</div><div class="amt">$208 <small>left</small></div></div>
+          </div>
+          <div class="card mb">
+            <div class="section-lbl">This Week</div>
+            <div class="big-amt">$225 <span class="of">/ $1,250</span></div>
+            <div class="bar"><span></span></div>
+            <div class="ahead">↑ $357 ahead of pace</div>
+          </div>
+          <div class="card mb">
+            <div class="section-lbl">Net Worth</div>
+            <div class="big-amt">$21,335</div>
+            <div class="meter"><div class="seg-a" style="width:78%"></div><div class="seg-d" style="width:22%"></div></div>
+            <div class="legend">
+              <span><span class="dot" style="background:var(--success)"></span>Assets $27,400</span>
+              <span><span class="dot" style="background:var(--danger)"></span>Debt $6,065</span>
+            </div>
+          </div>
+          <div class="card acct-list" style="padding:0;">
+            <div class="acct">
+              <div class="chip" style="background:rgba(53,158,114,0.12);color:var(--success)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>
+              </div>
+              <div class="info"><div class="name">Main Checking</div><div class="type">Checking</div></div>
+              <div class="bal">$3,200</div>
+            </div>
+            <div class="acct">
+              <div class="chip" style="background:rgba(53,158,114,0.12);color:var(--success)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v18"/><path d="M7 8h7a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h8"/></svg>
+              </div>
+              <div class="info"><div class="name">Savings</div><div class="type">Savings</div></div>
+              <div class="bal">$1,575</div>
+            </div>
+            <div class="acct">
+              <div class="chip" style="background:rgba(200,69,59,0.12);color:var(--danger)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+              </div>
+              <div class="info"><div class="name">Visa</div><div class="type">Credit card · Owes</div></div>
+              <div class="bal neg">$640</div>
+            </div>
+          </div>
+          <div class="btns">
+            <button class="btn btn-primary">+ Track a Transaction</button>
+            <button class="btn btn-ghost">View all accounts</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
