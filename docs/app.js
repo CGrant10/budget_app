@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.1';
+const VERSION = '5.43.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,13 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.2', date: '2026-06-09', changes: [
+    'Fixed: scheduled paychecks could post twice (or flood the ledger from a stale pay date) — auto-entry now ignores overlapping runs and caps catch-up at 600 periods',
+    'Fixed: the Daily History tile counted bill payments and excluded items against your discretionary daily budget, showing bogus "over budget" days',
+    'Fixed: on the last evening of a month, spending insights and the monthly-pace line could go blank (a timezone/month rollover bug)',
+    'Fixed: the "beat last month" challenge could lock in pass/fail a day early at month-end (same timezone bug)',
+    'Hardened startup: corrupted saved data no longer prevents the app from loading — it backs up the bad data and falls back to defaults',
+  ]},
   { version: '5.43.1', date: '2026-06-09', changes: [
     'Income no longer erases what you\'ve spent — money you spent this week/today stays counted as spent. Income only raises your spendable balance (how much you\'re able to spend), not how much you\'ve already spent. Removed the "spent − income = net" line from the week tracker',
   ]},
@@ -1717,15 +1724,23 @@ function _dismissTxnAnim(el) {
   setTimeout(() => el?.remove(), 380);
 }
 
+let _paychecksRunning = false;
 async function _checkPaychecks() {
+  // Fires on every window focus — bail if a prior run is still awaiting, or two
+  // concurrent runs read the same un-persisted schedule and post duplicate paychecks.
+  if (_paychecksRunning) return;
+  _paychecksRunning = true;
+  try {
   const today = new Date(); today.setHours(0,0,0,0);
   const todayStr = localDateStr(today);
   let changed = false;
   for (const acct of state.accounts) {
     const ps = acct.paySchedule;
     if (!ps?.enabled || !ps.amount || !ps.nextPayDate) continue;
-    // Process all missed pay dates up to and including today
-    while (ps.nextPayDate <= todayStr && ps.lastAutoAdded !== ps.nextPayDate) {
+    // Process all missed pay dates up to and including today. Guard caps catch-up at
+    // 600 periods so a stale/garbled nextPayDate (e.g. an old backup) can't flood the ledger.
+    let guard = 0;
+    while (ps.nextPayDate <= todayStr && ps.lastAutoAdded !== ps.nextPayDate && guard++ < 600) {
       const payDate = ps.nextPayDate; // capture before advancing
       const prevId = currentAccountId;
       // Post net paycheck to the source account
@@ -1773,6 +1788,9 @@ async function _checkPaychecks() {
     }
   }
   if (changed) { await api.saveAccounts(state.accounts); render(); }
+  } finally {
+    _paychecksRunning = false;
+  }
 }
 
 // Auto-posts standalone retirement contributions on each scheduled date (incl. missed ones).
@@ -2235,11 +2253,22 @@ function _loadAccountData(id) {
 const api = {
   async load() {
     const accStr = localStorage.getItem(ACCOUNTS_KEY);
+    let parsedAccts = null;
     if (accStr) {
-      state.accounts = JSON.parse(accStr);
+      try { parsedAccts = JSON.parse(accStr); }
+      catch (e) { console.error('Corrupt accounts data — keeping a backup and resetting', e);
+        try { localStorage.setItem(ACCOUNTS_KEY + '_corrupt_backup', accStr); } catch {} }
+    }
+    if (Array.isArray(parsedAccts) && parsedAccts.length) {
+      state.accounts = parsedAccts;
+    } else if (accStr && parsedAccts === null) {
+      // Stored data was present but unparseable — fall back to defaults rather than bricking boot.
+      state.accounts = defaultAccounts();
+      _saveAccounts();
     } else {
       // Migrate from old single-key format
-      const old = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      let old = {};
+      try { old = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { old = {}; }
       state.accounts = old.accounts || defaultAccounts();
       _saveAccounts();
       if (old.transactions !== undefined || old.budgets !== undefined) {
@@ -3164,8 +3193,8 @@ function getSpendingInsights(monthStr) {
   const refDate = monthStr
     ? new Date(parseInt(monthStr.slice(0,4)), parseInt(monthStr.slice(5,7)) - 1, 1)
     : new Date();
-  const thisM = monthStr || refDate.toISOString().slice(0, 7);
-  const lastM = new Date(refDate.getFullYear(), refDate.getMonth() - 1, 1).toISOString().slice(0, 7);
+  const thisM = monthStr || localMonthKey(refDate);
+  const lastM = localMonthKey(new Date(refDate.getFullYear(), refDate.getMonth() - 1, 1));
   const cur  = monthTotals(thisM);
   const prev = monthTotals(lastM);
   const insights = [];
@@ -4791,7 +4820,7 @@ function renderDashboardDawg() {
       const _dStr = localDateStr(_d);
       if (_dStr > _todayStr2) break;
       const _dSpent = state.transactions
-        .filter(t => t.type==='expense' && t.date===_dStr)
+        .filter(t => t.type==='expense' && t.date===_dStr && !isExcludedFromSpend(t))
         .reduce((s,t) => s+t.amount, 0);
       _weekDays.push({
         dStr: _dStr,
@@ -5565,7 +5594,7 @@ function _challengeAutoStatus(ch) {
     const spent  = state.transactions.filter(t =>
       t.type === 'expense' && t.category === cat && t.date.startsWith(month)
     ).reduce((s, t) => s + t.amount, 0);
-    const curMonth = today.toISOString().slice(0, 7);
+    const curMonth = localMonthKey(today);
     if (curMonth > month) return spent < target ? 'pass' : 'fail';
     return spent < target ? 'pending' : 'fail';
   }
