@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nav bar mockups — round 4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f5f7; --surface:#ffffff; --card:#ffffff; --surface2:#ececef;
+  --accent:#2fa56f; --text:#1d1d1f; --muted:#6e6e73; --border:#e3e3e6;
+  --shadow:0 8px 30px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.05);
+  --shadow-soft:0 4px 18px rgba(0,0,0,.07);
+}
+body.dark{
+  --bg:#0e0e0f; --surface:#161617; --card:#1c1c1e; --surface2:#222223;
+  --accent:#4ecb8d; --text:#f0f0f2; --muted:#8a8a92; --border:rgba(255,255,255,.08);
+  --shadow:0 10px 34px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.4);
+  --shadow-soft:0 6px 22px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  background:var(--bg); color:var(--text);
+  transition:background .35s ease, color .35s ease;
+  padding:32px 20px 80px;
+}
+header{max-width:920px;margin:0 auto 36px;}
+h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px;}
+.sub{color:var(--muted);font-size:15px;font-weight:500;margin:0 0 22px;max-width:640px;line-height:1.5;}
+.toggle{display:inline-flex;gap:4px;background:var(--surface2);padding:4px;border-radius:12px;border:1px solid var(--border);}
+.toggle button{
+  font-family:inherit;font-weight:700;font-size:13px;letter-spacing:-.01em;
+  border:0;background:transparent;color:var(--muted);
+  padding:8px 18px;border-radius:9px;cursor:pointer;transition:all .25s ease;
+}
+.toggle button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow-soft);}
+
+.grid{max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:34px;}
+.option{
+  background:var(--surface);border:1px solid var(--border);border-radius:24px;
+  padding:26px 26px 30px;box-shadow:var(--shadow-soft);
+  transition:background .35s ease, border-color .35s ease;
+}
+.opt-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:22px;}
+.tag{
+  font-weight:800;font-size:14px;letter-spacing:-.01em;
+  background:var(--accent);color:#fff;padding:5px 12px;border-radius:8px;
+}
+body.dark .tag{color:#0e0e0f;}
+.opt-name{font-weight:700;font-size:16px;}
+.opt-desc{color:var(--muted);font-size:13.5px;font-weight:500;width:100%;line-height:1.5;}
+
+.pair{display:flex;gap:26px;flex-wrap:wrap;}
+.phone-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.phone-label{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.02em;text-transform:uppercase;}
+.phone{
+  width:360px;max-width:100%;border-radius:34px;overflow:hidden;
+  background:var(--bg);border:1px solid var(--border);
+  box-shadow:var(--shadow);position:relative;
+  transition:background .35s ease, border-color .35s ease;
+}
+.screen{padding:18px 18px 0;}
+.ph-content{height:110px;display:flex;flex-direction:column;gap:10px;justify-content:center;}
+.ph-row{height:14px;border-radius:7px;background:var(--surface2);}
+.ph-row.w1{width:55%;} .ph-row.w2{width:80%;} .ph-row.w3{width:40%;}
+.ph-card{
+  height:54px;border-radius:16px;background:var(--card);border:1px solid var(--border);
+  box-shadow:var(--shadow-soft);margin-top:4px;
+}
+
+/* shared icon sizing */
+svg.ic{width:22px;height:22px;display:block;}
+.dog{width:30px;height:30px;border-radius:50%;object-fit:cover;display:block;}
+
+/* glitch keyframes — brief RGB split on active icon */
+@keyframes glitch{
+  0%,93%,100%{filter:none;transform:translate(0,0);}
+  94%{filter:drop-shadow(1.4px 0 0 rgba(255,0,80,.85)) drop-shadow(-1.4px 0 0 rgba(0,200,255,.85));transform:translate(-.5px,0);}
+  96%{filter:drop-shadow(-1.4px 0 0 rgba(255,0,80,.85)) drop-shadow(1.4px 0 0 rgba(0,200,255,.85));transform:translate(.5px,0);}
+  98%{filter:drop-shadow(1px 0 0 rgba(255,0,80,.7)) drop-shadow(-1px 0 0 rgba(0,200,255,.7));transform:translate(0,0);}
+}
+.glitch{animation:glitch 7s infinite steps(1);}
+@keyframes glitchimg{
+  0%,93%,100%{filter:none;}
+  94%{filter:drop-shadow(1.4px 0 0 rgba(255,0,80,.8)) drop-shadow(-1.4px 0 0 rgba(0,200,255,.8));}
+  96%{filter:drop-shadow(-1.4px 0 0 rgba(255,0,80,.8)) drop-shadow(1.4px 0 0 rgba(0,200,255,.8));}
+}
+.glitchimg{animation:glitchimg 7s infinite steps(1);}
+
+/* ============ A · BOLD ACTIVE FILL ============ */
+.navA{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom,0));
+  background:var(--surface);border-top:1px solid var(--border);
+}
+.navA .tab{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--muted);width:56px;height:48px;border-radius:14px;transition:all .25s ease;
+}
+.navA .tab.active{background:var(--accent);color:#fff;box-shadow:0 6px 16px -4px var(--accent);}
+body.dark .navA .tab.active{color:#0e0e0f;}
+.navA .center img{width:34px;height:34px;border-radius:50%;object-fit:cover;
+  border:2px solid transparent;transition:all .25s ease;}
+.navA .center.active{background:var(--accent);}
+.navA .center.active img{border-color:#fff;}
+body.dark .navA .center.active img{border-color:#0e0e0f;}
+
+/* ============ B · STACKED — dog moves to header, clean even row ============ */
+.topbarB{
+  display:flex;align-items:center;gap:10px;padding:14px 18px 2px;
+}
+.topbarB img{width:38px;height:38px;border-radius:50%;object-fit:cover;
+  border:1.5px solid var(--border);box-shadow:var(--shadow-soft);}
+.topbarB .greet{display:flex;flex-direction:column;line-height:1.15;}
+.topbarB .greet b{font-size:14px;font-weight:800;}
+.topbarB .greet span{font-size:11px;color:var(--muted);font-weight:600;}
+.navB{
+  display:flex;align-items:center;justify-content:space-around;
+  padding:12px 8px calc(12px + env(safe-area-inset-bottom,0));
+  background:var(--surface);border-top:1px solid var(--border);
+}
+.navB .tab{display:flex;flex-direction:column;align-items:center;gap:5px;
+  color:var(--muted);transition:color .25s ease;font-size:10px;font-weight:700;}
+.navB .tab.active{color:var(--accent);}
+.navB .tab .dotwrap{height:6px;display:flex;align-items:center;}
+.navB .tab .dot{width:4px;height:4px;border-radius:50%;background:transparent;transition:all .25s ease;}
+.navB .tab.active .dot{background:var(--accent);}
+
+/* ============ C · FLOATING DOCK ISLAND ============ */
+.navC-area{
+  display:flex;justify-content:center;
+  padding:0 0 calc(18px + env(safe-area-inset-bottom,0));position:relative;
+}
+.navC-area::before{content:"";position:absolute;inset:0;background:var(--surface);
+  border-top:1px solid var(--border);opacity:.0;}
+.navC{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--card);border:1px solid var(--border);
+  padding:8px 12px;border-radius:26px;box-shadow:var(--shadow);
+}
+.navC .tab{display:flex;align-items:center;justify-content:center;
+  width:42px;height:42px;border-radius:16px;color:var(--muted);transition:all .25s ease;}
+.navC .tab.active{color:var(--accent);background:var(--surface2);}
+.navC .center{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:var(--surface2);border:1px solid var(--border);transition:all .25s ease;}
+.navC .center img{width:32px;height:32px;border-radius:50%;object-fit:cover;}
+.navC .center.active{background:var(--accent);box-shadow:0 6px 16px -4px var(--accent);}
+
+/* ============ D · UNDERLIT GLOW LINE ============ */
+.navD{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  padding:0 18px calc(14px + env(safe-area-inset-bottom,0));
+  background:var(--surface);border-top:1px solid var(--border);position:relative;
+}
+.navD .tab{position:relative;display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-end;height:58px;padding-top:14px;width:54px;
+  color:var(--muted);transition:color .3s ease;}
+.navD .tab.active{color:var(--accent);}
+.navD .tab .glow{position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:46px;height:0;border-radius:50% 50% 0 0;opacity:0;transition:all .35s ease;
+  background:radial-gradient(60% 100% at 50% 100%, var(--accent), transparent 72%);}
+.navD .tab.active .glow{height:40px;opacity:.55;}
+.navD .center img{width:32px;height:32px;border-radius:50%;object-fit:cover;
+  transition:transform .3s ease;}
+.navD .center.active img{transform:translateY(-2px);}
+
+</style>
+</head>
+<body class="light">
+<header>
+  <h1>Nav bar mockups — round 4</h1>
+  <p class="sub">Four genuinely fresh directions for Budget DAWGs — confident fill, header-hybrid, a narrow floating island, and a moody underlit glow. Playful Doberman + subtle RGB-glitch identity kept, legibility first. Default light "Crisp" palette; toggle dark.</p>
+  <div class="toggle">
+    <button id="t-light" class="on" onclick="setMode('light')">Light</button>
+    <button id="t-dark" onclick="setMode('dark')">Dark</button>
+  </div>
+</header>
+
+<main class="grid">
+
+  <!-- ===================== OPTION A ===================== -->
+  <section class="option">
+    <div class="opt-head">
+      <span class="tag">A · Bold active fill</span>
+      <span class="opt-name">Confident solid pill</span>
+      <span class="opt-desc">Inactive tabs are quiet line icons; the active tab fills with a solid accent rounded-rect and inverts the icon to white. App-store modern, instantly legible.</span>
+    </div>
+    <div class="pair">
+
+      <div class="phone-wrap">
+        <span class="phone-label">Dashboard active</span>
+        <div class="phone">
+          <div class="screen"><div class="ph-content">
+            <div class="ph-row w2"></div><div class="ph-row w1"></div><div class="ph-card"></div>
+          </div></div>
+          <nav class="navA">
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></div>
+            <div class="tab center active"><img class="glitchimg" src="./doberman.png" alt="Dashboard"></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+          </nav>
+        </div>
+      </div>
+
+      <div class="phone-wrap">
+        <span class="phone-label">Ledger active</span>
+        <div class="phone">
+          <div class="screen"><div class="ph-content">
+            <div class="ph-row w2"></div><div class="ph-row w3"></div><div class="ph-card"></div>
+          </div></div>
+          <nav class="navA">
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+            <div class="tab active"><svg class="ic glitch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></div>
+            <div class="tab center"><img src="./doberman.png" alt="Dashboard"></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+          </nav>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== OPTION B ===================== -->
+  <section class="option">
+    <div class="opt-head">
+      <span class="tag">B · Header hybrid</span>
+      <span class="opt-name">Dog leaves the bar</span>
+      <span class="opt-desc">The mascot becomes a top-left avatar greeting; the bottom bar simplifies to a clean even 4-icon row with labels and an accent dot under the active tab.</span>
+    </div>
+    <div class="pair">
+
+      <div class="phone-wrap">
+        <span class="phone-label">Dashboard active</span>
+        <div class="phone">
+          <div class="topbarB">
+            <img class="glitchimg" src="./doberman.png" alt="dog">
+            <div class="greet"><b>Hey, Grant</b><span>Dashboard</span></div>
+          </div>
+          <div class="screen"><div class="ph-content">
+            <div class="ph-row w2"></div><div class="ph-row w1"></div><div class="ph-card"></div>
+          </div></div>
+          <nav class="navB">
+            <div class="tab active"><span class="dotwrap"><span class="dot"></span></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="16" x2="21" y2="16"/></svg>Home</div>
+            <div class="tab"><span class="dotwrap"><span class="dot"></span></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Track</div>
+            <div class="tab"><span class="dotwrap"><span class="dot"></span></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>Ledger</div>
+            <div class="tab"><span class="dotwrap"><span class="dot"></span></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Weekly</div>
+            <div class="tab"><span class="dotwrap"><span class="dot"></span></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>
+          </nav>
+        </div>
+      </div>
+
+      <div class="phone-wrap">
+        <span class="phone-label">Ledger active</span>
+        <div class="phone">
+          <div class="topbarB">
+            <img src="./doberman.png" alt="dog">
+            <div class="greet"><b>Hey, Grant</b><span>Ledger</span></div>
+          </div>
+          <div class="screen"><div class="ph-content">
+            <div class="ph-row w2"></div><div class="ph-row w3"></div><div class="ph-card"></div>
+          </div></div>
+          <nav class="navB">
+            <div class="tab"><span class="dotwrap"><span class="dot"></span></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="16" x2="21" y2="16"/></svg>Home</div>
+            <div class="tab"><span class="dotwrap"><span class="dot"></span></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Track</div>
+            <div class="tab active"><span class="dotwrap"><span class="dot"></span></span><svg class="ic glitch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>Ledger</div>
+            <div class="tab"><span class="dotwrap"><span class="dot"></span></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Weekly</div>
+            <div class="tab"><span class="dotwrap"><span class="dot"></span></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>
+          </nav>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== OPTION C ===================== -->
+  <section class="option">
+    <div class="opt-head">
+      <span class="tag">C · Dock island</span>
+      <span class="opt-name">Narrow centered float</span>
+      <span class="opt-desc">A short, compact floating dock sits centered with empty space on both sides — Dynamic-Island energy. The dog is one rounded node; active tab tints accent.</span>
+    </div>
+    <div class="pair">
+
+      <div class="phone-wrap">
+        <span class="phone-label">Dashboard active</span>
+        <div class="phone">
+          <div class="screen"><div class="ph-content">
+            <div class="ph-row w2"></div><div class="ph-row w1"></div><div class="ph-card"></div>
+          </div></div>
+          <div class="navC-area">
+            <nav class="navC">
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></div>
+              <div class="center active"><img class="glitchimg" src="./doberman.png" alt="Dashboard"></div>
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone-wrap">
+        <span class="phone-label">Ledger active</span>
+        <div class="phone">
+          <div class="screen"><div class="ph-content">
+            <div class="ph-row w2"></div><div class="ph-row w3"></div><div class="ph-card"></div>
+          </div></div>
+          <div class="navC-area">
+            <nav class="navC">
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+              <div class="tab active"><svg class="ic glitch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></div>
+              <div class="center"><img src="./doberman.png" alt="Dashboard"></div>
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== OPTION D ===================== -->
+  <section class="option">
+    <div class="opt-head">
+      <span class="tag">D · Underlit glow</span>
+      <span class="opt-name">Light leaking up</span>
+      <span class="opt-desc">A flat bar where the active tab projects a soft accent glow rising from the bottom edge, plus an accent icon. Moody but clean, and the dog floats up a touch when active.</span>
+    </div>
+    <div class="pair">
+
+      <div class="phone-wrap">
+        <span class="phone-label">Dashboard active</span>
+        <div class="phone">
+          <div class="screen"><div class="ph-content">
+            <div class="ph-row w2"></div><div class="ph-row w1"></div><div class="ph-card"></div>
+          </div></div>
+          <nav class="navD">
+            <div class="tab"><span class="glow"></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+            <div class="tab"><span class="glow"></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></div>
+            <div class="tab center active"><span class="glow"></span><img class="glitchimg" src="./doberman.png" alt="Dashboard"></div>
+            <div class="tab"><span class="glow"></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="tab"><span class="glow"></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+          </nav>
+        </div>
+      </div>
+
+      <div class="phone-wrap">
+        <span class="phone-label">Ledger active</span>
+        <div class="phone">
+          <div class="screen"><div class="ph-content">
+            <div class="ph-row w2"></div><div class="ph-row w3"></div><div class="ph-card"></div>
+          </div></div>
+          <nav class="navD">
+            <div class="tab"><span class="glow"></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+            <div class="tab active"><span class="glow"></span><svg class="ic glitch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></div>
+            <div class="tab center"><span class="glow"></span><img src="./doberman.png" alt="Dashboard"></div>
+            <div class="tab"><span class="glow"></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="tab"><span class="glow"></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+          </nav>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<script>
+function setMode(m){
+  document.body.className=m;
+  document.getElementById('t-light').classList.toggle('on',m==='light');
+  document.getElementById('t-dark').classList.toggle('on',m==='dark');
+}
+</script>
+</body>
+</html>
