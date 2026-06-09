@@ -6697,19 +6697,37 @@ body.theme-ubuntu .section-title::before {
 .bcal-legend3 .lg-over { background: var(--danger); }
 
 /* ════════════════════════════════════════════════════════════════════════
-   ACCOUNTS — "A · Tightened" (chosen). Same layout, sharper: larger net-worth
-   value, crisper rounded-end gradient assets/debt meter, slightly larger
-   balances and account names. Pure polish — no markup change.
+   ACCOUNTS — "A · Tightened" (chosen). Hero matches the mockup: barking dog +
+   title in a row, then a version-status + update row. Net worth is a stacked
+   label/value with a two-segment rounded gradient assets/debt meter. The dog
+   stays object-fit:contain (never cropped) and keeps its bark + glitch.
 ═══════════════════════════════════════════════════════════════════════════ */
+.acct-hero-inner { position: relative; z-index: 1; padding: 16px 16px 0; }
+.acct-hero-row { display: flex; align-items: center; gap: 14px; }
+.acct-hero-dob { width: 64px !important; flex-shrink: 0; }
+.acct-hero-dob .dawg-dob-idle,
+.acct-hero-dob .dawg-dob-bark { object-fit: contain; object-position: center; }
+.acct-hero-text { min-width: 0; }
+.acct-picker-title { font-size: 1.5rem; }
+.acct-picker-sub { font-size: .8rem; margin-top: 4px; opacity: .92; }
+.acct-hero-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 14px;
+}
+.acct-picker-ver { display: flex; align-items: center; gap: 7px; margin-top: 0; opacity: 1; }
+.acct-ver-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); flex-shrink: 0; }
+.acct-ver-dot.stale { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+.acct-hero-foot .acct-update-pill { margin-top: 0; }
+
 .acct-nw2 { padding: 18px; border-radius: 20px; }
 .acct-nw2-label { letter-spacing: .14em; }
-.acct-nw2-value { font-size: 36px; letter-spacing: -1px; line-height: 1; }
+.acct-nw2-value { font-size: 36px; letter-spacing: -1px; line-height: 1; margin-top: 3px; }
 .acct-nw2-meter {
-  height: 12px; margin: 16px 0 11px;
-  background: color-mix(in srgb, var(--danger) 42%, transparent);
-  border: 1px solid var(--border);
+  height: 12px; margin: 16px 0 11px; display: flex; gap: 0;
+  background: var(--surface); border: 1px solid var(--border); overflow: hidden;
 }
-.acct-nw2-meter i { background: linear-gradient(90deg, color-mix(in srgb, var(--success) 72%, #14502f), var(--success)); }
+.acct-nw2-meter .seg-a { height: 100%; background: linear-gradient(90deg, color-mix(in srgb, var(--success) 72%, #14502f), var(--success)); }
+.acct-nw2-meter .seg-d { height: 100%; background: linear-gradient(90deg, var(--danger), color-mix(in srgb, var(--danger) 70%, #000)); }
 .acct-nw2-legend { font-size: .8rem; }
 .acct-row-name { font-size: .95rem; }
 .acct-row-bal  { font-size: 1.06rem; }

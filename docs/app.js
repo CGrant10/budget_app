@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.9';
+const VERSION = '5.43.10';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.10', date: '2026-06-09', changes: [
+    'Accounts overview hero now matches the "Tightened" mockup: the barking Doberman + "My Accounts" sit in a row, with a version-status dot and the update button on their own row below. The dog stays fully visible (never cropped) and keeps its bark + glitch animation',
+    'Net worth meter is now a two-segment assets/debt bar (green + red) with the larger value',
+  ]},
   { version: '5.43.9', date: '2026-06-09', changes: [
     'Fixed the update button loading the splash screen twice — the page no longer double-reloads when the fresh service worker takes over after a forced update',
     'Transfers now play the transaction animation like income/expense do (it was being skipped)',
@@ -3638,21 +3642,27 @@ function renderAccountPicker() {
     <div class="dawg-page acct-picker-page">
       <div class="dawg-hero acct-picker-hero">
         <div class="dawg-hero-glow"></div>
-        <div style="display:flex;align-items:center;gap:12px;padding:14px 14px 0">
-          <div class="dawg-hero-dob" style="width:70px;flex-shrink:0">
-            <img src="./doberman.png" class="dawg-dob-idle" alt="">
-            <img src="./maddawg.png"  class="dawg-dob-bark" alt="">
+        <div class="acct-hero-inner">
+          <div class="acct-hero-row">
+            <div class="dawg-hero-dob acct-hero-dob">
+              <img src="./doberman.png" class="dawg-dob-idle" alt="">
+              <img src="./maddawg.png"  class="dawg-dob-bark" alt="">
+            </div>
+            <div class="acct-hero-text">
+              <div class="acct-picker-title">My Accounts</div>
+              <div class="acct-picker-sub">${count} account${count !== 1 ? 's' : ''} · tap to open</div>
+            </div>
           </div>
-          <div>
-            <div class="acct-picker-title">My Accounts</div>
-            <div class="acct-picker-sub">${count} account${count !== 1 ? 's' : ''} · tap to open</div>
-            <div class="acct-picker-ver">v${VERSION}${
-              _latestVersion && _latestVersion !== VERSION
-                ? ` · <span style="color:var(--danger)">out of date</span>`
-                : _upToDate ? ` · <span style="color:var(--success)">up to date</span>` : ''
-            }</div>
+          <div class="acct-hero-foot">
+            <div class="acct-picker-ver">
+              <span class="acct-ver-dot${_latestVersion && _latestVersion !== VERSION ? ' stale' : ''}"></span>v${VERSION}${
+                _latestVersion && _latestVersion !== VERSION
+                  ? ` · <span style="color:var(--danger)">out of date</span>`
+                  : _upToDate ? ` · <span style="color:var(--success)">up to date</span>` : ''
+              }
+            </div>
             ${_latestVersion && _latestVersion !== VERSION
-              ? `<button id="acct-force-update-btn" class="acct-update-pill">↑ v${_latestVersion} available — tap to update</button>`
+              ? `<button id="acct-force-update-btn" class="acct-update-pill">↑ v${_latestVersion} — update</button>`
               : `<button id="acct-force-update-btn" class="acct-update-pill acct-update-pill--subtle">⟳ Check for update</button>`
             }
           </div>
@@ -3662,11 +3672,12 @@ function renderAccountPicker() {
         const nw = _assets - _debts;
         const assetPct = (_assets + _debts) > 0 ? (_assets / (_assets + _debts) * 100) : 100;
         return `<div class="acct-nw2">
-          <div class="acct-nw2-top">
-            <span class="acct-nw2-label">NET WORTH</span>
-            <span class="acct-nw2-value" style="color:${nw >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(nw)}</span>
+          <div class="acct-nw2-label">NET WORTH</div>
+          <div class="acct-nw2-value" style="color:${nw >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(nw)}</div>
+          <div class="acct-nw2-meter">
+            <i class="seg-a" style="width:${assetPct.toFixed(1)}%"></i>
+            <i class="seg-d" style="width:${(100 - assetPct).toFixed(1)}%"></i>
           </div>
-          <div class="acct-nw2-meter"><i style="width:${assetPct.toFixed(1)}%"></i></div>
           <div class="acct-nw2-legend">
             <span style="color:var(--success)">${fmt(_assets)} assets</span>
             ${_debts > 0 ? `<span style="color:var(--danger)">${fmt(_debts)} debt</span>` : ''}
