@@ -6635,3 +6635,34 @@ body.theme-ubuntu .section-title::before {
 /* Urgency stays legible via a faint full-row wash; the date-tag pill carries the rest. */
 .note-card-overdue { background: color-mix(in srgb, var(--danger) 7%, transparent) !important; }
 .note-card-today   { background: color-mix(in srgb, var(--accent) 7%, transparent) !important; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   AIRY dashboard — chosen legibility direction ("A · Airy"). Bigger type,
+   more breathing room, calmer spacing. The old micro-caps (.55–.66rem) were
+   the core legibility problem. Placed last so it wins source-order over the
+   base tile rules and the cyberpunk-theme block earlier in this file.
+═══════════════════════════════════════════════════════════════════════════ */
+.dawg-tile-grid { gap: 12px; margin: 12px 14px 0; }
+.dawg-tile-grid .dawg-section-card,
+.dawg-tile-grid .dawg-budget-tile,
+.dawg-tile-grid .dawg-breakdown-card { padding: 16px 15px; }
+
+/* Labels — larger, higher-contrast than the old micro-caps */
+.dawg-card-title  { font-size: .72rem; letter-spacing: .08em; }
+.dawg-tile-period { font-size: .64rem; opacity: .85; }
+.dawg-tile-sub    { font-size: .74rem; }
+.dawg-tile-adj    { font-size: .68rem; }
+.dawg-stat-lbl    { font-size: .66rem; }
+
+/* Numbers — bigger, clearer hierarchy */
+.dawg-stat-val    { font-size: .95rem; }
+.dawg-tile-amt    { font-size: 1.4rem; }
+.dawg-meter-amt   { font-size: 1.3rem; }
+.dawg-meter-amt span { font-size: .82rem; }
+.dawg-meter-pct   { font-size: .84rem; }
+.dawg-meter       { height: 10px; }
+
+/* Category breakdown rows — more legible */
+.dawg-cat-name { font-size: .82rem; }
+.dawg-cat-amt  { font-size: .78rem; }
+.dawg-cat-pct  { font-size: .72rem; }

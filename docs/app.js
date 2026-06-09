@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.4';
+const VERSION = '5.43.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.5', date: '2026-06-09', changes: [
+    'Dashboard "Airy" pass — bigger, higher-contrast labels and numbers, roomier tile spacing, and a taller progress bar. The tiny micro-cap labels were the main thing making the dashboard hard to read',
+  ]},
   { version: '5.43.4', date: '2026-06-09', changes: [
     'Fixed the update button — version.txt had drifted behind the app version, so the updater could never reconcile (it kept offering a phantom update or stayed silent). Releases now keep version.txt in lockstep with the app version',
     'Accounts overview: account-type icons toned down from neon to deeper, readable tones and given a stronger tinted chip — much easier to read in both light and dark mode',
