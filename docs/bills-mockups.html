@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bills page mockups — Budget DAWGs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ---------- THEME TOKENS ---------- */
+  body.light {
+    --bg:#e2e2df; --surface:#eaeae7; --card:#e4e4e1; --accent:#5ab592;
+    --success:#4aaa80; --warn:#988018; --danger:#a84040;
+    --text:#181820; --muted:#606070; --border:rgba(0,0,0,.10);
+    --shadow:0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.10);
+    --shadow-sm:0 1px 2px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.06);
+  }
+  body.dark {
+    --bg:#0e0e0f; --surface:#161617; --card:#1c1c1e; --accent:#4ecb8d;
+    --success:#32d74b; --warn:#ffd60a; --danger:#ff453a;
+    --text:#f0f0f2; --muted:#8a8a92; --border:rgba(255,255,255,.08);
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px rgba(0,0,0,.55);
+    --shadow-sm:0 1px 2px rgba(0,0,0,.35), 0 3px 10px rgba(0,0,0,.4);
+  }
+
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html { -webkit-font-smoothing:antialiased; }
+  body {
+    font-family:'Plus Jakarta Sans', system-ui, sans-serif;
+    background:var(--bg); color:var(--text);
+    transition:background .3s ease, color .3s ease;
+    padding:40px 20px 80px; line-height:1.4;
+  }
+
+  /* ---------- PAGE HEADER ---------- */
+  .page-head { max-width:1200px; margin:0 auto 40px; }
+  .page-head h1 { font-size:32px; font-weight:800; letter-spacing:-.02em; }
+  .page-head p { color:var(--muted); font-size:15px; margin-top:6px; font-weight:500; }
+  .toggle { display:inline-flex; gap:4px; margin-top:20px; background:var(--card);
+    border:1px solid var(--border); border-radius:12px; padding:4px; box-shadow:var(--shadow-sm); }
+  .toggle button { font-family:inherit; font-size:13px; font-weight:700; cursor:pointer;
+    border:none; background:transparent; color:var(--muted); padding:8px 18px; border-radius:8px;
+    transition:all .2s ease; }
+  .toggle button.on { background:var(--accent); color:#06140d; }
+  body.dark .toggle button.on { color:#06140d; }
+
+  /* ---------- LAYOUT ---------- */
+  .grid { display:flex; flex-wrap:wrap; gap:48px; justify-content:center; max-width:1300px; margin:0 auto; }
+  .opt { display:flex; flex-direction:column; align-items:center; }
+  .opt-tag { font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent); margin-bottom:6px; }
+  .opt-desc { font-size:13px; color:var(--muted); margin-bottom:18px; max-width:340px;
+    text-align:center; font-weight:500; }
+
+  /* ---------- PHONE FRAME ---------- */
+  .phone { width:360px; background:var(--bg); border-radius:38px; padding:12px;
+    box-shadow:var(--shadow); border:1px solid var(--border); }
+  body.dark .phone { box-shadow:0 0 0 2px rgba(255,255,255,.04), var(--shadow); }
+  .screen { background:var(--bg); border-radius:28px; overflow:hidden; height:720px;
+    overflow-y:auto; position:relative; }
+  .screen::-webkit-scrollbar { width:0; }
+  .notch { height:30px; display:flex; align-items:center; justify-content:center; }
+  .notch .pill { width:90px; height:6px; border-radius:6px; background:var(--border); }
+
+  .pad { padding:0 18px 30px; }
+
+  /* ---------- SHARED: month nav ---------- */
+  .monthnav { display:flex; align-items:center; justify-content:space-between; padding:8px 18px 14px; }
+  .monthnav h2 { font-size:19px; font-weight:800; letter-spacing:-.01em; }
+  .navbtn { width:36px; height:36px; border-radius:50%; border:1px solid var(--border);
+    background:var(--card); color:var(--text); font-size:18px; cursor:pointer; font-weight:600;
+    display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-sm); }
+
+  .scr-title { font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--muted); padding:14px 18px 6px; }
+
+  /* category dot */
+  .dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+  /* status pills */
+  .pill-status { font-size:11px; font-weight:800; padding:4px 9px; border-radius:7px;
+    letter-spacing:.02em; white-space:nowrap; }
+  .st-paid { color:var(--success); background:color-mix(in srgb, var(--success) 16%, transparent); }
+  .st-due  { color:var(--warn); background:color-mix(in srgb, var(--warn) 18%, transparent); }
+  .st-over { color:var(--danger); background:color-mix(in srgb, var(--danger) 16%, transparent); }
+  .st-up   { color:var(--muted); background:color-mix(in srgb, var(--muted) 14%, transparent); }
+
+  .amt { font-variant-numeric:tabular-nums; }
+
+  /* =========================================================
+     OPTION A — AGENDA / TIMELINE
+     ========================================================= */
+  .a-summary { margin:6px 18px 18px; background:var(--card); border:1px solid var(--border);
+    border-radius:20px; padding:18px; display:flex; align-items:center; gap:18px; box-shadow:var(--shadow-sm); }
+  .ring { position:relative; width:74px; height:74px; flex-shrink:0; }
+  .ring svg { transform:rotate(-90deg); }
+  .ring .lbl { position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; }
+  .ring .lbl b { font-size:17px; font-weight:800; }
+  .ring .lbl span { font-size:9px; color:var(--muted); font-weight:700; letter-spacing:.04em; }
+  .a-sum-text { flex:1; }
+  .a-sum-text .big { font-size:24px; font-weight:800; letter-spacing:-.02em; }
+  .a-sum-text .sub { font-size:13px; color:var(--muted); font-weight:500; margin-top:2px; }
+  .a-sum-text .rem { font-size:13px; font-weight:700; color:var(--danger); margin-top:6px; }
+
+  .a-day { display:flex; gap:12px; padding:0 18px; }
+  .a-rail { display:flex; flex-direction:column; align-items:center; width:42px; flex-shrink:0; }
+  .a-date { text-align:center; }
+  .a-date .d { font-size:18px; font-weight:800; line-height:1; }
+  .a-date .m { font-size:9px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .a-line { width:2px; flex:1; background:var(--border); margin:6px 0; border-radius:2px; }
+  .a-card { flex:1; background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:13px 14px; margin-bottom:14px; box-shadow:var(--shadow-sm);
+    border-left:3px solid var(--accent); }
+  .a-card.paid { border-left-color:var(--success); opacity:.78; }
+  .a-card.due  { border-left-color:var(--warn); }
+  .a-card.over { border-left-color:var(--danger); }
+  .a-card.up   { border-left-color:var(--muted); }
+  .a-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .a-name { display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; }
+  .a-amt { font-size:17px; font-weight:800; }
+  .a-meta { display:flex; align-items:center; justify-content:space-between; margin-top:7px; }
+  .a-cat { font-size:12px; color:var(--muted); font-weight:600; }
+
+  /* =========================================================
+     OPTION B — CLEAN CARD LIST
+     ========================================================= */
+  .b-summary { margin:6px 18px 16px; display:flex; gap:10px; }
+  .b-stat { flex:1; background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:14px; box-shadow:var(--shadow-sm); }
+  .b-stat .k { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .b-stat .v { font-size:22px; font-weight:800; letter-spacing:-.02em; margin-top:4px; }
+  .b-stat .v.rem { color:var(--danger); }
+  .b-bar { height:6px; border-radius:6px; background:var(--border); margin:4px 18px 18px; overflow:hidden; }
+  .b-bar i { display:block; height:100%; background:var(--success); border-radius:6px; }
+
+  .b-card { position:relative; background:var(--card); border:1px solid var(--border);
+    border-radius:18px; padding:15px 16px; margin:0 18px 12px; box-shadow:var(--shadow-sm);
+    overflow:hidden; }
+  .b-swipe { position:absolute; top:0; right:0; bottom:0; width:64px;
+    background:linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 22%, transparent));
+    display:flex; align-items:center; justify-content:flex-end; padding-right:14px;
+    border-top-right-radius:18px; border-bottom-right-radius:18px; }
+  .b-swipe svg { color:var(--accent); }
+  .b-row { display:flex; align-items:center; gap:13px; position:relative; }
+  .b-ic { width:42px; height:42px; border-radius:12px; flex-shrink:0; display:flex;
+    align-items:center; justify-content:center; }
+  .b-ic .dot { width:14px; height:14px; }
+  .b-mid { flex:1; min-width:0; }
+  .b-name { font-size:15px; font-weight:700; }
+  .b-meta { font-size:12px; color:var(--muted); font-weight:500; margin-top:2px; }
+  .b-right { text-align:right; flex-shrink:0; }
+  .b-amt { font-size:19px; font-weight:800; letter-spacing:-.02em; }
+  .b-right .pill-status { margin-top:5px; display:inline-block; }
+
+  /* =========================================================
+     OPTION C — CALENDAR FORWARD
+     ========================================================= */
+  .c-summary { margin:6px 18px 14px; background:var(--card); border:1px solid var(--border);
+    border-radius:18px; padding:14px 16px; display:flex; align-items:center;
+    justify-content:space-between; box-shadow:var(--shadow-sm); }
+  .c-summary .blk .k { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .c-summary .blk .v { font-size:21px; font-weight:800; letter-spacing:-.02em; margin-top:2px; }
+  .c-summary .blk .v.rem { color:var(--danger); }
+  .c-summary .div { width:1px; align-self:stretch; background:var(--border); margin:0 4px; }
+
+  .cal { margin:0 18px 6px; background:var(--card); border:1px solid var(--border);
+    border-radius:20px; padding:16px 14px 12px; box-shadow:var(--shadow-sm); }
+  .cal-wk { display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:8px; }
+  .cal-wk span { text-align:center; font-size:10px; font-weight:800; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.03em; }
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+  .cell { aspect-ratio:1; border-radius:10px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; font-size:13px; font-weight:600; gap:3px;
+    position:relative; }
+  .cell.muted { color:var(--muted); opacity:.35; }
+  .cell.today { background:color-mix(in srgb, var(--accent) 16%, transparent); font-weight:800; }
+  .cell .cdot { width:6px; height:6px; border-radius:50%; }
+  .cdot.paid { background:var(--success); }
+  .cdot.due  { background:var(--warn); }
+  .cdot.over { background:var(--danger); }
+  .cell.hasbill { font-weight:800; }
+
+  .c-legend { display:flex; gap:14px; justify-content:center; padding:10px 18px 4px; }
+  .c-legend span { font-size:11px; font-weight:600; color:var(--muted); display:flex; align-items:center; gap:5px; }
+  .c-legend i { width:8px; height:8px; border-radius:50%; display:inline-block; }
+
+  .c-row { display:flex; align-items:center; gap:12px; padding:11px 18px;
+    border-bottom:1px solid var(--border); }
+  .c-row:last-child { border-bottom:none; }
+  .c-daybox { width:40px; text-align:center; flex-shrink:0; }
+  .c-daybox .dd { font-size:16px; font-weight:800; line-height:1; }
+  .c-daybox .ddm { font-size:9px; font-weight:700; color:var(--muted); text-transform:uppercase; }
+  .c-mid { flex:1; min-width:0; }
+  .c-name { font-size:14px; font-weight:700; display:flex; align-items:center; gap:7px; }
+  .c-cat { font-size:11px; color:var(--muted); font-weight:500; margin-top:1px; }
+  .c-end { text-align:right; flex-shrink:0; }
+  .c-amt { font-size:15px; font-weight:800; }
+  .c-end .pill-status { margin-top:3px; display:inline-block; }
+</style>
+</head>
+<body class="light">
+
+<div class="page-head">
+  <h1>Bills page mockups</h1>
+  <p>Three redesign directions for the Budget DAWGs bills screen — professional, scannable, premium. Toggle the theme to preview both modes.</p>
+  <div class="toggle">
+    <button id="t-light" class="on" onclick="setMode('light')">Light</button>
+    <button id="t-dark" onclick="setMode('dark')">Dark</button>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- ===================== OPTION A: AGENDA ===================== -->
+  <div class="opt">
+    <div class="opt-tag">A · Agenda</div>
+    <div class="opt-desc">A vertical timeline down the month with a paid-progress ring and color-coded due/paid/overdue rail.</div>
+    <div class="phone">
+      <div class="screen">
+        <div class="notch"><div class="pill"></div></div>
+        <div class="monthnav">
+          <button class="navbtn">‹</button>
+          <h2>June 2026</h2>
+          <button class="navbtn">›</button>
+        </div>
+
+        <div class="a-summary">
+          <div class="ring">
+            <svg width="74" height="74" viewBox="0 0 74 74">
+              <circle cx="37" cy="37" r="32" fill="none" stroke="var(--border)" stroke-width="7"/>
+              <circle cx="37" cy="37" r="32" fill="none" stroke="var(--success)" stroke-width="7"
+                stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="93"/>
+            </svg>
+            <div class="lbl"><b>54%</b><span>PAID</span></div>
+          </div>
+          <div class="a-sum-text">
+            <div class="big amt">$1,836</div>
+            <div class="sub">total bills this month</div>
+            <div class="rem amt">$375 still unpaid</div>
+          </div>
+        </div>
+
+        <div class="scr-title">Schedule</div>
+
+        <!-- Rent -->
+        <div class="a-day">
+          <div class="a-rail">
+            <div class="a-date"><div class="d">1</div><div class="m">Jun</div></div>
+            <div class="a-line"></div>
+          </div>
+          <div class="a-card paid">
+            <div class="a-top">
+              <div class="a-name"><span class="dot" style="background:#608038"></span>Rent</div>
+              <div class="a-amt amt">$1,450</div>
+            </div>
+            <div class="a-meta">
+              <span class="a-cat">Housing · linked to Mortgage</span>
+              <span class="pill-status st-paid">PAID</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spotify -->
+        <div class="a-day">
+          <div class="a-rail">
+            <div class="a-date"><div class="d">8</div><div class="m">Jun</div></div>
+            <div class="a-line"></div>
+          </div>
+          <div class="a-card paid">
+            <div class="a-top">
+              <div class="a-name"><span class="dot" style="background:#804898"></span>Spotify</div>
+              <div class="a-amt amt">$11</div>
+            </div>
+            <div class="a-meta">
+              <span class="a-cat">Entertainment · day 8</span>
+              <span class="pill-status st-paid">PAID</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Electric -->
+        <div class="a-day">
+          <div class="a-rail">
+            <div class="a-date"><div class="d">12</div><div class="m">Jun</div></div>
+            <div class="a-line"></div>
+          </div>
+          <div class="a-card due">
+            <div class="a-top">
+              <div class="a-name"><span class="dot" style="background:#4858a0"></span>Electric</div>
+              <div class="a-amt amt">$120</div>
+            </div>
+            <div class="a-meta">
+              <span class="a-cat">Utilities · day 12</span>
+              <span class="pill-status st-due">DUE in 3d</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Internet OVERDUE -->
+        <div class="a-day">
+          <div class="a-rail">
+            <div class="a-date"><div class="d">15</div><div class="m">Jun</div></div>
+            <div class="a-line"></div>
+          </div>
+          <div class="a-card over">
+            <div class="a-top">
+              <div class="a-name"><span class="dot" style="background:#308898"></span>Internet</div>
+              <div class="a-amt amt">$75</div>
+            </div>
+            <div class="a-meta">
+              <span class="a-cat">Internet · day 15</span>
+              <span class="pill-status st-over">OVERDUE</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Car Insurance -->
+        <div class="a-day">
+          <div class="a-rail">
+            <div class="a-date"><div class="d">20</div><div class="m">Jun</div></div>
+          </div>
+          <div class="a-card up">
+            <div class="a-top">
+              <div class="a-name"><span class="dot" style="background:#a84040"></span>Car Insurance</div>
+              <div class="a-amt amt">$180</div>
+            </div>
+            <div class="a-meta">
+              <span class="a-cat">Car · day 20</span>
+              <span class="pill-status st-up">UPCOMING</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== OPTION B: CLEAN CARD LIST ===================== -->
+  <div class="opt">
+    <div class="opt-tag">B · Card list</div>
+    <div class="opt-desc">Refined bill cards with strong amount typography, tidy status pills, and a swipe-to-pay affordance.</div>
+    <div class="phone">
+      <div class="screen">
+        <div class="notch"><div class="pill"></div></div>
+        <div class="monthnav">
+          <button class="navbtn">‹</button>
+          <h2>June 2026</h2>
+          <button class="navbtn">›</button>
+        </div>
+
+        <div class="b-summary">
+          <div class="b-stat">
+            <div class="k">Total</div>
+            <div class="v amt">$1,836</div>
+          </div>
+          <div class="b-stat">
+            <div class="k">Remaining</div>
+            <div class="v rem amt">$375</div>
+          </div>
+        </div>
+        <div class="b-bar"><i style="width:80%"></i></div>
+
+        <div class="scr-title">5 bills</div>
+
+        <!-- Rent -->
+        <div class="b-card">
+          <div class="b-row">
+            <div class="b-ic" style="background:color-mix(in srgb,#608038 18%,transparent)"><span class="dot" style="background:#608038"></span></div>
+            <div class="b-mid">
+              <div class="b-name">Rent</div>
+              <div class="b-meta">Housing · due day 1</div>
+            </div>
+            <div class="b-right">
+              <div class="b-amt amt">$1,450</div>
+              <span class="pill-status st-paid">PAID</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Electric -->
+        <div class="b-card">
+          <div class="b-swipe">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="b-row">
+            <div class="b-ic" style="background:color-mix(in srgb,#4858a0 18%,transparent)"><span class="dot" style="background:#4858a0"></span></div>
+            <div class="b-mid">
+              <div class="b-name">Electric</div>
+              <div class="b-meta">Utilities · due day 12</div>
+            </div>
+            <div class="b-right">
+              <div class="b-amt amt">$120</div>
+              <span class="pill-status st-due">DUE in 3d</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Internet -->
+        <div class="b-card">
+          <div class="b-swipe">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="b-row">
+            <div class="b-ic" style="background:color-mix(in srgb,#308898 18%,transparent)"><span class="dot" style="background:#308898"></span></div>
+            <div class="b-mid">
+              <div class="b-name">Internet</div>
+              <div class="b-meta">Internet · due day 15</div>
+            </div>
+            <div class="b-right">
+              <div class="b-amt amt">$75</div>
+              <span class="pill-status st-over">OVERDUE</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spotify -->
+        <div class="b-card">
+          <div class="b-row">
+            <div class="b-ic" style="background:color-mix(in srgb,#804898 18%,transparent)"><span class="dot" style="background:#804898"></span></div>
+            <div class="b-mid">
+              <div class="b-name">Spotify</div>
+              <div class="b-meta">Entertainment · due day 8</div>
+            </div>
+            <div class="b-right">
+              <div class="b-amt amt">$11</div>
+              <span class="pill-status st-paid">PAID</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Car Insurance -->
+        <div class="b-card">
+          <div class="b-swipe">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="b-row">
+            <div class="b-ic" style="background:color-mix(in srgb,#a84040 18%,transparent)"><span class="dot" style="background:#a84040"></span></div>
+            <div class="b-mid">
+              <div class="b-name">Car Insurance</div>
+              <div class="b-meta">Car · due day 20 · linked</div>
+            </div>
+            <div class="b-right">
+              <div class="b-amt amt">$180</div>
+              <span class="pill-status st-up">UPCOMING</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== OPTION C: CALENDAR FORWARD ===================== -->
+  <div class="opt">
+    <div class="opt-tag">C · Calendar</div>
+    <div class="opt-desc">A hero month calendar with due/paid dots, a quick total/remaining bar, then a compact list of bills below.</div>
+    <div class="phone">
+      <div class="screen">
+        <div class="notch"><div class="pill"></div></div>
+        <div class="monthnav">
+          <button class="navbtn">‹</button>
+          <h2>June 2026</h2>
+          <button class="navbtn">›</button>
+        </div>
+
+        <div class="c-summary">
+          <div class="blk">
+            <div class="k">Total</div>
+            <div class="v amt">$1,836</div>
+          </div>
+          <div class="div"></div>
+          <div class="blk">
+            <div class="k">Remaining</div>
+            <div class="v rem amt">$375</div>
+          </div>
+          <div class="div"></div>
+          <div class="blk">
+            <div class="k">Paid</div>
+            <div class="v amt" style="color:var(--success)">$1,461</div>
+          </div>
+        </div>
+
+        <div class="cal">
+          <div class="cal-wk"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+          <div class="cal-grid">
+            <!-- June 2026 starts Monday; 1 offset cell -->
+            <div class="cell muted">31</div>
+            <div class="cell hasbill">1<span class="cdot paid"></span></div>
+            <div class="cell">2</div>
+            <div class="cell">3</div>
+            <div class="cell">4</div>
+            <div class="cell">5</div>
+            <div class="cell">6</div>
+            <div class="cell">7</div>
+            <div class="cell hasbill">8<span class="cdot paid"></span></div>
+            <div class="cell today">9</div>
+            <div class="cell">10</div>
+            <div class="cell">11</div>
+            <div class="cell hasbill">12<span class="cdot due"></span></div>
+            <div class="cell">13</div>
+            <div class="cell">14</div>
+            <div class="cell hasbill">15<span class="cdot over"></span></div>
+            <div class="cell">16</div>
+            <div class="cell">17</div>
+            <div class="cell">18</div>
+            <div class="cell">19</div>
+            <div class="cell hasbill">20<span class="cdot due"></span></div>
+            <div class="cell">21</div>
+            <div class="cell">22</div>
+            <div class="cell">23</div>
+            <div class="cell">24</div>
+            <div class="cell">25</div>
+            <div class="cell">26</div>
+            <div class="cell">27</div>
+            <div class="cell">28</div>
+            <div class="cell">29</div>
+            <div class="cell">30</div>
+          </div>
+        </div>
+
+        <div class="c-legend">
+          <span><i style="background:var(--success)"></i>Paid</span>
+          <span><i style="background:var(--warn)"></i>Due</span>
+          <span><i style="background:var(--danger)"></i>Overdue</span>
+        </div>
+
+        <div class="scr-title">This month</div>
+
+        <div class="c-row">
+          <div class="c-daybox"><div class="dd">1</div><div class="ddm">Jun</div></div>
+          <div class="c-mid">
+            <div class="c-name"><span class="dot" style="background:#608038"></span>Rent</div>
+            <div class="c-cat">Housing</div>
+          </div>
+          <div class="c-end"><div class="c-amt amt">$1,450</div><span class="pill-status st-paid">PAID</span></div>
+        </div>
+
+        <div class="c-row">
+          <div class="c-daybox"><div class="dd">8</div><div class="ddm">Jun</div></div>
+          <div class="c-mid">
+            <div class="c-name"><span class="dot" style="background:#804898"></span>Spotify</div>
+            <div class="c-cat">Entertainment</div>
+          </div>
+          <div class="c-end"><div class="c-amt amt">$11</div><span class="pill-status st-paid">PAID</span></div>
+        </div>
+
+        <div class="c-row">
+          <div class="c-daybox"><div class="dd">12</div><div class="ddm">Jun</div></div>
+          <div class="c-mid">
+            <div class="c-name"><span class="dot" style="background:#4858a0"></span>Electric</div>
+            <div class="c-cat">Utilities</div>
+          </div>
+          <div class="c-end"><div class="c-amt amt">$120</div><span class="pill-status st-due">DUE 3d</span></div>
+        </div>
+
+        <div class="c-row">
+          <div class="c-daybox"><div class="dd">15</div><div class="ddm">Jun</div></div>
+          <div class="c-mid">
+            <div class="c-name"><span class="dot" style="background:#308898"></span>Internet</div>
+            <div class="c-cat">Internet</div>
+          </div>
+          <div class="c-end"><div class="c-amt amt">$75</div><span class="pill-status st-over">OVERDUE</span></div>
+        </div>
+
+        <div class="c-row">
+          <div class="c-daybox"><div class="dd">20</div><div class="ddm">Jun</div></div>
+          <div class="c-mid">
+            <div class="c-name"><span class="dot" style="background:#a84040"></span>Car Insurance</div>
+            <div class="c-cat">Car · linked</div>
+          </div>
+          <div class="c-end"><div class="c-amt amt">$180</div><span class="pill-status st-up">SOON</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function setMode(m){
+    document.body.className=m;
+    document.getElementById('t-light').classList.toggle('on',m==='light');
+    document.getElementById('t-dark').classList.toggle('on',m==='dark');
+  }
+</script>
+</body>
+</html>

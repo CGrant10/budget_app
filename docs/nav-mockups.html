@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nav bar mockups · Budget DAWGs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== Design tokens ===== */
+  body.light{
+    --bg:#e2e2df; --surface:#eaeae7; --card:#e4e4e1; --surface2:#d8d8d5;
+    --accent:#5ab592; --text:#181820; --muted:#606070; --border:rgba(0,0,0,.10);
+    --nav-shadow:0 8px 30px rgba(0,0,0,.14); --dog-shadow:0 10px 24px rgba(0,0,0,.22);
+    --page-bg:#cfcfcb;
+  }
+  body.dark{
+    --bg:#0e0e0f; --surface:#161617; --card:#1c1c1e; --surface2:#222223;
+    --accent:#4ecb8d; --text:#f0f0f2; --muted:#8a8a92; --border:rgba(255,255,255,.08);
+    --nav-shadow:0 -2px 24px rgba(0,0,0,.55); --dog-shadow:0 12px 28px rgba(0,0,0,.6);
+    --page-bg:#08080a;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{
+    background:var(--page-bg);
+    color:var(--text);
+    padding:32px 20px 80px;
+    transition:background .35s ease,color .35s ease;
+  }
+
+  /* ===== Page header ===== */
+  header.page{max-width:840px;margin:0 auto 36px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+  header.page h1{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
+  header.page p{font-size:14px;color:var(--muted);margin-top:8px;max-width:440px;line-height:1.5}
+
+  /* Theme toggle */
+  .toggle{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:4px;gap:2px}
+  .toggle button{
+    font-family:inherit;font-size:13px;font-weight:600;color:var(--muted);
+    background:transparent;border:0;cursor:pointer;padding:8px 16px;border-radius:999px;
+    transition:background .2s ease,color .2s ease;
+  }
+  .toggle button.on{background:var(--accent);color:#06120c}
+  body.dark .toggle button.on{color:#06180f}
+
+  /* ===== Mockup grid ===== */
+  .grid{max-width:840px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:28px}
+
+  .opt{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:24px;
+    padding:22px 22px 26px;
+    transition:background .35s ease,border-color .35s ease;
+  }
+  .opt-head{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+  .tag{
+    display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.01em;
+    background:var(--surface2);border:1px solid var(--border);color:var(--text);
+    padding:6px 12px;border-radius:999px;
+  }
+  .tag b{color:var(--accent);font-weight:800}
+  .opt-desc{font-size:13px;color:var(--muted);margin:10px 2px 18px;line-height:1.45}
+
+  .phones{display:flex;gap:18px;flex-wrap:wrap}
+
+  /* ===== Phone slice ===== */
+  .phone{
+    width:360px;max-width:100%;
+    background:var(--bg);
+    border-radius:30px;
+    overflow:hidden;
+    position:relative;
+    border:1px solid var(--border);
+    box-shadow:0 18px 40px rgba(0,0,0,.18);
+    transition:background .35s ease;
+  }
+  .phone .caption{
+    position:absolute;top:10px;left:50%;transform:translateX(-50%);
+    font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--muted);z-index:5;
+  }
+  /* fake app content above the bar (~120px) */
+  .appcontent{height:120px;padding:34px 18px 0;position:relative}
+  .ac-title{font-size:17px;font-weight:800;letter-spacing:-.01em}
+  .ac-sub{font-size:12px;color:var(--muted);margin-top:3px}
+  .ac-row{display:flex;gap:10px;margin-top:14px}
+  .ac-pill{flex:1;height:38px;border-radius:12px;background:var(--card);border:1px solid var(--border)}
+  .ac-pill.big{height:42px}
+  .ac-balance{font-size:24px;font-weight:800;letter-spacing:-.02em;margin-top:2px}
+  .ac-balance span{color:var(--accent)}
+
+  /* ===== Shared nav primitives ===== */
+  .navwrap{position:relative;height:96px}
+  .icon{width:22px;height:22px;display:block;flex:none}
+  .icon svg{width:22px;height:22px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .lbl{font-size:10px;font-weight:600;letter-spacing:.01em;line-height:1}
+
+  .tab{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+    color:var(--muted);cursor:pointer;background:none;border:0;font-family:inherit;
+    transition:color .2s ease;flex:1;min-width:0;
+  }
+  .tab.active{color:var(--accent)}
+
+  /* Dog center button (premium) */
+  .dog{
+    width:62px;height:62px;border-radius:50%;
+    background:var(--card);
+    background-image:url('./doberman.png');
+    background-size:cover;background-position:center 28%;
+    border:3px solid var(--accent);
+    box-shadow:var(--dog-shadow), 0 0 0 4px var(--surface);
+    cursor:pointer;flex:none;
+    transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease,filter .2s ease;
+  }
+  .dog.dim{border-color:var(--border);filter:saturate(.5) brightness(.85);box-shadow:var(--dog-shadow),0 0 0 4px var(--surface)}
+  .dog.dim:hover{transform:translateY(-2px)}
+
+  /* ============================================================
+     OPTION A — Refined current (floating dog + notch + pill)
+     ============================================================ */
+  .navA{
+    position:absolute;left:0;right:0;bottom:0;height:72px;
+    background:var(--surface);border-top:1px solid var(--border);
+    box-shadow:var(--nav-shadow);
+    display:flex;align-items:stretch;padding:0 6px;
+  }
+  .navA .tab{padding-top:6px}
+  .navA .tab .iconpill{
+    display:flex;align-items:center;justify-content:center;
+    width:46px;height:30px;border-radius:999px;transition:background .2s ease;
+  }
+  .navA .tab.active .iconpill{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+  .navA .centerslot{width:78px;flex:none;position:relative}
+  /* notch cut into top border */
+  .navA .notch{
+    position:absolute;top:-1px;left:50%;transform:translateX(-50%);
+    width:84px;height:42px;background:var(--bg);
+    border-bottom-left-radius:42px;border-bottom-right-radius:42px;
+    border-bottom:1px solid var(--border);
+  }
+  .navA .dog{position:absolute;top:-30px;left:50%;transform:translateX(-50%)}
+  .navA .dog.dim{top:-22px}
+
+  /* ============================================================
+     OPTION B — Floating pill bar (detached, soft shadow)
+     ============================================================ */
+  .navB-pad{position:absolute;left:0;right:0;bottom:0;height:96px}
+  .navB{
+    position:absolute;left:16px;right:16px;bottom:16px;height:64px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:24px;
+    box-shadow:0 14px 34px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.18);
+    display:flex;align-items:center;padding:0 8px;
+  }
+  body.light .navB{box-shadow:0 14px 30px rgba(0,0,0,.16),0 2px 5px rgba(0,0,0,.08)}
+  .navB .tab{padding:8px 0}
+  .navB .tab .iconpill{display:flex;align-items:center;justify-content:center;width:42px;height:30px;border-radius:14px;transition:background .2s ease}
+  .navB .tab.active .iconpill{background:color-mix(in srgb,var(--accent) 20%,transparent)}
+  .navB .dog{width:50px;height:50px;border-width:3px;box-shadow:0 8px 18px rgba(0,0,0,.4),0 0 0 3px var(--surface)}
+
+  /* ============================================================
+     OPTION C — Indicator bar (animated accent underline)
+     ============================================================ */
+  .navC{
+    position:absolute;left:0;right:0;bottom:0;height:72px;
+    background:var(--surface);border-top:1px solid var(--border);
+    box-shadow:var(--nav-shadow);
+    display:flex;align-items:stretch;padding:0 4px;
+  }
+  .navC .tab{padding-top:12px;position:relative;justify-content:flex-start}
+  .navC .tab .bar{
+    position:absolute;top:0;left:50%;transform:translateX(-50%) scaleX(0);
+    width:26px;height:3px;border-radius:0 0 3px 3px;background:var(--accent);
+    transition:transform .25s cubic-bezier(.4,0,.2,1);
+  }
+  .navC .tab.active .bar{transform:translateX(-50%) scaleX(1)}
+  /* dog as a FAB to the side */
+  .navC .dogtab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:8px;gap:4px;cursor:pointer;position:relative}
+  .navC .dogtab .bar{position:absolute;top:0;left:50%;transform:translateX(-50%) scaleX(0);width:26px;height:3px;border-radius:0 0 3px 3px;background:var(--accent);transition:transform .25s cubic-bezier(.4,0,.2,1)}
+  .navC .dogtab.active .bar{transform:translateX(-50%) scaleX(1)}
+  .navC .dog{width:34px;height:34px;border-width:2px;box-shadow:0 4px 10px rgba(0,0,0,.35),0 0 0 2px var(--surface)}
+  .navC .dogtab .lbl{color:var(--muted)}
+  .navC .dogtab.active .lbl{color:var(--accent)}
+
+  /* ============================================================
+     OPTION D — Labels-on-active (active = accent pill w/ label)
+     ============================================================ */
+  .navD{
+    position:absolute;left:0;right:0;bottom:0;height:72px;
+    background:var(--surface);border-top:1px solid var(--border);
+    box-shadow:var(--nav-shadow);
+    display:flex;align-items:center;padding:0 10px;gap:4px;
+  }
+  .navD .tab{flex-direction:row;gap:0;border-radius:999px;height:44px;padding:0;overflow:hidden;transition:background .25s ease,color .25s ease}
+  .navD .tab .icon{transition:margin .25s ease}
+  .navD .tab .lbl{font-size:13px;font-weight:700;max-width:0;opacity:0;overflow:hidden;white-space:nowrap;transition:max-width .28s ease,opacity .2s ease,margin .25s ease}
+  .navD .tab.active{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);flex:1.6;padding:0 16px}
+  .navD .tab.active .lbl{max-width:90px;opacity:1;margin-left:8px}
+  .navD .centerslot{flex:none;width:64px;display:flex;justify-content:center}
+  .navD .dog{width:48px;height:48px;border-width:3px;box-shadow:0 8px 18px rgba(0,0,0,.42),0 0 0 4px var(--surface)}
+
+  @media(max-width:760px){header.page{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body class="light">
+
+<header class="page">
+  <div>
+    <h1>Nav bar mockups</h1>
+    <p>Four redesign directions for the Budget DAWGs bottom navigation — each shown with the center Dashboard active and with a side tab active.</p>
+  </div>
+  <div class="toggle">
+    <button id="t-light" class="on" onclick="setMode('light')">Light</button>
+    <button id="t-dark" onclick="setMode('dark')">Dark</button>
+  </div>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<script>
+function setMode(m){
+  document.body.className=m;
+  document.getElementById('t-light').classList.toggle('on',m==='light');
+  document.getElementById('t-dark').classList.toggle('on',m==='dark');
+}
+
+/* ---- shared icon defs ---- */
+const ICONS = {
+  track:'<circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>',
+  ledger:'<rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/>',
+  weekly:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
+};
+function svg(name){return '<span class="icon"><svg viewBox="0 0 24 24">'+ICONS[name]+'</svg></span>';}
+
+/* fake app content above each bar */
+function content(){
+  return `<div class="appcontent">
+      <div class="ac-sub">Total balance</div>
+      <div class="ac-balance">$4,820.<span>50</span></div>
+      <div class="ac-row"><div class="ac-pill big"></div><div class="ac-pill big"></div></div>
+    </div>`;
+}
+
+/* ---- builders for each option. active = 'dash' | 'ledger' ---- */
+
+function navA(active){
+  const a=t=>active===t?'active':'';
+  const dim=active!=='dash'?'dim':'';
+  return `<div class="navwrap"><div class="navA">
+    <button class="tab ${a('track')}"><span class="iconpill">${svg('track')}</span><span class="lbl">Track it</span></button>
+    <button class="tab ${a('ledger')}"><span class="iconpill">${svg('ledger')}</span><span class="lbl">Ledger</span></button>
+    <div class="centerslot"><div class="notch"></div><div class="dog ${dim}"></div></div>
+    <button class="tab ${a('weekly')}"><span class="iconpill">${svg('weekly')}</span><span class="lbl">Weekly</span></button>
+    <button class="tab ${a('settings')}"><span class="iconpill">${svg('settings')}</span><span class="lbl">Settings</span></button>
+  </div></div>`;
+}
+
+function navB(active){
+  const a=t=>active===t?'active':'';
+  const dim=active!=='dash'?'dim':'';
+  return `<div class="navwrap"><div class="navB-pad"></div><div class="navB">
+    <button class="tab ${a('track')}"><span class="iconpill">${svg('track')}</span><span class="lbl">Track it</span></button>
+    <button class="tab ${a('ledger')}"><span class="iconpill">${svg('ledger')}</span><span class="lbl">Ledger</span></button>
+    <button class="tab"><div class="dog ${dim}"></div></button>
+    <button class="tab ${a('weekly')}"><span class="iconpill">${svg('weekly')}</span><span class="lbl">Weekly</span></button>
+    <button class="tab ${a('settings')}"><span class="iconpill">${svg('settings')}</span><span class="lbl">Settings</span></button>
+  </div></div>`;
+}
+
+function navC(active){
+  const a=t=>active===t?'active':'';
+  return `<div class="navwrap"><div class="navC">
+    <button class="tab ${a('track')}"><span class="bar"></span>${svg('track')}<span class="lbl">Track it</span></button>
+    <button class="tab ${a('ledger')}"><span class="bar"></span>${svg('ledger')}<span class="lbl">Ledger</span></button>
+    <div class="dogtab ${a('dash')}"><span class="bar"></span><div class="dog"></div><span class="lbl">Home</span></div>
+    <button class="tab ${a('weekly')}"><span class="bar"></span>${svg('weekly')}<span class="lbl">Weekly</span></button>
+    <button class="tab ${a('settings')}"><span class="bar"></span>${svg('settings')}<span class="lbl">Settings</span></button>
+  </div></div>`;
+}
+
+function navD(active){
+  const a=t=>active===t?'active':'';
+  const dim=active!=='dash'?'dim':'';
+  return `<div class="navwrap"><div class="navD">
+    <button class="tab ${a('track')}">${svg('track')}<span class="lbl">Track it</span></button>
+    <button class="tab ${a('ledger')}">${svg('ledger')}<span class="lbl">Ledger</span></button>
+    <div class="centerslot"><div class="dog ${dim}"></div></div>
+    <button class="tab ${a('weekly')}">${svg('weekly')}<span class="lbl">Weekly</span></button>
+    <button class="tab ${a('settings')}">${svg('settings')}<span class="lbl">Settings</span></button>
+  </div></div>`;
+}
+
+const OPTIONS=[
+  {id:'A',name:'Refined current',desc:'Floating Doberman center button with a cleaner notch cutout, soft elevation ring, and an accent pill behind the active icon.',build:navA},
+  {id:'B',name:'Floating pill',desc:'The whole bar detaches into a rounded pill that hovers above the screen edge with a soft drop shadow.',build:navB},
+  {id:'C',name:'Indicator bar',desc:'Flat edge-to-edge bar with an animated accent underline that slides under the active tab; dog rides inline as a mini-FAB.',build:navC},
+  {id:'D',name:'Labels-on-active',desc:'Inactive tabs are icon-only; the active tab expands into an accent pill that reveals its label. Very clean and modern.',build:navD}
+];
+
+const grid=document.getElementById('grid');
+OPTIONS.forEach(o=>{
+  const el=document.createElement('div');
+  el.className='opt';
+  el.innerHTML=`
+    <div class="opt-head"><span class="tag"><b>${o.id}</b> · ${o.name}</span></div>
+    <div class="opt-desc">${o.desc}</div>
+    <div class="phones">
+      <div class="phone"><div class="caption">Dashboard active</div>${content()}${o.build('dash')}</div>
+      <div class="phone"><div class="caption">Ledger active</div>${content()}${o.build('ledger')}</div>
+    </div>`;
+  grid.appendChild(el);
+});
+</script>
+</body>
+</html>
