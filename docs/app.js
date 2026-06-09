@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.12';
+const VERSION = '5.43.13';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.13', date: '2026-06-09', changes: [
+    'Fixed: the update button now applies the new version immediately instead of only after leaving and reopening the app. It no longer unregisters the service worker before reloading, so the reload pulls fresh files on the spot',
+  ]},
   { version: '5.43.12', date: '2026-06-09', changes: [
     'Accounts overview: more breathing room (looser account rows + clearer spacing between groups) and the net-worth block shrunk way down to a compact one-line stat — it was over-emphasized',
   ]},
@@ -10786,20 +10789,26 @@ async function forceUpdate() {
   // Clear the "seen version" flag so the What's New popup fires after reload
   localStorage.removeItem('slawminyaw_seen_version');
   try {
-    // Delete every Cache Storage bucket — the service worker serves from here,
-    // so unregistering alone is not enough to pull fresh files.
+    // Delete the app's cached assets so the reload repopulates from the network.
+    // (Keep the Google-fonts cache — it never changes.)
     if (window.caches) {
       const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
+      await Promise.all(keys.filter(k => !/fonts/i.test(k)).map(k => caches.delete(k)));
     }
-    // Unregister all service workers and WAIT for it before reloading.
+    // IMPORTANT: do NOT unregister the service worker. Keeping it registered means
+    // the reload below stays CONTROLLED, so it flows through the SW's network-first
+    // (cache:'no-cache') fetch handler and pulls fresh app.js/style.css immediately.
+    // Unregistering made the reload uncontrolled, so the browser's own HTTP cache
+    // served stale files — the update only appeared after leaving + reopening the app.
+    // Also nudge the SW to fetch any new sw.js in the background.
     if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r => r.unregister()));
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) { try { await reg.update(); } catch (e) {} }
     }
   } catch (e) { /* best-effort — fall through to reload regardless */ }
-  // Cache-busting navigation so the HTML itself is re-fetched from the network
-  window.location.href = window.location.pathname + '?v=' + Date.now();
+  // Cache-busting navigation so the HTML is re-fetched; sub-resources come fresh
+  // via the controlling SW's no-cache fetch.
+  window.location.replace(window.location.pathname + '?v=' + Date.now());
 }
 
 // Terminal-style update flow — types a boot log, then installs or reports up-to-date.
