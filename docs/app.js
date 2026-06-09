@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.11';
+const VERSION = '5.43.12';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.12', date: '2026-06-09', changes: [
+    'Accounts overview: more breathing room (looser account rows + clearer spacing between groups) and the net-worth block shrunk way down to a compact one-line stat — it was over-emphasized',
+  ]},
   { version: '5.43.11', date: '2026-06-09', changes: [
     'Brighter "Crisp" light mode — near-white background (#f5f5f7) with clean white cards that lift off the page via soft shadows + hairline borders, stronger text contrast, and a green accent tuned for white. Applied to every light theme (Light, Sky, Rose, Sand, Silver, Custom Light)',
   ]},
@@ -3675,8 +3678,10 @@ function renderAccountPicker() {
         const nw = _assets - _debts;
         const assetPct = (_assets + _debts) > 0 ? (_assets / (_assets + _debts) * 100) : 100;
         return `<div class="acct-nw2">
-          <div class="acct-nw2-label">NET WORTH</div>
-          <div class="acct-nw2-value" style="color:${nw >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(nw)}</div>
+          <div class="acct-nw2-head">
+            <span class="acct-nw2-label">NET WORTH</span>
+            <span class="acct-nw2-value" style="color:${nw >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(nw)}</span>
+          </div>
           <div class="acct-nw2-meter">
             <i class="seg-a" style="width:${assetPct.toFixed(1)}%"></i>
             <i class="seg-d" style="width:${(100 - assetPct).toFixed(1)}%"></i>

@@ -6720,15 +6720,25 @@ body.theme-ubuntu .section-title::before {
 .acct-ver-dot.stale { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
 .acct-hero-foot .acct-update-pill { margin-top: 0; }
 
-.acct-nw2 { padding: 18px; border-radius: 20px; }
-.acct-nw2-label { letter-spacing: .14em; }
-.acct-nw2-value { font-size: 36px; letter-spacing: -1px; line-height: 1; margin-top: 3px; }
+/* Net worth — compact + de-emphasized (it's the least important thing here):
+   small label + value on one line, thin meter. */
+.acct-nw2 { padding: 12px 16px; border-radius: 14px; margin: 6px 14px 8px; }
+.acct-nw2-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.acct-nw2-label { letter-spacing: .12em; font-size: 9.5px; }
+.acct-nw2-value { font-size: 17px; font-weight: 700; letter-spacing: -.3px; line-height: 1; }
 .acct-nw2-meter {
-  height: 12px; margin: 16px 0 11px; display: flex; gap: 0;
+  height: 6px; margin: 9px 0 7px; display: flex; gap: 0;
   background: var(--surface); border: 1px solid var(--border); overflow: hidden;
 }
 .acct-nw2-meter .seg-a { height: 100%; background: linear-gradient(90deg, color-mix(in srgb, var(--success) 72%, #14502f), var(--success)); }
 .acct-nw2-meter .seg-d { height: 100%; background: linear-gradient(90deg, var(--danger), color-mix(in srgb, var(--danger) 70%, #000)); }
-.acct-nw2-legend { font-size: .8rem; }
-.acct-row-name { font-size: .95rem; }
+.acct-nw2-legend { font-size: .72rem; }
+
+/* Breathing room — looser rows + clearer separation between groups */
+.acct-picker-page .acct-row,
+.acct-list .acct-row { padding: 21px 2px !important; }
+.acct-grp { margin: 24px 16px 4px !important; }
+.acct-list { padding-bottom: 28px; }
+.acct-row-name { font-size: .98rem; }
 .acct-row-bal  { font-size: 1.06rem; }
+.acct-row { gap: 16px; }
