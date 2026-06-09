@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget DAWGs — Legibility mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#e2e2df; --surface:#eaeae7; --card:#e4e4e1; --accent:#5ab592;
+    --text:#181820; --muted:#606070; --danger:#a84040; --warn:#988018; --success:#4aaa80;
+    --border:rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif}
+  body{background:#cfcfca;color:var(--text);padding:24px 14px 60px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:430px;margin:0 auto}
+  .page-head{text-align:center;margin-bottom:8px}
+  .page-head h1{font-size:1.2rem;font-weight:800}
+  .page-head p{font-size:.82rem;color:#555;margin-top:4px}
+  .toggle{display:flex;gap:8px;justify-content:center;margin:14px 0 26px}
+  .toggle button{border:1px solid #999;background:#f4f4f1;color:#222;border-radius:99px;padding:7px 16px;font-size:.8rem;font-weight:700;cursor:pointer}
+  .toggle button.on{background:#181820;color:#fff;border-color:#181820}
+
+  .opt{background:var(--bg);border-radius:22px;padding:16px 14px 20px;margin-bottom:26px;box-shadow:0 8px 30px rgba(0,0,0,.16)}
+  .opt-tag{display:flex;align-items:baseline;gap:8px;margin:0 4px 14px}
+  .opt-tag b{font-size:1.05rem;font-weight:800}
+  .opt-tag span{font-size:.75rem;color:var(--muted)}
+
+  /* shared bits */
+  .bal-lbl{font-size:.62rem;font-weight:800;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .bar-bg{height:8px;border-radius:99px;background:rgba(0,0,0,.10);overflow:hidden;margin-top:8px}
+  .bar-fill{height:100%;border-radius:99px;background:var(--accent)}
+  .row{display:flex;align-items:center;gap:10px;padding:9px 0}
+  .dot{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+
+  /* ───────── OPTION A — AIRY ───────── */
+  .a .a-bal{font-size:.66rem;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+  .a .a-bal-val{font-size:2.5rem;font-weight:800;letter-spacing:-1px;margin:2px 0 18px}
+  .a .a-tile{padding:4px 2px}
+  .a .a-tile .lbl{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .a .a-tile .val{font-size:1.5rem;font-weight:800;letter-spacing:-.5px;margin-top:3px}
+  .a .a-tile .sub{font-size:.74rem;color:var(--muted);margin-top:3px}
+  .a .a-sep{height:1px;background:var(--border);margin:18px 0}
+  .a .a-secttl{font-size:.74rem;font-weight:800;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+  .a .row{border-bottom:1px solid var(--border)}
+  .a .row .nm{flex:1;font-size:.98rem;font-weight:600}
+  .a .row .amt{font-size:.98rem;font-weight:700}
+  .a .row .pct{font-size:.8rem;color:var(--muted);min-width:38px;text-align:right}
+
+  /* ───────── OPTION B — BOLD NUMBERS ───────── */
+  .b .b-card{background:linear-gradient(170deg,#f4f4f1,#e8e8e4);border:1px solid var(--border);border-radius:16px;padding:14px 14px 12px}
+  .b .b-card.hero{background:linear-gradient(170deg,#eef6f0,#e1ebe4);box-shadow:inset 0 0 0 1px rgba(90,181,146,.3)}
+  .b .lbl{font-size:.68rem;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+  .b .val{font-size:1.9rem;font-weight:800;letter-spacing:-1px;line-height:1.05;margin-top:4px}
+  .b .sub{font-size:.76rem;font-weight:600;color:var(--muted);margin-top:5px}
+  .b .b-break{background:#f4f4f1;border:1px solid var(--border);border-radius:16px;padding:6px 14px;margin-top:10px}
+  .b .row .nm{flex:1;font-size:.92rem;font-weight:700}
+  .b .row .amt{font-size:.95rem;font-weight:800}
+  .b .row .pct{font-size:.78rem;color:var(--muted);min-width:36px;text-align:right}
+
+  /* ───────── OPTION C — HIGH CONTRAST CARDS ───────── */
+  .c{background:#f6f6f3}
+  .c .c-card{background:#fff;border:1.5px solid #d4d4ce;border-radius:14px;padding:14px;box-shadow:0 1px 0 #cfcfc8}
+  .c .c-card.hero{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .c .lbl{font-size:.7rem;font-weight:800;letter-spacing:.05em;color:#3a3a42;text-transform:uppercase}
+  .c .val{font-size:1.8rem;font-weight:800;letter-spacing:-.5px;margin-top:4px;color:#0e0e12}
+  .c .sub{font-size:.8rem;font-weight:700;margin-top:5px}
+  .c .sub.ok{color:var(--success)} .c .sub.bad{color:var(--danger)}
+  .c .c-break{background:#fff;border:1.5px solid #d4d4ce;border-radius:14px;padding:4px 14px;margin-top:10px}
+  .c .row{border-bottom:1px solid #ececE6}
+  .c .row .nm{flex:1;font-size:.96rem;font-weight:700;color:#1a1a20}
+  .c .row .amt{font-size:.98rem;font-weight:800}
+  .c .row .pct{font-size:.8rem;font-weight:700;color:#555;min-width:38px;text-align:right}
+  .c .bar-bg{height:10px}
+
+  /* dark variant */
+  body.dark{background:#08080a}
+  body.dark .opt{background:#0e0e0f;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+  body.dark{--bg:#0e0e0f;--text:#f0f0f2;--muted:#8a8a92;--border:rgba(255,255,255,.09)}
+  body.dark .toggle button{background:#1c1c1e;color:#ddd;border-color:#444}
+  body.dark .toggle button.on{background:#fff;color:#111;border-color:#fff}
+  body.dark .b .b-card{background:linear-gradient(155deg,#1c1c1e,#141416);border-color:var(--border)}
+  body.dark .b .b-card.hero{background:radial-gradient(125% 130% at 0% 0%,#22302a,#1c1c1e 70%)}
+  body.dark .b .b-break{background:#161617;border-color:var(--border)}
+  body.dark .c{background:#0e0e0f}
+  body.dark .c .c-card,body.dark .c .c-break{background:#161617;border-color:#2a2a2c;box-shadow:none}
+  body.dark .c .lbl{color:#b8b8c0} body.dark .c .val{color:#fff}
+  body.dark .c .row{border-bottom-color:#222} body.dark .c .row .nm{color:#eee} body.dark .c .row .pct{color:#999}
+  body.dark .page-head p,body.dark .page-head h1{color:#eee}
+</style>
+</head>
+<body class="light">
+<div class="wrap">
+  <div class="page-head">
+    <h1>Legibility mockups</h1>
+    <p>Three directions for the dashboard. Same data in each.</p>
+  </div>
+  <div class="toggle">
+    <button id="t-light" class="on" onclick="setMode('light')">☀︎ Light</button>
+    <button id="t-dark" onclick="setMode('dark')">☾ Dark</button>
+  </div>
+
+  <!-- ───────── OPTION A — AIRY ───────── -->
+  <div class="opt a">
+    <div class="opt-tag"><b>A · Airy</b><span>bigger type, hairline dividers, lots of room</span></div>
+    <div class="a-bal">Total balance</div>
+    <div class="a-bal-val">$4,775.00</div>
+    <div class="grid2">
+      <div class="a-tile"><div class="lbl">Spent this week</div><div class="val">$225</div><div class="sub">of $1,250 budget<div class="bar-bg"><div class="bar-fill" style="width:18%"></div></div></div></div>
+      <div class="a-tile"><div class="lbl">Per day left</div><div class="val">$208</div><div class="sub" style="color:var(--success)">↑ $357 ahead of pace</div></div>
+    </div>
+    <div class="a-sep"></div>
+    <div class="a-secttl">Spending this month</div>
+    <div class="row"><span class="dot" style="background:#4aaa80"></span><span class="nm">Food</span><span class="amt">$320</span><span class="pct">38%</span></div>
+    <div class="row"><span class="dot" style="background:#a84040"></span><span class="nm">Gas</span><span class="amt">$180</span><span class="pct">21%</span></div>
+    <div class="row" style="border-bottom:none"><span class="dot" style="background:#804898"></span><span class="nm">Shopping</span><span class="amt">$120</span><span class="pct">14%</span></div>
+  </div>
+
+  <!-- ───────── OPTION B — BOLD NUMBERS ───────── -->
+  <div class="opt b">
+    <div class="opt-tag"><b>B · Bold numbers</b><span>compact tiles, oversized figures, strong hierarchy</span></div>
+    <div class="bal-lbl" style="margin-bottom:2px">Total balance</div>
+    <div style="font-size:2.1rem;font-weight:800;letter-spacing:-1px;margin-bottom:14px">$4,775.00</div>
+    <div class="grid2">
+      <div class="b-card hero"><div class="lbl">Spent / week</div><div class="val">$225</div><div class="sub">of $1,250<div class="bar-bg"><div class="bar-fill" style="width:18%"></div></div></div></div>
+      <div class="b-card hero"><div class="lbl">Per day left</div><div class="val">$208</div><div class="sub" style="color:var(--success)">↑ $357 ahead</div></div>
+    </div>
+    <div class="b-break">
+      <div class="row"><span class="dot" style="background:#4aaa80"></span><span class="nm">Food</span><span class="amt">$320</span><span class="pct">38%</span></div>
+      <div class="row"><span class="dot" style="background:#a84040"></span><span class="nm">Gas</span><span class="amt">$180</span><span class="pct">21%</span></div>
+      <div class="row" style="border-bottom:none"><span class="dot" style="background:#804898"></span><span class="nm">Shopping</span><span class="amt">$120</span><span class="pct">14%</span></div>
+    </div>
+  </div>
+
+  <!-- ───────── OPTION C — HIGH CONTRAST CARDS ───────── -->
+  <div class="opt c">
+    <div class="opt-tag"><b>C · High contrast</b><span>defined white cards, darker text, color-coded status</span></div>
+    <div class="c-card hero" style="margin-bottom:10px">
+      <div class="lbl">Total balance</div>
+      <div class="val" style="font-size:2.2rem">$4,775.00</div>
+    </div>
+    <div class="grid2">
+      <div class="c-card"><div class="lbl">Spent this week</div><div class="val">$225</div><div class="sub">of $1,250<div class="bar-bg"><div class="bar-fill" style="width:18%"></div></div></div></div>
+      <div class="c-card"><div class="lbl">Per day left</div><div class="val">$208</div><div class="sub ok">↑ $357 ahead of pace</div></div>
+    </div>
+    <div class="c-break">
+      <div class="row"><span class="dot" style="background:#4aaa80"></span><span class="nm">Food</span><span class="amt">$320</span><span class="pct">38%</span></div>
+      <div class="row"><span class="dot" style="background:#a84040"></span><span class="nm">Gas</span><span class="amt">$180</span><span class="pct">21%</span></div>
+      <div class="row" style="border-bottom:none"><span class="dot" style="background:#804898"></span><span class="nm">Shopping</span><span class="amt">$120</span><span class="pct">14%</span></div>
+    </div>
+  </div>
+
+</div>
+<script>
+  function setMode(m){
+    document.body.className = m;
+    document.getElementById('t-light').classList.toggle('on', m==='light');
+    document.getElementById('t-dark').classList.toggle('on', m==='dark');
+  }
+</script>
+</body>
+</html>
