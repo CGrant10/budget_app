@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard mockups · Budget DAWGs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+<style>
+/* ===================== TOKENS ===================== */
+body.dark{
+  --bg:#0e0e0f; --surface:#161617; --card:#1c1c1e; --surface2:#222223;
+  --accent:#4ecb8d; --success:#32d74b; --warn:#ffd60a; --danger:#ff453a;
+  --text:#f0f0f2; --muted:#8a8a92; --border:rgba(255,255,255,.08);
+  --ring-track:rgba(255,255,255,.10);
+  --glow:rgba(78,203,141,.30);
+}
+body.light{
+  --bg:#e2e2df; --surface:#eaeae7; --card:#e4e4e1; --surface2:#d8d8d5;
+  --accent:#5ab592; --success:#4aaa80; --warn:#988018; --danger:#a84040;
+  --text:#181820; --muted:#606070; --border:rgba(0,0,0,.10);
+  --ring-track:rgba(0,0,0,.10);
+  --glow:rgba(90,181,146,.28);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  background:var(--bg); color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  transition:background .25s ease,color .25s ease;
+  padding:32px 20px 64px;
+}
+.mono{font-family:ui-monospace,'Consolas',monospace}
+
+/* ===================== PAGE HEADER ===================== */
+.page-head{max-width:1180px;margin:0 auto 28px;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:18px}
+.page-head h1{font-size:30px;font-weight:800;letter-spacing:-.5px}
+.page-head p{color:var(--muted);font-size:15px;margin-top:6px;max-width:620px;line-height:1.45}
+.toggle{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:4px;gap:2px}
+.toggle button{font-family:inherit;font-size:13px;font-weight:700;color:var(--muted);background:none;border:none;border-radius:999px;padding:8px 16px;cursor:pointer;transition:.2s}
+.toggle button.on{background:var(--accent);color:#08130d}
+
+/* ===================== LAYOUT OF OPTIONS ===================== */
+.deck{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;gap:34px;justify-content:center}
+.col{display:flex;flex-direction:column;align-items:center;gap:14px;width:360px}
+.tag{align-self:stretch}
+.tag .badge{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);padding:5px 11px;border-radius:8px;border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.tag .desc{color:var(--muted);font-size:13px;margin-top:8px;line-height:1.4}
+
+/* ===================== PHONE FRAME ===================== */
+.phone{
+  width:360px;height:740px;border-radius:42px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  box-shadow:0 30px 70px rgba(0,0,0,.45),0 2px 0 rgba(255,255,255,.04) inset;
+  padding:14px;overflow:hidden;position:relative;
+}
+body.light .phone{box-shadow:0 30px 60px rgba(0,0,0,.18)}
+.screen{
+  width:100%;height:100%;border-radius:30px;background:var(--bg);
+  overflow-y:auto;overflow-x:hidden;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.screen::-webkit-scrollbar{display:none}
+.notch{position:absolute;top:20px;left:50%;transform:translateX(-50%);width:104px;height:26px;background:#000;border-radius:0 0 16px 16px;z-index:30;opacity:.85}
+body.light .notch{background:#11110f}
+.pad{padding:38px 16px 28px}
+
+/* ===================== HERO BAND (shared base) ===================== */
+.hero{position:relative;display:flex;align-items:center;gap:12px;overflow:hidden;border-radius:18px;padding:14px 16px;margin-bottom:16px}
+.hero .dog{width:46px;height:46px;border-radius:12px;object-fit:cover;flex-shrink:0;background:var(--surface2)}
+.hero .tag-line{font-family:'Bangers',cursive;font-size:34px;line-height:.92;letter-spacing:1px;color:var(--accent);text-shadow:0 2px 0 rgba(0,0,0,.15)}
+.hero .sub{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-top:2px}
+.hero .atmo{position:absolute;inset:0;pointer-events:none;font-family:'Bangers',cursive;color:var(--text);opacity:.05;font-size:90px;line-height:1;white-space:nowrap;z-index:0;display:flex;align-items:center;letter-spacing:8px}
+.hero > *{position:relative;z-index:1}
+.balance{margin-bottom:14px}
+.balance .lbl{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.balance .amt{font-size:32px;font-weight:800;letter-spacing:-1px;margin-top:2px}
+
+/* ===================== BENTO GRID (shared base) ===================== */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:15px;position:relative;overflow:hidden}
+.tile.full{grid-column:1 / -1}
+.tile .t-lbl{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+
+/* ring tile */
+.ring-tile{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding-top:18px;padding-bottom:16px}
+.ring{position:relative;width:104px;height:104px}
+.ring svg{transform:rotate(-90deg)}
+.ring .ring-amt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .ring-amt b{font-size:20px;font-weight:800;letter-spacing:-.5px}
+.ring .ring-amt span{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.ring-tile .cap{font-size:12px;color:var(--muted);font-weight:600}
+.ring-tile .ring-name{font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--accent)}
+
+/* week meter */
+.meter .big{font-size:26px;font-weight:800;letter-spacing:-.8px;margin:8px 0 10px}
+.meter .big small{font-size:15px;color:var(--muted);font-weight:600}
+.bar{height:10px;border-radius:999px;background:var(--ring-track);overflow:hidden;position:relative}
+.bar > i{display:block;height:100%;border-radius:999px;background:var(--accent)}
+.pace{font-size:12px;font-weight:700;color:var(--success);margin-top:9px;display:flex;align-items:center;gap:5px}
+
+/* spending rows */
+.cat{display:flex;align-items:center;gap:10px;margin-top:12px}
+.cat:first-of-type{margin-top:14px}
+.cat .dot{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.cat .nm{font-size:13px;font-weight:700;flex-shrink:0;width:62px}
+.cat .cbar{flex:1;height:7px;border-radius:999px;background:var(--ring-track);overflow:hidden}
+.cat .cbar > i{display:block;height:100%;border-radius:999px}
+.cat .amt{font-size:13px;font-weight:700;width:46px;text-align:right}
+.cat .pct{font-size:11px;color:var(--muted);font-weight:700;width:30px;text-align:right}
+
+/* bills */
+.bill{display:flex;align-items:center;gap:10px;margin-top:12px}
+.bill:first-of-type{margin-top:14px}
+.bill .nm{font-size:13px;font-weight:700;flex:1}
+.bill .chip{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:3px 8px;border-radius:7px;background:var(--surface2);color:var(--muted)}
+.bill .chip.soon{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.bill .b-amt{font-size:13px;font-weight:800;width:56px;text-align:right}
+.bills-total{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.bills-total span{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.bills-total b{font-size:16px;font-weight:800}
+
+/* =====================================================
+   A · REFINED BENTO
+   ===================================================== */
+.A .hero{background:var(--surface);border:1px solid var(--border)}
+.A .tile{
+  background:linear-gradient(180deg,color-mix(in srgb,var(--text) 5%,var(--card)),var(--card));
+  box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 8px 22px rgba(0,0,0,.22);
+}
+body.light .A .tile{box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 8px 18px rgba(0,0,0,.07)}
+.A .ring-tile{
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 12%,var(--card)),var(--card));
+  border-color:color-mix(in srgb,var(--accent) 22%,var(--border));
+}
+.A .ring-tile::after{
+  content:"";position:absolute;inset:-40% 0 auto 0;height:80%;
+  background:radial-gradient(circle at 50% 0,var(--glow),transparent 70%);
+  opacity:.7;animation:Aglow 5s ease-in-out infinite;pointer-events:none;
+}
+@keyframes Aglow{0%,100%{opacity:.35}50%{opacity:.85}}
+
+/* =====================================================
+   B · HUD / CYBERPUNK
+   ===================================================== */
+.B .screen{background:
+  linear-gradient(var(--bg),var(--bg)) padding-box,
+  repeating-linear-gradient(0deg,transparent 0 3px,rgba(127,127,127,.025) 3px 4px);
+}
+.B .hero{background:var(--surface);border:1px solid color-mix(in srgb,var(--accent) 25%,var(--border))}
+.B .hero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.B .tile{background:var(--surface);border:1px solid color-mix(in srgb,var(--accent) 16%,var(--border))}
+/* corner brackets */
+.B .tile::before,.B .tile::after{content:"";position:absolute;width:14px;height:14px;border:1.5px solid var(--accent);opacity:.55}
+.B .tile::before{top:7px;left:7px;border-right:none;border-bottom:none}
+.B .tile::after{bottom:7px;right:7px;border-left:none;border-top:none}
+.B .t-lbl{color:var(--accent)}
+.B .t-lbl::before{content:"// "}
+.B .ring-tile .ring-name{text-shadow:0 0 8px var(--glow)}
+.B .ring svg circle.prog{filter:drop-shadow(0 0 4px var(--glow))}
+/* RGB-split glitch on ONE number */
+.B .glitch{position:relative;display:inline-block;animation:Bjit 6s steps(1) infinite}
+@keyframes Bjit{0%,96%,100%{text-shadow:none;transform:none}
+  97%{text-shadow:-1.5px 0 var(--danger),1.5px 0 var(--accent);transform:translateX(.5px)}
+  98%{text-shadow:1.5px 0 var(--danger),-1.5px 0 var(--accent);transform:translateX(-.5px)}
+  99%{text-shadow:-1px 0 var(--danger),1px 0 var(--accent)}}
+/* animated ring draw-in */
+.B .ring svg circle.prog{animation:Bdraw 1.6s ease-out both}
+@keyframes Bdraw{from{stroke-dashoffset:var(--circ)}}
+
+/* =====================================================
+   C · CALM FLAT
+   ===================================================== */
+.C .pad{padding:40px 20px 28px}
+.C .hero{background:none;border:none;padding:6px 0 12px;margin-bottom:6px}
+.C .hero .tag-line{font-size:30px}
+.C .balance .amt{font-size:38px}
+.C .grid{gap:0;display:block}
+.C .tile{background:none;border:none;border-radius:0;padding:18px 0;border-top:1px solid var(--border)}
+.C .tile.full{padding:18px 0}
+.C .ring-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.C .ring-grid .tile{border-top:1px solid var(--border)}
+.C .ring-grid .tile:first-child{border-right:1px solid var(--border)}
+.C .ring .ring-amt b{font-size:22px}
+.C .meter .big{font-size:30px}
+.C .accent-pulse{animation:Cpulse 4s ease-in-out infinite}
+@keyframes Cpulse{0%,100%{opacity:1}50%{opacity:.55}}
+.C .t-lbl{color:var(--muted)}
+</style>
+</head>
+<body class="light">
+
+<div class="page-head">
+  <div>
+    <h1>Dashboard mockups</h1>
+    <p>Same dashboard you already have — same hero, ring tiles, week meter, spending breakdown and bills. Three tasteful coats of paint, each keeping the playful glitchy DAWGs personality while staying highly legible. Works in dark + light.</p>
+  </div>
+  <div class="toggle">
+    <button id="t-light" onclick="setMode('light')">Light</button>
+    <button id="t-dark" onclick="setMode('dark')">Dark</button>
+  </div>
+</div>
+
+<div class="deck">
+
+  <!-- ============== A ============== -->
+  <div class="col">
+    <div class="tag">
+      <span class="badge">A · Refined Bento</span>
+      <div class="desc">Clean rounded tiles, subtle top-light gradient + soft shadow, crisp accent rings with a faint animated glow. The safe polish.</div>
+    </div>
+    <div class="phone A">
+      <div class="notch"></div>
+      <div class="screen"><div class="pad">
+
+        <div class="hero">
+          <div class="atmo">$ $$ $ $$$ $ $$</div>
+          <img class="dog" src="./doberman.png" alt="">
+          <div>
+            <div class="tag-line">LOCK TF IN.</div>
+            <div class="sub">Week 23 · on track</div>
+          </div>
+        </div>
+
+        <div class="balance">
+          <div class="lbl">Available balance</div>
+          <div class="amt">$4,775</div>
+        </div>
+
+        <div class="grid">
+          <!-- ring PER WEEK -->
+          <div class="tile ring-tile">
+            <div class="ring-name">Per Week</div>
+            <div class="ring">
+              <svg width="104" height="104" viewBox="0 0 104 104">
+                <circle cx="52" cy="52" r="46" fill="none" stroke="var(--ring-track)" stroke-width="9"/>
+                <circle cx="52" cy="52" r="46" fill="none" stroke="var(--accent)" stroke-width="9" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="58"/>
+              </svg>
+              <div class="ring-amt"><b>$1,250</b><span>/ wk</span></div>
+            </div>
+            <div class="cap">$1,025 used</div>
+          </div>
+          <!-- ring PER DAY -->
+          <div class="tile ring-tile">
+            <div class="ring-name">Per Day</div>
+            <div class="ring">
+              <svg width="104" height="104" viewBox="0 0 104 104">
+                <circle cx="52" cy="52" r="46" fill="none" stroke="var(--ring-track)" stroke-width="9"/>
+                <circle cx="52" cy="52" r="46" fill="none" stroke="var(--accent)" stroke-width="9" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="115"/>
+              </svg>
+              <div class="ring-amt"><b>$208</b><span>left</span></div>
+            </div>
+            <div class="cap">$208 left today</div>
+          </div>
+
+          <!-- THIS WEEK meter -->
+          <div class="tile full meter">
+            <div class="t-lbl">This week</div>
+            <div class="big">$225 <small>/ $1,250</small></div>
+            <div class="bar"><i style="width:18%"></i></div>
+            <div class="pace">↑ $357 ahead of pace</div>
+          </div>
+
+          <!-- SPENDING -->
+          <div class="tile full">
+            <div class="t-lbl">Spending</div>
+            <div class="cat"><span class="dot" style="background:color-mix(in srgb,var(--accent) 22%,transparent)">🍔</span><span class="nm">Food</span><span class="cbar"><i style="width:38%;background:var(--accent)"></i></span><span class="amt">$320</span><span class="pct">38%</span></div>
+            <div class="cat"><span class="dot" style="background:color-mix(in srgb,var(--warn) 22%,transparent)">⛽</span><span class="nm">Gas</span><span class="cbar"><i style="width:21%;background:var(--warn)"></i></span><span class="amt">$180</span><span class="pct">21%</span></div>
+            <div class="cat"><span class="dot" style="background:color-mix(in srgb,var(--danger) 22%,transparent)">🛍️</span><span class="nm">Shopping</span><span class="cbar"><i style="width:14%;background:var(--danger)"></i></span><span class="amt">$120</span><span class="pct">14%</span></div>
+          </div>
+
+          <!-- BILLS -->
+          <div class="tile full">
+            <div class="t-lbl">Upcoming bills</div>
+            <div class="bill"><span class="nm">Rent</span><span class="chip soon">Jun 12</span><span class="b-amt">$1,400</span></div>
+            <div class="bill"><span class="nm">Internet</span><span class="chip">Jun 18</span><span class="b-amt">$70</span></div>
+            <div class="bill"><span class="nm">Phone</span><span class="chip">Jun 24</span><span class="b-amt">$55</span></div>
+            <div class="bills-total"><span>Total due</span><b>$1,525</b></div>
+          </div>
+        </div>
+
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ============== B ============== -->
+  <div class="col">
+    <div class="tag">
+      <span class="badge">B · HUD / Cyberpunk</span>
+      <div class="desc">Tasteful glitch identity: thin neon rules, corner brackets, mono micro-labels, an RGB-split flicker on one number (~6s), rings draw in. Legible first.</div>
+    </div>
+    <div class="phone B">
+      <div class="notch"></div>
+      <div class="screen"><div class="pad">
+
+        <div class="hero">
+          <div class="atmo">$ $$ $ $$$ $ $$</div>
+          <img class="dog" src="./doberman.png" alt="">
+          <div>
+            <div class="tag-line">LOCK TF IN.</div>
+            <div class="sub mono">SYS · WK23 · STATUS_OK</div>
+          </div>
+        </div>
+
+        <div class="balance">
+          <div class="lbl mono">// available_balance</div>
+          <div class="amt"><span class="glitch">$4,775</span></div>
+        </div>
+
+        <div class="grid">
+          <div class="tile ring-tile">
+            <div class="ring-name mono">Per Week</div>
+            <div class="ring">
+              <svg width="104" height="104" viewBox="0 0 104 104">
+                <circle cx="52" cy="52" r="46" fill="none" stroke="var(--ring-track)" stroke-width="9"/>
+                <circle class="prog" cx="52" cy="52" r="46" fill="none" stroke="var(--accent)" stroke-width="9" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="58" style="--circ:289"/>
+              </svg>
+              <div class="ring-amt"><b>$1,250</b><span>/ wk</span></div>
+            </div>
+            <div class="cap mono">$1,025 used</div>
+          </div>
+          <div class="tile ring-tile">
+            <div class="ring-name mono">Per Day</div>
+            <div class="ring">
+              <svg width="104" height="104" viewBox="0 0 104 104">
+                <circle cx="52" cy="52" r="46" fill="none" stroke="var(--ring-track)" stroke-width="9"/>
+                <circle class="prog" cx="52" cy="52" r="46" fill="none" stroke="var(--accent)" stroke-width="9" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="115" style="--circ:289"/>
+              </svg>
+              <div class="ring-amt"><b>$208</b><span>left</span></div>
+            </div>
+            <div class="cap mono">$208 left today</div>
+          </div>
+
+          <div class="tile full meter">
+            <div class="t-lbl">This week</div>
+            <div class="big">$225 <small>/ $1,250</small></div>
+            <div class="bar"><i style="width:18%"></i></div>
+            <div class="pace">↑ $357 ahead of pace</div>
+          </div>
+
+          <div class="tile full">
+            <div class="t-lbl">Spending</div>
+            <div class="cat"><span class="dot" style="background:color-mix(in srgb,var(--accent) 22%,transparent)">🍔</span><span class="nm">Food</span><span class="cbar"><i style="width:38%;background:var(--accent)"></i></span><span class="amt">$320</span><span class="pct mono">38%</span></div>
+            <div class="cat"><span class="dot" style="background:color-mix(in srgb,var(--warn) 22%,transparent)">⛽</span><span class="nm">Gas</span><span class="cbar"><i style="width:21%;background:var(--warn)"></i></span><span class="amt">$180</span><span class="pct mono">21%</span></div>
+            <div class="cat"><span class="dot" style="background:color-mix(in srgb,var(--danger) 22%,transparent)">🛍️</span><span class="nm">Shopping</span><span class="cbar"><i style="width:14%;background:var(--danger)"></i></span><span class="amt">$120</span><span class="pct mono">14%</span></div>
+          </div>
+
+          <div class="tile full">
+            <div class="t-lbl">Upcoming bills</div>
+            <div class="bill"><span class="nm">Rent</span><span class="chip soon mono">Jun 12</span><span class="b-amt">$1,400</span></div>
+            <div class="bill"><span class="nm">Internet</span><span class="chip mono">Jun 18</span><span class="b-amt">$70</span></div>
+            <div class="bill"><span class="nm">Phone</span><span class="chip mono">Jun 24</span><span class="b-amt">$55</span></div>
+            <div class="bills-total"><span>Total due</span><b>$1,525</b></div>
+          </div>
+        </div>
+
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ============== C ============== -->
+  <div class="col">
+    <div class="tag">
+      <span class="badge">C · Calm Flat</span>
+      <div class="desc">Hairline-separated sections, lots of whitespace, big numbers, accent used sparingly. Premium and calm — glitch reduced to one subtle accent pulse.</div>
+    </div>
+    <div class="phone C">
+      <div class="notch"></div>
+      <div class="screen"><div class="pad">
+
+        <div class="hero">
+          <img class="dog" src="./doberman.png" alt="">
+          <div>
+            <div class="tag-line">LOCK TF IN.</div>
+            <div class="sub">Week 23 · on track</div>
+          </div>
+        </div>
+
+        <div class="balance">
+          <div class="lbl">Available balance</div>
+          <div class="amt">$4,775</div>
+        </div>
+
+        <div class="grid">
+          <div class="ring-grid">
+            <div class="tile ring-tile">
+              <div class="ring-name accent-pulse">Per Week</div>
+              <div class="ring">
+                <svg width="104" height="104" viewBox="0 0 104 104">
+                  <circle cx="52" cy="52" r="46" fill="none" stroke="var(--ring-track)" stroke-width="7"/>
+                  <circle cx="52" cy="52" r="46" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="58"/>
+                </svg>
+                <div class="ring-amt"><b>$1,250</b><span>/ wk</span></div>
+              </div>
+              <div class="cap">$1,025 used</div>
+            </div>
+            <div class="tile ring-tile">
+              <div class="ring-name accent-pulse">Per Day</div>
+              <div class="ring">
+                <svg width="104" height="104" viewBox="0 0 104 104">
+                  <circle cx="52" cy="52" r="46" fill="none" stroke="var(--ring-track)" stroke-width="7"/>
+                  <circle cx="52" cy="52" r="46" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="115"/>
+                </svg>
+                <div class="ring-amt"><b>$208</b><span>left</span></div>
+              </div>
+              <div class="cap">$208 left today</div>
+            </div>
+          </div>
+
+          <div class="tile full meter">
+            <div class="t-lbl">This week</div>
+            <div class="big">$225 <small>/ $1,250</small></div>
+            <div class="bar"><i style="width:18%"></i></div>
+            <div class="pace">↑ $357 ahead of pace</div>
+          </div>
+
+          <div class="tile full">
+            <div class="t-lbl">Spending</div>
+            <div class="cat"><span class="dot" style="background:color-mix(in srgb,var(--accent) 18%,transparent)">🍔</span><span class="nm">Food</span><span class="cbar"><i style="width:38%;background:var(--accent)"></i></span><span class="amt">$320</span><span class="pct">38%</span></div>
+            <div class="cat"><span class="dot" style="background:var(--surface2)">⛽</span><span class="nm">Gas</span><span class="cbar"><i style="width:21%;background:var(--muted)"></i></span><span class="amt">$180</span><span class="pct">21%</span></div>
+            <div class="cat"><span class="dot" style="background:var(--surface2)">🛍️</span><span class="nm">Shopping</span><span class="cbar"><i style="width:14%;background:var(--muted)"></i></span><span class="amt">$120</span><span class="pct">14%</span></div>
+          </div>
+
+          <div class="tile full">
+            <div class="t-lbl">Upcoming bills</div>
+            <div class="bill"><span class="nm">Rent</span><span class="chip soon">Jun 12</span><span class="b-amt">$1,400</span></div>
+            <div class="bill"><span class="nm">Internet</span><span class="chip">Jun 18</span><span class="b-amt">$70</span></div>
+            <div class="bill"><span class="nm">Phone</span><span class="chip">Jun 24</span><span class="b-amt">$55</span></div>
+            <div class="bills-total"><span>Total due</span><b>$1,525</b></div>
+          </div>
+        </div>
+
+      </div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function setMode(m){
+  document.body.className=m;
+  document.getElementById('t-light').classList.toggle('on',m==='light');
+  document.getElementById('t-dark').classList.toggle('on',m==='dark');
+}
+setMode('light');
+</script>
+</body>
+</html>

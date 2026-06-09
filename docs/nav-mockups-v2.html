@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nav bar mockups — round 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e0e0f; --surface:#161617; --card:#1c1c1e; --surface2:#222223;
+    --accent:#4ecb8d; --text:#f0f0f2; --muted:#8a8a92; --border:rgba(255,255,255,.08);
+  }
+  body.light{
+    --bg:#e2e2df; --surface:#eaeae7; --card:#e4e4e1; --surface2:#d8d8d5;
+    --accent:#5ab592; --text:#181820; --muted:#606070; --border:rgba(0,0,0,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Plus Jakarta Sans',-apple-system,system-ui,sans-serif;
+    background:var(--bg); color:var(--text);
+    padding:40px 24px 80px; transition:background .3s,color .3s;
+    -webkit-font-smoothing:antialiased;
+  }
+  header{max-width:920px;margin:0 auto 36px}
+  h1{font-size:30px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
+  .sub{color:var(--muted);font-size:15px;font-weight:500;max-width:620px;line-height:1.5}
+
+  .toggle{display:inline-flex;gap:4px;margin-top:22px;background:var(--surface2);
+    border:1px solid var(--border);border-radius:999px;padding:4px}
+  .toggle button{font-family:inherit;font-weight:700;font-size:13px;border:none;
+    cursor:pointer;background:transparent;color:var(--muted);padding:8px 18px;border-radius:999px;transition:.2s}
+  .toggle button.on{background:var(--accent);color:#06281a}
+  body.dark .toggle button.on{color:#06281a}
+
+  .grid{max-width:920px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:28px}
+
+  .option{background:var(--surface);border:1px solid var(--border);border-radius:24px;
+    padding:22px 22px 26px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
+  body.light .option{box-shadow:0 8px 26px rgba(0,0,0,.07)}
+  .tag{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.3px;
+    background:var(--surface2);border:1px solid var(--border);color:var(--text);
+    padding:5px 12px;border-radius:8px;margin-bottom:10px}
+  .tag b{color:var(--accent)}
+  .desc{color:var(--muted);font-size:13.5px;font-weight:500;line-height:1.45;margin-bottom:18px}
+  .phones{display:flex;gap:18px;flex-wrap:wrap}
+
+  /* phone slice */
+  .phone{width:360px;max-width:100%;border-radius:30px;overflow:hidden;
+    border:1px solid var(--border);background:var(--bg);position:relative;
+    box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  body.light .phone{box-shadow:0 10px 26px rgba(0,0,0,.10)}
+  .app{height:120px;padding:18px 20px;position:relative;overflow:hidden}
+  .app .crumb{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+  .app .big{font-size:26px;font-weight:800;letter-spacing:-.5px;margin-top:6px}
+  .app .ph{height:10px;border-radius:6px;background:var(--surface2);margin-top:14px}
+  .app .ph.w1{width:70%}.app .ph.w2{width:45%}
+  .scene-label{position:absolute;top:10px;right:14px;font-size:10px;font-weight:700;
+    color:var(--muted);letter-spacing:.4px;text-transform:uppercase;opacity:.7}
+
+  .navwrap{position:relative;padding:0 0 14px}
+
+  /* shared icon sizing */
+  .ic{width:22px;height:22px;display:block;stroke-width:2;fill:none;stroke:currentColor}
+  .lbl{font-size:10px;font-weight:700;letter-spacing:.2px;margin-top:3px}
+
+  .dog{width:30px;height:30px;border-radius:50%;object-fit:cover;display:block}
+
+  /* ============ E · GLASS ============ */
+  .e-bar{margin:14px 14px 0;height:66px;border-radius:22px;display:flex;align-items:center;
+    justify-content:space-around;position:relative;
+    background:rgba(255,255,255,.05);
+    backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow:0 8px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.18);}
+  body.light .e-bar{background:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.6);
+    box-shadow:0 8px 26px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.8);}
+  .e-bar .tab{display:flex;flex-direction:column;align-items:center;color:var(--muted);
+    cursor:pointer;flex:1;transition:.2s}
+  .e-bar .tab.act{color:var(--accent)}
+  .e-bar .tab.act .ic{filter:drop-shadow(0 0 6px var(--accent))}
+  .e-dog{position:relative;flex:1;display:flex;justify-content:center}
+  .e-dog .orb{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 35%,rgba(78,203,141,.35),rgba(78,203,141,.05));
+    border:1px solid rgba(255,255,255,.18);position:relative}
+  .e-dog.act .orb{box-shadow:0 0 0 2px var(--accent),0 0 18px 2px rgba(78,203,141,.55);animation:eGlow 2.4s ease-in-out infinite}
+  @keyframes eGlow{0%,100%{box-shadow:0 0 0 2px var(--accent),0 0 14px 1px rgba(78,203,141,.45)}
+    50%{box-shadow:0 0 0 2px var(--accent),0 0 22px 4px rgba(78,203,141,.7)}}
+
+  /* ============ F · CAPSULE ============ */
+  .f-bar{margin:14px 14px 0;padding:8px;border-radius:24px;background:var(--surface);
+    border:1px solid var(--border);display:flex;gap:6px;align-items:stretch;
+    box-shadow:0 8px 24px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.05)}
+  body.light .f-bar{box-shadow:0 8px 22px rgba(0,0,0,.10)}
+  .f-bar .seg{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;height:50px;border-radius:16px;color:var(--muted);cursor:pointer;transition:.25s}
+  .f-bar .seg.act{background:var(--surface2);color:var(--accent);
+    box-shadow:inset 0 0 0 1px var(--border),0 2px 8px rgba(0,0,0,.25)}
+  body.light .f-bar .seg.act{box-shadow:inset 0 0 0 1px var(--border),0 2px 6px rgba(0,0,0,.08)}
+  .f-dog{flex:1.15;display:flex;align-items:center;justify-content:center;height:50px;border-radius:16px;
+    background:var(--surface2);box-shadow:inset 0 0 0 1px var(--border);position:relative}
+  .f-dog.act{background:linear-gradient(180deg,rgba(78,203,141,.22),rgba(78,203,141,.06));
+    box-shadow:inset 0 0 0 1.5px var(--accent),0 4px 14px rgba(78,203,141,.3)}
+  .f-dog .ring{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    border:1.5px solid var(--border)}
+  .f-dog.act .ring{border-color:var(--accent)}
+
+  /* ============ G · RAISED TRAY ============ */
+  .g-bar{margin:0;height:78px;background:var(--surface);border-top:1px solid var(--border);
+    display:flex;align-items:flex-end;justify-content:space-around;position:relative;padding-bottom:12px}
+  .g-tab{flex:1;display:flex;flex-direction:column;align-items:center;color:var(--muted);
+    cursor:pointer;padding-bottom:4px;position:relative;z-index:2;transition:.2s}
+  .g-tab.act{color:#06281a}
+  .g-tray{position:absolute;top:8px;width:62px;height:56px;border-radius:18px;z-index:1;
+    background:var(--accent);box-shadow:0 6px 18px rgba(78,203,141,.45);
+    transition:left .35s cubic-bezier(.34,1.4,.5,1)}
+  .g-tray::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:-5px;
+    width:14px;height:14px;background:var(--accent);border-radius:3px;rotate:45deg}
+  .g-dog{flex:1;display:flex;justify-content:center;align-items:flex-end;position:relative;z-index:2}
+  .g-dog .puck{width:56px;height:56px;border-radius:50%;background:var(--surface2);
+    border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;
+    margin-bottom:2px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  .g-dog.act .puck{background:var(--accent);box-shadow:0 6px 18px rgba(78,203,141,.5)}
+
+  /* ============ H · HUD / CYBERPUNK ============ */
+  .h-bar{margin:0;background:var(--surface);position:relative;padding:14px 6px 12px;
+    display:flex;align-items:center;justify-content:space-around;
+    border-top:1px solid var(--border)}
+  .h-bar::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.9}
+  .h-bar .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+    color:var(--muted);cursor:pointer;position:relative;transition:.2s}
+  .h-bar .ml{font-family:'Plus Jakarta Sans',monospace;font-size:9px;font-weight:700;
+    letter-spacing:1.5px;text-transform:uppercase}
+  .h-bar .tab.act{color:var(--accent)}
+  .h-bar .tab.act .icbox{position:relative}
+  /* corner brackets */
+  .h-bar .tab.act .icbox::before,.h-bar .tab.act .icbox::after{content:"";position:absolute;
+    width:9px;height:9px;border-color:var(--accent);border-style:solid}
+  .h-bar .tab.act .icbox::before{top:-6px;left:-8px;border-width:1.5px 0 0 1.5px}
+  .h-bar .tab.act .icbox::after{bottom:-6px;right:-8px;border-width:0 1.5px 1.5px 0}
+  .h-bar .tab.act .ic{filter:drop-shadow(1px 0 0 rgba(255,0,80,.5)) drop-shadow(-1px 0 0 rgba(0,200,255,.5))}
+  .h-dog{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
+  .h-dog .dframe{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    background:var(--surface2);border:1px solid var(--border);position:relative}
+  .h-dog.act .dframe{border-color:var(--accent);
+    box-shadow:0 0 0 1px var(--accent),0 0 14px rgba(78,203,141,.45);animation:hScan 2.6s linear infinite}
+  @keyframes hScan{0%,100%{box-shadow:0 0 0 1px var(--accent),0 0 10px rgba(78,203,141,.35)}
+    50%{box-shadow:0 0 0 1px var(--accent),0 0 18px rgba(78,203,141,.6)}}
+  .h-dog.act .dframe::before,.h-dog.act .dframe::after{content:"";position:absolute;width:10px;height:10px;
+    border-color:var(--accent);border-style:solid}
+  .h-dog.act .dframe::before{top:-3px;left:-3px;border-width:1.5px 0 0 1.5px}
+  .h-dog.act .dframe::after{bottom:-3px;right:-3px;border-width:0 1.5px 1.5px 0}
+</style>
+</head>
+<body class="light">
+<header>
+  <h1>Nav bar mockups — round 2</h1>
+  <p class="sub">Four fresh bottom-bar directions for <b>Budget DAWGs</b> — premium, playful, with a touch of glitch. Each shown with Dashboard (center) active and with Ledger active.</p>
+  <div class="toggle">
+    <button id="t-light" class="on" onclick="setMode('light')">Light</button>
+    <button id="t-dark" onclick="setMode('dark')">Dark</button>
+  </div>
+</header>
+
+<main class="grid">
+
+  <!-- ===================== E · GLASS ===================== -->
+  <section class="option">
+    <span class="tag"><b>E</b> · Glass</span>
+    <p class="desc">Frosted translucent bar floating over content with a soft inner glow; the Doberman lives inside a glowing accent orb.</p>
+    <div class="phones">
+
+      <div class="phone">
+        <div class="app"><span class="scene-label">Dashboard active</span>
+          <div class="crumb">Overview</div><div class="big">$2,418</div>
+          <div class="ph w1"></div><div class="ph w2"></div></div>
+        <div class="navwrap">
+          <div class="e-bar">
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span class="lbl">Track</span></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg><span class="lbl">Ledger</span></div>
+            <div class="e-dog act"><span class="orb"><img class="dog" src="./doberman.png" alt="Dashboard"></span></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">Weekly</span></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl">Settings</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="app"><span class="scene-label">Ledger active</span>
+          <div class="crumb">Ledger</div><div class="big">All entries</div>
+          <div class="ph w1"></div><div class="ph w2"></div></div>
+        <div class="navwrap">
+          <div class="e-bar">
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span class="lbl">Track</span></div>
+            <div class="tab act"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg><span class="lbl">Ledger</span></div>
+            <div class="e-dog"><span class="orb"><img class="dog" src="./doberman.png" alt="Dashboard"></span></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">Weekly</span></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl">Settings</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== F · CAPSULE ===================== -->
+  <section class="option">
+    <span class="tag"><b>F</b> · Capsule</span>
+    <p class="desc">A rounded segmented control: each tab is a capsule that fills on selection, with the dog as a distinct accent-bordered center capsule.</p>
+    <div class="phones">
+
+      <div class="phone">
+        <div class="app"><span class="scene-label">Dashboard active</span>
+          <div class="crumb">Overview</div><div class="big">$2,418</div>
+          <div class="ph w1"></div><div class="ph w2"></div></div>
+        <div class="navwrap">
+          <div class="f-bar">
+            <div class="seg"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span class="lbl">Track</span></div>
+            <div class="seg"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg><span class="lbl">Ledger</span></div>
+            <div class="f-dog act"><span class="ring"><img class="dog" src="./doberman.png" alt="Dashboard"></span></div>
+            <div class="seg"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">Weekly</span></div>
+            <div class="seg"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl">Settings</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="app"><span class="scene-label">Ledger active</span>
+          <div class="crumb">Ledger</div><div class="big">All entries</div>
+          <div class="ph w1"></div><div class="ph w2"></div></div>
+        <div class="navwrap">
+          <div class="f-bar">
+            <div class="seg"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span class="lbl">Track</span></div>
+            <div class="seg act"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg><span class="lbl">Ledger</span></div>
+            <div class="f-dog"><span class="ring"><img class="dog" src="./doberman.png" alt="Dashboard"></span></div>
+            <div class="seg"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">Weekly</span></div>
+            <div class="seg"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl">Settings</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== G · RAISED TRAY ===================== -->
+  <section class="option">
+    <span class="tag"><b>G</b> · Raised tray</span>
+    <p class="desc">A solid bar where the active tab lifts into a raised accent tray that slides between positions; the dog sits in a permanent accent-ringed puck.</p>
+    <div class="phones">
+
+      <div class="phone">
+        <div class="app"><span class="scene-label">Dashboard active</span>
+          <div class="crumb">Overview</div><div class="big">$2,418</div>
+          <div class="ph w1"></div><div class="ph w2"></div></div>
+        <div class="navwrap">
+          <div class="g-bar">
+            <div class="g-tray" style="left:calc(50% - 31px)"></div>
+            <div class="g-tab"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span class="lbl">Track</span></div>
+            <div class="g-tab"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg><span class="lbl">Ledger</span></div>
+            <div class="g-dog act"><span class="puck"><img class="dog" src="./doberman.png" alt="Dashboard"></span></div>
+            <div class="g-tab"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">Weekly</span></div>
+            <div class="g-tab"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl">Settings</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="app"><span class="scene-label">Ledger active</span>
+          <div class="crumb">Ledger</div><div class="big">All entries</div>
+          <div class="ph w1"></div><div class="ph w2"></div></div>
+        <div class="navwrap">
+          <div class="g-bar">
+            <div class="g-tray" style="left:calc(30% - 31px)"></div>
+            <div class="g-tab"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span class="lbl">Track</span></div>
+            <div class="g-tab act"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg><span class="lbl">Ledger</span></div>
+            <div class="g-dog"><span class="puck"><img class="dog" src="./doberman.png" alt="Dashboard"></span></div>
+            <div class="g-tab"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">Weekly</span></div>
+            <div class="g-tab"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl">Settings</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== H · HUD / CYBERPUNK ===================== -->
+  <section class="option">
+    <span class="tag"><b>H</b> · HUD</span>
+    <p class="desc">Cyberpunk HUD energy: thin neon top rule, monospace micro-labels, corner brackets framing the active icon, and an RGB-split glitch glow on selection.</p>
+    <div class="phones">
+
+      <div class="phone">
+        <div class="app"><span class="scene-label">Dashboard active</span>
+          <div class="crumb">Overview</div><div class="big">$2,418</div>
+          <div class="ph w1"></div><div class="ph w2"></div></div>
+        <div class="navwrap">
+          <div class="h-bar">
+            <div class="tab"><span class="icbox"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="ml">Track</span></div>
+            <div class="tab"><span class="icbox"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></span><span class="ml">Ledger</span></div>
+            <div class="h-dog act"><span class="dframe"><img class="dog" src="./doberman.png" alt="Dashboard"></span><span class="ml">Dash</span></div>
+            <div class="tab"><span class="icbox"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="ml">Weekly</span></div>
+            <div class="tab"><span class="icbox"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="ml">Set</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="app"><span class="scene-label">Ledger active</span>
+          <div class="crumb">Ledger</div><div class="big">All entries</div>
+          <div class="ph w1"></div><div class="ph w2"></div></div>
+        <div class="navwrap">
+          <div class="h-bar">
+            <div class="tab"><span class="icbox"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="ml">Track</span></div>
+            <div class="tab act"><span class="icbox"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></span><span class="ml">Ledger</span></div>
+            <div class="h-dog"><span class="dframe"><img class="dog" src="./doberman.png" alt="Dashboard"></span><span class="ml">Dash</span></div>
+            <div class="tab"><span class="icbox"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="ml">Weekly</span></div>
+            <div class="tab"><span class="icbox"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="ml">Set</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<script>
+  function setMode(m){
+    document.body.className=m;
+    document.getElementById('t-light').classList.toggle('on',m==='light');
+    document.getElementById('t-dark').classList.toggle('on',m==='dark');
+  }
+</script>
+</body>
+</html>
