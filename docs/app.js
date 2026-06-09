@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.7';
+const VERSION = '5.43.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.8', date: '2026-06-09', changes: [
+    'Accounts overview tightened: larger net-worth value, a crisper rounded gradient assets-vs-debt meter, and slightly larger balances/names — same layout, just sharper',
+  ]},
   { version: '5.43.7', date: '2026-06-09', changes: [
     'Reverted the nav bar change — that was only meant to be a mockup, not installed. The bottom nav is back to the original floating Doberman button. (Bills calendar layout stays.)',
   ]},

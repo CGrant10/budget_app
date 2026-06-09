@@ -6695,3 +6695,21 @@ body.theme-ubuntu .section-title::before {
 .bcal-legend3 .lg-paid { background: var(--success); }
 .bcal-legend3 .lg-soon { background: var(--warn); }
 .bcal-legend3 .lg-over { background: var(--danger); }
+
+/* ════════════════════════════════════════════════════════════════════════
+   ACCOUNTS — "A · Tightened" (chosen). Same layout, sharper: larger net-worth
+   value, crisper rounded-end gradient assets/debt meter, slightly larger
+   balances and account names. Pure polish — no markup change.
+═══════════════════════════════════════════════════════════════════════════ */
+.acct-nw2 { padding: 18px; border-radius: 20px; }
+.acct-nw2-label { letter-spacing: .14em; }
+.acct-nw2-value { font-size: 36px; letter-spacing: -1px; line-height: 1; }
+.acct-nw2-meter {
+  height: 12px; margin: 16px 0 11px;
+  background: color-mix(in srgb, var(--danger) 42%, transparent);
+  border: 1px solid var(--border);
+}
+.acct-nw2-meter i { background: linear-gradient(90deg, color-mix(in srgb, var(--success) 72%, #14502f), var(--success)); }
+.acct-nw2-legend { font-size: .8rem; }
+.acct-row-name { font-size: .95rem; }
+.acct-row-bal  { font-size: 1.06rem; }
