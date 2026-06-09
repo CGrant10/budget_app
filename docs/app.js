@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.5';
+const VERSION = '5.43.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.6', date: '2026-06-09', changes: [
+    'Bills page redesigned (calendar-forward): a Total / Remaining / Paid summary, the month calendar promoted to the top with a clear paid (green) / due (amber) / overdue (red) dot system + legend, then the bill list',
+    'Nav bar refresh: the Doberman button is now centered inside the bar (no longer floating above it), the top edge is a clean continuous hairline, and the active tab gets an accent pill behind its icon — bark and glitch effects kept',
+  ]},
   { version: '5.43.5', date: '2026-06-09', changes: [
     'Dashboard "Airy" pass — bigger, higher-contrast labels and numbers, roomier tile spacing, and a taller progress bar. The tiny micro-cap labels were the main thing making the dashboard hard to read',
   ]},
@@ -6667,38 +6671,50 @@ function renderBills() {
     for (let i = 0; i < firstDay; i++) cells += '<div class="bcal-cell"></div>';
     for (let d = 1; d <= daysInM; d++) {
       const bs      = billsByDay[d] || [];
-      const paid    = bs.length && bs.every(b => isBillPaidFor(b, m));
       const hasBill = bs.length > 0;
-      const cls     = ['bcal-cell', d === todayD ? 'today' : '', hasBill ? (paid ? 'bill-paid' : 'bill-due') : ''].filter(Boolean).join(' ');
+      // Three-state dot: all paid → green; unpaid & past its day this month (or a past month)
+      // → red overdue; otherwise amber due.
+      let statusCls = '';
+      if (hasBill) {
+        const allPaid = bs.every(b => isBillPaidFor(b, m));
+        const overdue = (isCurMonth && d < todayD) || (m < curMonthKey());
+        statusCls = allPaid ? 'bill-paid' : overdue ? 'bill-overdue' : 'bill-soon';
+      }
+      const cls     = ['bcal-cell', d === todayD ? 'today' : '', statusCls].filter(Boolean).join(' ');
       cells += `<div class="${cls}" data-day="${d}"${hasBill ? ' role="button" tabindex="0"' : ''}><span class="bcal-num">${d}</span>${hasBill ? '<span class="bcal-dot"></span>' : ''}</div>`;
     }
     return `
       <div class="bill-cal">
-        <div class="bcal-legend"><span class="bcal-legend-due"></span>Due <span class="bcal-legend-paid"></span>Paid</div>
         <div class="bcal-grid" id="bcal-grid">${dayHdrs}${cells}</div>
         <div id="bcal-day-detail" class="bcal-day-detail" style="display:none"></div>
+        <div class="bcal-legend3">
+          <span><i class="lg-paid"></i>Paid</span>
+          <span><i class="lg-soon"></i>Due</span>
+          <span><i class="lg-over"></i>Overdue</span>
+        </div>
       </div>`;
   })();
 
-  return `
-    <div class="page">
-      <h1 class="page-title">Bills</h1>
-      <p class="page-sub">track recurring monthly bills</p>
-      ${state.bills.length ? `
-      ${monthNavHtml}
-      <div class="cards-grid" style="margin-bottom:16px">
-        <div class="card">
-          <div class="card-title">MONTHLY TOTAL</div>
-          <div class="card-value" style="color:var(--accent2)">${fmt(totalMonthly)}</div>
-          <div class="card-sub">all bills</div>
-        </div>
-        <div class="card">
-          <div class="card-title">STILL DUE</div>
-          <div id="bills-still-due" class="card-value" style="color:${totalUnpaid>0?'var(--warn)':'var(--success)'}">${fmt(totalUnpaid)}</div>
-          <div class="card-sub">${monthKeyLabel(m)}</div>
-        </div>
+  const totalPaid = Math.max(0, totalMonthly - totalUnpaid);
+  const summary3Html = `
+    <div class="bills-sum3">
+      <div class="bsum-blk">
+        <div class="bsum-k">Total</div>
+        <div class="bsum-v">${fmt(totalMonthly)}</div>
       </div>
-      ${billCalHtml}` : ''}
+      <div class="bsum-div"></div>
+      <div class="bsum-blk">
+        <div class="bsum-k">Remaining</div>
+        <div id="bills-still-due" class="bsum-v" style="color:${totalUnpaid>0?'var(--warn)':'var(--success)'}">${fmt(totalUnpaid)}</div>
+      </div>
+      <div class="bsum-div"></div>
+      <div class="bsum-blk">
+        <div class="bsum-k">Paid</div>
+        <div class="bsum-v" style="color:var(--success)">${fmt(totalPaid)}</div>
+      </div>
+    </div>`;
+
+  const addFormHtml = `
       <div class="form-card">
         <h2 class="section-title" style="margin:0 0 8px">Add Bill</h2>
         <div class="form-row">
@@ -6723,9 +6739,22 @@ function renderBills() {
         </div>` : ''}
         <div id="bill-status" class="form-status"></div>
         <button id="bill-add-btn" class="btn-primary">Add Bill</button>
-      </div>
-      <h2 class="section-title">Your Bills</h2>
-      <div class="bills-list">${billsHtml}</div>
+      </div>`;
+
+  // Calendar-forward layout: month nav → quick Total/Remaining/Paid summary → the
+  // calendar as hero → the month's bill list → add form at the bottom.
+  return `
+    <div class="page">
+      <h1 class="page-title">Bills</h1>
+      <p class="page-sub">track recurring monthly bills</p>
+      ${state.bills.length ? `
+        ${monthNavHtml}
+        ${summary3Html}
+        ${billCalHtml}
+        <h2 class="section-title">This month</h2>
+        <div class="bills-list">${billsHtml}</div>
+      ` : ''}
+      ${addFormHtml}
     </div>`;
 }
 

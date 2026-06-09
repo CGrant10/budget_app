@@ -6666,3 +6666,66 @@ body.theme-ubuntu .section-title::before {
 .dawg-cat-name { font-size: .82rem; }
 .dawg-cat-amt  { font-size: .78rem; }
 .dawg-cat-pct  { font-size: .72rem; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   BILLS — calendar-forward layout (chosen "C"). Quick 3-stat summary, the
+   month calendar as the hero with a paid/due/overdue dot system, then the list.
+═══════════════════════════════════════════════════════════════════════════ */
+.bills-sum3 {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 13px 14px; margin-bottom: 14px; box-shadow: var(--shadow-card);
+}
+.bsum-blk { flex: 1; text-align: center; min-width: 0; }
+.bsum-k { font-size: .62rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.bsum-v { font-size: 1.15rem; font-weight: 800; letter-spacing: -.02em; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.bsum-div { width: 1px; align-self: stretch; background: var(--border); margin: 2px 4px; }
+
+.bill-cal { border-radius: 18px; padding: 16px 14px 12px; }
+/* calendar dots — three states (paid green / due amber / overdue red) */
+.bcal-cell.bill-soon    { color: var(--warn); }
+.bcal-cell.bill-overdue { color: var(--danger); }
+.bcal-cell.bill-soon    .bcal-dot { background: var(--warn); }
+.bcal-cell.bill-overdue .bcal-dot { background: var(--danger); }
+.bcal-cell.bill-paid    .bcal-dot { background: var(--success); }
+
+.bcal-legend3 { display: flex; gap: 16px; justify-content: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+.bcal-legend3 span { font-size: .68rem; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+.bcal-legend3 i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.bcal-legend3 .lg-paid { background: var(--success); }
+.bcal-legend3 .lg-soon { background: var(--warn); }
+.bcal-legend3 .lg-over { background: var(--danger); }
+
+/* ════════════════════════════════════════════════════════════════════════
+   NAV — refined "A": dog button centered INSIDE the bar (no float/notch),
+   continuous top hairline, and an accent pill behind the active tab. Glitch
+   animations (dog bark/idle, tap glitch) are intentionally left intact.
+═══════════════════════════════════════════════════════════════════════════ */
+/* Center the dog within the bar — drop the upward float, fit within nav height */
+.dawg-nav-center-btn {
+  flex: 0 0 52px !important; width: 52px !important; height: 52px !important;
+  transform: none !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,.28) !important;
+  align-self: center;
+}
+.dawg-nav-dob { width: 44px; height: 44px; }
+/* Symmetric neon ring pulse (base shadow was offset upward for the floating version) */
+@keyframes center-btn-pulse {
+  0%, 100% { box-shadow: 0 2px 10px rgba(0,0,0,.28),
+              0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent),
+              0 0 12px color-mix(in srgb, var(--accent) 15%, transparent); }
+  50%      { box-shadow: 0 2px 10px rgba(0,0,0,.28),
+              0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent),
+              0 0 18px color-mix(in srgb, var(--accent) 30%, transparent),
+              0 0 36px color-mix(in srgb, var(--accent) 15%, transparent); }
+}
+/* Continuous top hairline — no notch now that the dog sits in-bar */
+#dawg-bottom-nav::before { background: var(--border); }
+
+/* Active tab: accent pill behind the icon (replaces the tiny dot) */
+.dawg-nav-btn.dawg-nav-active::after { display: none; }
+.dawg-nav-btn.dawg-nav-active .dawg-nav-icon {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-radius: 999px;
+  padding: 4px 15px;
+}
