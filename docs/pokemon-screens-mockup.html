@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokémon themes — full screen replicas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#0c0c0d; --panel:#161617; --panel2:#222223; --pborder:rgba(255,255,255,.09); --pmuted:#8a8a92; --ptext:#f0f0f2;
+  --success:#32d74b; --danger:#ff453a; --warn:#ffd60a; --ring-track:rgba(255,255,255,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--page);color:var(--ptext);
+  -webkit-font-smoothing:antialiased;padding:30px 20px 80px;}
+.mono{font-family:'Cascadia Code',ui-monospace,Consolas,monospace;}
+
+header{max-width:1180px;margin:0 auto 8px;}
+h1{font-size:29px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px;}
+.sub{color:var(--pmuted);font-size:14.5px;font-weight:500;max-width:740px;line-height:1.5;margin:0 0 8px;}
+
+.theme-sec{max-width:1180px;margin:36px auto 0;}
+.sec-head{display:flex;align-items:center;gap:12px;margin:0 0 18px;padding-bottom:12px;border-bottom:1px solid var(--pborder);}
+.sec-spr{width:46px;height:46px;display:flex;align-items:center;justify-content:center;background:var(--panel2);border-radius:12px;overflow:hidden;}
+.sec-spr img{width:46px;height:46px;object-fit:contain;image-rendering:pixelated;transform:scale(1.25);}
+.sec-name{font-size:20px;font-weight:800;letter-spacing:-.01em;}
+.sec-pill{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:999px;}
+
+.deck{display:flex;flex-wrap:wrap;gap:26px;}
+.col{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.col .cap{font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--pmuted);}
+
+.phone{width:340px;border-radius:42px;background:var(--bg);border:1px solid var(--border);
+  box-shadow:0 26px 60px -20px rgba(0,0,0,.6);overflow:hidden;position:relative;}
+.notch{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:108px;height:26px;background:#000;border-radius:0 0 16px 16px;z-index:40;opacity:.9;}
+.screen{display:flex;flex-direction:column;height:712px;background:var(--bg);}
+.scrollarea{flex:1;overflow-y:auto;overflow-x:hidden;}
+.scrollarea::-webkit-scrollbar{width:0;}
+
+/* ============ MASCOT + SIGNATURE MOVES ============ */
+.mascot{position:relative;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.m-img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;
+  filter:drop-shadow(0 5px 14px color-mix(in srgb,var(--accent) 50%, transparent));}
+/* Gengar — phase in / out of the shadows */
+.mascot-gengar .aura{position:absolute;inset:-18%;border-radius:50%;z-index:0;filter:blur(5px);
+  background:radial-gradient(circle,color-mix(in srgb,var(--accent) 60%,transparent),transparent 62%);
+  animation:gAura 3.6s ease-in-out infinite;}
+.mascot-gengar.fx .m-img{position:relative;z-index:1;animation:gPhase 3.6s ease-in-out infinite;}
+@keyframes gPhase{0%,26%,100%{opacity:1;filter:none;transform:scale(1) translateX(0);}
+  47%{opacity:.05;filter:blur(3px) brightness(1.5);transform:scale(1.08) translateX(calc(var(--m)*.08));}
+  66%{opacity:.05;filter:blur(3px);transform:scale(1.08) translateX(calc(var(--m)*-.04));}
+  82%{opacity:1;filter:none;transform:scale(1) translateX(0);}}
+@keyframes gAura{0%,26%,100%{opacity:.20;transform:scale(.82);}50%{opacity:.62;transform:scale(1.18);}}
+/* Charizard — flamethrower plume */
+.flames{position:absolute;left:0;right:0;top:2%;height:60%;pointer-events:none;z-index:2;}
+.flame{position:absolute;top:46%;width:calc(var(--m)*.17);height:calc(var(--m)*.17);border-radius:52% 52% 48% 48%;
+  background:radial-gradient(circle at 50% 68%,#ffe684,#ff7a3c 56%,#e23b30 92%);
+  transform:translate(-50%,0) scale(.5);opacity:0;filter:blur(.3px) drop-shadow(0 0 6px rgba(255,122,60,.7));
+  animation:flameUp 1.05s ease-out infinite;}
+@keyframes flameUp{0%{opacity:0;transform:translate(-50%,calc(var(--m)*.05)) scale(.45);}
+  18%{opacity:1;}
+  100%{opacity:0;transform:translate(-50%,calc(var(--m)*-.46)) scale(.12);}}
+/* Squirtle — water gun arc */
+.drops{position:absolute;left:55%;top:34%;width:50%;height:46%;pointer-events:none;z-index:2;}
+.drop{position:absolute;left:0;top:0;width:calc(var(--m)*.11);height:calc(var(--m)*.11);border-radius:50% 50% 50% 0;
+  transform:rotate(45deg);background:radial-gradient(circle at 35% 30%,#dff3ff,#46a6ec 72%);
+  box-shadow:0 0 5px rgba(70,166,236,.6);opacity:0;animation:waterArc 1.15s ease-in infinite;}
+@keyframes waterArc{0%{opacity:0;transform:translate(0,calc(var(--m)*.05)) rotate(45deg) scale(.4);}
+  16%{opacity:1;}
+  50%{transform:translate(calc(var(--m)*.32),calc(var(--m)*-.14)) rotate(45deg) scale(1);}
+  100%{opacity:0;transform:translate(calc(var(--m)*.6),calc(var(--m)*.2)) rotate(45deg) scale(.6);}}
+
+/* ===================== SPLASH / BOOT ===================== */
+.boot-screen{position:relative;height:100%;display:flex;flex-direction:column;
+  background:radial-gradient(120% 75% at 50% 0%, color-mix(in srgb,var(--accent) 16%, var(--bg)), var(--bg) 65%);}
+.boot-screen::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:6;
+  background:repeating-linear-gradient(to bottom,transparent 0 2px,rgba(0,0,0,.16) 2px 3px);opacity:.5;}
+.boot-spr-wrap{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:54px 0 14px;}
+.boot-os{font-weight:800;font-size:14px;letter-spacing:.14em;color:var(--accent);text-transform:uppercase;}
+.boot-log{flex:1;padding:14px 22px;font-size:13px;line-height:1.95;color:color-mix(in srgb,var(--text) 82%, var(--accent));}
+.boot-log .hd{color:var(--accent);font-weight:800;letter-spacing:.08em;margin-bottom:6px;opacity:.85;}
+.tline{white-space:nowrap;overflow:hidden;width:0;animation:type .34s steps(26,end) var(--d,0s) both;}
+@keyframes type{to{width:100%;}}
+.ok{color:var(--success);font-weight:700;}
+.ready{color:var(--accent);font-size:26px;font-weight:800;margin-top:12px;opacity:0;
+  font-family:'Bangers',cursive;letter-spacing:1px;animation:gIn .5s steps(1,end) both;}
+.cur{animation:blink .6s steps(1,end) infinite;}
+@keyframes blink{50%{opacity:0;}}
+@keyframes gIn{0%{opacity:0;}8%{opacity:1;filter:brightness(1.9) drop-shadow(5px 0 0 rgba(255,48,48,.9)) drop-shadow(-5px 0 0 rgba(0,216,255,.9));transform:translateX(-4px) skewX(-8deg);}16%{filter:brightness(2.1) drop-shadow(-6px 0 0 rgba(255,48,48,.75)) drop-shadow(6px 0 0 rgba(0,216,255,.75));transform:translateX(3px) skewX(5deg);}24%{filter:none;transform:none;}55%{filter:brightness(1.6) drop-shadow(4px 0 0 rgba(0,216,255,.85));transform:translateX(-2px);}60%,100%{filter:none;transform:none;opacity:1;}}
+
+/* ===================== ACCOUNTS OVERVIEW ===================== */
+.acc-hero{padding:30px 20px 18px;display:flex;flex-direction:column;gap:14px;
+  background:linear-gradient(170deg, color-mix(in srgb,var(--accent) 18%, var(--surface)), var(--surface) 70%);}
+.acc-hero-row{display:flex;align-items:center;gap:14px;}
+.acc-hero h2{font-size:23px;font-weight:800;letter-spacing:-.02em;}
+.acc-hero .accts{color:var(--muted);font-size:13px;font-weight:600;margin-top:3px;}
+.acc-hero-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.ver{font-size:12px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px;}
+.ver .dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success);}
+.upd{border:1px solid var(--border);background:color-mix(in srgb,var(--surface) 60%,transparent);color:var(--text);
+  font-family:inherit;font-weight:700;font-size:11.5px;padding:7px 12px;border-radius:999px;}
+.nw{margin:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:18px;}
+.nw-label{font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;}
+.nw-val{font-size:36px;font-weight:800;letter-spacing:-.025em;margin-top:4px;line-height:1;}
+.meter{height:12px;border-radius:999px;background:var(--surface);overflow:hidden;display:flex;margin-top:16px;border:1px solid var(--border);}
+.meter .seg-a{background:var(--success);} .meter .seg-d{background:var(--danger);}
+.legend{display:flex;justify-content:space-between;margin-top:11px;font-size:12px;font-weight:700;}
+.legend .a{color:var(--success);} .legend .d{color:var(--danger);}
+.group{margin:0 16px;}
+.group-head{display:flex;align-items:center;justify-content:space-between;padding:14px 4px 8px;}
+.group-head .gname{font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.group-head .gsub{font-size:13px;font-weight:700;color:var(--text);}
+.row{display:flex;align-items:center;gap:12px;padding:12px 4px;}
+.row:not(:last-child){border-bottom:1px solid var(--border);}
+.chip{width:40px;height:40px;border-radius:12px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,transparent);}
+.chip svg{width:21px;height:21px;}
+.row .info{flex:1;min-width:0;}
+.row .nm{font-size:15px;font-weight:700;letter-spacing:-.01em;}
+.row .ty{font-size:12px;font-weight:500;color:var(--muted);margin-top:1px;}
+.row .bal{font-size:15px;font-weight:700;white-space:nowrap;}
+.row .bal.owe{color:var(--danger);}
+.row .chev{color:var(--muted);opacity:.5;font-size:18px;margin-left:2px;}
+.foot{padding:14px 16px 20px;border-top:1px solid var(--border);background:var(--bg);}
+.cta{width:100%;border:0;cursor:pointer;font-family:inherit;font-weight:800;font-size:15px;color:#fff;
+  background:var(--accent);padding:15px;border-radius:16px;box-shadow:0 8px 22px -8px color-mix(in srgb,var(--accent) 80%,transparent);}
+
+/* ===================== DASHBOARD ===================== */
+.dash-pad{padding:34px 16px 26px;}
+.dash-hero{position:relative;display:flex;align-items:center;gap:12px;overflow:hidden;border-radius:18px;
+  padding:14px 16px;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);min-height:96px;}
+.dash-hero .atmo{position:absolute;inset:0;pointer-events:none;font-family:'Bangers',cursive;color:var(--accent);
+  opacity:.07;font-size:74px;line-height:1;white-space:nowrap;z-index:0;display:flex;align-items:center;letter-spacing:8px;padding-left:10px;}
+.dash-hero > *{position:relative;z-index:1;}
+.tag-line{font-family:'Bangers',cursive;font-size:30px;line-height:.9;letter-spacing:1px;color:var(--accent);}
+.dash-hero .subt{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-top:3px;}
+.balance{margin-bottom:14px;}
+.balance .lbl{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);}
+.balance .amt{font-size:32px;font-weight:800;letter-spacing:-1px;margin-top:2px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.tile{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:15px;position:relative;overflow:hidden;}
+.tile.full{grid-column:1 / -1;}
+.t-lbl{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);}
+.ring-tile{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding-top:16px;padding-bottom:14px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 12%,var(--card)),var(--card));
+  border-color:color-mix(in srgb,var(--accent) 22%,var(--border));}
+.ring-name{font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);}
+.ring{position:relative;width:96px;height:96px;}
+.ring svg{transform:rotate(-90deg);}
+.ring-amt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ring-amt b{font-size:19px;font-weight:800;letter-spacing:-.5px;}
+.ring-amt span{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;}
+.cap{font-size:12px;color:var(--muted);font-weight:600;}
+.meter2 .big{font-size:25px;font-weight:800;letter-spacing:-.8px;margin:8px 0 10px;}
+.meter2 .big small{font-size:14px;color:var(--muted);font-weight:600;}
+.bar{height:10px;border-radius:999px;background:var(--ring-track);overflow:hidden;}
+.bar>i{display:block;height:100%;border-radius:999px;background:var(--accent);}
+.pace{font-size:12px;font-weight:700;color:var(--success);margin-top:9px;}
+.cat{display:flex;align-items:center;gap:10px;margin-top:12px;}
+.cat:first-of-type{margin-top:13px;}
+.cat .cdot{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.cat .nm2{font-size:13px;font-weight:700;width:64px;}
+.cat .cbar{flex:1;height:7px;border-radius:999px;background:var(--ring-track);overflow:hidden;}
+.cat .cbar>i{display:block;height:100%;border-radius:999px;}
+.cat .camt{font-size:13px;font-weight:700;width:46px;text-align:right;}
+.cat .cpct{font-size:11px;color:var(--muted);font-weight:700;width:30px;text-align:right;}
+.bill{display:flex;align-items:center;gap:10px;margin-top:12px;}
+.bill:first-of-type{margin-top:13px;}
+.bill .bnm{font-size:13px;font-weight:700;flex:1;}
+.bill .bchip{font-size:10px;font-weight:800;text-transform:uppercase;padding:3px 8px;border-radius:7px;background:var(--surface2);color:var(--muted);}
+.bill .bchip.soon{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn);}
+.bill .bamt{font-size:13px;font-weight:800;width:56px;text-align:right;}
+.bills-total{display:flex;justify-content:space-between;align-items:center;margin-top:13px;padding-top:11px;border-top:1px solid var(--border);}
+.bills-total span{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);}
+.bills-total b{font-size:16px;font-weight:800;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Pokémon themes — full screen replicas</h1>
+  <p class="sub">All three themes shown live at once. The mascot loops its signature move on the splash and dashboard — Gengar phases in and out of the shadows, Charizard breathes a flame plume, Squirtle fires a water-gun arc. Palette, sprite, and copy all reskin per theme; every non-Pokémon theme keeps the usual Doberman + glitch.</p>
+</header>
+
+<div id="root"></div>
+
+<script>
+var THEMES=[
+  {key:'gengar', name:'Gengar', spr:'./poke-gengar.gif',
+   vars:{'--bg':'#14101c','--surface':'#1c1726','--card':'#241d31','--surface2':'#2a2236',
+     '--accent':'#b388ff','--accent2':'#7c5fd6','--text':'#f0ecf7','--muted':'#9a8fb0','--border':'rgba(179,136,255,.18)'},
+   os:'GENGAR OS · GHOST BIOS', move:'phases in & out of the shadows',
+   boot:['phasing into accounts','draining balances','summoning ledger','cloaking weekly plan'],
+   accTitle:"Gengar's Accounts", tag:'FEAR THE LEDGER', subt:'Week 23 · no hiding'},
+  {key:'charizard', name:'Charizard', spr:'./poke-charizard.gif',
+   vars:{'--bg':'#160f0c','--surface':'#221712','--card':'#2c1d15','--surface2':'#33241b',
+     '--accent':'#ff7a3c','--accent2':'#ffb14d','--text':'#f8efe8','--muted':'#b29a8c','--border':'rgba(255,122,60,.18)'},
+   os:'CHARIZARD OS · FLAME BIOS', move:'breathes a flamethrower plume',
+   boot:['igniting accounts','torching balances','loading ledger','scorching weekly plan'],
+   accTitle:"Charizard's Accounts", tag:'BURN THE DEBT', subt:'Week 23 · scorched earth'},
+  {key:'squirtle', name:'Squirtle', spr:'./poke-squirtle.gif',
+   vars:{'--bg':'#0b1117','--surface':'#121d25','--card':'#16242e','--surface2':'#1b2c37',
+     '--accent':'#46a6ec','--accent2':'#76d6e0','--text':'#e9f3f8','--muted':'#8aa4b1','--border':'rgba(70,166,236,.18)'},
+   os:'SQUIRTLE OS · AQUA BIOS', move:'fires a water-gun arc',
+   boot:['filling accounts','rinsing balances','streaming ledger','flooding weekly plan'],
+   accTitle:"Squirtle's Accounts", tag:'DROWN YOUR DEBT', subt:'Week 23 · no escape'}
+];
+var ATMO='$ $$ $ $$$ $ $$';
+
+function fxLayer(t){
+  if(t.key==='gengar') return '<span class="aura"></span>';
+  if(t.key==='charizard'){
+    var f='',offs=[40,47,50,53,60],dl=[0,.22,.44,.12,.33];
+    for(var i=0;i<5;i++) f+='<i class="flame" style="left:'+offs[i]+'%;animation-delay:'+dl[i]+'s"></i>';
+    return '<span class="flames">'+f+'</span>';
+  }
+  var d='',dd=[0,.3,.6,.15,.45];
+  for(var j=0;j<5;j++) d+='<i class="drop" style="animation-delay:'+dd[j]+'s"></i>';
+  return '<span class="drops">'+d+'</span>';
+}
+function mascot(t,size,fx){
+  var img='<img class="m-img" src="'+t.spr+'" alt="">';
+  var extra=fx?fxLayer(t):'';
+  // Gengar aura sits behind the img; charizard/squirtle particles in front
+  var inner=(t.key==='gengar')?(extra+img):(img+extra);
+  return '<div class="mascot mascot-'+t.key+(fx?' fx':'')+'" style="--m:'+size+'px;width:'+size+'px;height:'+size+'px">'+inner+'</div>';
+}
+
+function splashHTML(t){
+  var lines=t.boot.map(function(l,i){return '<div class="tline" style="--d:'+(0.15+i*0.42)+'s">&gt; '+l+'……………… <span class="ok">ok</span></div>';}).join('');
+  var rd=0.15+t.boot.length*0.42+0.3;
+  return '<div class="phone"><div class="notch"></div><div class="screen"><div class="boot-screen">'+
+    '<div class="boot-spr-wrap">'+mascot(t,116,true)+'<div class="boot-os">'+t.os+'</div></div>'+
+    '<div class="boot-log mono"><div class="hd">BUDGET DAWGS v5.43.15</div>'+lines+
+    '<div class="ready" style="animation-delay:'+rd+'s">READY <span class="cur">▋</span></div></div>'+
+    '</div></div></div>';
+}
+function acctRow(svg,nm,ty,bal,owe,danger){
+  var chipStyle=danger?' style="color:var(--danger);background:color-mix(in srgb,var(--danger) 18%,transparent)"':'';
+  return '<div class="row"><div class="chip"'+chipStyle+'>'+svg+'</div>'+
+    '<div class="info"><div class="nm">'+nm+'</div><div class="ty">'+ty+'</div></div>'+
+    '<div class="bal'+(owe?' owe':'')+'">'+bal+'</div><span class="chev">›</span></div>';
+}
+function accountsHTML(t){
+  var sv={
+    chk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/></svg>',
+    sav:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6.5"/><path d="M12 9.5v5M10 12h4"/></svg>',
+    ira:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M6 19V9l6-4 6 4v10"/><path d="M10 19v-5h4v5"/></svg>',
+    k401:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16"/><path d="M8 15l3.5-4 3 2.5L20 7"/></svg>',
+    cc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19M6 15h4"/></svg>',
+    loan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-6 9 6"/><path d="M5 10v8h14v-8"/></svg>'
+  };
+  return '<div class="phone"><div class="notch"></div><div class="screen"><div class="scrollarea">'+
+    '<div class="acc-hero"><div class="acc-hero-row">'+mascot(t,62,false)+
+      '<div><h2>'+t.accTitle+'</h2><div class="accts">5 accounts · tap to open</div></div></div>'+
+      '<div class="acc-hero-foot"><div class="ver"><span class="dot"></span>v5.43.15 · up to date</div>'+
+      '<button class="upd">⟳ Check for update</button></div></div>'+
+    '<div class="nw"><div class="nw-label">Net Worth</div><div class="nw-val">$21,335</div>'+
+      '<div class="meter"><div class="seg-a" style="width:73.7%"></div><div class="seg-d" style="width:26.3%"></div></div>'+
+      '<div class="legend"><span class="a">$33,175 assets</span><span class="d">$11,840 debt</span></div></div>'+
+    '<div class="group"><div class="group-head"><span class="gname">Cash</span><span class="gsub">$4,775</span></div>'+
+      acctRow(sv.chk,'Main Checking','Checking','$3,200',false,false)+
+      acctRow(sv.sav,'Savings','Savings','$1,575',false,false)+'</div>'+
+    '<div class="group"><div class="group-head"><span class="gname">Investing</span><span class="gsub">$16,560</span></div>'+
+      acctRow(sv.ira,'Roth IRA','Investment','$8,400',false,false)+
+      acctRow(sv.k401,'401(k)','Investment','$8,160',false,false)+'</div>'+
+    '<div class="group"><div class="group-head"><span class="gname">Debt</span><span class="gsub" style="color:var(--danger)">−$11,840</span></div>'+
+      acctRow(sv.cc,'Visa','Credit Card','Owes $640',true,true)+
+      acctRow(sv.loan,'Car Loan','Loan','Owes $11,200',true,true)+'</div>'+
+    '</div><div class="foot"><button class="cta">+ Track a Transaction</button></div></div></div>';
+}
+function dashHTML(t){
+  return '<div class="phone"><div class="notch"></div><div class="screen"><div class="scrollarea"><div class="dash-pad">'+
+    '<div class="dash-hero"><div class="atmo">'+ATMO+'</div>'+mascot(t,66,true)+
+      '<div><div class="tag-line">'+t.tag+'</div><div class="subt">'+t.subt+'</div></div></div>'+
+    '<div class="balance"><div class="lbl">Available balance</div><div class="amt">$4,775</div></div>'+
+    '<div class="grid">'+
+      '<div class="tile ring-tile"><div class="ring-name">Per Week</div><div class="ring"><svg width="96" height="96" viewBox="0 0 104 104">'+
+        '<circle cx="52" cy="52" r="46" fill="none" stroke="var(--ring-track)" stroke-width="9"/>'+
+        '<circle cx="52" cy="52" r="46" fill="none" stroke="var(--accent)" stroke-width="9" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="58"/>'+
+        '</svg><div class="ring-amt"><b>$1,250</b><span>/ wk</span></div></div><div class="cap">$1,025 used</div></div>'+
+      '<div class="tile ring-tile"><div class="ring-name">Per Day</div><div class="ring"><svg width="96" height="96" viewBox="0 0 104 104">'+
+        '<circle cx="52" cy="52" r="46" fill="none" stroke="var(--ring-track)" stroke-width="9"/>'+
+        '<circle cx="52" cy="52" r="46" fill="none" stroke="var(--accent)" stroke-width="9" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="115"/>'+
+        '</svg><div class="ring-amt"><b>$208</b><span>left</span></div></div><div class="cap">$208 left today</div></div>'+
+      '<div class="tile full meter2"><div class="t-lbl">This week</div><div class="big">$225 <small>/ $1,250</small></div>'+
+        '<div class="bar"><i style="width:18%"></i></div><div class="pace">↑ $357 ahead of pace</div></div>'+
+      '<div class="tile full"><div class="t-lbl">Spending</div>'+
+        '<div class="cat"><span class="cdot" style="background:color-mix(in srgb,var(--accent) 22%,transparent)">🍔</span><span class="nm2">Food</span><span class="cbar"><i style="width:38%;background:var(--accent)"></i></span><span class="camt">$320</span><span class="cpct">38%</span></div>'+
+        '<div class="cat"><span class="cdot" style="background:color-mix(in srgb,var(--warn) 22%,transparent)">⛽</span><span class="nm2">Gas</span><span class="cbar"><i style="width:21%;background:var(--warn)"></i></span><span class="camt">$180</span><span class="cpct">21%</span></div>'+
+        '<div class="cat"><span class="cdot" style="background:color-mix(in srgb,var(--danger) 22%,transparent)">🛍️</span><span class="nm2">Shopping</span><span class="cbar"><i style="width:14%;background:var(--danger)"></i></span><span class="camt">$120</span><span class="cpct">14%</span></div></div>'+
+      '<div class="tile full"><div class="t-lbl">Upcoming bills</div>'+
+        '<div class="bill"><span class="bnm">Rent</span><span class="bchip soon">Jun 12</span><span class="bamt">$1,400</span></div>'+
+        '<div class="bill"><span class="bnm">Internet</span><span class="bchip">Jun 18</span><span class="bamt">$70</span></div>'+
+        '<div class="bill"><span class="bnm">Phone</span><span class="bchip">Jun 24</span><span class="bamt">$55</span></div>'+
+        '<div class="bills-total"><span>Total due</span><b>$1,525</b></div></div>'+
+    '</div></div></div></div></div>';
+}
+
+function sectionHTML(t){
+  var style=Object.keys(t.vars).map(function(k){return k+':'+t.vars[k];}).join(';');
+  var pillStyle='color:'+t.vars['--accent']+';background:color-mix(in srgb,'+t.vars['--accent']+' 16%,transparent);border:1px solid color-mix(in srgb,'+t.vars['--accent']+' 30%,transparent)';
+  return '<section class="theme-sec" style="'+style+'">'+
+    '<div class="sec-head"><span class="sec-spr"><img src="'+t.spr+'" alt=""></span>'+
+      '<span class="sec-name">'+t.name+'</span>'+
+      '<span class="sec-pill" style="'+pillStyle+'">'+t.move+'</span></div>'+
+    '<div class="deck">'+
+      '<div class="col"><span class="cap">Splash / boot</span>'+splashHTML(t)+'</div>'+
+      '<div class="col"><span class="cap">Accounts overview</span>'+accountsHTML(t)+'</div>'+
+      '<div class="col"><span class="cap">Dashboard</span>'+dashHTML(t)+'</div>'+
+    '</div></section>';
+}
+
+document.getElementById('root').innerHTML=THEMES.map(sectionHTML).join('');
+</script>
+</body>
+</html>
