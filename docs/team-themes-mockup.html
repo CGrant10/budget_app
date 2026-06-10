@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sports team themes — mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+<style>
+:root{--page:#0a0a0b;--pmuted:#8a8a92;--ptext:#f0f0f2;--pborder:rgba(255,255,255,.09);}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--page);color:var(--ptext);-webkit-font-smoothing:antialiased;padding:30px 20px 80px;}
+header{max-width:1280px;margin:0 auto 6px;}
+h1{font-size:29px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px;}
+.sub{color:var(--pmuted);font-size:14.5px;font-weight:500;max-width:780px;line-height:1.5;margin:0;}
+.note{color:var(--pmuted);font-size:12px;margin-top:8px;max-width:780px;line-height:1.5;opacity:.85;}
+
+.deck{max-width:1280px;margin:26px auto 0;display:flex;flex-wrap:wrap;gap:26px;justify-content:center;}
+.col{display:flex;flex-direction:column;align-items:center;gap:12px;width:280px;}
+.tag{align-self:stretch;}
+.tag .badge{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 11px;border-radius:8px;}
+.tag .desc{color:var(--pmuted);font-size:12px;line-height:1.4;margin-top:7px;}
+
+.phone{width:280px;border-radius:38px;background:#000;border:1px solid var(--border);overflow:hidden;position:relative;box-shadow:0 24px 60px -18px rgba(0,0,0,.8);}
+.notch{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:92px;height:22px;background:#000;border-radius:0 0 14px 14px;z-index:60;opacity:.9;}
+.screen{position:relative;height:580px;background:var(--bg);display:flex;flex-direction:column;}
+
+.hero{padding:44px 18px 18px;background:linear-gradient(165deg,color-mix(in srgb,var(--accent) 24%,var(--surface)),var(--surface) 72%);position:relative;overflow:hidden;}
+.hero .watermark{position:absolute;right:-30px;top:6px;width:150px;height:150px;opacity:.07;}
+.hero .watermark img{width:100%;height:100%;object-fit:contain;}
+.hero-row{display:flex;align-items:center;gap:14px;position:relative;z-index:1;}
+.crest{width:74px;height:74px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;position:relative;}
+.crest::before{content:"";position:absolute;inset:-6px;border-radius:50%;background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.1),transparent 68%);}
+.crest img{width:74px;height:74px;object-fit:contain;position:relative;z-index:1;filter:drop-shadow(0 3px 8px rgba(0,0,0,.5));}
+.crest.pix img{image-rendering:pixelated;}
+.league{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+.team{font-size:16px;font-weight:800;letter-spacing:-.01em;color:var(--text);line-height:1.05;margin-top:2px;}
+.slogan{font-family:'Bangers',cursive;font-size:30px;letter-spacing:1.5px;color:var(--accent);margin-top:14px;line-height:.95;position:relative;z-index:1;text-shadow:0 2px 0 rgba(0,0,0,.25);}
+
+.body{padding:18px 18px 0;flex:1;}
+.bal .l{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+.bal .v{font-size:32px;font-weight:800;letter-spacing:-.02em;margin-top:3px;color:var(--text);}
+.chg{font-size:12px;font-weight:700;color:var(--accent);margin-top:2px;}
+.bars{margin-top:20px;display:flex;flex-direction:column;gap:13px;}
+.barrow{display:flex;align-items:center;gap:10px;}
+.barrow .nm{font-size:12px;font-weight:700;color:var(--text);width:62px;}
+.barrow .tk{flex:1;height:8px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;}
+.barrow .tk i{display:block;height:100%;border-radius:6px;background:var(--accent);}
+.barrow .pc{font-size:11px;font-weight:700;color:var(--muted);width:34px;text-align:right;}
+
+.nav{display:flex;align-items:center;justify-content:space-around;padding:12px 14px 20px;border-top:1px solid var(--border);background:color-mix(in srgb,var(--surface) 70%,transparent);}
+.nav .t{width:30px;height:30px;color:var(--muted);}
+.nav .t svg{width:24px;height:24px;}
+.nav .t.on{color:var(--accent);}
+.nav .center{width:48px;height:48px;border-radius:50%;background:var(--surface);border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.nav .center img{width:38px;height:38px;object-fit:contain;}
+.nav .center.pix img{image-rendering:pixelated;}
+.foot{padding:0 18px 14px;font-size:11px;font-weight:600;color:var(--muted);text-align:center;opacity:.8;font-style:italic;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Sports team themes — mockup</h1>
+  <p class="sub">Your four teams as full app themes — real team colors + logo as the mascot (hero banner and nav center), with the club slogan as the hero tagline. The Gengar tile sits alongside so you can compare the Gen-5 pixel sprite against the smooth team logos.</p>
+  <p class="note">Logos are trademarks of their teams/leagues — totally fine for a personal theme on your own app; just keep them out of anything you'd distribute. Team logos are static (no idle animation like the Pokémon sprites).</p>
+</header>
+
+<div class="deck" id="deck"></div>
+
+<script>
+var THEMES=[
+  {key:'bears', league:'NFL', team:'Chicago Bears', logo:'./team-bears.png', dot:'#c83803', slogan:'BEAR DOWN', foot:'Bear Down, Chicago',
+   vars:{'--bg':'#0b162a','--surface':'#11203c','--card':'#16284a','--accent':'#e35a23','--text':'#f3f4f6','--muted':'#8b97ad','--border':'rgba(227,90,35,.26)'}},
+  {key:'dodgers', league:'MLB', team:'LA Dodgers', logo:'./team-dodgers.png', dot:'#2f7fd0', slogan:'THINK BLUE', foot:'It’s time for Dodger baseball',
+   vars:{'--bg':'#0a1c34','--surface':'#0e2748','--card':'#123158','--accent':'#3a86d6','--text':'#eef3f9','--muted':'#8ba0bd','--border':'rgba(58,134,214,.28)'}},
+  {key:'knights', league:'NHL', team:'Vegas Golden Knights', logo:'./team-knights.png', dot:'#b4975a', slogan:'VEGAS BORN', foot:'Knights of the realm',
+   vars:{'--bg':'#16191b','--surface':'#20262a','--card':'#272f33','--accent':'#c1a463','--text':'#f1f3f4','--muted':'#99a1a6','--border':'rgba(193,164,99,.3)'}},
+  {key:'celtics', league:'NBA', team:'Boston Celtics', logo:'./team-celtics.png', dot:'#1aa05a', slogan:'DIFFERENT HERE', foot:'Banner 18',
+   vars:{'--bg':'#07150d','--surface':'#0c2014','--card':'#0f2a19','--accent':'#21b066','--text':'#eef3ee','--muted':'#87a492','--border':'rgba(33,176,102,.28)'}},
+  {key:'gengar', league:'Pokémon · Gen 5', team:'Gengar', logo:'./poke-gengar.gif', dot:'#b388ff', slogan:'GHOST TYPE', foot:'it hides in your shadow', pix:true,
+   vars:{'--bg':'#100c18','--surface':'#1c1726','--card':'#241d31','--accent':'#b388ff','--text':'#f0ecf7','--muted':'#9a8fb0','--border':'rgba(179,136,255,.22)'}}
+];
+
+var ICONS={
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>',
+  chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
+  list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M8 13h8M8 17h5"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82z"/></svg>'
+};
+
+function phone(m){
+  var style=Object.keys(m.vars).map(function(k){return k+':'+m.vars[k];}).join(';');
+  var pix=m.pix?' pix':'';
+  return '<div class="col">'+
+    '<div class="tag"><span class="badge" style="color:'+m.dot+';background:color-mix(in srgb,'+m.dot+' 14%,transparent);border:1px solid color-mix(in srgb,'+m.dot+' 32%,transparent)">'+m.league+'</span></div>'+
+    '<div class="phone" style="'+style+'"><div class="notch"></div>'+
+      '<div class="screen">'+
+        '<div class="hero"><div class="watermark"><img src="'+m.logo+'" alt=""></div>'+
+          '<div class="hero-row"><div class="crest'+pix+'"><img src="'+m.logo+'" alt=""></div>'+
+            '<div><div class="league">'+m.league+'</div><div class="team">'+m.team+'</div></div></div>'+
+          '<div class="slogan">'+m.slogan+'</div>'+
+        '</div>'+
+        '<div class="body">'+
+          '<div class="bal"><div class="l">Total balance</div><div class="v">$4,820</div><div class="chg">▲ $312 this week</div></div>'+
+          '<div class="bars">'+
+            '<div class="barrow"><span class="nm">Food</span><span class="tk"><i style="width:72%"></i></span><span class="pc">72%</span></div>'+
+            '<div class="barrow"><span class="nm">Bills</span><span class="tk"><i style="width:48%"></i></span><span class="pc">48%</span></div>'+
+            '<div class="barrow"><span class="nm">Fun</span><span class="tk"><i style="width:33%"></i></span><span class="pc">33%</span></div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="foot">'+m.foot+'</div>'+
+        '<div class="nav"><span class="t on">'+ICONS.home+'</span><span class="t">'+ICONS.chart+'</span>'+
+          '<span class="center'+pix+'"><img src="'+m.logo+'" alt=""></span>'+
+          '<span class="t">'+ICONS.list+'</span><span class="t">'+ICONS.gear+'</span></div>'+
+      '</div>'+
+    '</div></div>';
+}
+document.getElementById('deck').innerHTML=THEMES.map(phone).join('');
+</script>
+</body>
+</html>
