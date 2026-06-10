@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.16';
+const VERSION = '5.43.17';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.17', date: '2026-06-10', changes: [
+    'Center nav button (the mascot) is now vertically centered in the bottom bar instead of sitting raised above it; its glow shadow was adjusted to match',
+  ]},
   { version: '5.43.16', date: '2026-06-10', changes: [
     'New Pokémon theme mode — a 4th tab in Settings > Theme (beside Dark/Light/Terminal) with three starters: Gengar (shadow purple), Charizard (flame orange), and Squirtle (wave blue). Each swaps the whole palette, replaces the Doberman mascot with the Pokémon\'s animated sprite (splash, nav, dashboard, accounts, about), retheme the splash tagline, and changes the dashboard hero line (DEBT DIES IN THE DARK / REDUCE IT TO ASH / WASH AWAY YOUR DEBT). Picking a Pokémon turns off the Doberman bark + RGB-glitch effects; every other theme keeps them exactly as before',
   ]},
