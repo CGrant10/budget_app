@@ -190,21 +190,21 @@ var THEMES=[
   {key:'gengar', name:'Gengar', spr:'./poke-gengar.gif',
    vars:{'--bg':'#14101c','--surface':'#1c1726','--card':'#241d31','--surface2':'#2a2236',
      '--accent':'#b388ff','--accent2':'#7c5fd6','--text':'#f0ecf7','--muted':'#9a8fb0','--border':'rgba(179,136,255,.18)'},
-   os:'GENGAR OS · GHOST BIOS', move:'phases in & out of the shadows',
+   os:'GENGAR OS · GHOST BIOS', move:'Ghost · shadow purple',
    boot:['phasing into accounts','draining balances','summoning ledger','cloaking weekly plan'],
-   accTitle:"Gengar's Accounts", tag:'FEAR THE LEDGER', subt:'Week 23 · no hiding'},
+   accTitle:"Gengar's Accounts", tag:'DEBT DIES IN THE DARK', subt:'Week 23 · no hiding'},
   {key:'charizard', name:'Charizard', spr:'./poke-charizard.gif',
    vars:{'--bg':'#160f0c','--surface':'#221712','--card':'#2c1d15','--surface2':'#33241b',
      '--accent':'#ff7a3c','--accent2':'#ffb14d','--text':'#f8efe8','--muted':'#b29a8c','--border':'rgba(255,122,60,.18)'},
-   os:'CHARIZARD OS · FLAME BIOS', move:'breathes a flamethrower plume',
+   os:'CHARIZARD OS · FLAME BIOS', move:'Fire · flame orange',
    boot:['igniting accounts','torching balances','loading ledger','scorching weekly plan'],
-   accTitle:"Charizard's Accounts", tag:'BURN THE DEBT', subt:'Week 23 · scorched earth'},
+   accTitle:"Charizard's Accounts", tag:'REDUCE IT TO ASH', subt:'Week 23 · scorched earth'},
   {key:'squirtle', name:'Squirtle', spr:'./poke-squirtle.gif',
    vars:{'--bg':'#0b1117','--surface':'#121d25','--card':'#16242e','--surface2':'#1b2c37',
      '--accent':'#46a6ec','--accent2':'#76d6e0','--text':'#e9f3f8','--muted':'#8aa4b1','--border':'rgba(70,166,236,.18)'},
-   os:'SQUIRTLE OS · AQUA BIOS', move:'fires a water-gun arc',
+   os:'SQUIRTLE OS · AQUA BIOS', move:'Water · wave blue',
    boot:['filling accounts','rinsing balances','streaming ledger','flooding weekly plan'],
-   accTitle:"Squirtle's Accounts", tag:'DROWN YOUR DEBT', subt:'Week 23 · no escape'}
+   accTitle:"Squirtle's Accounts", tag:'WASH AWAY DEBT', subt:'Week 23 · no escape'}
 ];
 var ATMO='$ $$ $ $$$ $ $$';
 
@@ -221,10 +221,7 @@ function fxLayer(t){
 }
 function mascot(t,size,fx){
   var img='<img class="m-img" src="'+t.spr+'" alt="">';
-  var extra=fx?fxLayer(t):'';
-  // Gengar aura sits behind the img; charizard/squirtle particles in front
-  var inner=(t.key==='gengar')?(extra+img):(img+extra);
-  return '<div class="mascot mascot-'+t.key+(fx?' fx':'')+'" style="--m:'+size+'px;width:'+size+'px;height:'+size+'px">'+inner+'</div>';
+  return '<div class="mascot mascot-'+t.key+'" style="--m:'+size+'px;width:'+size+'px;height:'+size+'px">'+img+'</div>';
 }
 
 function splashHTML(t){
@@ -272,7 +269,7 @@ function accountsHTML(t){
 }
 function dashHTML(t){
   return '<div class="phone"><div class="notch"></div><div class="screen"><div class="scrollarea"><div class="dash-pad">'+
-    '<div class="dash-hero"><div class="atmo">'+ATMO+'</div>'+mascot(t,66,true)+
+    '<div class="dash-hero">'+mascot(t,66,true)+
       '<div><div class="tag-line">'+t.tag+'</div><div class="subt">'+t.subt+'</div></div></div>'+
     '<div class="balance"><div class="lbl">Available balance</div><div class="amt">$4,775</div></div>'+
     '<div class="grid">'+
