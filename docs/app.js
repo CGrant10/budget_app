@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.19';
+const VERSION = '5.43.20';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.20', date: '2026-06-10', changes: [
+    'The RGB-split glitch now recolors to match each theme instead of always being red/cyan. Pokémon and team themes keep the full glitch identity in their own colors — Gengar purple/magenta, Charizard orange/gold, Squirtle blue/aqua, Bears orange/blue, Dodgers blue/red, Knights gold/red, Celtics green/gold. The classic red/cyan stays for the default and terminal themes',
+    'Pokémon eerie FX tuned: the vignette is softer, and Charizard\'s embers / Squirtle\'s bubbles now drift up at random positions and speeds (instead of an even row) — and sit behind the cards as background ambiance',
+  ]},
   { version: '5.43.19', date: '2026-06-10', changes: [
     'New Sports Teams theme mode — a 5th tab in Settings > Theme with Chicago Bears, LA Dodgers, Vegas Golden Knights, and Boston Celtics. Each swaps the mascot to the team logo with the team colors and slogan (BEAR DOWN / THINK BLUE / VEGAS BORN / DIFFERENT HERE)',
     'Pokémon themes now have an eerie ambient effect: Gengar darkens with a shadow vignette, Charizard drifts embers, Squirtle floats bubbles up from the deep',
@@ -1547,6 +1551,7 @@ const THEMES = {
     bg:'#14101c', surface:'#1c1726', surface2:'#2a2236', card:'#241d31',
     text:'#f0ecf7', muted:'#9a8fb0', border:'rgba(179,136,255,.18)',
     accent:'#b388ff', accent2:'#7c5fd6', success:'#43c98a', warn:'#e0c14a', danger:'#ff6b6b',
+    gl1:'rgba(179,136,255,.95)', gl2:'rgba(236,90,210,.85)',
     grad:'linear-gradient(135deg, #2a2236 0%, #b388ff 100%)', font:'default',
     cats:{ Food:'#b388ff', Gas:'#ff6b6b', Car:'#7c8cff', Boat:'#5fd6c0', Tools:'#d9a520', Home:'#9a7cff', Entertainment:'#e07cd0', Health:'#5fb6e0', Other:'#9a8fb0' },
   },
@@ -1556,6 +1561,7 @@ const THEMES = {
     bg:'#160f0c', surface:'#221712', surface2:'#33241b', card:'#2c1d15',
     text:'#f8efe8', muted:'#b29a8c', border:'rgba(255,122,60,.18)',
     accent:'#ff7a3c', accent2:'#ffb14d', success:'#5ec98a', warn:'#ffb14d', danger:'#ff5a3c',
+    gl1:'rgba(255,90,40,.95)', gl2:'rgba(255,200,70,.85)',
     grad:'linear-gradient(135deg, #33241b 0%, #ff7a3c 100%)', font:'default',
     cats:{ Food:'#ffb14d', Gas:'#ff5a3c', Car:'#ff7a3c', Boat:'#5fc0d6', Tools:'#e0a020', Home:'#ff9a52', Entertainment:'#e07cd0', Health:'#5fb6e0', Other:'#b29a8c' },
   },
@@ -1565,6 +1571,7 @@ const THEMES = {
     bg:'#0b1117', surface:'#121d25', surface2:'#1b2c37', card:'#16242e',
     text:'#e9f3f8', muted:'#8aa4b1', border:'rgba(70,166,236,.18)',
     accent:'#46a6ec', accent2:'#76d6e0', success:'#43c98a', warn:'#e0c14a', danger:'#ff6b6b',
+    gl1:'rgba(70,166,236,.95)', gl2:'rgba(120,235,235,.85)',
     grad:'linear-gradient(135deg, #1b2c37 0%, #46a6ec 100%)', font:'default',
     cats:{ Food:'#46a6ec', Gas:'#ff6b6b', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#e0a020', Home:'#52c0a0', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#8aa4b1' },
   },
@@ -1575,6 +1582,7 @@ const THEMES = {
     bg:'#0b162a', surface:'#11203c', surface2:'#16284a', card:'#16284a',
     text:'#f3f4f6', muted:'#8b97ad', border:'rgba(227,90,35,.26)',
     accent:'#e35a23', accent2:'#0b162a', success:'#43c98a', warn:'#e0a14a', danger:'#ff6b6b',
+    gl1:'rgba(227,90,35,.95)', gl2:'rgba(95,150,235,.85)',
     grad:'linear-gradient(135deg, #11203c 0%, #e35a23 100%)', font:'default',
     cats:{ Food:'#e35a23', Gas:'#ff6b6b', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#e0a020', Home:'#e8852a', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#8b97ad' },
   },
@@ -1584,6 +1592,7 @@ const THEMES = {
     bg:'#0a1c34', surface:'#0e2748', surface2:'#123158', card:'#123158',
     text:'#eef3f9', muted:'#8ba0bd', border:'rgba(58,134,214,.28)',
     accent:'#3a86d6', accent2:'#ef3e42', success:'#43c98a', warn:'#e0c14a', danger:'#ef3e42',
+    gl1:'rgba(58,134,214,.95)', gl2:'rgba(239,62,66,.85)',
     grad:'linear-gradient(135deg, #0e2748 0%, #3a86d6 100%)', font:'default',
     cats:{ Food:'#3a86d6', Gas:'#ef3e42', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#e0a020', Home:'#52a0d6', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#8ba0bd' },
   },
@@ -1593,6 +1602,7 @@ const THEMES = {
     bg:'#16191b', surface:'#20262a', surface2:'#272f33', card:'#272f33',
     text:'#f1f3f4', muted:'#99a1a6', border:'rgba(193,164,99,.3)',
     accent:'#c1a463', accent2:'#c8102e', success:'#43c98a', warn:'#c1a463', danger:'#c8102e',
+    gl1:'rgba(193,164,99,.98)', gl2:'rgba(200,16,46,.85)',
     grad:'linear-gradient(135deg, #20262a 0%, #c1a463 100%)', font:'default',
     cats:{ Food:'#c1a463', Gas:'#c8102e', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#d8b66a', Home:'#a0894f', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#99a1a6' },
   },
@@ -1602,6 +1612,7 @@ const THEMES = {
     bg:'#07150d', surface:'#0c2014', surface2:'#0f2a19', card:'#0f2a19',
     text:'#eef3ee', muted:'#87a492', border:'rgba(33,176,102,.28)',
     accent:'#21b066', accent2:'#ba9653', success:'#21b066', warn:'#ba9653', danger:'#ff6b6b',
+    gl1:'rgba(33,176,102,.95)', gl2:'rgba(186,150,83,.85)',
     grad:'linear-gradient(135deg, #0c2014 0%, #21b066 100%)', font:'default',
     cats:{ Food:'#21b066', Gas:'#ff6b6b', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#ba9653', Home:'#2bbf74', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#87a492' },
   },
@@ -1813,7 +1824,7 @@ function _txnFlavor(isExpense, isTransfer, isPaycheck) {
   if (t.pokemon && POKE[theme]) {
     const p = POKE[theme][k];
     return { title:`${theme}:~$`, prompt:'&gt;', cmt:'//', ok:'',
-      l1:p[0], l2:p[1], headline:p[2], calm:(theme !== 'gengar'), cmtMemo:true,
+      l1:p[0], l2:p[1], headline:p[2], calm:false, cmtMemo:true,
       sprite: t.mascot ? `<img class="txn-term-spr" src="${t.mascot}" alt="">` : '' };
   }
 
@@ -2380,10 +2391,17 @@ function _applyThemeFx(theme) {
   fx.id = 'poke-fx';
   fx.setAttribute('aria-hidden', 'true');
   let inner = '<div class="pf-vig"></div>';
-  if (theme === 'charizard') {
-    for (let i = 0; i < 7; i++) inner += `<i class="pf-ember" style="left:${8 + i * 13}%;animation-delay:${(i * 0.8).toFixed(1)}s"></i>`;
-  } else if (theme === 'squirtle') {
-    for (let i = 0; i < 7; i++) inner += `<i class="pf-bubble" style="left:${10 + i * 12}%;width:${6 + (i % 3) * 2}px;height:${6 + (i % 3) * 2}px;animation-delay:${(i * 1.1).toFixed(1)}s"></i>`;
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  if (theme === 'charizard' || theme === 'squirtle') {
+    const cls = theme === 'charizard' ? 'pf-ember' : 'pf-bubble';
+    for (let i = 0; i < 9; i++) {
+      const left  = rnd(4, 94).toFixed(1);
+      const dur   = rnd(5, 9).toFixed(1);
+      const delay = rnd(0, dur).toFixed(1);           // negative → already mid-flight, desynced
+      const dx    = Math.round(rnd(-26, 26));
+      const sz    = (theme === 'charizard' ? rnd(3, 6) : rnd(5, 11)).toFixed(1);
+      inner += `<i class="${cls}" style="left:${left}%;width:${sz}px;height:${sz}px;--dx:${dx}px;animation-duration:${dur}s;animation-delay:-${delay}s"></i>`;
+    }
   }
   fx.innerHTML = inner;
   document.body.appendChild(fx);
@@ -2409,6 +2427,9 @@ function applyTheme(theme) {
   root.style.setProperty('--text',     t.text);
   root.style.setProperty('--muted',    t.muted);
   root.style.setProperty('--border',   t.border);
+  // RGB-split glitch colors — theme-specific, fall back to the classic red/cyan
+  root.style.setProperty('--gl-1', t.gl1 || 'rgba(255,48,48,.9)');
+  root.style.setProperty('--gl-2', t.gl2 || 'rgba(0,216,255,.9)');
   document.body.classList.toggle('light', !!t.light);
   // Terminal theme body classes — used for code-syntax styled titles in CSS
   document.body.classList.remove('theme-vscode', 'theme-powershell', 'theme-cmd', 'theme-kali', 'theme-mintlinux', 'theme-ubuntu');
