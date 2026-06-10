@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokémon themes — subtle eerie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--page:#0a0a0b;--pmuted:#8a8a92;--ptext:#f0f0f2;--pborder:rgba(255,255,255,.09);}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--page);color:var(--ptext);-webkit-font-smoothing:antialiased;padding:30px 20px 80px;}
+header{max-width:1200px;margin:0 auto 10px;}
+h1{font-size:29px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px;}
+.sub{color:var(--pmuted);font-size:14.5px;font-weight:500;max-width:760px;line-height:1.5;margin:0;}
+
+.deck{max-width:1200px;margin:26px auto 0;display:flex;flex-wrap:wrap;gap:30px;justify-content:center;}
+.col{display:flex;flex-direction:column;align-items:center;gap:12px;width:300px;}
+.tag{align-self:stretch;}
+.tag .badge{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:5px 11px;border-radius:8px;}
+.tag .desc{color:var(--pmuted);font-size:12.5px;line-height:1.45;margin-top:8px;}
+
+.phone{width:300px;border-radius:38px;background:#000;border:1px solid var(--border);overflow:hidden;position:relative;box-shadow:0 24px 60px -18px rgba(0,0,0,.8);}
+.notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:98px;height:23px;background:#000;border-radius:0 0 15px 15px;z-index:60;opacity:.9;}
+.screen{position:relative;height:600px;overflow:hidden;background:var(--bg);}
+
+.fx{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden;}
+.vig{position:absolute;inset:0;}
+
+.pad{position:relative;z-index:5;padding:48px 18px 18px;display:flex;flex-direction:column;height:100%;}
+.brand{font-size:10px;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);opacity:.8;}
+.mon{margin:8px 0 2px;display:flex;align-items:flex-end;gap:12px;}
+.mon .spr{width:86px;height:86px;flex:0 0 auto;position:relative;}
+.mon .spr img{width:86px;height:86px;object-fit:contain;image-rendering:pixelated;position:relative;z-index:1;}
+.scare{font-size:21px;font-weight:800;line-height:1.05;letter-spacing:.01em;color:var(--text);text-transform:uppercase;}
+.scare em{font-style:normal;color:var(--accent);text-shadow:0 0 16px color-mix(in srgb,var(--accent) 70%,transparent);}
+.bal{margin-top:20px;}
+.bal .l{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+.bal .v{font-size:34px;font-weight:800;letter-spacing:-.02em;margin-top:3px;color:var(--text);}
+.bars{margin-top:20px;display:flex;flex-direction:column;gap:13px;}
+.barrow{display:flex;align-items:center;gap:10px;}
+.barrow .nm{font-size:12px;font-weight:700;color:var(--text);width:62px;}
+.barrow .tk{flex:1;height:8px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;}
+.barrow .tk i{display:block;height:100%;border-radius:6px;background:var(--accent);}
+.barrow .pc{font-size:11px;font-weight:700;color:var(--muted);width:34px;text-align:right;}
+.foot{margin-top:auto;font-size:11.5px;font-weight:600;letter-spacing:.04em;color:var(--muted);opacity:.85;text-align:center;padding-top:14px;font-style:italic;}
+
+/* ========= GENGAR — hides in your shadow ========= */
+.e-gengar{--bg:#100c18;--surface:#1c1726;--card:#241d31;--accent:#b388ff;--text:#f0ecf7;--muted:#9a8fb0;--border:rgba(179,136,255,.2);}
+.e-gengar .vig{box-shadow:inset 0 0 110px 28px rgba(0,0,0,.82);}
+.e-gengar .aura{position:absolute;top:26px;left:42px;width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(179,136,255,.22),transparent 64%);filter:blur(10px);animation:gBreathe 5.5s ease-in-out infinite;}
+@keyframes gBreathe{0%,100%{opacity:.45;transform:scale(.95);}50%{opacity:.85;transform:scale(1.05);}}
+.e-gengar .mon .spr::after{content:"";position:absolute;left:6px;right:6px;bottom:-4px;height:14px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(120,80,180,.55),transparent 70%);filter:blur(3px);animation:gBreathe 5.5s ease-in-out infinite;}
+
+/* ========= CHARIZARD — smoldering embers ========= */
+.e-charizard{--bg:#140d09;--surface:#221712;--card:#2c1d15;--accent:#ff7a3c;--text:#f8efe8;--muted:#b29a8c;--border:rgba(255,122,60,.2);}
+.e-charizard .vig{box-shadow:inset 0 -70px 90px -20px rgba(180,60,10,.28),inset 0 0 100px 26px rgba(0,0,0,.8);}
+.e-charizard .glow{position:absolute;left:0;right:0;bottom:-30px;height:160px;
+  background:radial-gradient(60% 100% at 50% 100%,rgba(255,122,60,.3),transparent 70%);animation:cGlow 4.5s ease-in-out infinite;}
+@keyframes cGlow{0%,100%{opacity:.5;}50%{opacity:.9;}}
+.ember{position:absolute;bottom:14%;width:5px;height:5px;border-radius:50%;background:radial-gradient(circle,#ffd089,#ff7a3c 70%);opacity:0;filter:blur(.3px);animation:cRise 5s ease-in infinite;}
+@keyframes cRise{0%{opacity:0;transform:translateY(0) scale(1);}12%{opacity:.95;}100%{opacity:0;transform:translateY(-300px) scale(.3);}}
+
+/* ========= SQUIRTLE — the deep ========= */
+.e-squirtle{--bg:#080f15;--surface:#121d25;--card:#16242e;--accent:#46a6ec;--text:#e9f3f8;--muted:#8aa4b1;--border:rgba(70,166,236,.2);}
+.e-squirtle .vig{box-shadow:inset 0 70px 100px -30px rgba(20,80,130,.3),inset 0 0 110px 30px rgba(0,0,0,.82);}
+.e-squirtle .caustic{position:absolute;inset:0;opacity:.10;
+  background:radial-gradient(40% 30% at 30% 18%,rgba(150,210,240,.7),transparent 60%),radial-gradient(40% 28% at 72% 12%,rgba(120,200,240,.6),transparent 60%);
+  animation:sShimmer 9s ease-in-out infinite alternate;}
+@keyframes sShimmer{0%{transform:translateX(-10px);}100%{transform:translateX(10px);}}
+.bubble{position:absolute;bottom:-12px;border-radius:50%;border:1px solid rgba(150,210,240,.45);background:rgba(150,210,240,.07);opacity:0;animation:sBub 8s ease-in infinite;}
+@keyframes sBub{0%{opacity:0;transform:translateY(0) translateX(0);}14%{opacity:.7;}100%{opacity:0;transform:translateY(-560px) translateX(8px);}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Pokémon themes — subtle eerie</h1>
+  <p class="sub">A gentle, on-theme mood for each starter — not full horror. Each effect ties to the Pokémon itself: Gengar lurks in shadow, Charizard smolders, Squirtle waits in the deep. Numbers stay fully legible; it's all soft atmosphere you could dial up or down.</p>
+</header>
+
+<div class="deck" id="deck"></div>
+
+<script>
+var MONS=[
+  {key:'e-gengar', name:'Gengar', dot:'#b388ff', spr:'./poke-gengar.gif',
+   desc:'Lore tie-in: Gengar hides in your shadow. A dark vignette closes in and a soft purple aura breathes behind it, with a shadow pooling at its feet.',
+   layers:'<div class="aura"></div><div class="vig"></div>',
+   scare:'IT HIDES IN<br><em>YOUR SHADOW</em>', foot:'don’t look behind you'},
+  {key:'e-charizard', name:'Charizard', dot:'#ff7a3c', spr:'./poke-charizard.gif',
+   desc:'Lore tie-in: the flame that never goes out. A low firelight glow pulses from the bottom and faint embers drift up through the dark.',
+   layers:'<div class="glow"></div><div class="embers"></div><div class="vig"></div>',
+   scare:'THE EMBERS<br><em>NEVER DIE</em>', foot:'it’s still burning'},
+  {key:'e-squirtle', name:'Squirtle', dot:'#46a6ec', spr:'./poke-squirtle.gif',
+   desc:'Lore tie-in: stillness of the deep. Cold blue murk, a faint caustic shimmer up top, and slow bubbles rising from far below.',
+   layers:'<div class="caustic"></div><div class="bubbles"></div><div class="vig"></div>',
+   scare:'SOMETHING STIRS<br><em>IN THE DEEP</em>', foot:'the water is watching'}
+];
+
+function emberSpans(){
+  var L=[14,30,46,62,78], D=[0,1.4,2.6,0.7,3.4], out='';
+  for(var i=0;i<5;i++) out+='<i class="ember" style="left:'+L[i]+'%;animation-delay:'+D[i]+'s"></i>';
+  return out;
+}
+function bubbleSpans(){
+  var L=[18,34,52,68,84], S=[7,5,9,6,8], D=[0,2,4,1.2,5.2], out='';
+  for(var i=0;i<5;i++) out+='<i class="bubble" style="left:'+L[i]+'%;width:'+S[i]+'px;height:'+S[i]+'px;animation-delay:'+D[i]+'s"></i>';
+  return out;
+}
+function phone(m){
+  var layers=m.layers.replace('<div class="embers"></div>','<div class="embers">'+emberSpans()+'</div>')
+                      .replace('<div class="bubbles"></div>','<div class="bubbles">'+bubbleSpans()+'</div>');
+  return '<div class="col">'+
+    '<div class="tag"><span class="badge" style="color:'+m.dot+';background:color-mix(in srgb,'+m.dot+' 14%,transparent);border:1px solid color-mix(in srgb,'+m.dot+' 30%,transparent)">'+m.name+'</span>'+
+      '<div class="desc">'+m.desc+'</div></div>'+
+    '<div class="phone '+m.key+'"><div class="notch"></div>'+
+      '<div class="screen"><div class="fx">'+layers+'</div>'+
+        '<div class="pad">'+
+          '<div class="brand">Budget DAWGs</div>'+
+          '<div class="mon"><div class="spr"><img src="'+m.spr+'" alt=""></div></div>'+
+          '<div class="scare">'+m.scare+'</div>'+
+          '<div class="bal"><div class="l">Available balance</div><div class="v">$4,775</div></div>'+
+          '<div class="bars">'+
+            '<div class="barrow"><span class="nm">Food</span><span class="tk"><i style="width:72%"></i></span><span class="pc">72%</span></div>'+
+            '<div class="barrow"><span class="nm">Bills</span><span class="tk"><i style="width:48%"></i></span><span class="pc">48%</span></div>'+
+            '<div class="barrow"><span class="nm">Fun</span><span class="tk"><i style="width:33%"></i></span><span class="pc">33%</span></div>'+
+          '</div>'+
+          '<div class="foot">'+m.foot+'</div>'+
+        '</div>'+
+      '</div></div></div>';
+}
+document.getElementById('deck').innerHTML=MONS.map(phone).join('');
+</script>
+</body>
+</html>
