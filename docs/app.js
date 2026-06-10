@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.17';
+const VERSION = '5.43.18';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.18', date: '2026-06-10', changes: [
+    'Transaction animations now match your theme. Pokémon themes get eerie, on-theme flavor text (Gengar "the shadows stir… / it hides in your shadow", Charizard ember lines, Squirtle tide lines) with the mascot sprite in the terminal bar and no glitch — the amount fades in calmly. Terminal themes type their own shell/language syntax instead: VS Code Python (ledger.post), PowerShell (New-Expense/Add-Income/Move-Funds), CMD (post EXPENSE, :: comments), and Kali/Mint/Ubuntu bash (budget post --expense). Every other theme is unchanged',
+  ]},
   { version: '5.43.17', date: '2026-06-10', changes: [
     'Center nav button (the mascot) is now vertically centered in the bottom bar instead of sitting raised above it; its glow shadow was adjusted to match',
   ]},
@@ -1746,6 +1749,56 @@ function _showPaycheckToast(amount) {
   _showTxnAnim('income', amount, 'Paycheck');
 }
 
+// Per-theme flavor for the transaction "terminal boot" animation.
+// Pokémon themes → eerie on-theme lines (no glitch); terminal themes → that shell's syntax; everything else → default DAWG.
+function _txnFlavor(isExpense, isTransfer, isPaycheck) {
+  const theme = loadSettings().theme || 'dark';
+  const t = THEMES[theme] || {};
+  const k = isExpense ? 'expense' : isTransfer ? 'transfer' : 'income';
+
+  const POKE = {
+    gengar:{ expense:['the shadows stir…','draining your wallet…','it hides in your shadow'],
+             income:['a presence lingers…','tribute accepted…','the dark provides'],
+             transfer:['the shadows stir…','phasing funds across…','now you see it…'] },
+    charizard:{ expense:['embers wake…','scorching the ledger…','reduced to ash'],
+                income:['the flame is fed…','fuel secured…','the fire grows'],
+                transfer:['embers wake…','carrying the flame…','spreading the burn'] },
+    squirtle:{ expense:['the tide turns…','washing it away…','swallowed by the deep'],
+               income:['the current returns…','the well fills…','the tide brings plenty'],
+               transfer:['the tide turns…','redirecting the current…','it flows elsewhere'] }
+  };
+  if (t.pokemon && POKE[theme]) {
+    const p = POKE[theme][k];
+    return { title:`${theme}:~$`, prompt:'&gt;', cmt:'//', ok:'',
+      l1:p[0], l2:p[1], headline:p[2], calm:true, cmtMemo:true,
+      sprite: t.mascot ? `<img class="txn-term-spr" src="${t.mascot}" alt="">` : '' };
+  }
+
+  const TERM = {
+    vscode:    { title:'budget.py',           prompt:'&gt;&gt;&gt;', cmt:'#',  lang:'py' },
+    powershell:{ title:'PS budgetdawgs&gt;',  prompt:'PS&gt;',        cmt:'#',  lang:'ps' },
+    cmd:       { title:'C:\\budgetdawgs&gt;', prompt:'&gt;',          cmt:'::', lang:'cmd'},
+    kali:      { title:'┌──(kali㉿dawgs)',    prompt:'$',            cmt:'#',  lang:'bash'},
+    mintlinux: { title:'dawgs@mint:~$',       prompt:'$',            cmt:'#',  lang:'bash'},
+    ubuntu:    { title:'dawgs@ubuntu:~$',     prompt:'$',            cmt:'#',  lang:'bash'}
+  };
+  if (TERM[theme]) {
+    const c = TERM[theme]; let l1, l2;
+    if (c.lang === 'py')       { l1=`<span class="txn-kw">auth</span>.session()`; l2=`<span class="txn-kw">ledger</span>.post(<span class="txn-str">"${k}"</span>)`; }
+    else if (c.lang === 'ps')  { const v = isExpense?'New-Expense':isTransfer?'Move-Funds':'Add-Income'; l1=`<span class="txn-kw">$s</span> = Connect-Budget`; l2=`<span class="txn-kw">${v}</span> -Amount`; }
+    else if (c.lang === 'cmd') { l1=`auth.exe /session`; l2=`post <span class="txn-kw">${k.toUpperCase()}</span>`; }
+    else                       { l1=`./auth <span class="txn-kw">--session</span>`; l2=`budget post <span class="txn-kw">--${k}</span>`; }
+    const hl = isExpense ? 'posted to ledger' : isTransfer ? 'moved between accounts' : 'funds received';
+    return { title:c.title, prompt:c.prompt, cmt:c.cmt, ok:' <span class="txn-ok">ok</span>',
+      l1, l2, headline:hl, calm:false, cmtMemo:true, sprite:'' };
+  }
+
+  // Default DAWG (and any other theme) — original behavior
+  const verb = isTransfer ? 'transfer' : isPaycheck ? 'deposit' : isExpense ? 'expense' : 'income';
+  return { title:'budgetdawgs:~$', prompt:'&gt;', cmt:'//', ok:' <span class="txn-ok">ok</span>',
+    l1:'auth session…', l2:`posting ${verb}…`, headline:null, calm:false, cmtMemo:false, sprite:'' };
+}
+
 function _showTxnAnim(type, amount, desc) {
   document.getElementById('txn-anim')?.remove();
 
@@ -1755,18 +1808,24 @@ function _showTxnAnim(type, amount, desc) {
   const variant    = isPaycheck ? 'paycheck' : type;
 
   const msgs     = isTransfer ? _TRANSFER_MSGS : isPaycheck ? _PAYCHECK_MSGS : (isExpense ? _EXPENSE_MSGS : _INCOME_MSGS);
-  const headline = msgs[Math.floor(Math.random() * msgs.length)];
   const amtStr   = isTransfer ? fmt(amount) : `${isExpense ? '−' : '+'}${fmt(amount)}`;
 
   // ── Terminal Boot: a mini command log types itself out, then the amount ──
   const accent = isExpense ? 'var(--danger)' : isTransfer ? 'var(--accent)' : isPaycheck ? '#ffd60a' : 'var(--success)';
-  const verb   = isTransfer ? 'transfer' : isPaycheck ? 'deposit' : isExpense ? 'expense' : 'income';
-  const memo   = (desc && desc !== '—') ? _escHtml(desc) : '';
+  const fl       = _txnFlavor(isExpense, isTransfer, isPaycheck);
+  const headline = fl.headline || msgs[Math.floor(Math.random() * msgs.length)];
+  const memo     = (desc && desc !== '—') ? _escHtml(desc) : '';
 
   // line delays (seconds) — memo line is optional, so timings shift when absent
   const dMemo = memo ? '0.78s' : null;
   const dBig  = memo ? '1.12s' : '0.78s';
   const dMsg  = memo ? '1.46s' : '1.12s';
+
+  const memoLine = memo
+    ? (fl.cmtMemo
+        ? `<div class="txn-tline" style="--d:${dMemo}"><span class="txn-cmt">${fl.cmt} ${memo}</span></div>`
+        : `<div class="txn-tline" style="--d:${dMemo}">&gt; memo: ${memo}</div>`)
+    : '';
 
   const el = document.createElement('div');
   el.id        = 'txn-anim';
@@ -1776,14 +1835,14 @@ function _showTxnAnim(type, amount, desc) {
     <div class="txn-anim-card txn-term">
       <div class="txn-term-bar">
         <span class="txn-term-dot"></span><span class="txn-term-dot"></span><span class="txn-term-dot"></span>
-        <span class="txn-term-title">budgetdawgs:~$</span>
+        <span class="txn-term-title">${fl.title}</span>${fl.sprite}
       </div>
       <div class="txn-term-body">
-        <div class="txn-tline" style="--d:.06s">&gt; auth session… <span class="txn-ok">ok</span></div>
-        <div class="txn-tline" style="--d:.42s">&gt; posting ${verb}… <span class="txn-ok">ok</span></div>
-        ${memo ? `<div class="txn-tline" style="--d:${dMemo}">&gt; memo: ${memo}</div>` : ''}
-        <div class="txn-tbig" style="--d:${dBig}"><span class="txn-tamt">${amtStr}</span><span class="txn-tcur">▋</span></div>
-        <div class="txn-tline txn-tmsg" style="--d:${dMsg}">// ${headline}</div>
+        <div class="txn-tline" style="--d:.06s">${fl.prompt} ${fl.l1}${fl.ok}</div>
+        <div class="txn-tline" style="--d:.42s">${fl.prompt} ${fl.l2}${fl.ok}</div>
+        ${memoLine}
+        <div class="txn-tbig${fl.calm ? ' txn-tbig--calm' : ''}" style="--d:${dBig}"><span class="txn-tamt">${amtStr}</span><span class="txn-tcur">▋</span></div>
+        <div class="txn-tline txn-tmsg" style="--d:${dMsg}">${fl.cmt} ${_escHtml(headline)}</div>
       </div>
       <div class="txn-anim-progress"><div class="txn-anim-progress-bar"></div></div>
     </div>`;
