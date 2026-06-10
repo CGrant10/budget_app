@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokémon themes — horror directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Creepster&family=Nosifer&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#0a0a0b; --panel:#161617; --panel2:#202022; --pborder:rgba(255,255,255,.09); --pmuted:#8a8a92; --ptext:#f0f0f2;
+  /* live mon palette (set by JS) */
+  --bg:#14101c; --surface:#1c1726; --card:#241d31; --accent:#b388ff; --text:#f0ecf7; --muted:#9a8fb0; --border:rgba(179,136,255,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--page);color:var(--ptext);-webkit-font-smoothing:antialiased;padding:30px 20px 80px;}
+header{max-width:1200px;margin:0 auto 18px;}
+h1{font-size:29px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px;}
+.sub{color:var(--pmuted);font-size:14.5px;font-weight:500;max-width:760px;line-height:1.5;margin:0 0 18px;}
+.switch{display:inline-flex;gap:8px;flex-wrap:wrap;}
+.sw-btn{display:flex;align-items:center;gap:9px;font-family:inherit;font-weight:800;font-size:14px;color:var(--pmuted);
+  background:var(--panel);border:1.5px solid var(--pborder);padding:8px 14px 8px 8px;border-radius:14px;cursor:pointer;transition:all .2s;}
+.sw-btn .s{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--panel2);border-radius:10px;overflow:hidden;}
+.sw-btn .s img{width:36px;height:36px;object-fit:contain;image-rendering:pixelated;transform:scale(1.25);}
+.sw-btn.on{color:var(--ptext);}
+.sw-btn[data-k=gengar].on{border-color:#b388ff;box-shadow:0 0 0 3px rgba(179,136,255,.18);}
+.sw-btn[data-k=charizard].on{border-color:#ff7a3c;box-shadow:0 0 0 3px rgba(255,122,60,.18);}
+.sw-btn[data-k=squirtle].on{border-color:#46a6ec;box-shadow:0 0 0 3px rgba(70,166,236,.18);}
+
+.deck{max-width:1200px;margin:26px auto 0;display:flex;flex-wrap:wrap;gap:28px;justify-content:center;}
+.col{display:flex;flex-direction:column;align-items:center;gap:12px;width:280px;}
+.tag{align-self:stretch;}
+.tag .badge{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#ff5a5a;
+  background:rgba(255,90,90,.12);border:1px solid rgba(255,90,90,.3);padding:5px 10px;border-radius:8px;}
+.tag .desc{color:var(--pmuted);font-size:12.5px;line-height:1.45;margin-top:8px;}
+
+/* phone */
+.phone{width:280px;border-radius:36px;background:#000;border:1px solid var(--border);overflow:hidden;position:relative;
+  box-shadow:0 24px 60px -18px rgba(0,0,0,.8);}
+.notch{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:92px;height:22px;background:#000;border-radius:0 0 14px 14px;z-index:60;opacity:.9;}
+.screen{position:relative;height:600px;background:var(--bg);overflow:hidden;transition:background .35s;}
+
+/* ---------- content (shared) ---------- */
+.pad{position:relative;z-index:5;padding:46px 18px 18px;display:flex;flex-direction:column;height:100%;}
+.brand{font-size:10px;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);opacity:.8;}
+.mon{margin:6px 0 2px;display:flex;align-items:flex-end;gap:12px;}
+.mon .spr{width:84px;height:84px;flex:0 0 auto;}
+.mon .spr img{width:84px;height:84px;object-fit:contain;image-rendering:pixelated;}
+.scare{font-family:'Creepster',cursive;font-size:30px;line-height:.95;letter-spacing:1.5px;color:var(--accent);text-shadow:0 0 14px var(--accent);}
+.bal{margin-top:18px;}
+.bal .l{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+.bal .v{font-size:34px;font-weight:800;letter-spacing:-.02em;margin-top:3px;color:var(--text);}
+.bars{margin-top:18px;display:flex;flex-direction:column;gap:13px;}
+.barrow{display:flex;align-items:center;gap:10px;}
+.barrow .nm{font-size:12px;font-weight:700;color:var(--text);width:62px;}
+.barrow .tk{flex:1;height:8px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;}
+.barrow .tk i{display:block;height:100%;border-radius:6px;background:var(--accent);}
+.barrow .pc{font-size:11px;font-weight:700;color:var(--muted);width:34px;text-align:right;}
+.foot{margin-top:auto;font-family:'Creepster',cursive;font-size:15px;letter-spacing:1px;color:var(--accent);opacity:.85;text-align:center;padding-top:14px;}
+
+/* overlay layers container always present */
+.fx{position:absolute;inset:0;z-index:20;pointer-events:none;}
+
+/* ============ A · HAUNTED CRT ============ */
+.h-crt .scanlines{position:absolute;inset:0;background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0 2px,rgba(0,0,0,.34) 2px 3px);mix-blend-mode:multiply;}
+.h-crt .vig{position:absolute;inset:0;box-shadow:inset 0 0 120px 30px rgba(0,0,0,.9);}
+.h-crt .flick{position:absolute;inset:0;background:rgba(255,255,255,.025);animation:flick 4.5s steps(1,end) infinite;}
+@keyframes flick{0%,97%,100%{opacity:0;}97.5%{opacity:.5;}98%{opacity:0;}98.5%{opacity:.7;}99%{opacity:0;}}
+.h-crt .scare{text-shadow:2px 0 0 rgba(255,0,64,.6),-2px 0 0 rgba(0,200,255,.6),0 0 14px var(--accent);animation:abber 5s steps(1,end) infinite;}
+@keyframes abber{0%,92%,100%{transform:translateX(0);}93%{transform:translateX(-1.5px);}95%{transform:translateX(1.5px);}97%{transform:translateX(0);}}
+
+/* ============ B · BLOOD MOON ============ */
+.h-blood{--accent:#e01b1b !important;}
+.h-blood .moon{position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:240px;height:240px;border-radius:50%;
+  background:radial-gradient(circle,rgba(224,27,27,.5),rgba(120,8,8,.15) 55%,transparent 72%);filter:blur(6px);animation:pulse 4s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.65;transform:translateX(-50%) scale(1);}50%{opacity:1;transform:translateX(-50%) scale(1.06);}}
+.h-blood .vig{position:absolute;inset:0;box-shadow:inset 0 -80px 120px -20px rgba(90,0,0,.7),inset 0 0 100px 20px rgba(0,0,0,.85);}
+.h-blood .scare{color:#ff3b3b;text-shadow:0 0 18px rgba(224,27,27,.9);}
+.h-blood .spr-frame{filter:drop-shadow(0 0 16px rgba(224,27,27,.7));}
+
+/* ============ C · CURSED MIST ============ */
+.h-mist .fog{position:absolute;inset:-20%;background:
+  radial-gradient(60% 40% at 20% 70%,rgba(150,160,170,.16),transparent 60%),
+  radial-gradient(50% 40% at 80% 40%,rgba(130,140,160,.14),transparent 60%);filter:blur(8px);animation:drift 14s ease-in-out infinite alternate;}
+@keyframes drift{0%{transform:translateX(-6%);}100%{transform:translateX(6%);}}
+.h-mist .fog2{position:absolute;inset:-20%;background:radial-gradient(55% 38% at 50% 90%,rgba(120,130,150,.18),transparent 62%);filter:blur(10px);animation:drift2 18s ease-in-out infinite alternate;}
+@keyframes drift2{0%{transform:translateX(8%);}100%{transform:translateX(-8%);}}
+.h-mist .vig{position:absolute;inset:0;box-shadow:inset 0 0 90px 24px rgba(0,0,0,.7);}
+.h-mist .screen{filter:saturate(.7) brightness(.92);}
+.h-mist .spr-frame{filter:drop-shadow(0 0 12px rgba(200,210,220,.4));animation:hover 6s ease-in-out infinite;}
+@keyframes hover{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+.h-mist .scare{color:#cfd6dd;text-shadow:0 0 16px rgba(200,210,220,.5);}
+
+/* ============ D · POSSESSED ============ */
+.h-possessed .grain{position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");opacity:.06;mix-blend-mode:screen;animation:grain .4s steps(2,end) infinite;}
+@keyframes grain{0%{transform:translate(0,0);}50%{transform:translate(-4px,3px);}100%{transform:translate(3px,-2px);}}
+.h-possessed .screen{animation:shake 6s steps(1,end) infinite;}
+@keyframes shake{0%,90%,100%{transform:translate(0,0);}91%{transform:translate(-2px,1px);}92%{transform:translate(2px,-1px);}93%{transform:translate(-1px,0);}94%{transform:translate(0,0);}}
+.h-possessed .glitchbar{position:absolute;left:0;right:0;height:18px;background:rgba(255,0,64,.18);mix-blend-mode:screen;top:40%;opacity:0;animation:gbar 5s steps(1,end) infinite;}
+@keyframes gbar{0%,89%,100%{opacity:0;top:30%;}90%{opacity:1;top:55%;}91%{opacity:0;}94%{opacity:1;top:22%;}95%{opacity:0;}}
+.h-possessed .vig{position:absolute;inset:0;box-shadow:inset 0 0 100px 26px rgba(0,0,0,.85);}
+.h-possessed .scare{font-family:'Nosifer',cursive;font-size:22px;letter-spacing:.5px;color:#ff2b2b;text-shadow:2px 0 0 rgba(0,200,255,.5),-2px 0 0 rgba(255,0,64,.7);animation:abber 3.2s steps(1,end) infinite;}
+.h-possessed .spr-frame{animation:posjit 3.5s steps(1,end) infinite;}
+@keyframes posjit{0%,93%,100%{filter:none;transform:none;}94%{filter:hue-rotate(-40deg) brightness(1.4) drop-shadow(3px 0 0 rgba(255,0,64,.8)) drop-shadow(-3px 0 0 rgba(0,200,255,.8));transform:translateX(-2px) skewX(-4deg);}96%{filter:none;transform:translateX(2px);}97%{transform:none;}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Pokémon themes — horror directions</h1>
+  <p class="sub">Four ways to push the Pokémon themes toward horror. Each is a CSS overlay layered on top of the theme, so it works the same on every starter and never touches legibility of your numbers. Pick a starter to preview each direction on it.</p>
+  <div class="switch" id="switch">
+    <button class="sw-btn on" data-k="gengar"><span class="s"><img src="./poke-gengar.gif" alt=""></span>Gengar</button>
+    <button class="sw-btn" data-k="charizard"><span class="s"><img src="./poke-charizard.gif" alt=""></span>Charizard</button>
+    <button class="sw-btn" data-k="squirtle"><span class="s"><img src="./poke-squirtle.gif" alt=""></span>Squirtle</button>
+  </div>
+</header>
+
+<div class="deck" id="deck"></div>
+
+<script>
+var MON={
+  gengar:{spr:'./poke-gengar.gif',vars:{'--bg':'#0f0c16','--surface':'#1c1726','--card':'#241d31','--accent':'#b388ff','--text':'#f0ecf7','--muted':'#9a8fb0','--border':'rgba(179,136,255,.18)'},scare:'IT SEES YOU SPEND',foot:'it knows what you bought'},
+  charizard:{spr:'./poke-charizard.gif',vars:{'--bg':'#120b08','--surface':'#221712','--card':'#2c1d15','--accent':'#ff7a3c','--text':'#f8efe8','--muted':'#b29a8c','--border':'rgba(255,122,60,.18)'},scare:'WATCH IT BURN',foot:'nothing survives the flame'},
+  squirtle:{spr:'./poke-squirtle.gif',vars:{'--bg':'#080d12','--surface':'#121d25','--card':'#16242e','--accent':'#46a6ec','--text':'#e9f3f8','--muted':'#8aa4b1','--border':'rgba(70,166,236,.18)'},scare:'DROWN IN DEBT',foot:'the tide is coming'}
+};
+var DIRS=[
+  {key:'h-crt',badge:'A · Haunted CRT',desc:'Heavy scanlines, a vignette, an occasional screen flicker and a faint RGB-split on the title. Old-haunted-television dread.',
+    layers:'<div class="scanlines"></div><div class="vig"></div><div class="flick"></div>'},
+  {key:'h-blood',badge:'B · Blood Moon',desc:'Palette bleeds to deep blood-red, a pulsing red moon glows behind the mascot, heavy dark vignette creeping from the edges.',
+    layers:'<div class="moon"></div><div class="vig"></div>'},
+  {key:'h-mist',badge:'C · Cursed Mist',desc:'Desaturated, drifting fog rolls across the screen, the mascot floats and glows faintly through the haze. Quiet, eerie.',
+    layers:'<div class="fog"></div><div class="fog2"></div><div class="vig"></div>'},
+  {key:'h-possessed',badge:'D · Possessed',desc:'The aggressive one: film grain, screen shake, stabbing glitch bars and a dripping Nosifer title that corrupts on a loop.',
+    layers:'<div class="grain"></div><div class="glitchbar"></div><div class="vig"></div>'}
+];
+
+function phone(dir,mon){
+  var m=MON[mon];
+  var style=Object.keys(m.vars).map(function(k){return k+':'+m.vars[k];}).join(';');
+  return '<div class="col"><div class="tag"><span class="badge">'+dir.badge+'</span><div class="desc">'+dir.desc+'</div></div>'+
+    '<div class="phone '+dir.key+'" style="'+style+'"><div class="notch"></div>'+
+    '<div class="screen">'+
+      '<div class="fx">'+dir.layers+'</div>'+
+      '<div class="pad">'+
+        '<div class="brand">Budget DAWGs</div>'+
+        '<div class="mon"><div class="spr spr-frame"><img src="'+m.spr+'" alt=""></div><div class="scare">'+m.scare+'</div></div>'+
+        '<div class="bal"><div class="l">Available balance</div><div class="v">$4,775</div></div>'+
+        '<div class="bars">'+
+          '<div class="barrow"><span class="nm">Food</span><span class="tk"><i style="width:72%"></i></span><span class="pc">72%</span></div>'+
+          '<div class="barrow"><span class="nm">Bills</span><span class="tk"><i style="width:48%"></i></span><span class="pc">48%</span></div>'+
+          '<div class="barrow"><span class="nm">Fun</span><span class="tk"><i style="width:33%"></i></span><span class="pc">33%</span></div>'+
+        '</div>'+
+        '<div class="foot">'+m.foot+'</div>'+
+      '</div>'+
+    '</div></div></div>';
+}
+function renderDeck(mon){
+  document.getElementById('deck').innerHTML=DIRS.map(function(d){return phone(d,mon);}).join('');
+}
+document.getElementById('switch').addEventListener('click',function(e){
+  var b=e.target.closest('.sw-btn'); if(!b) return;
+  document.querySelectorAll('.sw-btn').forEach(function(x){x.classList.toggle('on',x===b);});
+  renderDeck(b.dataset.k);
+});
+renderDeck('gengar');
+</script>
+</body>
+</html>
