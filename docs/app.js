@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.15';
+const VERSION = '5.43.16';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.16', date: '2026-06-10', changes: [
+    'New Pokémon theme mode — a 4th tab in Settings > Theme (beside Dark/Light/Terminal) with three starters: Gengar (shadow purple), Charizard (flame orange), and Squirtle (wave blue). Each swaps the whole palette, replaces the Doberman mascot with the Pokémon\'s animated sprite (splash, nav, dashboard, accounts, about), retheme the splash tagline, and changes the dashboard hero line (DEBT DIES IN THE DARK / REDUCE IT TO ASH / WASH AWAY YOUR DEBT). Picking a Pokémon turns off the Doberman bark + RGB-glitch effects; every other theme keeps them exactly as before',
+  ]},
   { version: '5.43.15', date: '2026-06-10', changes: [
     'New "Liquid Glass" bottom nav (iOS 26 style) — the bar now floats as a rounded frosted-glass island that blurs and saturates the content scrolling beneath it, with a specular top highlight. The active tab is a glossier accent lozenge (the old underline is gone). Glass tint follows your theme; top/side nav positions are unchanged',
   ]},
@@ -1525,6 +1528,34 @@ const THEMES = {
     text:'#1d1d1f', muted:'#6e6e73', border:'#e3e3e6', light:true, font:'default',
     cats:{ Food:'#4a9870', Gas:'#a84040', Car:'#5068a0', Boat:'#407890', Tools:'#986030', Home:'#608038', Entertainment:'#706890', Health:'#407890', Other:'#606078' },
   },
+  // ── Pokémon themes ──────────────────────────────────────────────────────
+  gengar: {
+    label:'Gengar', shortLabel:'Gengar', pokemon:true, mascot:'./poke-gengar.gif',
+    tagline:'DEBT DIES<br>IN THE DARK.', splashTagline:'Ghost-type budgeting.',
+    bg:'#14101c', surface:'#1c1726', surface2:'#2a2236', card:'#241d31',
+    text:'#f0ecf7', muted:'#9a8fb0', border:'rgba(179,136,255,.18)',
+    accent:'#b388ff', accent2:'#7c5fd6', success:'#43c98a', warn:'#e0c14a', danger:'#ff6b6b',
+    grad:'linear-gradient(135deg, #2a2236 0%, #b388ff 100%)', font:'default',
+    cats:{ Food:'#b388ff', Gas:'#ff6b6b', Car:'#7c8cff', Boat:'#5fd6c0', Tools:'#d9a520', Home:'#9a7cff', Entertainment:'#e07cd0', Health:'#5fb6e0', Other:'#9a8fb0' },
+  },
+  charizard: {
+    label:'Charizard', shortLabel:'Charizard', pokemon:true, mascot:'./poke-charizard.gif',
+    tagline:'REDUCE IT<br>TO ASH.', splashTagline:'Burn through debt.',
+    bg:'#160f0c', surface:'#221712', surface2:'#33241b', card:'#2c1d15',
+    text:'#f8efe8', muted:'#b29a8c', border:'rgba(255,122,60,.18)',
+    accent:'#ff7a3c', accent2:'#ffb14d', success:'#5ec98a', warn:'#ffb14d', danger:'#ff5a3c',
+    grad:'linear-gradient(135deg, #33241b 0%, #ff7a3c 100%)', font:'default',
+    cats:{ Food:'#ffb14d', Gas:'#ff5a3c', Car:'#ff7a3c', Boat:'#5fc0d6', Tools:'#e0a020', Home:'#ff9a52', Entertainment:'#e07cd0', Health:'#5fb6e0', Other:'#b29a8c' },
+  },
+  squirtle: {
+    label:'Squirtle', shortLabel:'Squirtle', pokemon:true, mascot:'./poke-squirtle.gif',
+    tagline:'WASH AWAY<br>YOUR DEBT.', splashTagline:'Make it rain.',
+    bg:'#0b1117', surface:'#121d25', surface2:'#1b2c37', card:'#16242e',
+    text:'#e9f3f8', muted:'#8aa4b1', border:'rgba(70,166,236,.18)',
+    accent:'#46a6ec', accent2:'#76d6e0', success:'#43c98a', warn:'#e0c14a', danger:'#ff6b6b',
+    grad:'linear-gradient(135deg, #1b2c37 0%, #46a6ec 100%)', font:'default',
+    cats:{ Food:'#46a6ec', Gas:'#ff6b6b', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#e0a020', Home:'#52c0a0', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#8aa4b1' },
+  },
 };
 
 let CAT_COLORS = {
@@ -1542,7 +1573,7 @@ let CAT_COLORS = {
 // ── empty state ────────────────────────────────────────────────────────────
 function emptyState(title, hint = '') {
   return `<div class="empty-state">
-    <img src="./doberman.png" class="empty-dob" alt="">
+    <img src="${mascotSrc()}" class="empty-dob" alt="">
     <div class="empty-title">${title}</div>
     ${hint ? `<div class="empty-hint">${hint}</div>` : ''}
   </div>`;
@@ -2187,7 +2218,7 @@ function applyNavPosition(pos) {
       const brand = document.createElement('div');
       brand.className = 'nav-side-brand';
       const img = document.createElement('img');
-      img.src = './doberman.png';
+      img.src = mascotSrc();
       img.alt = 'Budget DAWGs';
       img.className = 'nav-side-dob';
       brand.appendChild(img);
@@ -2223,6 +2254,18 @@ function applyNavItems(hiddenTabs) {
   });
 }
 
+// Current mascot image — Pokémon sprite for Pokémon themes, else the Doberman
+function mascotSrc() {
+  const t = THEMES[loadSettings().theme];
+  return (t && t.mascot) ? t.mascot : './doberman.png';
+}
+// Dashboard hero tagline — themed for Pokémon, else the DAWG "LOCK TF IN." glitch tagline
+function heroTaglineHTML() {
+  const t = THEMES[loadSettings().theme];
+  if (t && t.pokemon && t.tagline) return `<div class="dawg-hero-tagline">${t.tagline}</div>`;
+  return `<div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin" data-glitch="LOCK TF IN.">LOCK TF IN.</em></div>`;
+}
+
 function applyTheme(theme) {
   if (theme === 'auto') {
     theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -2249,6 +2292,14 @@ function applyTheme(theme) {
   if (['vscode', 'powershell', 'cmd', 'kali', 'mintlinux', 'ubuntu'].includes(theme)) {
     document.body.classList.add('theme-' + theme);
   }
+  // Pokémon themes — body.theme-pokemon gates off the Doberman/glitch identity (see CSS)
+  document.body.classList.remove('theme-pokemon', 'theme-gengar', 'theme-charizard', 'theme-squirtle');
+  if (t.pokemon) document.body.classList.add('theme-pokemon', 'theme-' + theme);
+  // Swap mascot + splash tagline on the persistent (non-re-rendered) elements
+  const _mascot = t.mascot || './doberman.png';
+  document.querySelectorAll('.splash-dob-idle, .brand-dob, .dawg-nav-dob, .nav-side-dob').forEach(img => { img.src = _mascot; });
+  const _splashTag = document.querySelector('.splash-tagline');
+  if (_splashTag) _splashTag.textContent = t.splashTagline || 'Money on a leash.';
   // Custom / Customlight themes: apply the saved custom accent color
   if (theme === 'custom' || theme === 'customlight') {
     const _cc = loadSettings().customAccent;
@@ -3660,7 +3711,7 @@ function renderAccountPicker() {
         <div class="acct-hero-inner">
           <div class="acct-hero-row">
             <div class="dawg-hero-dob acct-hero-dob">
-              <img src="./doberman.png" class="dawg-dob-idle" alt="">
+              <img src="${mascotSrc()}" class="dawg-dob-idle" alt="">
               <img src="./maddawg.png"  class="dawg-dob-bark" alt="">
             </div>
             <div class="acct-hero-text">
@@ -4984,9 +5035,9 @@ function renderDashboardDawg() {
     <div class="dawg-hero">
       <div class="dawg-hero-glow"></div>
       <div class="dawg-hero-inner">
-        <div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin" data-glitch="LOCK TF IN.">LOCK TF IN.</em></div>
+        ${heroTaglineHTML()}
         <div class="dawg-hero-dob">
-          <img src="./doberman.png" class="dawg-dob-idle" alt="">
+          <img src="${mascotSrc()}" class="dawg-dob-idle" alt="">
           <img src="./maddawg.png"  class="dawg-dob-bark" alt="">
         </div>
       </div>
@@ -7785,9 +7836,11 @@ function renderSettings() {
     </div>`).join('') : '<p style="font-size:.8rem;color:var(--muted);margin-bottom:6px">No custom categories yet.</p>';
 
   const TERMINAL_KEYS = ['vscode','powershell','cmd','kali','mintlinux','ubuntu'];
+  const POKEMON_KEYS  = ['gengar','charizard','squirtle'];
   const isTerminal = TERMINAL_KEYS.includes(theme);
-  const isLight    = !isTerminal && !!THEMES[theme]?.light;
-  const activeMode = isTerminal ? 'terminal' : isLight ? 'light' : 'dark';
+  const isPokemon  = POKEMON_KEYS.includes(theme);
+  const isLight    = !isTerminal && !isPokemon && !!THEMES[theme]?.light;
+  const activeMode = isPokemon ? 'pokemon' : isTerminal ? 'terminal' : isLight ? 'light' : 'dark';
 
   const DARK_ACCENTS  = ['dark','oled','denim','ember','jurassicpark','darkslate','auto','custom'];
   const LIGHT_ACCENTS = ['light','lightsky','lightrose','lightsand','lightsilver','customlight'];
@@ -7816,6 +7869,14 @@ function renderSettings() {
     return `<button class="theme-terminal-chip${theme === key ? ' active' : ''}" data-theme="${key}">
       <span class="theme-accent-dot" style="background:${t.accent}"></span>
       ${t.label}
+    </button>`;
+  };
+
+  const pokeChip = key => {
+    const t = THEMES[key];
+    return `<button class="theme-poke-chip${theme === key ? ' active' : ''}" data-theme="${key}">
+      <span class="theme-poke-spr"><img src="${t.mascot}" alt=""></span>
+      <span class="theme-poke-lbl">${t.label}</span>
     </button>`;
   };
 
@@ -7865,9 +7926,13 @@ function renderSettings() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
             Terminal
           </button>
+          <button class="theme-mode-btn${activeMode === 'pokemon' ? ' active' : ''}" data-mode="pokemon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><circle cx="12" cy="12" r="3"/></svg>
+            Pokémon
+          </button>
         </div>
 
-        <div id="theme-accent-section" style="${activeMode === 'terminal' ? 'display:none' : ''}">
+        <div id="theme-accent-section" style="${(activeMode === 'terminal' || activeMode === 'pokemon') ? 'display:none' : ''}">
           <p class="code-hint" style="margin-bottom:8px">Accent color</p>
           <div class="theme-accent-grid" id="theme-accent-grid">
             ${activeMode === 'light'
@@ -7885,6 +7950,13 @@ function renderSettings() {
           <p class="code-hint" style="margin:10px 0 6px">Linux</p>
           <div class="theme-terminal-chips">
             ${['kali','mintlinux','ubuntu'].map(terminalChip).join('')}
+          </div>
+        </div>
+
+        <div id="theme-pokemon-section" style="${activeMode !== 'pokemon' ? 'display:none' : ''}">
+          <p class="code-hint" style="margin-bottom:8px">Pick your starter — swaps the mascot, palette, splash &amp; tagline. Turns off the Doberman + glitch.</p>
+          <div class="theme-poke-chips">
+            ${POKEMON_KEYS.map(pokeChip).join('')}
           </div>
         </div>
       </div>
@@ -7991,10 +8063,11 @@ function attachSettings() {
       const cur  = loadSettings().theme || 'dark';
       // If already in this mode, do nothing
       const isTerminal = ['vscode','powershell','cmd','kali','mintlinux','ubuntu'].includes(cur);
-      const curMode    = isTerminal ? 'terminal' : THEMES[cur]?.light ? 'light' : 'dark';
+      const isPokemon  = ['gengar','charizard','squirtle'].includes(cur);
+      const curMode    = isPokemon ? 'pokemon' : isTerminal ? 'terminal' : THEMES[cur]?.light ? 'light' : 'dark';
       if (mode === curMode) return;
       // Switch to default theme for new mode
-      const defaults = { dark:'dark', light:'light', terminal:'vscode' };
+      const defaults = { dark:'dark', light:'light', terminal:'vscode', pokemon:'gengar' };
       _applyThemeKey(defaults[mode] || 'dark');
     });
   });
@@ -8006,6 +8079,11 @@ function attachSettings() {
 
   // Terminal chips
   document.querySelectorAll('.theme-terminal-chip').forEach(chip => {
+    chip.addEventListener('click', () => _applyThemeKey(chip.dataset.theme));
+  });
+
+  // Pokémon chips
+  document.querySelectorAll('.theme-poke-chip').forEach(chip => {
     chip.addEventListener('click', () => _applyThemeKey(chip.dataset.theme));
   });
 
@@ -8889,7 +8967,7 @@ function renderAbout() {
     <div class="page">
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:24px 20px">
-        <img src="doberman.png" alt="Budget DAWGs"
+        <img src="${mascotSrc()}" alt="Budget DAWGs"
              style="width:100%;height:auto;display:block;margin:0 auto 16px;filter:drop-shadow(0 4px 24px rgba(0,0,0,0.7))">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
@@ -10884,7 +10962,7 @@ function maybeShowWhatsNew() {
 
   const header = document.createElement('div');
   header.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-shrink:0';
-  header.innerHTML = '<img src="./doberman.png" style="width:44px;height:44px;object-fit:contain;flex-shrink:0" alt="">';
+  header.innerHTML = '<img src="' + mascotSrc() + '" style="width:44px;height:44px;object-fit:contain;flex-shrink:0" alt="">';
   const htext = document.createElement('div');
   const hlabel = document.createElement('div');
   hlabel.style.cssText = 'font-size:.65rem;font-weight:800;letter-spacing:.12em;color:var(--muted);text-transform:uppercase';
@@ -11110,7 +11188,7 @@ function showPinLock(onSuccess) {
     blocker.id = 'bio-lock-overlay';
     blocker.style.cssText = 'position:fixed;inset:0;z-index:9998;background:var(--bg,#0f0f14);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px';
     blocker.innerHTML = `
-      <img src="doberman.png" style="width:90px;opacity:.75;filter:drop-shadow(0 4px 20px rgba(0,0,0,.7))">
+      <img src="${mascotSrc()}" style="width:90px;opacity:.75;filter:drop-shadow(0 4px 20px rgba(0,0,0,.7))">
       <div style="font-size:.9rem;color:var(--muted,#b0aec8);letter-spacing:.04em">Verifying identity…</div>`;
     document.body.appendChild(blocker);
 

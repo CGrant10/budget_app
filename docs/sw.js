@@ -1,4 +1,4 @@
-const CACHE = "slawminyaw-v365";
+const CACHE = "slawminyaw-v366";
 const ASSETS = [
   "./",
   "./index.html",
@@ -14,7 +14,10 @@ const ASSETS = [
   "./favicon.ico",
   "./doberman.png",
   "./maddawg.png",
-  "./newicon.png"
+  "./newicon.png",
+  "./poke-gengar.gif",
+  "./poke-charizard.gif",
+  "./poke-squirtle.gif"
 ];
 
 self.addEventListener("install", e => {

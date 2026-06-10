@@ -4493,6 +4493,60 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
 .theme-terminal-chip:hover  { border-color: var(--accent); }
 .theme-terminal-chip.active { border-color: var(--accent); background: rgba(78,203,141, .08); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 
+/* ── Pokémon theme chips ────────────────────────────────────────────────── */
+.theme-poke-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.theme-poke-chip {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 12px 6px 9px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: border-color .15s, background .15s;
+}
+.theme-poke-chip:hover  { border-color: var(--accent); }
+.theme-poke-chip.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.theme-poke-spr {
+  width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2); border-radius: 11px; overflow: hidden;
+}
+.theme-poke-spr img { width: 42px; height: 42px; object-fit: contain; image-rendering: pixelated; transform: scale(1.25); }
+.theme-poke-lbl { font-size: .65rem; font-weight: 700; color: var(--text); text-align: center; letter-spacing: .02em; }
+
+/* ════════ POKÉMON MODE — swap in pixel sprites, gate off the Doberman/glitch identity ════════ */
+/* Pixel-crisp sprite scaling wherever the mascot shows */
+body.theme-pokemon .dawg-dob-idle,
+body.theme-pokemon .dawg-nav-dob,
+body.theme-pokemon .splash-dob-idle,
+body.theme-pokemon .brand-dob,
+body.theme-pokemon .nav-side-dob,
+body.theme-pokemon .empty-dob { image-rendering: pixelated; object-fit: contain; }
+/* No Doberman "bark" frame under Pokémon themes */
+body.theme-pokemon .dawg-dob-bark,
+body.theme-pokemon .splash-dob-bark { display: none !important; opacity: 0 !important; animation: none !important; }
+/* Keep the sprite steady (no idle bark-swap fade) */
+body.theme-pokemon .dawg-dob-idle,
+body.theme-pokemon .splash-dob-idle { animation: none !important; opacity: 1 !important; }
+/* Kill every RGB-split glitch animation while in Pokémon mode */
+body.theme-pokemon .dawg-nav-btn .dawg-nav-icon,
+body.theme-pokemon .dawg-nav-dob,
+body.theme-pokemon .dawg-nav-btn.nav-glitch-tap .dawg-nav-icon,
+body.theme-pokemon .dawg-nav-center-btn.nav-dob-tap .dawg-nav-dob,
+body.theme-pokemon #dawg-sparkline,
+body.theme-pokemon .splash-dog,
+body.theme-pokemon .splash-brand,
+body.theme-pokemon .dash-glitch-failed,
+body.theme-pokemon .dawg-lockin,
+body.theme-pokemon .icon-glitch-tap,
+body.theme-pokemon .page-title-glitch,
+body.theme-pokemon [data-glitch] { animation: none !important; filter: none !important; }
+body.theme-pokemon [data-glitch]::before,
+body.theme-pokemon [data-glitch]::after { display: none !important; }
+
 /* ── Import mode toggle ─────────────────────────────────────────────────── */
 .import-mode-btn {
   background: var(--card);
