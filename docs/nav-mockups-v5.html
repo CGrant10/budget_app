@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nav bar mockups — round 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f5f7; --surface:#ffffff; --card:#ffffff; --surface2:#ececef;
+  --accent:#2fa56f; --accent2:#34c785; --text:#1d1d1f; --muted:#6e6e73; --border:#e3e3e6;
+  --glass:rgba(255,255,255,.62); --glass-brd:rgba(255,255,255,.7);
+  --shadow:0 8px 30px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.05);
+  --shadow-soft:0 4px 18px rgba(0,0,0,.07);
+}
+body.dark{
+  --bg:#0e0e0f; --surface:#161617; --card:#1c1c1e; --surface2:#222223;
+  --accent:#4ecb8d; --accent2:#3fe39a; --text:#f0f0f2; --muted:#8a8a92; --border:rgba(255,255,255,.08);
+  --glass:rgba(34,34,38,.55); --glass-brd:rgba(255,255,255,.12);
+  --shadow:0 10px 34px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.4);
+  --shadow-soft:0 6px 22px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  background:var(--bg); color:var(--text);
+  transition:background .35s ease, color .35s ease;
+  padding:32px 20px 80px;
+}
+header{max-width:980px;margin:0 auto 36px;}
+h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px;}
+.sub{color:var(--muted);font-size:15px;font-weight:500;margin:0 0 22px;max-width:680px;line-height:1.5;}
+.toggle{display:inline-flex;gap:4px;background:var(--surface2);padding:4px;border-radius:12px;border:1px solid var(--border);}
+.toggle button{
+  font-family:inherit;font-weight:700;font-size:13px;letter-spacing:-.01em;
+  border:0;background:transparent;color:var(--muted);
+  padding:8px 18px;border-radius:9px;cursor:pointer;transition:all .25s ease;
+}
+.toggle button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow-soft);}
+
+.grid{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:34px;}
+.option{
+  background:var(--surface);border:1px solid var(--border);border-radius:24px;
+  padding:26px 26px 30px;box-shadow:var(--shadow-soft);
+  transition:background .35s ease, border-color .35s ease;
+}
+.opt-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:22px;}
+.tag{
+  font-weight:800;font-size:14px;letter-spacing:-.01em;
+  background:var(--accent);color:#fff;padding:5px 12px;border-radius:8px;
+}
+body.dark .tag{color:#0e0e0f;}
+.opt-name{font-weight:700;font-size:16px;}
+.opt-desc{color:var(--muted);font-size:13.5px;font-weight:500;width:100%;line-height:1.5;}
+
+.pair{display:flex;gap:26px;flex-wrap:wrap;}
+.phone-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.phone-label{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.02em;text-transform:uppercase;}
+.phone{
+  width:360px;max-width:100%;border-radius:34px;overflow:hidden;
+  background:var(--bg);border:1px solid var(--border);
+  box-shadow:var(--shadow);position:relative;
+  transition:background .35s ease, border-color .35s ease;
+}
+.screen{padding:18px 18px 0;position:relative;}
+.ph-content{height:150px;display:flex;flex-direction:column;gap:10px;justify-content:center;position:relative;z-index:1;}
+.ph-row{height:14px;border-radius:7px;background:var(--surface2);}
+.ph-row.w1{width:55%;} .ph-row.w2{width:80%;} .ph-row.w3{width:40%;}
+.ph-card{
+  height:60px;border-radius:16px;background:var(--card);border:1px solid var(--border);
+  box-shadow:var(--shadow-soft);margin-top:4px;
+}
+/* faint colored blobs so glass blur has something to refract */
+.blob{position:absolute;border-radius:50%;filter:blur(26px);opacity:.5;z-index:0;}
+.blob.a{width:150px;height:150px;background:var(--accent2);left:-30px;top:10px;}
+.blob.b{width:120px;height:120px;background:#7aa6ff;right:-10px;top:60px;opacity:.35;}
+
+svg.ic{width:22px;height:22px;display:block;}
+
+/* glitch identity kept */
+@keyframes glitch{
+  0%,93%,100%{filter:none;transform:translate(0,0);}
+  94%{filter:drop-shadow(1.4px 0 0 rgba(255,0,80,.85)) drop-shadow(-1.4px 0 0 rgba(0,200,255,.85));transform:translate(-.5px,0);}
+  96%{filter:drop-shadow(-1.4px 0 0 rgba(255,0,80,.85)) drop-shadow(1.4px 0 0 rgba(0,200,255,.85));transform:translate(.5px,0);}
+  98%{filter:drop-shadow(1px 0 0 rgba(255,0,80,.7)) drop-shadow(-1px 0 0 rgba(0,200,255,.7));transform:translate(0,0);}
+}
+.glitch{animation:glitch 7s infinite steps(1);}
+@keyframes glitchimg{
+  0%,93%,100%{filter:none;}
+  94%{filter:drop-shadow(1.4px 0 0 rgba(255,0,80,.8)) drop-shadow(-1.4px 0 0 rgba(0,200,255,.8));}
+  96%{filter:drop-shadow(-1.4px 0 0 rgba(255,0,80,.8)) drop-shadow(1.4px 0 0 rgba(0,200,255,.8));}
+}
+.glitchimg{animation:glitchimg 7s infinite steps(1);}
+
+/* ============ A · LIQUID GLASS (iOS 26) ============ */
+.navA-area{padding:0 14px calc(16px + env(safe-area-inset-bottom,0));}
+.navA{
+  display:flex;align-items:center;justify-content:space-between;gap:4px;
+  padding:9px 12px;border-radius:28px;
+  background:var(--glass);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);
+  border:1px solid var(--glass-brd);
+  box-shadow:0 8px 28px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.55);
+}
+.navA .tab{
+  position:relative;display:flex;align-items:center;justify-content:center;
+  width:50px;height:46px;border-radius:18px;color:var(--muted);transition:all .3s cubic-bezier(.34,1.56,.64,1);
+}
+.navA .tab.active{
+  color:#fff;
+  background:linear-gradient(180deg,var(--accent2),var(--accent));
+  box-shadow:0 4px 14px -2px var(--accent), inset 0 1px 0 rgba(255,255,255,.4);
+}
+body.dark .navA .tab.active{color:#0e0e0f;}
+.navA .center img{width:34px;height:34px;border-radius:50%;object-fit:cover;}
+.navA .center.active{background:linear-gradient(180deg,var(--accent2),var(--accent));padding:0;}
+
+/* ============ B · MORPHING GOO BLOB ============ */
+.navB{
+  position:relative;display:flex;align-items:center;justify-content:space-between;
+  padding:14px 22px calc(16px + env(safe-area-inset-bottom,0));
+  background:var(--surface);border-top:1px solid var(--border);overflow:hidden;
+}
+.goo{position:absolute;inset:0;filter:url(#goo);pointer-events:none;z-index:0;}
+.goo .ball{position:absolute;top:14px;width:46px;height:46px;border-radius:50%;
+  background:var(--accent);transition:left .45s cubic-bezier(.5,.05,.2,1);}
+.navB .tab{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;
+  width:46px;height:46px;color:var(--muted);transition:color .35s ease .1s;}
+.navB .tab.active{color:#fff;}
+body.dark .navB .tab.active{color:#0e0e0f;}
+.navB .center img{width:34px;height:34px;border-radius:50%;object-fit:cover;}
+
+/* ============ C · SMART EXPANDING PILL ============ */
+.navC{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 14px calc(14px + env(safe-area-inset-bottom,0));
+  background:var(--surface);border-top:1px solid var(--border);
+}
+.navC .tab{
+  display:flex;align-items:center;gap:0;overflow:hidden;
+  height:46px;width:46px;border-radius:23px;padding:0;
+  color:var(--muted);background:transparent;transition:all .4s cubic-bezier(.34,1.4,.5,1);
+  white-space:nowrap;
+}
+.navC .tab svg{flex:0 0 auto;}
+.navC .tab .meta{display:flex;flex-direction:column;line-height:1.05;opacity:0;
+  max-width:0;transition:all .4s ease;}
+.navC .tab .meta b{font-size:12.5px;font-weight:800;letter-spacing:-.01em;}
+.navC .tab .meta span{font-size:11px;font-weight:700;opacity:.85;}
+.navC .tab.active{
+  width:auto;padding:0 18px 0 14px;gap:9px;
+  color:#fff;background:var(--accent);box-shadow:0 5px 16px -4px var(--accent);
+}
+body.dark .navC .tab.active{color:#0e0e0f;}
+.navC .tab.active .meta{opacity:1;max-width:120px;}
+.navC .center img{width:32px;height:32px;border-radius:50%;object-fit:cover;}
+
+/* ============ D · ASK-THE-DAWG ORB ============ */
+.navD{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  padding:10px 26px calc(12px + env(safe-area-inset-bottom,0));
+  background:var(--surface);border-top:1px solid var(--border);position:relative;
+}
+.navD .tab{display:flex;flex-direction:column;align-items:center;gap:5px;
+  color:var(--muted);font-size:10px;font-weight:700;transition:color .25s ease;padding-bottom:4px;}
+.navD .tab.active{color:var(--accent);}
+.navD .orb-wrap{position:relative;width:66px;height:66px;margin-top:-26px;display:flex;align-items:center;justify-content:center;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes breathe{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+.navD .ring{position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 0deg,var(--accent2),#7aa6ff,#c77dff,var(--accent2));
+  animation:spin 4.5s linear infinite;}
+.navD .orb{position:relative;width:58px;height:58px;border-radius:50%;overflow:hidden;
+  background:var(--surface);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 22px -6px var(--accent), 0 0 0 2px var(--surface);
+  animation:breathe 3.2s ease-in-out infinite;}
+.navD .orb img{width:48px;height:48px;border-radius:50%;object-fit:cover;}
+.navD .orb-label{font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.02em;
+  position:absolute;bottom:-2px;}
+</style>
+</head>
+<body class="light">
+<header>
+  <h1>Nav bar mockups — round 5</h1>
+  <p class="sub">Four current-gen directions for Budget DAWGs: Apple's iOS 26 Liquid Glass, a gooey morphing blob indicator, a smart pill that expands the active tab into a live label, and the Doberman reimagined as an animated "Ask the DAWG" assistant orb. Glitch identity + green accent kept, legibility first. Default Crisp light; toggle dark.</p>
+  <div class="toggle">
+    <button id="t-light" class="on" onclick="setMode('light')">Light</button>
+    <button id="t-dark" onclick="setMode('dark')">Dark</button>
+  </div>
+</header>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+  <filter id="goo"><feGaussianBlur in="SourceGraphic" stdDeviation="6" result="b"/>
+  <feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9" result="g"/>
+  <feComposite in="SourceGraphic" in2="g" operator="atop"/></filter>
+</defs></svg>
+
+<main class="grid">
+
+  <!-- ========== A · LIQUID GLASS ========== -->
+  <section class="option">
+    <div class="opt-head">
+      <span class="tag">A · Liquid Glass</span>
+      <span class="opt-name">iOS 26 frosted float</span>
+      <span class="opt-desc">A translucent floating bar that blurs and refracts the content scrolling beneath it, with a specular top highlight. The active tab is a glossy accent lozenge. This is the single most "of-the-moment" look in mobile design right now.</span>
+    </div>
+    <div class="pair">
+      <div class="phone-wrap">
+        <span class="phone-label">Dashboard active</span>
+        <div class="phone">
+          <div class="screen">
+            <div class="blob a"></div><div class="blob b"></div>
+            <div class="ph-content"><div class="ph-row w2"></div><div class="ph-row w1"></div><div class="ph-card"></div></div>
+          </div>
+          <div class="navA-area">
+            <nav class="navA">
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></div>
+              <div class="tab center active"><img class="glitchimg" src="./doberman.png" alt="Dashboard"></div>
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            </nav>
+          </div>
+        </div>
+      </div>
+      <div class="phone-wrap">
+        <span class="phone-label">Ledger active</span>
+        <div class="phone">
+          <div class="screen">
+            <div class="blob a"></div><div class="blob b"></div>
+            <div class="ph-content"><div class="ph-row w2"></div><div class="ph-row w3"></div><div class="ph-card"></div></div>
+          </div>
+          <div class="navA-area">
+            <nav class="navA">
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+              <div class="tab active"><svg class="ic glitch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></div>
+              <div class="tab center"><img src="./doberman.png" alt="Dashboard"></div>
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== B · MORPHING GOO BLOB ========== -->
+  <section class="option">
+    <div class="opt-head">
+      <span class="tag">B · Morphing blob</span>
+      <span class="opt-name">Gooey liquid indicator</span>
+      <span class="opt-desc">The active highlight is a fluid accent blob that physically stretches, pinches and re-forms as it travels between tabs — true SVG metaball goo, not a sliding rectangle. Tap a tab below to watch it morph.</span>
+    </div>
+    <div class="pair">
+      <div class="phone-wrap">
+        <span class="phone-label">Live — tap to move</span>
+        <div class="phone">
+          <div class="screen"><div class="ph-content"><div class="ph-row w2"></div><div class="ph-row w1"></div><div class="ph-card"></div></div></div>
+          <nav class="navB" id="gooNav">
+            <div class="goo"><div class="ball" id="gooBall"></div></div>
+            <div class="tab active" onclick="moveGoo(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="tab" onclick="moveGoo(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+            <div class="tab center" onclick="moveGoo(this)"><img class="glitchimg" src="./doberman.png" alt="Dashboard"></div>
+            <div class="tab" onclick="moveGoo(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></div>
+            <div class="tab" onclick="moveGoo(this)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+          </nav>
+        </div>
+      </div>
+      <div class="phone-wrap">
+        <span class="phone-label">Ledger active</span>
+        <div class="phone">
+          <div class="screen"><div class="ph-content"><div class="ph-row w2"></div><div class="ph-row w3"></div><div class="ph-card"></div></div></div>
+          <nav class="navB">
+            <div class="goo"><div class="ball" style="left:226px"></div></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+            <div class="tab center"><img src="./doberman.png" alt="Dashboard"></div>
+            <div class="tab active"><svg class="ic glitch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== C · SMART EXPANDING PILL ========== -->
+  <section class="option">
+    <div class="opt-head">
+      <span class="tag">C · Smart pill</span>
+      <span class="opt-name">Active tab grows a live label</span>
+      <span class="opt-desc">Inactive tabs are bare icons. The active one expands into an accent pill that reveals its name plus a glanceable live figure — so the bar itself tells you where you are and what's happening there. Arc/Vercel-flavoured and very current.</span>
+    </div>
+    <div class="pair">
+      <div class="phone-wrap">
+        <span class="phone-label">Dashboard active</span>
+        <div class="phone">
+          <div class="screen"><div class="ph-content"><div class="ph-row w2"></div><div class="ph-row w1"></div><div class="ph-card"></div></div></div>
+          <nav class="navC">
+            <div class="tab active"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="meta"><b>Home</b><span>$2,140 left</span></span></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+            <div class="tab center"><img class="glitchimg" src="./doberman.png" alt="Dashboard"></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+          </nav>
+        </div>
+      </div>
+      <div class="phone-wrap">
+        <span class="phone-label">Ledger active</span>
+        <div class="phone">
+          <div class="screen"><div class="ph-content"><div class="ph-row w2"></div><div class="ph-row w3"></div><div class="ph-card"></div></div></div>
+          <nav class="navC">
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+            <div class="tab center"><img src="./doberman.png" alt="Dashboard"></div>
+            <div class="tab active"><svg class="ic glitch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg><span class="meta"><b>Ledger</b><span>12 new</span></span></div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== D · ASK-THE-DAWG ORB ========== -->
+  <section class="option">
+    <div class="opt-head">
+      <span class="tag">D · DAWG orb</span>
+      <span class="opt-name">Mascot becomes an AI assistant</span>
+      <span class="opt-desc">The center Doberman is promoted to a living, breathing assistant orb — a slowly rotating conic-gradient halo with a gentle pulse. Tap it to "Ask the DAWG" anything about your money. Turns your mascot into the app's signature feature, not just decoration.</span>
+    </div>
+    <div class="pair">
+      <div class="phone-wrap">
+        <span class="phone-label">Dashboard active</span>
+        <div class="phone">
+          <div class="screen"><div class="ph-content"><div class="ph-row w2"></div><div class="ph-row w1"></div><div class="ph-card"></div></div></div>
+          <nav class="navD">
+            <div class="tab active"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Home</div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Track</div>
+            <div class="orb-wrap">
+              <div class="ring"></div>
+              <div class="orb"><img class="glitchimg" src="./doberman.png" alt="Ask the DAWG"></div>
+              <span class="orb-label">Ask</span>
+            </div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>Ledger</div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>
+          </nav>
+        </div>
+      </div>
+      <div class="phone-wrap">
+        <span class="phone-label">Ledger active</span>
+        <div class="phone">
+          <div class="screen"><div class="ph-content"><div class="ph-row w2"></div><div class="ph-row w3"></div><div class="ph-card"></div></div></div>
+          <nav class="navD">
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Home</div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Track</div>
+            <div class="orb-wrap">
+              <div class="ring"></div>
+              <div class="orb"><img src="./doberman.png" alt="Ask the DAWG"></div>
+              <span class="orb-label">Ask</span>
+            </div>
+            <div class="tab active"><svg class="ic glitch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>Ledger</div>
+            <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+function setMode(m){
+  document.body.className=m;
+  document.getElementById('t-light').classList.toggle('on',m==='light');
+  document.getElementById('t-dark').classList.toggle('on',m==='dark');
+}
+function moveGoo(tab){
+  var nav=document.getElementById('gooNav');
+  nav.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  tab.classList.add('active');
+  var ball=document.getElementById('gooBall');
+  var navRect=nav.getBoundingClientRect();
+  var tabRect=tab.getBoundingClientRect();
+  var x=tabRect.left-navRect.left+(tabRect.width-46)/2;
+  ball.style.left=x+'px';
+}
+window.addEventListener('load',function(){
+  var first=document.querySelector('#gooNav .tab.active');
+  if(first) moveGoo(first);
+});
+</script>
+</body>
+</html>
