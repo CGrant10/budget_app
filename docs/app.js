@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.14';
+const VERSION = '5.43.15';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.15', date: '2026-06-10', changes: [
+    'New "Liquid Glass" bottom nav (iOS 26 style) — the bar now floats as a rounded frosted-glass island that blurs and saturates the content scrolling beneath it, with a specular top highlight. The active tab is a glossier accent lozenge (the old underline is gone). Glass tint follows your theme; top/side nav positions are unchanged',
+  ]},
   { version: '5.43.14', date: '2026-06-09', changes: [
     'Dialed back the green glow throughout — softer halo on the doberman, fainter hero glow, calmer nav (smaller active dot, gentler center-button pulse, dimmer top line), and budget tiles no longer cast a green halo. The RGB-split glitch effects are untouched',
   ]},

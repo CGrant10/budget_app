@@ -3393,7 +3393,7 @@ body.light .dawg-tile-grid .dawg-budget-tile {
 #app.dawg-mode .header      { display:none !important; }
 #app.dawg-mode .bottom-nav  { display:none !important; }
 #app.dawg-mode #main-content {
-  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px);
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 30px);
   padding-top: calc(var(--topbar-h) + var(--safe-top));
 }
 
@@ -3413,24 +3413,26 @@ body.light .dawg-tile-grid .dawg-budget-tile {
 /* DAWG 5-tab bottom nav */
 #dawg-bottom-nav {
   display:none;
-  position:fixed; bottom:0; left:0; right:0;
-  height:calc(var(--nav-h) + var(--safe-bottom));
-  padding-bottom:var(--safe-bottom);
-  background:var(--surface);
+  position:fixed;
+  bottom:calc(12px + var(--safe-bottom)); left:12px; right:12px;
+  height:var(--nav-h);
+  /* Liquid Glass — floating frosted island */
+  background:color-mix(in srgb, var(--surface) 66%, transparent);
   align-items:center; justify-content:space-around;
-  z-index:200; backdrop-filter:blur(14px);
+  z-index:200;
+  backdrop-filter:blur(22px) saturate(180%);
+  -webkit-backdrop-filter:blur(22px) saturate(180%);
   overflow:visible;
+  border:1px solid var(--border);
+  border-radius:28px;
+  box-shadow:
+    0 12px 32px rgba(0,0,0,.34),
+    0 2px 8px rgba(0,0,0,.20),
+    inset 0 1px 0 rgba(255,255,255,.22);
 }
 #app.dawg-mode #dawg-bottom-nav { display:flex; }
-/* Segmented top border with circular gap for the doberman button */
-#dawg-bottom-nav::before {
-  content:''; position:absolute; top:0; left:0; right:0; height:1px;
-  background:linear-gradient(to right,
-    var(--border) calc(50% - 32px),
-    transparent calc(50% - 32px),
-    transparent calc(50% + 32px),
-    var(--border) calc(50% + 32px));
-}
+/* Liquid Glass island has a full rounded border — the segmented hairline is redundant */
+#dawg-bottom-nav::before { content:''; display:none; }
 
 .dawg-nav-btn {
   flex:1; display:flex; flex-direction:column; align-items:center;
@@ -3551,7 +3553,13 @@ body.light .dawg-tile-grid .dawg-budget-tile {
 }
 .dawg-nav-center-btn:active { background:rgba(57,255,20,.12) !important; }
 body.light .dawg-nav-center-btn:active { background:rgba(34,170,34,.12) !important; }
-body.light #dawg-bottom-nav { background:rgba(255,255,255,.92); }
+body.light #dawg-bottom-nav {
+  background:color-mix(in srgb, var(--surface) 70%, transparent);
+  box-shadow:
+    0 12px 30px rgba(0,0,0,.12),
+    0 2px 6px rgba(0,0,0,.06),
+    inset 0 1px 0 rgba(255,255,255,.75);
+}
 .dawg-nav-dob {
   width:52px; height:52px; object-fit:contain; object-position:center;
   filter:drop-shadow(0 1px 4px rgba(0,0,0,.4));
@@ -6376,15 +6384,8 @@ body.theme-ubuntu .section-title::before {
   letter-spacing: .02em;
 }
 
-/* ── Neon line at top of bottom nav ──────────────────────────────────── */
-#dawg-bottom-nav::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 10%; right: 10%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: .28;
-}
+/* ── Neon top line removed — Liquid Glass island uses a full rounded border + specular highlight instead ── */
+#dawg-bottom-nav::before { content: ''; display: none; }
 
 /* ── Glitch page-title on tab change (class added/removed via JS) ────── */
 .page-title-glitch {
