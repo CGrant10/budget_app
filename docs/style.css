@@ -4515,37 +4515,61 @@ body.light .theme-accent-chip.active { background: rgba(0,0,0,.06); }
   background: var(--surface2); border-radius: 11px; overflow: hidden;
 }
 .theme-poke-spr img { width: 42px; height: 42px; object-fit: contain; image-rendering: pixelated; transform: scale(1.25); }
+.theme-team-spr img { image-rendering: auto; transform: none; }
 .theme-poke-lbl { font-size: .65rem; font-weight: 700; color: var(--text); text-align: center; letter-spacing: .02em; }
 
-/* ════════ POKÉMON MODE — swap in pixel sprites, gate off the Doberman/glitch identity ════════ */
-/* Pixel-crisp sprite scaling wherever the mascot shows */
-body.theme-pokemon .dawg-dob-idle,
+/* ════════ CUSTOM-MASCOT THEMES — Pokémon sprites + sports team logos ════════ */
+/* Pixel-crisp scaling for Pokémon sprites only */
 body.theme-pokemon .dawg-nav-dob,
 body.theme-pokemon .splash-dob-idle,
 body.theme-pokemon .brand-dob,
 body.theme-pokemon .nav-side-dob,
 body.theme-pokemon .empty-dob { image-rendering: pixelated; object-fit: contain; }
-/* No Doberman "bark" frame under Pokémon themes */
-body.theme-pokemon .dawg-dob-bark,
-body.theme-pokemon .splash-dob-bark { display: none !important; opacity: 0 !important; animation: none !important; }
-/* Keep the sprite steady (no idle bark-swap fade) */
-body.theme-pokemon .dawg-dob-idle,
-body.theme-pokemon .splash-dob-idle { animation: none !important; opacity: 1 !important; }
-/* Kill every RGB-split glitch animation while in Pokémon mode */
-body.theme-pokemon .dawg-nav-btn .dawg-nav-icon,
-body.theme-pokemon .dawg-nav-dob,
-body.theme-pokemon .dawg-nav-btn.nav-glitch-tap .dawg-nav-icon,
-body.theme-pokemon .dawg-nav-center-btn.nav-dob-tap .dawg-nav-dob,
-body.theme-pokemon #dawg-sparkline,
-body.theme-pokemon .splash-dog,
-body.theme-pokemon .splash-brand,
-body.theme-pokemon .dash-glitch-failed,
-body.theme-pokemon .dawg-lockin,
-body.theme-pokemon .icon-glitch-tap,
-body.theme-pokemon .page-title-glitch,
-body.theme-pokemon [data-glitch] { animation: none !important; filter: none !important; }
-body.theme-pokemon [data-glitch]::before,
-body.theme-pokemon [data-glitch]::after { display: none !important; }
+/* Hero sprite: cap the upscale so small sprites (e.g. Squirtle) stay crisp instead of blown-up & blurry */
+body.theme-pokemon .dawg-dob-idle {
+  image-rendering: pixelated; object-fit: contain;
+  width: auto !important; height: 88px !important;
+  justify-self: center; align-self: end;
+}
+/* Team logos render smooth (vector-style PNGs) */
+body.theme-team .dawg-dob-idle,
+body.theme-team .dawg-nav-dob,
+body.theme-team .splash-dob-idle,
+body.theme-team .brand-dob,
+body.theme-team .nav-side-dob,
+body.theme-team .empty-dob { object-fit: contain; }
+/* No Doberman "bark" frame; keep the mascot steady */
+body.theme-pokemon .dawg-dob-bark, body.theme-team .dawg-dob-bark,
+body.theme-pokemon .splash-dob-bark, body.theme-team .splash-dob-bark { display: none !important; opacity: 0 !important; animation: none !important; }
+body.theme-pokemon .dawg-dob-idle, body.theme-team .dawg-dob-idle,
+body.theme-pokemon .splash-dob-idle, body.theme-team .splash-dob-idle { animation: none !important; opacity: 1 !important; }
+body.theme-pokemon .dawg-hero-dob, body.theme-team .dawg-hero-dob { animation: none !important; }
+/* Gate the RGB-split glitch for team themes + Pokémon — EXCEPT Gengar, which keeps the glitch */
+:is(body.theme-team, body.theme-pokemon:not(.theme-gengar)) .dawg-nav-btn .dawg-nav-icon,
+:is(body.theme-team, body.theme-pokemon:not(.theme-gengar)) .dawg-nav-dob,
+:is(body.theme-team, body.theme-pokemon:not(.theme-gengar)) #dawg-sparkline,
+:is(body.theme-team, body.theme-pokemon:not(.theme-gengar)) .splash-dog,
+:is(body.theme-team, body.theme-pokemon:not(.theme-gengar)) .splash-brand,
+:is(body.theme-team, body.theme-pokemon:not(.theme-gengar)) .dash-glitch-failed,
+:is(body.theme-team, body.theme-pokemon:not(.theme-gengar)) .dawg-lockin,
+:is(body.theme-team, body.theme-pokemon:not(.theme-gengar)) .icon-glitch-tap,
+:is(body.theme-team, body.theme-pokemon:not(.theme-gengar)) .page-title-glitch,
+:is(body.theme-team, body.theme-pokemon:not(.theme-gengar)) [data-glitch] { animation: none !important; filter: none !important; }
+:is(body.theme-team, body.theme-pokemon:not(.theme-gengar)) [data-glitch]::before,
+:is(body.theme-team, body.theme-pokemon:not(.theme-gengar)) [data-glitch]::after { display: none !important; }
+
+/* ── Eerie ambient FX overlay (Pokémon themes only) ── */
+#poke-fx { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+#poke-fx .pf-vig { position: absolute; inset: 0; }
+body.theme-gengar    #poke-fx .pf-vig { box-shadow: inset 0 0 150px 40px rgba(18,8,38,.72); }
+body.theme-charizard #poke-fx .pf-vig { box-shadow: inset 0 -90px 130px -28px rgba(180,60,10,.22), inset 0 0 150px 40px rgba(0,0,0,.42); }
+body.theme-squirtle  #poke-fx .pf-vig { box-shadow: inset 0 90px 130px -28px rgba(20,80,130,.24), inset 0 0 160px 44px rgba(0,0,0,.42); }
+.pf-ember { position: absolute; bottom: -12px; width: 5px; height: 5px; border-radius: 50%;
+  background: radial-gradient(circle,#ffd089,#ff7a3c 70%); opacity: 0; filter: blur(.3px); animation: pf-rise 6s ease-in infinite; }
+@keyframes pf-rise { 0% { opacity: 0; transform: translateY(0) scale(1); } 12% { opacity: .85; } 100% { opacity: 0; transform: translateY(-72vh) scale(.3); } }
+.pf-bubble { position: absolute; bottom: -14px; border-radius: 50%; border: 1px solid rgba(150,210,240,.4);
+  background: rgba(150,210,240,.06); opacity: 0; animation: pf-bub 9s ease-in infinite; }
+@keyframes pf-bub { 0% { opacity: 0; transform: translateY(0); } 14% { opacity: .6; } 100% { opacity: 0; transform: translateY(-82vh); } }
 
 /* ── Import mode toggle ─────────────────────────────────────────────────── */
 .import-mode-btn {

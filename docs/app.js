@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.18';
+const VERSION = '5.43.19';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,12 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.19', date: '2026-06-10', changes: [
+    'New Sports Teams theme mode — a 5th tab in Settings > Theme with Chicago Bears, LA Dodgers, Vegas Golden Knights, and Boston Celtics. Each swaps the mascot to the team logo with the team colors and slogan (BEAR DOWN / THINK BLUE / VEGAS BORN / DIFFERENT HERE)',
+    'Pokémon themes now have an eerie ambient effect: Gengar darkens with a shadow vignette, Charizard drifts embers, Squirtle floats bubbles up from the deep',
+    'Gengar keeps the RGB-glitch identity now (it\'s a ghost — it fits); Charizard and Squirtle stay calm/glitch-free',
+    'Fixed the blown-up, blurry mascot on the dashboard for Pokémon themes — sprites (especially Squirtle) are now size-capped and pixel-crisp instead of stretched',
+  ]},
   { version: '5.43.18', date: '2026-06-10', changes: [
     'Transaction animations now match your theme. Pokémon themes get eerie, on-theme flavor text (Gengar "the shadows stir… / it hides in your shadow", Charizard ember lines, Squirtle tide lines) with the mascot sprite in the terminal bar and no glitch — the amount fades in calmly. Terminal themes type their own shell/language syntax instead: VS Code Python (ledger.post), PowerShell (New-Expense/Add-Income/Move-Funds), CMD (post EXPENSE, :: comments), and Kali/Mint/Ubuntu bash (budget post --expense). Every other theme is unchanged',
   ]},
@@ -1562,6 +1568,43 @@ const THEMES = {
     grad:'linear-gradient(135deg, #1b2c37 0%, #46a6ec 100%)', font:'default',
     cats:{ Food:'#46a6ec', Gas:'#ff6b6b', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#e0a020', Home:'#52c0a0', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#8aa4b1' },
   },
+  // ── Sports team themes ──────────────────────────────────────────────────
+  bears: {
+    label:'Chicago Bears', shortLabel:'Bears', team:true, mascot:'./team-bears.png',
+    tagline:'BEAR<br>DOWN.', splashTagline:'Bear Down, Chicago.',
+    bg:'#0b162a', surface:'#11203c', surface2:'#16284a', card:'#16284a',
+    text:'#f3f4f6', muted:'#8b97ad', border:'rgba(227,90,35,.26)',
+    accent:'#e35a23', accent2:'#0b162a', success:'#43c98a', warn:'#e0a14a', danger:'#ff6b6b',
+    grad:'linear-gradient(135deg, #11203c 0%, #e35a23 100%)', font:'default',
+    cats:{ Food:'#e35a23', Gas:'#ff6b6b', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#e0a020', Home:'#e8852a', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#8b97ad' },
+  },
+  dodgers: {
+    label:'LA Dodgers', shortLabel:'Dodgers', team:true, mascot:'./team-dodgers.png',
+    tagline:'THINK<br>BLUE.', splashTagline:'It’s time for Dodger baseball.',
+    bg:'#0a1c34', surface:'#0e2748', surface2:'#123158', card:'#123158',
+    text:'#eef3f9', muted:'#8ba0bd', border:'rgba(58,134,214,.28)',
+    accent:'#3a86d6', accent2:'#ef3e42', success:'#43c98a', warn:'#e0c14a', danger:'#ef3e42',
+    grad:'linear-gradient(135deg, #0e2748 0%, #3a86d6 100%)', font:'default',
+    cats:{ Food:'#3a86d6', Gas:'#ef3e42', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#e0a020', Home:'#52a0d6', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#8ba0bd' },
+  },
+  knights: {
+    label:'Vegas Golden Knights', shortLabel:'Knights', team:true, mascot:'./team-knights.png',
+    tagline:'VEGAS<br>BORN.', splashTagline:'Knights of the realm.',
+    bg:'#16191b', surface:'#20262a', surface2:'#272f33', card:'#272f33',
+    text:'#f1f3f4', muted:'#99a1a6', border:'rgba(193,164,99,.3)',
+    accent:'#c1a463', accent2:'#c8102e', success:'#43c98a', warn:'#c1a463', danger:'#c8102e',
+    grad:'linear-gradient(135deg, #20262a 0%, #c1a463 100%)', font:'default',
+    cats:{ Food:'#c1a463', Gas:'#c8102e', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#d8b66a', Home:'#a0894f', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#99a1a6' },
+  },
+  celtics: {
+    label:'Boston Celtics', shortLabel:'Celtics', team:true, mascot:'./team-celtics.png',
+    tagline:'DIFFERENT<br>HERE.', splashTagline:'Banner 18.',
+    bg:'#07150d', surface:'#0c2014', surface2:'#0f2a19', card:'#0f2a19',
+    text:'#eef3ee', muted:'#87a492', border:'rgba(33,176,102,.28)',
+    accent:'#21b066', accent2:'#ba9653', success:'#21b066', warn:'#ba9653', danger:'#ff6b6b',
+    grad:'linear-gradient(135deg, #0c2014 0%, #21b066 100%)', font:'default',
+    cats:{ Food:'#21b066', Gas:'#ff6b6b', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#ba9653', Home:'#2bbf74', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#87a492' },
+  },
 };
 
 let CAT_COLORS = {
@@ -1770,7 +1813,7 @@ function _txnFlavor(isExpense, isTransfer, isPaycheck) {
   if (t.pokemon && POKE[theme]) {
     const p = POKE[theme][k];
     return { title:`${theme}:~$`, prompt:'&gt;', cmt:'//', ok:'',
-      l1:p[0], l2:p[1], headline:p[2], calm:true, cmtMemo:true,
+      l1:p[0], l2:p[1], headline:p[2], calm:(theme !== 'gengar'), cmtMemo:true,
       sprite: t.mascot ? `<img class="txn-term-spr" src="${t.mascot}" alt="">` : '' };
   }
 
@@ -2324,8 +2367,26 @@ function mascotSrc() {
 // Dashboard hero tagline — themed for Pokémon, else the DAWG "LOCK TF IN." glitch tagline
 function heroTaglineHTML() {
   const t = THEMES[loadSettings().theme];
-  if (t && t.pokemon && t.tagline) return `<div class="dawg-hero-tagline">${t.tagline}</div>`;
+  if (t && (t.pokemon || t.team) && t.tagline) return `<div class="dawg-hero-tagline">${t.tagline}</div>`;
   return `<div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin" data-glitch="LOCK TF IN.">LOCK TF IN.</em></div>`;
+}
+
+// Eerie ambient overlay for Pokémon themes (vignette + per-mon particles). Removed for all other themes.
+function _applyThemeFx(theme) {
+  document.getElementById('poke-fx')?.remove();
+  const t = THEMES[theme] || {};
+  if (!t.pokemon) return;
+  const fx = document.createElement('div');
+  fx.id = 'poke-fx';
+  fx.setAttribute('aria-hidden', 'true');
+  let inner = '<div class="pf-vig"></div>';
+  if (theme === 'charizard') {
+    for (let i = 0; i < 7; i++) inner += `<i class="pf-ember" style="left:${8 + i * 13}%;animation-delay:${(i * 0.8).toFixed(1)}s"></i>`;
+  } else if (theme === 'squirtle') {
+    for (let i = 0; i < 7; i++) inner += `<i class="pf-bubble" style="left:${10 + i * 12}%;width:${6 + (i % 3) * 2}px;height:${6 + (i % 3) * 2}px;animation-delay:${(i * 1.1).toFixed(1)}s"></i>`;
+  }
+  fx.innerHTML = inner;
+  document.body.appendChild(fx);
 }
 
 function applyTheme(theme) {
@@ -2355,8 +2416,10 @@ function applyTheme(theme) {
     document.body.classList.add('theme-' + theme);
   }
   // Pokémon themes — body.theme-pokemon gates off the Doberman/glitch identity (see CSS)
-  document.body.classList.remove('theme-pokemon', 'theme-gengar', 'theme-charizard', 'theme-squirtle');
+  document.body.classList.remove('theme-pokemon','theme-team','theme-gengar','theme-charizard','theme-squirtle','theme-bears','theme-dodgers','theme-knights','theme-celtics');
   if (t.pokemon) document.body.classList.add('theme-pokemon', 'theme-' + theme);
+  if (t.team)    document.body.classList.add('theme-team', 'theme-' + theme);
+  _applyThemeFx(theme);
   // Swap mascot + splash tagline on the persistent (non-re-rendered) elements
   const _mascot = t.mascot || './doberman.png';
   document.querySelectorAll('.splash-dob-idle, .brand-dob, .dawg-nav-dob, .nav-side-dob').forEach(img => { img.src = _mascot; });
@@ -7899,10 +7962,12 @@ function renderSettings() {
 
   const TERMINAL_KEYS = ['vscode','powershell','cmd','kali','mintlinux','ubuntu'];
   const POKEMON_KEYS  = ['gengar','charizard','squirtle'];
+  const TEAM_KEYS     = ['bears','dodgers','knights','celtics'];
   const isTerminal = TERMINAL_KEYS.includes(theme);
   const isPokemon  = POKEMON_KEYS.includes(theme);
-  const isLight    = !isTerminal && !isPokemon && !!THEMES[theme]?.light;
-  const activeMode = isPokemon ? 'pokemon' : isTerminal ? 'terminal' : isLight ? 'light' : 'dark';
+  const isTeam     = TEAM_KEYS.includes(theme);
+  const isLight    = !isTerminal && !isPokemon && !isTeam && !!THEMES[theme]?.light;
+  const activeMode = isPokemon ? 'pokemon' : isTeam ? 'team' : isTerminal ? 'terminal' : isLight ? 'light' : 'dark';
 
   const DARK_ACCENTS  = ['dark','oled','denim','ember','jurassicpark','darkslate','auto','custom'];
   const LIGHT_ACCENTS = ['light','lightsky','lightrose','lightsand','lightsilver','customlight'];
@@ -7939,6 +8004,14 @@ function renderSettings() {
     return `<button class="theme-poke-chip${theme === key ? ' active' : ''}" data-theme="${key}">
       <span class="theme-poke-spr"><img src="${t.mascot}" alt=""></span>
       <span class="theme-poke-lbl">${t.label}</span>
+    </button>`;
+  };
+
+  const teamChip = key => {
+    const t = THEMES[key];
+    return `<button class="theme-poke-chip theme-team-chip${theme === key ? ' active' : ''}" data-theme="${key}">
+      <span class="theme-poke-spr theme-team-spr"><img src="${t.mascot}" alt=""></span>
+      <span class="theme-poke-lbl">${t.shortLabel || t.label}</span>
     </button>`;
   };
 
@@ -7992,9 +8065,13 @@ function renderSettings() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><circle cx="12" cy="12" r="3"/></svg>
             Pokémon
           </button>
+          <button class="theme-mode-btn${activeMode === 'team' ? ' active' : ''}" data-mode="team">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 11 4.5-3 8-6 8-11V5z"/></svg>
+            Teams
+          </button>
         </div>
 
-        <div id="theme-accent-section" style="${(activeMode === 'terminal' || activeMode === 'pokemon') ? 'display:none' : ''}">
+        <div id="theme-accent-section" style="${(activeMode === 'terminal' || activeMode === 'pokemon' || activeMode === 'team') ? 'display:none' : ''}">
           <p class="code-hint" style="margin-bottom:8px">Accent color</p>
           <div class="theme-accent-grid" id="theme-accent-grid">
             ${activeMode === 'light'
@@ -8016,9 +8093,16 @@ function renderSettings() {
         </div>
 
         <div id="theme-pokemon-section" style="${activeMode !== 'pokemon' ? 'display:none' : ''}">
-          <p class="code-hint" style="margin-bottom:8px">Pick your starter — swaps the mascot, palette, splash &amp; tagline. Turns off the Doberman + glitch.</p>
+          <p class="code-hint" style="margin-bottom:8px">Pick your starter — swaps the mascot, palette, splash &amp; tagline, with an eerie ambient effect. (Gengar keeps the glitch.)</p>
           <div class="theme-poke-chips">
             ${POKEMON_KEYS.map(pokeChip).join('')}
+          </div>
+        </div>
+
+        <div id="theme-team-section" style="${activeMode !== 'team' ? 'display:none' : ''}">
+          <p class="code-hint" style="margin-bottom:8px">Rep your team — swaps the mascot to the team logo with its colors &amp; slogan. (Logos are team trademarks — personal use.)</p>
+          <div class="theme-poke-chips">
+            ${TEAM_KEYS.map(teamChip).join('')}
           </div>
         </div>
       </div>
@@ -8126,10 +8210,11 @@ function attachSettings() {
       // If already in this mode, do nothing
       const isTerminal = ['vscode','powershell','cmd','kali','mintlinux','ubuntu'].includes(cur);
       const isPokemon  = ['gengar','charizard','squirtle'].includes(cur);
-      const curMode    = isPokemon ? 'pokemon' : isTerminal ? 'terminal' : THEMES[cur]?.light ? 'light' : 'dark';
+      const isTeam     = ['bears','dodgers','knights','celtics'].includes(cur);
+      const curMode    = isPokemon ? 'pokemon' : isTeam ? 'team' : isTerminal ? 'terminal' : THEMES[cur]?.light ? 'light' : 'dark';
       if (mode === curMode) return;
       // Switch to default theme for new mode
-      const defaults = { dark:'dark', light:'light', terminal:'vscode', pokemon:'gengar' };
+      const defaults = { dark:'dark', light:'light', terminal:'vscode', pokemon:'gengar', team:'bears' };
       _applyThemeKey(defaults[mode] || 'dark');
     });
   });
