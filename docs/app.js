@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.20';
+const VERSION = '5.43.21';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.21', date: '2026-06-10', changes: [
+    'Fixed the theme mode buttons (Dark / Light / Terminal / Pokémon / Teams) overflowing off the screen — the row now wraps to a second line so the Teams option is reachable',
+  ]},
   { version: '5.43.20', date: '2026-06-10', changes: [
     'The RGB-split glitch now recolors to match each theme instead of always being red/cyan. Pokémon and team themes keep the full glitch identity in their own colors — Gengar purple/magenta, Charizard orange/gold, Squirtle blue/aqua, Bears orange/blue, Dodgers blue/red, Knights gold/red, Celtics green/gold. The classic red/cyan stays for the default and terminal themes',
     'Pokémon eerie FX tuned: the vignette is softer, and Charizard\'s embers / Squirtle\'s bubbles now drift up at random positions and speeds (instead of an even row) — and sit behind the cards as background ambiance',

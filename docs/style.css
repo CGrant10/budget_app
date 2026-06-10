@@ -4413,11 +4413,13 @@ body.light .splash-brand {
 /* ── Theme picker ───────────────────────────────────────────────────────── */
 .theme-mode-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 14px;
 }
 .theme-mode-btn {
-  flex: 1;
+  flex: 1 1 28%;
+  min-width: 0;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 11px;
