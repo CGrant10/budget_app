@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.23';
+const VERSION = '5.43.24';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,6 +25,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.24', date: '2026-06-11', changes: [
+    'Fixed: init errors now show a visible error message instead of a blank screen — the app was staying hidden (opacity 0) when a crash happened before the first render completed',
+  ]},
   { version: '5.43.23', date: '2026-06-11', changes: [
     'Sports team dashboard taglines now tie to budgeting — Bears: "BEAR DOWN ON YOUR BUDGET.", Dodgers: "THINK BLUE, SPEND LESS.", Knights: "GO KNIGHT OR GO HOME.", Celtics: "BUDGET DIFFERENT HERE."',
   ]},
@@ -11831,8 +11834,10 @@ window.addEventListener('popstate', () => {
       });
     }
     } catch(err) {
-      // Surface init errors so a blank screen doesn't look like a stuck splash
+      // Surface init errors — always make the app visible so the error message isn't hidden
       console.error('[Budget DAWGs] Init error:', err);
+      const appEl2 = document.getElementById('app');
+      if (appEl2) appEl2.style.opacity = '1';
       const mc = document.getElementById('main-content');
       if (mc) mc.innerHTML = `<div style="padding:32px 24px;text-align:center">
         <div style="font-size:1.1rem;font-weight:700;color:var(--danger);margin-bottom:8px">Something went wrong loading the app.</div>
