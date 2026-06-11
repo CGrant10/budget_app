@@ -4543,6 +4543,8 @@ body.theme-team .splash-dob-idle,
 body.theme-team .brand-dob,
 body.theme-team .nav-side-dob,
 body.theme-team .empty-dob { object-fit: contain; }
+body.theme-team .dawg-nav-dob { width: 42px !important; height: 42px !important; }
+body.theme-pokemon .acct-hero-dob .dawg-dob-idle { height: 64px !important; width: auto !important; }
 /* No Doberman "bark" frame; keep the mascot steady */
 body.theme-pokemon .dawg-dob-bark, body.theme-team .dawg-dob-bark,
 body.theme-pokemon .splash-dob-bark, body.theme-team .splash-dob-bark { display: none !important; opacity: 0 !important; animation: none !important; }
