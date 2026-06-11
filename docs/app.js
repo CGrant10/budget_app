@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.24';
+const VERSION = '5.43.25';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -25,15 +25,8 @@ const ICONS = {
 };
 
 const CHANGELOG = [
-  { version: '5.43.24', date: '2026-06-11', changes: [
-    'Fixed: init errors now show a visible error message instead of a blank screen — the app was staying hidden (opacity 0) when a crash happened before the first render completed',
-  ]},
-  { version: '5.43.23', date: '2026-06-11', changes: [
-    'Sports team dashboard taglines now tie to budgeting — Bears: "BEAR DOWN ON YOUR BUDGET.", Dodgers: "THINK BLUE, SPEND LESS.", Knights: "GO KNIGHT OR GO HOME.", Celtics: "BUDGET DIFFERENT HERE."',
-  ]},
-  { version: '5.43.22', date: '2026-06-11', changes: [
-    'Fixed: team logo themes — logos in the nav circle are now smaller so they have breathing room and don\'t crowd the edge',
-    'Fixed: Gengar (and Pokémon sprites) no longer overflow into the text on the accounts overview page — the sprite is capped to the hero container height',
+  { version: '5.43.25', date: '2026-06-11', changes: [
+    'Emergency rollback to v5.43.21 — restored last known working state',
   ]},
   { version: '5.43.21', date: '2026-06-10', changes: [
     'Fixed the theme mode buttons (Dark / Light / Terminal / Pokémon / Teams) overflowing off the screen — the row now wraps to a second line so the Teams option is reachable',
@@ -1591,7 +1584,7 @@ const THEMES = {
   // ── Sports team themes ──────────────────────────────────────────────────
   bears: {
     label:'Chicago Bears', shortLabel:'Bears', team:true, mascot:'./team-bears.png',
-    tagline:'BEAR DOWN<br>ON YOUR BUDGET.', splashTagline:'Bear Down, Chicago.',
+    tagline:'BEAR<br>DOWN.', splashTagline:'Bear Down, Chicago.',
     bg:'#0b162a', surface:'#11203c', surface2:'#16284a', card:'#16284a',
     text:'#f3f4f6', muted:'#8b97ad', border:'rgba(227,90,35,.26)',
     accent:'#e35a23', accent2:'#0b162a', success:'#43c98a', warn:'#e0a14a', danger:'#ff6b6b',
@@ -1601,7 +1594,7 @@ const THEMES = {
   },
   dodgers: {
     label:'LA Dodgers', shortLabel:'Dodgers', team:true, mascot:'./team-dodgers.png',
-    tagline:’THINK BLUE,<br>SPEND LESS.’, splashTagline:’It’s time for Dodger baseball.’,
+    tagline:'THINK<br>BLUE.', splashTagline:'It’s time for Dodger baseball.',
     bg:'#0a1c34', surface:'#0e2748', surface2:'#123158', card:'#123158',
     text:'#eef3f9', muted:'#8ba0bd', border:'rgba(58,134,214,.28)',
     accent:'#3a86d6', accent2:'#ef3e42', success:'#43c98a', warn:'#e0c14a', danger:'#ef3e42',
@@ -1611,7 +1604,7 @@ const THEMES = {
   },
   knights: {
     label:'Vegas Golden Knights', shortLabel:'Knights', team:true, mascot:'./team-knights.png',
-    tagline:'GO KNIGHT<br>OR GO HOME.', splashTagline:'Knights of the realm.',
+    tagline:'VEGAS<br>BORN.', splashTagline:'Knights of the realm.',
     bg:'#16191b', surface:'#20262a', surface2:'#272f33', card:'#272f33',
     text:'#f1f3f4', muted:'#99a1a6', border:'rgba(193,164,99,.3)',
     accent:'#c1a463', accent2:'#c8102e', success:'#43c98a', warn:'#c1a463', danger:'#c8102e',
@@ -1621,7 +1614,7 @@ const THEMES = {
   },
   celtics: {
     label:'Boston Celtics', shortLabel:'Celtics', team:true, mascot:'./team-celtics.png',
-    tagline:'BUDGET<br>DIFFERENT HERE.', splashTagline:'Banner 18.',
+    tagline:'DIFFERENT<br>HERE.', splashTagline:'Banner 18.',
     bg:'#07150d', surface:'#0c2014', surface2:'#0f2a19', card:'#0f2a19',
     text:'#eef3ee', muted:'#87a492', border:'rgba(33,176,102,.28)',
     accent:'#21b066', accent2:'#ba9653', success:'#21b066', warn:'#ba9653', danger:'#ff6b6b',
@@ -11834,10 +11827,8 @@ window.addEventListener('popstate', () => {
       });
     }
     } catch(err) {
-      // Surface init errors — always make the app visible so the error message isn't hidden
+      // Surface init errors so a blank screen doesn't look like a stuck splash
       console.error('[Budget DAWGs] Init error:', err);
-      const appEl2 = document.getElementById('app');
-      if (appEl2) appEl2.style.opacity = '1';
       const mc = document.getElementById('main-content');
       if (mc) mc.innerHTML = `<div style="padding:32px 24px;text-align:center">
         <div style="font-size:1.1rem;font-weight:700;color:var(--danger);margin-bottom:8px">Something went wrong loading the app.</div>
