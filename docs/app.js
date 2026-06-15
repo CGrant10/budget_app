@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.30';
+const VERSION = '5.43.31';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -3044,6 +3044,41 @@ function initSoundsToggle() {
 }
 
 // ── health score ───────────────────────────────────────────────────────────
+// ── Safe to Spend (beta) ─────────────────────────────────────────────────────
+// A single glanceable "you can spend this much today" number: current balance
+// minus the bills still unpaid this month, spread across the days left in the
+// month. Optional/beta — gated behind settings.safeToSpend. Never touches the
+// Weekly Planner; it's an independent alternative view.
+function _calcSafeToSpend() {
+  const m       = localMonthKey();
+  const balance = balanceAsOf(today());
+  let unpaidBills = 0;
+  (state.bills || []).forEach(b => { if (!isBillPaidFor(b, m)) unpaidBills += parseFloat(b.amount) || 0; });
+  const now         = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysLeft    = Math.max(1, daysInMonth - now.getDate() + 1);
+  const available   = balance - unpaidBills;
+  return { balance, unpaidBills, available, daysLeft, perDay: available / daysLeft };
+}
+
+// ── reactive mascot mood ─────────────────────────────────────────────────────
+// The dashboard Doberman's vibe, derived from this month's money state.
+const MASCOT_MOODS = {
+  hype:  { lbl: 'PAYDAY',        col: 'var(--warn)' },
+  mad:   { lbl: 'OFF THE LEASH', col: 'var(--danger)' },
+  happy: { lbl: 'GOOD DAWG',     col: 'var(--success)' },
+  calm:  { lbl: 'ON WATCH',      col: 'var(--accent)' },
+};
+function _mascotMood() {
+  const m = localMonthKey();
+  const { income, expense } = monthTotals(m);
+  const bigIncomeToday = state.transactions.some(t => t.type === 'income' && t.date === today() && t.amount >= 100);
+  if (bigIncomeToday)                              return 'hype';
+  if (income > 0 && expense > income)              return 'mad';
+  if (income > 0 && (income - expense) / income >= 0.2) return 'happy';
+  return 'calm';
+}
+
 function calcHealthScore() {
   const m = localMonthKey();
   const { income, expense } = monthTotals(m);
@@ -4511,6 +4546,7 @@ function render() {
     case 'retirement':  main.innerHTML = renderRetirement();  break;
     case 'accounts':    main.innerHTML = renderAccounts();    break;
     case 'notes':     main.innerHTML = renderNotes();     break;
+    case 'wrapped':   main.innerHTML = renderWrapped();   break;
     case 'settings':  main.innerHTML = renderSettings();  break;
     case 'about':     main.innerHTML = renderAbout();     break;
   }
@@ -5337,10 +5373,13 @@ function renderDashboardDawg() {
   const multiAcct = state.accounts && state.accounts.length > 1;
   const _curAcct  = state.accounts.find(a => a.id === currentAccountId);
   const _acctName = _curAcct?.name || 'Account';
+  const _mood = isPastDash ? 'calm' : _mascotMood();
+  const _moodCfg = MASCOT_MOODS[_mood] || MASCOT_MOODS.calm;
   return `<div class="dawg-page">
     ${backupBannerHtml()}
-    <div class="dawg-hero">
+    <div class="dawg-hero dawg-mood-${_mood}">
       <div class="dawg-hero-glow"></div>
+      <span class="dawg-mood-pill" style="color:${_moodCfg.col}"><span class="dawg-mood-dot" style="background:${_moodCfg.col}"></span>${_moodCfg.lbl}</span>
       <div class="dawg-hero-inner">
         ${heroTaglineHTML()}
         <div class="dawg-hero-dob">
@@ -5370,6 +5409,19 @@ function renderDashboardDawg() {
         <button class="dawg-tbtn" data-range="all">ALL</button>
       </div>
     </div>
+
+    ${(loadSettings().safeToSpend && !_isDebt && !isPastDash) ? (() => {
+      const sts = _calcSafeToSpend();
+      const stsColor = sts.perDay <= 0 ? 'var(--danger)' : sts.perDay < 20 ? 'var(--warn)' : 'var(--accent)';
+      return `<div class="dawg-sts-card">
+        <div class="dawg-sts-head">
+          <span class="dawg-sts-label">SAFE TO SPEND TODAY</span>
+          <span class="dawg-sts-beta">BETA</span>
+        </div>
+        <div class="dawg-sts-amt" style="color:${stsColor}" data-countup="${Math.max(0, sts.perDay)}" data-countup-key="sts">${fmt(Math.max(0, sts.perDay))}</div>
+        <div class="dawg-sts-sub">${fmt(sts.available)} left after bills · ${sts.daysLeft} day${sts.daysLeft !== 1 ? 's' : ''} left this month</div>
+      </div>`;
+    })() : ''}
 
     <div class="dawg-month-nav">
       <button class="dawg-mnav-btn" id="dash-month-prev">‹</button>
@@ -8131,6 +8183,65 @@ function attachRetirement() {
   recalcProjector();
 }
 
+// ── DAWG Wrapped — a Spotify-Wrapped-style recap of the year ─────────────────
+function renderWrapped() {
+  const year = String(new Date().getFullYear());
+  const _real = t => t.category !== 'Transfer' && t.category !== 'Payment' && !t._xfer;
+  let txns = state.transactions.filter(t => (t.date || '').startsWith(year) && _real(t));
+  let periodLabel = year;
+  if (txns.length < 1) { txns = state.transactions.filter(_real); periodLabel = 'All Time'; }
+
+  if (!txns.length) {
+    return `<div class="page wrapped-page">
+      <div class="wrap-hero"><div class="wrap-hero-title">WRAPPED</div></div>
+      ${emptyState('Nothing to wrap yet', 'Log some transactions and come back')}
+    </div>`;
+  }
+
+  let income = 0, expense = 0, expenseCount = 0, biggest = null;
+  const byCat = {}, byMonth = {};
+  for (const t of txns) {
+    if (t.type === 'income') income += t.amount;
+    else if (t.type === 'expense') {
+      expense += t.amount; expenseCount++;
+      byCat[t.category] = (byCat[t.category] || 0) + t.amount;
+      const mk = (t.date || '').slice(0, 7);
+      byMonth[mk] = (byMonth[mk] || 0) + t.amount;
+      if (!biggest || t.amount > biggest.amount) biggest = t;
+    }
+  }
+  const net         = income - expense;
+  const savingsRate = income > 0 ? Math.round((income - expense) / income * 100) : 0;
+  const topCat      = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0];
+  const topMonth    = Object.entries(byMonth).sort((a, b) => b[1] - a[1])[0];
+  const monthName   = topMonth ? new Date(topMonth[0] + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long' }) : '—';
+  const catColor    = topCat ? (CAT_COLORS[topCat[0]] || 'var(--accent)') : 'var(--accent)';
+
+  const stat = (label, value, sub, color) => `
+    <div class="wrap-stat">
+      <div class="wrap-stat-label">${label}</div>
+      <div class="wrap-stat-value"${color ? ` style="color:${color}"` : ''}>${value}</div>
+      ${sub ? `<div class="wrap-stat-sub">${sub}</div>` : ''}
+    </div>`;
+
+  return `<div class="page wrapped-page">
+    <div class="wrap-hero">
+      <div class="wrap-hero-kicker">${periodLabel} · DAWG</div>
+      <div class="wrap-hero-title">WRAPPED</div>
+      <div class="wrap-hero-sub">Your money, unleashed.</div>
+    </div>
+    <div class="wrap-grid">
+      ${stat('You spent', fmt(expense), `across ${expenseCount} transaction${expenseCount !== 1 ? 's' : ''}`, 'var(--danger)')}
+      ${stat('You brought in', fmt(income), 'total income', 'var(--success)')}
+      ${stat(net >= 0 ? 'You saved' : 'You overspent', fmt(Math.abs(net)), net >= 0 ? `${savingsRate}% savings rate` : 'spent more than you earned', net >= 0 ? 'var(--success)' : 'var(--danger)')}
+      ${topCat ? stat('Top category', topCat[0], `${fmt(topCat[1])} — your biggest habit`, catColor) : ''}
+      ${biggest ? stat('Biggest splurge', fmt(biggest.amount), `${biggest.description || biggest.category} · ${biggest.date}`, 'var(--warn)') : ''}
+      ${topMonth ? stat('Spendiest month', monthName, `${fmt(topMonth[1])} flew out the door`, 'var(--accent)') : ''}
+    </div>
+    <p class="wrap-foot">Based on ${txns.length} transactions${periodLabel === year ? ` in ${year}` : ''}. Keep your DAWG fed. 🐾</p>
+  </div>`;
+}
+
 // ── settings ───────────────────────────────────────────────────────────────
 function renderSettings() {
   const s            = loadSettings();
@@ -8227,6 +8338,18 @@ function renderSettings() {
             <span class="mode-opt-title">Simple Tracking</span>
             <span class="mode-opt-sub">Just balance &amp; transactions</span>
           </button>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:6px">Beta Features</h2>
+        <p class="code-hint" style="margin-bottom:12px">Experimental — try them out and let me know what sticks. Toggling these off changes nothing else.</p>
+        <div class="form-row">
+          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="safe-to-spend-toggle" ${s.safeToSpend ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
+            Safe to Spend <span style="font-size:.6rem;font-weight:800;letter-spacing:.08em;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 6px;margin-left:2px">BETA</span>
+          </label>
+          <p class="code-hint" style="margin-top:6px">Adds a "safe to spend today" card to your dashboard — balance minus this month's unpaid bills, spread across the days left. Sits alongside your Weekly Planner; doesn't replace it.</p>
         </div>
       </div>
 
@@ -8557,6 +8680,12 @@ function attachSettings() {
     s.reduceFx = e.target.checked;
     saveSettings(s);
     document.body.classList.toggle('fx-reduced', e.target.checked);
+  });
+
+  document.getElementById('safe-to-spend-toggle')?.addEventListener('change', e => {
+    const s = loadSettings();
+    s.safeToSpend = e.target.checked;
+    saveSettings(s);
   });
 
 }

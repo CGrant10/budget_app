@@ -2928,6 +2928,58 @@ textarea:focus-visible,
   transform: scale(.96);
 }
 .nav-btn:active, .dawg-nav-btn:active { transform: scale(.9); }
+
+/* ── reactive mascot mood ─────────────────────────────────────────────────────
+   The dashboard hero glow tints to the current money mood; a small pill names it. */
+.dawg-hero { position: relative; }
+.dawg-mood-pill {
+  position: absolute; top: 10px; right: 12px; z-index: 4;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .6rem; font-weight: 800; letter-spacing: .1em;
+  padding: 4px 9px; border-radius: 999px;
+  background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.08);
+  -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+}
+.dawg-mood-dot { width: 6px; height: 6px; border-radius: 50%; }
+body.light .dawg-mood-pill { background: rgba(255,255,255,.6); border-color: rgba(0,0,0,.06); }
+.dawg-mood-mad   .dawg-hero-glow { background: radial-gradient(circle at 50% 40%, rgba(255,69,58,.22), transparent 70%) !important; }
+.dawg-mood-happy .dawg-hero-glow { background: radial-gradient(circle at 50% 40%, rgba(50,215,75,.18), transparent 70%) !important; }
+.dawg-mood-hype  .dawg-hero-glow { background: radial-gradient(circle at 50% 40%, rgba(255,214,10,.24), transparent 70%) !important; }
+
+/* ── Safe to Spend (beta) card ────────────────────────────────────────────── */
+.dawg-sts-card {
+  margin: 10px 14px 0; padding: 13px 16px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-card); box-shadow: var(--shadow-card);
+}
+.dawg-sts-head { display: flex; align-items: center; justify-content: space-between; }
+.dawg-sts-label { font-size: .66rem; font-weight: 700; letter-spacing: .12em; color: var(--muted); }
+.dawg-sts-beta {
+  font-size: .56rem; font-weight: 800; letter-spacing: .1em;
+  color: var(--accent); border: 1px solid var(--accent);
+  border-radius: 999px; padding: 2px 7px; opacity: .85;
+}
+.dawg-sts-amt { font-size: 1.9rem; font-weight: 800; line-height: 1.1; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+.dawg-sts-sub { font-size: .72rem; color: var(--muted); font-weight: 600; }
+
+/* ── DAWG Wrapped recap ──────────────────────────────────────────────────── */
+.wrap-hero { text-align: center; padding: 22px 0 18px; }
+.wrap-hero-kicker { font-size: .7rem; font-weight: 800; letter-spacing: .22em; color: var(--muted); }
+.wrap-hero-title {
+  font-family: 'Bangers', cursive; font-size: 3.6rem; line-height: 1; letter-spacing: .05em;
+  margin: 4px 0; background: var(--accent-gradient);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.wrap-hero-sub { font-size: .85rem; color: var(--muted); font-weight: 600; }
+.wrap-grid { display: grid; gap: 12px; }
+.wrap-stat {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-card); padding: 16px 18px; box-shadow: var(--shadow-card);
+}
+.wrap-stat-label { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.wrap-stat-value { font-size: 2rem; font-weight: 800; line-height: 1.1; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+.wrap-stat-sub { font-size: .78rem; color: var(--muted); font-weight: 600; }
+.wrap-foot { text-align: center; font-size: .78rem; color: var(--muted); margin-top: 16px; }
 .dawg-sparkline-wrap { height:94px; margin-bottom:10px; }
 .dawg-time-btns {
   position:relative; display:flex; gap:0;
