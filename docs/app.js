@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.29';
+const VERSION = '5.43.30';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1556,7 +1556,7 @@ const THEMES = {
     cats:{ Food:'#7888a0', Gas:'#c05858', Car:'#6878a8', Boat:'#5888a0', Tools:'#b07840', Home:'#788888', Entertainment:'#887898', Health:'#5898a8', Other:'#787880' },
   },
   lux: {
-    label:'Obsidian', shortLabel:'Lux',
+    label:'Obsidian', shortLabel:'Obsidian',
     bg:'#0c0d10', surface:'#15171c', surface2:'#1e2128', card:'#16181d',
     text:'#eceef2', muted:'#8a8f9c', border:'rgba(212,175,98,.16)',
     accent:'#1fa97a', accent2:'#d4af62', success:'#2bbd86', warn:'#d4af62', danger:'#d6614e',
@@ -2768,7 +2768,6 @@ function localMonthKey(d = new Date()) {
 // Rolls a number from its previously-shown value to the new one with easing —
 // the single biggest "premium" tell on the balance hero and stat tiles. Honors
 // reduced-motion (OS pref or the in-app "Reduce motion & effects" setting).
-const _countUpMemory = {};   // logical key → last value shown, so we only animate on change
 function _reduceMotion() {
   if (loadSettings().reduceFx) return true;
   return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -2784,20 +2783,18 @@ function _countUp(el, from, to, fmtFn, duration = 700) {
   }
   requestAnimationFrame(frame);
 }
-// Scan a container for [data-countup] elements and roll each to its target.
-// data-countup = target number; data-countup-key = identity for change-detection.
+// Scan a container for [data-countup] elements and roll each from 0 to its
+// target. Runs on every dashboard/accounts render so the number feels alive
+// each time you land on the page (not just once). Honors reduced-motion.
 function _runCountUps(root) {
   (root || document).querySelectorAll('[data-countup]').forEach(el => {
     const to = parseFloat(el.getAttribute('data-countup'));
     if (isNaN(to)) return;
-    const key  = el.getAttribute('data-countup-key') || el.textContent;
-    const prev = _countUpMemory[key];
-    _countUpMemory[key] = to;
     const fmtFn = el.getAttribute('data-countup-int')
       ? (v => Math.round(v).toLocaleString('en-US'))
       : fmt;
-    if (_reduceMotion() || prev === to) { el.textContent = fmtFn(to); return; }
-    _countUp(el, (typeof prev === 'number' ? prev : 0), to, fmtFn);
+    if (_reduceMotion()) { el.textContent = fmtFn(to); return; }
+    _countUp(el, 0, to, fmtFn);
   });
 }
 
@@ -8176,6 +8173,9 @@ function renderSettings() {
       dot = customAccent
         ? `background:${customAccent}`
         : `background:conic-gradient(#e05858,#d4a030,#62b898,#5492bc,#8868c0,#e05858)`;
+    } else if (key === 'lux') {
+      // Distinctive emerald→gold dot so the premium theme reads as special
+      dot = `background:linear-gradient(135deg, ${t.accent} 40%, ${t.accent2})`;
     } else {
       dot = t.light ? `border:2px solid ${t.accent};background:var(--surface)` : `background:${t.accent}`;
     }
