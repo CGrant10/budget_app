@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.28';
+const VERSION = '5.43.29';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1555,6 +1555,14 @@ const THEMES = {
     grad:'linear-gradient(135deg, #1c2028 0%, #8890a0 100%)',
     cats:{ Food:'#7888a0', Gas:'#c05858', Car:'#6878a8', Boat:'#5888a0', Tools:'#b07840', Home:'#788888', Entertainment:'#887898', Health:'#5898a8', Other:'#787880' },
   },
+  lux: {
+    label:'Obsidian', shortLabel:'Lux',
+    bg:'#0c0d10', surface:'#15171c', surface2:'#1e2128', card:'#16181d',
+    text:'#eceef2', muted:'#8a8f9c', border:'rgba(212,175,98,.16)',
+    accent:'#1fa97a', accent2:'#d4af62', success:'#2bbd86', warn:'#d4af62', danger:'#d6614e',
+    grad:'linear-gradient(135deg, #15171c 0%, #1fa97a 100%)', font:'default',
+    cats:{ Food:'#1fa97a', Gas:'#d6614e', Car:'#5b8bb0', Boat:'#3f9aa8', Tools:'#d4af62', Home:'#7ca25a', Entertainment:'#9a7cc0', Health:'#4f9ab0', Other:'#8a8f9c' },
+  },
   auto: { label:'Auto (System)', shortLabel:'Auto', ..._D, accent:'#62b898', accent2:'#a07858', success:'#62b898', warn:'#c0a038', danger:'#c05050', grad:'linear-gradient(135deg, #283530 0%, #62b898 100%)' },
   custom: {
     label:'Custom', shortLabel:'Custom',
@@ -2500,6 +2508,7 @@ function applyTheme(theme) {
   root.style.setProperty('--gl-1', t.gl1 || 'rgba(255,48,48,.9)');
   root.style.setProperty('--gl-2', t.gl2 || 'rgba(0,216,255,.9)');
   document.body.classList.toggle('light', !!t.light);
+  document.body.classList.toggle('theme-lux', theme === 'lux');  // luxury flourishes (gold micro-accents)
   // Terminal theme body classes — used for code-syntax styled titles in CSS
   document.body.classList.remove('theme-vscode', 'theme-powershell', 'theme-cmd', 'theme-kali', 'theme-mintlinux', 'theme-ubuntu');
   if (['vscode', 'powershell', 'cmd', 'kali', 'mintlinux', 'ubuntu'].includes(theme)) {
@@ -2754,6 +2763,74 @@ function today() { return localDateStr(new Date()); }
 function localMonthKey(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 }
+
+// ── animated count-ups ───────────────────────────────────────────────────────
+// Rolls a number from its previously-shown value to the new one with easing —
+// the single biggest "premium" tell on the balance hero and stat tiles. Honors
+// reduced-motion (OS pref or the in-app "Reduce motion & effects" setting).
+const _countUpMemory = {};   // logical key → last value shown, so we only animate on change
+function _reduceMotion() {
+  if (loadSettings().reduceFx) return true;
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+function _countUp(el, from, to, fmtFn, duration = 700) {
+  const ease = t => 1 - Math.pow(1 - t, 3);  // easeOutCubic
+  const start = performance.now();
+  function frame(now) {
+    const t = Math.min(1, (now - start) / duration);
+    el.textContent = fmtFn(from + (to - from) * ease(t));
+    if (t < 1) requestAnimationFrame(frame);
+    else el.textContent = fmtFn(to);
+  }
+  requestAnimationFrame(frame);
+}
+// Scan a container for [data-countup] elements and roll each to its target.
+// data-countup = target number; data-countup-key = identity for change-detection.
+function _runCountUps(root) {
+  (root || document).querySelectorAll('[data-countup]').forEach(el => {
+    const to = parseFloat(el.getAttribute('data-countup'));
+    if (isNaN(to)) return;
+    const key  = el.getAttribute('data-countup-key') || el.textContent;
+    const prev = _countUpMemory[key];
+    _countUpMemory[key] = to;
+    const fmtFn = el.getAttribute('data-countup-int')
+      ? (v => Math.round(v).toLocaleString('en-US'))
+      : fmt;
+    if (_reduceMotion() || prev === to) { el.textContent = fmtFn(to); return; }
+    _countUp(el, (typeof prev === 'number' ? prev : 0), to, fmtFn);
+  });
+}
+
+// ── premium chart defaults ───────────────────────────────────────────────────
+// One-time global Chart.js styling so every chart (spending, insights, debt)
+// gets smooth easing, rounded bars, and a polished floating tooltip without
+// per-chart config. Chart.js loads before app.js, so window.Chart exists here.
+(function _initChartDefaults() {
+  if (!window.Chart) return;
+  const C = window.Chart;
+  C.defaults.font.family = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
+  C.defaults.font.size = 11;
+  C.defaults.animation = _reduceMotion()
+    ? false
+    : { duration: 750, easing: 'easeOutQuart' };
+  C.defaults.elements.bar.borderRadius = 6;
+  C.defaults.elements.bar.borderSkipped = false;
+  C.defaults.elements.point.radius = 0;
+  C.defaults.elements.point.hoverRadius = 4;
+  C.defaults.elements.line.tension = 0.4;
+  Object.assign(C.defaults.plugins.tooltip, {
+    backgroundColor: 'rgba(18,18,22,.94)',
+    titleColor: '#ffffff',
+    bodyColor: '#e6e6ea',
+    padding: 10,
+    cornerRadius: 10,
+    borderColor: 'rgba(255,255,255,.08)',
+    borderWidth: 1,
+    boxPadding: 5,
+    titleFont: { weight: '700', size: 12 },
+    bodyFont: { weight: '500', size: 12 },
+  });
+})();
 
 // ── backup reminder ──────────────────────────────────────────────────────────
 // Whole numbers of days since the last JSON backup, or null if never.
@@ -3237,7 +3314,7 @@ function attachDashboard() {
             label: 'Spent',
             data,
             backgroundColor: colors,
-            borderRadius: 2,
+            borderRadius: 6,
             borderSkipped: false,
           }],
         },
@@ -3969,7 +4046,7 @@ function renderAccountPicker() {
         return `<div class="acct-nw2">
           <div class="acct-nw2-head">
             <span class="acct-nw2-label">NET WORTH</span>
-            <span class="acct-nw2-value" style="color:${nw >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(nw)}</span>
+            <span class="acct-nw2-value" style="color:${nw >= 0 ? 'var(--success)' : 'var(--danger)'}" data-countup="${nw}" data-countup-key="networth">${fmt(nw)}</span>
           </div>
           <div class="acct-nw2-meter">
             <i class="seg-a" style="width:${assetPct.toFixed(1)}%"></i>
@@ -4411,6 +4488,7 @@ function render() {
     document.getElementById('acct-force-update-btn')?.addEventListener('click', () => _showUpdateTerminal());
     document.getElementById('acct-qa-btn')?.addEventListener('click', _showFastAdd);
     document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="date"])').forEach(el => el.setAttribute('enterkeyhint', 'done'));
+    _runCountUps(main);  // roll the Net Worth total
     updateDawgTopbar();
     return;
   }
@@ -5280,7 +5358,7 @@ function renderDashboardDawg() {
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
       <div class="dawg-balance-label">${_isDebt ? (_curAcctD?.type==='loan' ? 'LOAN BALANCE' : 'BALANCE OWED') : 'TOTAL BALANCE'}</div>
-      <div class="dawg-balance-amt" style="color:${balColor}">${fmt(balance)}</div>
+      <div class="dawg-balance-amt" style="color:${balColor}" data-countup="${balance}" data-countup-key="balance-${currentAccountId}">${fmt(balance)}</div>
       ${paymentDueStr ? `<div class="dawg-balance-due" style="color:${parseInt(_curAcctD?.payment_due_day)>0&&Math.round((new Date(new Date().getFullYear(),new Date().getMonth(),parseInt(_curAcctD.payment_due_day))-new Date())/86400000)<=3?'var(--warn)':'var(--muted)'}">${paymentDueStr}</div>` : ''}
       ${_isDebt ? `<div class="dawg-balance-delta" style="color:${deltaColor}">${deltaStr}</div>` : ''}
       ${isPastDash ? '' : '<button id="dash-reconcile" class="dash-reconcile-btn"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Reconcile to bank</button>'}
@@ -8086,7 +8164,7 @@ function renderSettings() {
   const isLight    = !isTerminal && !isPokemon && !isTeam && !!THEMES[theme]?.light;
   const activeMode = isPokemon ? 'pokemon' : isTeam ? 'team' : isTerminal ? 'terminal' : isLight ? 'light' : 'dark';
 
-  const DARK_ACCENTS  = ['dark','oled','denim','ember','jurassicpark','darkslate','auto','custom'];
+  const DARK_ACCENTS  = ['dark','lux','oled','denim','ember','jurassicpark','darkslate','auto','custom'];
   const LIGHT_ACCENTS = ['light','lightsky','lightrose','lightsand','lightsilver','customlight'];
 
   const accentChip = (key, active) => {
@@ -9894,6 +9972,8 @@ function toggleDawgBell() {
 }
 
 function attachDashboardDawg() {
+  // Roll the balance hero (and any other [data-countup] stats) to their values
+  _runCountUps(document.getElementById('main-content'));
   // Backup reminder banner
   document.getElementById('backup-banner-x')?.addEventListener('click', () => {
     _backupBannerDismissed = true;

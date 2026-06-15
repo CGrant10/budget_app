@@ -1371,6 +1371,17 @@ body::before {
 .budget-progress-wrap { display: flex; align-items: center; gap: 8px; }
 .budget-spent-lbl { font-size: 12px; white-space: nowrap; }
 
+/* ── Obsidian / Lux — restrained luxury: emerald jewel accent + gold micro-accents ── */
+body.theme-lux .section-title { color: var(--accent2); letter-spacing: .14em; }
+body.theme-lux .dawg-balance-label { color: color-mix(in srgb, var(--accent2) 65%, var(--muted)); }
+body.theme-lux .dawg-balance-card { border-color: color-mix(in srgb, var(--accent2) 28%, var(--border)); }
+/* Gold hairline under the balance hero's top edge for a jewel-box feel */
+body.theme-lux .dawg-balance-card::before {
+  content: ''; position: absolute; top: 0; left: 16px; right: 16px; height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent2) 70%, transparent), transparent);
+  pointer-events: none;
+}
+
 /* ── light theme ──────────────────────────────────────────────────────────── */
 /* The dark card shadow (heavy rgba(0,0,0,.55)) reads muddy on a light surface —
    use a soft, lifted shadow with a bright top edge instead. */
@@ -2878,17 +2889,45 @@ textarea:focus-visible,
 }
 
 .dawg-balance-card {
-  background:var(--card); margin:10px 14px 0; border-radius:18px;
-  padding:12px 14px 10px; border:1px solid var(--border);
+  /* Centerpiece treatment: layered depth + a soft accent glow at the top edge,
+     plus a whisper of grain (::after) for a premium, non-flat surface. */
+  background:
+    radial-gradient(125% 85% at 50% -15%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 62%),
+    var(--card);
+  margin:10px 14px 0; border-radius:var(--radius-card);
+  padding:14px 16px 12px; border:1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  position:relative; overflow:hidden;
+}
+.dawg-balance-card::after {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  opacity:.04; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .dawg-balance-label { font-size:.68rem; font-weight:700; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; }
-.dawg-balance-amt { font-size:2.3rem; font-weight:800; line-height:1.1; margin:4px 0 2px; }
+.dawg-balance-amt { font-size:2.4rem; font-weight:800; line-height:1.05; margin:4px 0 2px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
 .dawg-balance-delta { font-size:.8rem; font-weight:600; margin-bottom:12px; }
 .dawg-balance-due { font-size:.75rem; font-weight:600; margin-bottom:4px; }
 .dawg-due-tile { padding:12px 14px 14px !important; }
 .dawg-due-body { display:flex; align-items:baseline; justify-content:space-between; margin-top:6px; }
 .dawg-due-date { font-size:1rem; font-weight:700; color:var(--text); }
 .dawg-due-apr  { font-size:.72rem; color:var(--muted); font-weight:600; }
+
+/* ── premium micro-interactions ──────────────────────────────────────────────
+   Springy tactile press on tappable surfaces. Reduced-motion / fx-reduced
+   already zero out transition-duration globally, so these no-op when motion
+   is off. */
+.btn-primary, .btn-sm, .btn-xs, .type-pill, .lv-tab, .dawg-tbtn,
+.dawg-quick-action, .dawg-due-tile, .nav-btn, .dawg-nav-btn, .dawg-drawer-item {
+  transition: transform .16s cubic-bezier(.34,1.56,.64,1), filter .16s ease,
+              background .16s ease, color .16s ease;
+}
+.btn-primary:active, .btn-sm:active, .btn-xs:active, .type-pill:active,
+.lv-tab:active, .dawg-quick-action:active, .dawg-due-tile:active,
+.dawg-drawer-item:active {
+  transform: scale(.96);
+}
+.nav-btn:active, .dawg-nav-btn:active { transform: scale(.9); }
 .dawg-sparkline-wrap { height:94px; margin-bottom:10px; }
 .dawg-time-btns {
   position:relative; display:flex; gap:0;
