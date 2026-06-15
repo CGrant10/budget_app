@@ -1,11 +1,57 @@
 'use strict';
 
-const VERSION = '5.43.27';
+const VERSION = '5.43.28';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
   const s = loadSettings();
   return [...DEFAULT_CATEGORIES, ...(s.customCategories || [])];
+}
+
+// ── auto-categorization ──────────────────────────────────────────────────────
+// Guesses a category from a transaction description. Priority:
+//   1) your own history — a past transaction with the same (normalized) description
+//   2) built-in merchant/keyword hints
+//   3) 'Other'
+// Built-in hints map to the default categories; learned matches can be any
+// category you've used (including custom ones).
+const _CAT_KEYWORDS = [
+  ['Food',          ['restaurant','cafe','coffee','starbucks','dunkin','mcdonald','burger','pizza','taco','chipotle','grocery','groceries','supermarket',' market','doordash','uber eats','ubereats','grubhub','deli','bakery','diner','sushi','subway','wendy','kfc','panera','safeway','kroger','aldi','trader joe','whole foods','food']],
+  ['Gas',           ['fuel','shell','chevron','exxon','mobil','marathon','speedway','conoco','sunoco','valero','citgo','petro','gas station',' gas']],
+  ['Car',           ['car wash','autozone','o\'reilly','oreilly','napa','tire','mechanic','dmv','parking','toll','jiffy lube','auto parts']],
+  ['Home',          ['rent','mortgage','lowes','home depot','ikea','furniture','electric','water bill','utility','utilities','internet','comcast','xfinity','spectrum','at&t','verizon','t-mobile','insurance']],
+  ['Entertainment', ['netflix','spotify','hulu','disney','movie','cinema','theater','theatre','steam','xbox','playstation','hbo','prime video','concert','ticketmaster','twitch']],
+  ['Health',        ['pharmacy','cvs','walgreens','doctor','dental','dentist','clinic','hospital','gym','fitness','medical','rite aid']],
+  ['Tools',         ['hardware','harbor freight','ace hardware',' tool']],
+];
+function _normDesc(s) {
+  return (s || '').toLowerCase().replace(/[0-9]+/g, '').replace(/[^a-z& ]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+// Build a normalized-description → most-frequent-category index from history.
+// Pass the result into _guessCategory to avoid rebuilding it per row on import.
+function _learnedCategoryMap() {
+  const counts = {};
+  for (const t of state.transactions) {
+    if (!t.description || !t.category || t.category === 'Other' || t.type === 'income') continue;
+    const k = _normDesc(t.description);
+    if (!k) continue;
+    (counts[k] || (counts[k] = {}))[t.category] = (counts[k][t.category] || 0) + 1;
+  }
+  const out = {};
+  for (const k in counts) out[k] = Object.entries(counts[k]).sort((a, b) => b[1] - a[1])[0][0];
+  return out;
+}
+function _guessCategory(description, type, learned) {
+  if (type === 'income') return 'Income';
+  if (!description) return 'Other';
+  const norm = _normDesc(description);
+  const map  = learned || _learnedCategoryMap();
+  if (norm && map[norm]) return map[norm];
+  const lc = ' ' + description.toLowerCase() + ' ';
+  for (const [cat, words] of _CAT_KEYWORDS) {
+    for (const w of words) { if (lc.includes(w)) return cat; }
+  }
+  return 'Other';
 }
 
 // Reusable line-icon SVGs (Feather-style) — used in place of emoji on buttons/labels.
@@ -2232,10 +2278,18 @@ function saveNotes(notes) {
 }
 function accountDataKey(id) { return 'slawminyaw_data_' + id; }
 
+// Settings are read on every render and every tab swipe, so the JSON.parse adds
+// up. Cache the parsed object and hand back a shallow copy (cheap, and avoids
+// callers aliasing the cache). saveSettings refreshes the cache.
+let _settingsCache = null;
 function loadSettings() {
-  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch { return {}; }
+  if (!_settingsCache) {
+    try { _settingsCache = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch { _settingsCache = {}; }
+  }
+  return { ..._settingsCache };
 }
 function saveSettings(s) {
+  _settingsCache = s;
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch(e) { console.warn('Budget DAWGs: settings save failed', e); }
 }
 function defaultAccounts() { return [{ id: 'main', name: 'Main', type: 'checking' }]; }
@@ -2304,6 +2358,9 @@ function applySettings() {
   applyNavItems(s.hiddenTabs || []);
   applyTheme(s.theme || 'dark');
   applyFontStyle(s.fontStyle || 'default');
+  // "Reduce motion & effects" — freezes the infinite idle glitch loops to save
+  // battery and calm the UI. CSS handles the rest via body.fx-reduced.
+  document.body.classList.toggle('fx-reduced', !!s.reduceFx);
 }
 
 
@@ -2648,6 +2705,9 @@ async function processRecurring() {
 let _calcVer = 0;          // bumped by _save(); memos keyed on this
 let _totalsCache = null;   // { ver, result }
 const _monthCache = {};    // { [monthStr+ver]: result }
+let _runBalCache = null;   // { ver, map } — memo for calcRunningBalances()
+let _balAsOfCache = { ver: -1, m: {} };  // memo for balanceAsOf(), keyed by dateStr
+let _netWorthCache = null; // { key, result } — memo for getNetWorth()
 
 function totals() {
   if (_totalsCache && _totalsCache.ver === _calcVer) return _totalsCache.result;
@@ -3017,6 +3077,8 @@ let billsMonth = localMonthKey();   // YYYY-MM shown on the Bills page
 let ledgerCatFilter = '';
 let ledgerDateFrom = '';
 let ledgerDateTo = '';
+let _ledgerShowAll = false;          // when true, render the full filtered list (past the cap)
+const LEDGER_CAP = 300;              // max rows put in the DOM at once before a "Show all" button
 let _insightTimer = null;
 let _dawgSparkGlobal = null; // module-level ref so tab switches can destroy it
 let _splitRows    = []; // [{cat, amount}] for split-transaction mode
@@ -3420,6 +3482,12 @@ function checkNotesAlert() {
 
 // ── net worth ──────────────────────────────────────────────────────────────
 function getNetWorth() {
+  // Re-parsing every account's full localStorage blob is the costly part. The
+  // only things that change a balance are a _save() (bumps _calcVer) or an
+  // account add/remove/type-change (changes the signature below), so memoize on
+  // both and skip the parse on repeat dashboard/accounts renders.
+  const key = _calcVer + '|' + state.accounts.map(a => a.id + ':' + a.type + ':' + a.name).join('|');
+  if (_netWorthCache && _netWorthCache.key === key) return _netWorthCache.result;
   const items = state.accounts.map(a => {
     const d = JSON.parse(localStorage.getItem(accountDataKey(a.id)) || '{}');
     const txns = d.transactions || [];
@@ -3437,11 +3505,13 @@ function getNetWorth() {
     return { name: a.name, balance, type: a.type };
   });
   const total = items.reduce((s, a) => s + a.balance, 0);
-  return { accounts: items, total };
+  _netWorthCache = { key, result: { accounts: items, total } };
+  return _netWorthCache.result;
 }
 
 // ── running balances ──────────────────────────────────────────────────────
 function calcRunningBalances() {
+  if (_runBalCache && _runBalCache.ver === _calcVer) return _runBalCache.map;
   const sorted = state.transactions
     .map((t, i) => ({ ...t, _i: i }))
     .sort((a, b) => a.date.localeCompare(b.date) || a._i - b._i);
@@ -3451,6 +3521,7 @@ function calcRunningBalances() {
     running += t.type === 'income' ? t.amount : -t.amount;
     map[t._i] = running;
   }
+  _runBalCache = { ver: _calcVer, map };
   return map;
 }
 
@@ -4426,11 +4497,14 @@ function getDawgSparklineData(range, maxDateStr = null) {
 
 // ── balance as of date ─────────────────────────────────────────────────────
 function balanceAsOf(dateStr) {
+  if (_balAsOfCache.ver !== _calcVer) _balAsOfCache = { ver: _calcVer, m: {} };
+  if (dateStr in _balAsOfCache.m) return _balAsOfCache.m[dateStr];
   // Sum all transactions on or before dateStr
   let bal = state.startingBalance || 0;
   for (const t of state.transactions) {
     if (t.date <= dateStr) bal += t.type === 'income' ? t.amount : -t.amount;
   }
+  _balAsOfCache.m[dateStr] = bal;
   return bal;
 }
 
@@ -6307,15 +6381,24 @@ function renderLedger() {
   });
 
   const runBal = calcRunningBalances();
-  const rowsHtml = rows.map(t => {
+  // Hoist work that doesn't vary per row: account lookup map + a Set for the
+  // "is this category already in the list" check (was rebuilt for every row).
+  const acctById = new Map(state.accounts.map(a => [a.id, a]));
+  const catSet   = new Set(cats);
+  // Cap how many rows hit the DOM at once — long ledgers otherwise build
+  // thousands of nodes on every render/search keystroke.
+  const totalRows = rows.length;
+  const capped    = !_ledgerShowAll && totalRows > LEDGER_CAP;
+  const visRows   = capped ? rows.slice(0, LEDGER_CAP) : rows;
+  const rowsHtml = visRows.map(t => {
     const sign      = t.type === 'income' ? '+' : '-';
     const cls       = t.type === 'income' ? 'income' : 'expense';
     const prefix    = t.recurring ? '↻ ' : '';
     const exTag     = (t.excludeFromBudget && !isBillTxn(t)) ? ' <span class="ledger-extag">not in weekly</span>' : '';
     const catColor  = CAT_COLORS[t.category] || '#9896a4';
-    const acct      = state.accounts.find(a => a.id === (t.account || 'main'));
+    const acct      = acctById.get(t.account || 'main');
     const acctBadge = acct && acct.id !== 'main' ? `<span class="acct-badge">${acct.name}</span>` : '';
-    const allCats   = [...new Set([...cats, t.category])];
+    const allCats   = catSet.has(t.category) ? cats : [...cats, t.category];
     const catOptions = allCats.map(c =>
       `<option value="${c}"${c === t.category ? ' selected' : ''}>${c}</option>`).join('');
     return `
@@ -6398,6 +6481,7 @@ function renderLedger() {
           : ledgerView === 'bills'
             ? '<p style="padding:24px 0;text-align:center;color:var(--muted);font-size:.85rem">No bills logged yet — tap "Mark Paid" on a bill in the Bills tab</p>'
             : '<p style="padding:24px 0;text-align:center;color:var(--muted);font-size:.85rem">No matching transactions</p>')}
+        ${capped ? `<button id="ledger-show-all" class="lf-clear-btn" style="margin:12px auto 0;display:block">Show all ${totalRows} ${ledgerView === 'bills' ? 'bills' : 'transactions'} (showing ${LEDGER_CAP})</button>` : ''}
       </div>
     </div>`;
 }
@@ -8200,6 +8284,13 @@ function renderSettings() {
             Splash screen glitch effects
           </label>
         </div>
+        <div class="form-row" style="margin-top:10px">
+          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="reduce-fx-settings" ${s.reduceFx ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
+            Reduce motion &amp; effects
+          </label>
+          <p class="code-hint" style="margin-top:6px">Freezes the looping glitch animations across the app — calmer UI and better battery life. Page transitions stay snappy.</p>
+        </div>
       </div>
 
     </div>`;
@@ -8381,6 +8472,13 @@ function attachSettings() {
   // Splash animation toggle (also accessible from splash screen button)
   document.getElementById('splash-anim-settings')?.addEventListener('change', e => {
     localStorage.setItem('splashAnim', e.target.checked ? 'true' : 'false');
+  });
+
+  document.getElementById('reduce-fx-settings')?.addEventListener('change', e => {
+    const s = loadSettings();
+    s.reduceFx = e.target.checked;
+    saveSettings(s);
+    document.body.classList.toggle('fx-reduced', e.target.checked);
   });
 
 }
@@ -9627,6 +9725,30 @@ function attachSwipeDelete() {
 }
 
 // ── event handlers ─────────────────────────────────────────────────────────
+// ── focus trap (accessible modal dialogs: drawer, bell panel) ───────────────
+// Moves focus into the panel, keeps Tab/Shift-Tab cycling inside it, closes on
+// Esc, and restores focus to the trigger on release. Returns a release fn.
+const _FOCUSABLE_SEL = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+function _trapFocus(container, onEscape) {
+  if (!container) return () => {};
+  const prevFocus = document.activeElement;
+  const onKey = e => {
+    if (e.key === 'Escape') { e.preventDefault(); onEscape && onEscape(); return; }
+    if (e.key !== 'Tab') return;
+    const items = [...container.querySelectorAll(_FOCUSABLE_SEL)].filter(el => el.offsetParent !== null);
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+  document.addEventListener('keydown', onKey, true);
+  requestAnimationFrame(() => container.querySelector(_FOCUSABLE_SEL)?.focus());
+  return () => {
+    document.removeEventListener('keydown', onKey, true);
+    if (prevFocus && typeof prevFocus.focus === 'function') prevFocus.focus();
+  };
+}
+
 // ── DAWG utility functions ─────────────────────────────────────────────────
 function openDawgDrawer() {
   const overlay = document.getElementById('dawg-drawer-overlay');
@@ -9640,11 +9762,13 @@ function openDawgDrawer() {
   overlay.classList.remove('hidden');
   drawer.classList.remove('hidden');
   requestAnimationFrame(() => drawer.classList.add('open'));
+  drawer._releaseTrap = _trapFocus(drawer, closeDawgDrawer);
 }
 function closeDawgDrawer() {
   const drawer  = document.getElementById('dawg-drawer');
   const overlay = document.getElementById('dawg-drawer-overlay');
   if (!drawer) return;
+  drawer._releaseTrap?.(); drawer._releaseTrap = null;
   drawer.classList.remove('open');
   setTimeout(() => {
     drawer.classList.add('hidden');
@@ -9747,6 +9871,11 @@ function toggleDawgAcctDropdown() {
 function toggleDawgBell() {
   const panel = document.getElementById('dawg-bell-panel');
   if (!panel) return;
+  const closeBell = () => {
+    panel.classList.add('hidden');
+    if (panel._closeListener) { document.removeEventListener('click', panel._closeListener); panel._closeListener = null; }
+    panel._releaseTrap?.(); panel._releaseTrap = null;
+  };
   if (panel.classList.contains('hidden')) {
     const notes = getDawgNotifications();
     panel.innerHTML = `<div class="dawg-notif-header">NOTIFICATIONS</div>` +
@@ -9754,17 +9883,13 @@ function toggleDawgBell() {
         ? notes.map(n => `<div class="dawg-notif-row"><span class="dawg-notif-icon">${n.icon}</span><div class="dawg-notif-body"><div class="dawg-notif-title">${n.title}</div><div class="dawg-notif-sub">${n.body}</div></div></div>`).join('')
         : `<div class="dawg-notif-empty">No new notifications</div>`);
     panel.classList.remove('hidden');
-    setTimeout(() => {
-      const closePanel = e => {
-        if (!panel.contains(e.target) && e.target.id !== 'dawg-bell') {
-          panel.classList.add('hidden');
-          document.removeEventListener('click', closePanel);
-        }
-      };
-      document.addEventListener('click', closePanel);
-    }, 10);
+    panel._releaseTrap = _trapFocus(panel, closeBell);
+    panel._closeListener = e => {
+      if (!panel.contains(e.target) && e.target.id !== 'dawg-bell') closeBell();
+    };
+    setTimeout(() => document.addEventListener('click', panel._closeListener), 10);
   } else {
-    panel.classList.add('hidden');
+    closeBell();
   }
 }
 
@@ -10312,9 +10437,28 @@ function attachAdd() {
 
   // Show/hide custom category text input when "Custom…" is selected
   document.getElementById('add-cat')?.addEventListener('change', e => {
+    e.target._userTouched = true;  // stop auto-categorization from overriding a manual pick
     const customInp = document.getElementById('add-cat-custom');
     if (customInp) customInp.style.display = e.target.value === '__custom__' ? '' : 'none';
   });
+
+  // Auto-suggest a category from the description as you type (expense only),
+  // unless you've manually chosen one. Never overrides a manual pick.
+  const _descEl = document.getElementById('add-desc');
+  const _catEl  = document.getElementById('add-cat');
+  if (_descEl && _catEl) {
+    const _autoCat = () => {
+      if (_catEl._userTouched) return;
+      const etype = document.querySelector('input[name="etype"]:checked')?.value || 'expense';
+      if (etype !== 'expense') return;
+      const guess = _guessCategory(_descEl.value.trim(), 'expense');
+      if (guess && guess !== 'Other' && [..._catEl.options].some(o => o.value === guess)) {
+        _catEl.value = guess;
+      }
+    };
+    _descEl.addEventListener('input', _debounce(_autoCat, 350));
+    _descEl.addEventListener('blur', _autoCat);
+  }
 
   // Show/hide transfer-specific fields
   document.querySelectorAll('input[name="etype"]').forEach(radio => {
@@ -10540,6 +10684,7 @@ function attachLedger() {
     // Update ONLY the list — never re-render the whole page, or the search box would lose
     // focus and the mobile keyboard would close after each keystroke.
     ledgerFilter = e.target.value.toLowerCase();
+    _ledgerShowAll = false;  // a new search starts capped again
     _refreshLedgerList();
   }, 200));
   document.getElementById('ledger-sort')?.addEventListener('change', e => {
@@ -10604,61 +10749,76 @@ function _refreshLedgerList() {
   _attachLedgerRows();
 }
 
-// Attach edit / save / cancel / delete / swipe handlers to the ledger rows currently in the DOM.
+// Attach a SINGLE delegated click handler to the ledger list (instead of one
+// listener per row × four button types). The .ledger-list element persists
+// across partial search refreshes, so a flag prevents double-binding; a full
+// render() replaces the element, so the fresh one rebinds once.
 function _attachLedgerRows() {
-  document.querySelectorAll('.ledger-edit-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const row     = btn.closest('.ledger-row');
-      const editDiv = row.querySelector('.ledger-inline-edit');
-      const isOpen  = editDiv.style.display === 'block';
-      document.querySelectorAll('.ledger-inline-edit').forEach(d => d.style.display = 'none');
-      document.querySelectorAll('.ledger-row').forEach(r => r.classList.remove('selected'));
-      if (!isOpen) { editDiv.style.display = 'block'; row.classList.add('selected'); }
-    });
-  });
-
-  document.querySelectorAll('.ie-save').forEach(btn => {
-    btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      const idx  = parseInt(btn.dataset.idx);
-      const edit = btn.closest('.ledger-inline-edit');
-      await api.patchTransaction(idx, {
-        type:        edit.querySelector('.ie-type').value,
-        date:        edit.querySelector('.ie-date').value,
-        category:    edit.querySelector('.ie-cat').value,
-        description: edit.querySelector('.ie-desc').value,
-        amount:      parseFloat(edit.querySelector('.ie-amount').value) || 0,
-        excludeFromBudget: !!edit.querySelector('.ie-exclude')?.checked,
-      });
-      await autoUpdateWeeklyPlan(); // keep dashboard per-week/day in sync after the edit
-      rerenderKeepScroll();
-    });
-  });
-
-  document.querySelectorAll('.ie-cancel').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      btn.closest('.ledger-inline-edit').style.display = 'none';
-      btn.closest('.ledger-row').classList.remove('selected');
-    });
-  });
-
-  document.querySelectorAll('.ledger-delete').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const idx = parseInt(btn.dataset.idx);
-      const t   = state.transactions[idx];
-      showConfirmModal({
-        title: 'Delete Transaction', danger: true,
-        message: `Delete "${t.description}" (${fmt(t.amount)})? This cannot be undone.`,
-        confirmText: 'Delete',
-        onConfirm: async () => { await api.deleteTransaction(idx); selectedLedgerIdx = null; rerenderKeepScroll(); },
-      });
-    });
-  });
-
+  const list = document.querySelector('.ledger-list');
+  if (list && !list._delegated) {
+    list._delegated = true;
+    list.addEventListener('click', _onLedgerListClick);
+  }
   attachSwipeDelete();
+}
+
+async function _onLedgerListClick(e) {
+  const editBtn = e.target.closest('.ledger-edit-btn');
+  if (editBtn) {
+    e.stopPropagation();
+    const row     = editBtn.closest('.ledger-row');
+    const editDiv = row.querySelector('.ledger-inline-edit');
+    const isOpen  = editDiv.style.display === 'block';
+    document.querySelectorAll('.ledger-inline-edit').forEach(d => d.style.display = 'none');
+    document.querySelectorAll('.ledger-row').forEach(r => r.classList.remove('selected'));
+    if (!isOpen) { editDiv.style.display = 'block'; row.classList.add('selected'); }
+    return;
+  }
+
+  const saveBtn = e.target.closest('.ie-save');
+  if (saveBtn) {
+    e.stopPropagation();
+    const idx  = parseInt(saveBtn.dataset.idx);
+    const edit = saveBtn.closest('.ledger-inline-edit');
+    await api.patchTransaction(idx, {
+      type:        edit.querySelector('.ie-type').value,
+      date:        edit.querySelector('.ie-date').value,
+      category:    edit.querySelector('.ie-cat').value,
+      description: edit.querySelector('.ie-desc').value,
+      amount:      parseFloat(edit.querySelector('.ie-amount').value) || 0,
+      excludeFromBudget: !!edit.querySelector('.ie-exclude')?.checked,
+    });
+    await autoUpdateWeeklyPlan(); // keep dashboard per-week/day in sync after the edit
+    rerenderKeepScroll();
+    return;
+  }
+
+  const cancelBtn = e.target.closest('.ie-cancel');
+  if (cancelBtn) {
+    e.stopPropagation();
+    cancelBtn.closest('.ledger-inline-edit').style.display = 'none';
+    cancelBtn.closest('.ledger-row').classList.remove('selected');
+    return;
+  }
+
+  const delBtn = e.target.closest('.ledger-delete');
+  if (delBtn) {
+    e.stopPropagation();
+    const idx = parseInt(delBtn.dataset.idx);
+    const t   = state.transactions[idx];
+    showConfirmModal({
+      title: 'Delete Transaction', danger: true,
+      message: `Delete "${t.description}" (${fmt(t.amount)})? This cannot be undone.`,
+      confirmText: 'Delete',
+      onConfirm: async () => { await api.deleteTransaction(idx); selectedLedgerIdx = null; rerenderKeepScroll(); },
+    });
+    return;
+  }
+
+  if (e.target.closest('#ledger-show-all')) {
+    _ledgerShowAll = true;
+    _refreshLedgerList();
+  }
 }
 
 function attachWeekly() {
@@ -10857,6 +11017,7 @@ function attachImport() {
 
         // Parse all rows first (preview + commit in one pass)
         const parsed = []; let errors = 0;
+        const _learned = _learnedCategoryMap();  // build history index once for auto-categorization
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
@@ -10897,11 +11058,12 @@ function attachImport() {
               amount = Math.abs(signed);
             }
 
+            const _desc = get('description');
             parsed.push({
               date,
               type,
-              category:    get('category') || 'Other',
-              description: get('description') || '—',
+              category:    get('category') || _guessCategory(_desc, type, _learned),
+              description: _desc || '—',
               amount,
               account:     currentAccountId,
               ts:          Date.now() + i,
@@ -11753,11 +11915,22 @@ window.addEventListener('popstate', () => {
       const appEl = document.getElementById('app');
       if (appEl) appEl.style.opacity = '1';
     });
-    updateBillBadge();
-    checkBillNotifications();
-    updateNotesBadge();
-    checkNotesAlert();
-    maybeShowWhatsNew();
+    // Defer non-critical startup work — badges, bill/notes notifications,
+    // what's-new modal, paycheck/contribution catch-up, and the update check —
+    // to idle time so none of it competes with first paint or the user's first tap.
+    const _runIdle = (typeof requestIdleCallback === 'function')
+      ? cb => requestIdleCallback(cb, { timeout: 2000 })
+      : cb => setTimeout(cb, 200);
+    _runIdle(() => {
+      updateBillBadge();
+      checkBillNotifications();
+      updateNotesBadge();
+      checkNotesAlert();
+      maybeShowWhatsNew();
+      _checkPaychecks();
+      _checkContributions();
+      checkForUpdate();
+    });
 
     // ── swipe between tabs ────────────────────────────────────────────────
     (function attachSwipeTabs() {
@@ -11803,15 +11976,13 @@ window.addEventListener('popstate', () => {
       if ((s.theme || 'dark') === 'auto') applySettings();
     });
 
-    // Auto-add any paychecks that are due today or overdue
-    _checkPaychecks();
+    // Re-run paycheck / contribution catch-up when the app regains focus.
+    // (Initial run is deferred to idle above.)
     window.addEventListener('focus', _checkPaychecks);
-    // Auto-add any scheduled retirement contributions that are due/overdue
-    _checkContributions();
     window.addEventListener('focus', _checkContributions);
 
-    // Check for a new version on load, on focus, and every 2 minutes while open
-    checkForUpdate();
+    // Check for a new version on focus and every 2 minutes while open.
+    // (Initial check is deferred to idle above.)
     window.addEventListener('focus', checkForUpdate);
     setInterval(checkForUpdate, 120_000);
 

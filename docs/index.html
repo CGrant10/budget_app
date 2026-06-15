@@ -170,8 +170,8 @@
     </nav>
 
     <!-- DAWG hamburger drawer -->
-    <div id="dawg-drawer-overlay" class="dawg-drawer-overlay hidden"></div>
-    <div id="dawg-drawer" class="dawg-drawer hidden">
+    <div id="dawg-drawer-overlay" class="dawg-drawer-overlay hidden" aria-hidden="true"></div>
+    <div id="dawg-drawer" class="dawg-drawer hidden" role="dialog" aria-modal="true" aria-label="Menu">
       <div class="dawg-drawer-header">
         <span class="dawg-drawer-title">MENU</span>
         <button class="dawg-drawer-close" id="dawg-drawer-close">✕</button>
@@ -201,7 +201,7 @@
     </div>
 
     <!-- DAWG notification bell panel -->
-    <div id="dawg-bell-panel" class="dawg-bell-panel hidden"></div>
+    <div id="dawg-bell-panel" class="dawg-bell-panel hidden" role="dialog" aria-modal="true" aria-label="Notifications"></div>
 
     <!-- DAWG account switcher dropdown (center nav button) -->
     <div id="dawg-acct-dropdown" class="dawg-acct-dropdown hidden"></div>

@@ -25,6 +25,15 @@
   --glass-border: rgba(255,255,255,.12);
   --glass-shine: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(0,0,0,.2);
 
+  /* Spacing scale — use var(--space-N) for new layout work instead of ad-hoc px,
+     so vertical rhythm stays consistent. (Existing hardcoded values left as-is.) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
   --header-h: 56px;
   --nav-h: 58px;
   --topbar-h: 56px;
@@ -1363,6 +1372,11 @@ body::before {
 .budget-spent-lbl { font-size: 12px; white-space: nowrap; }
 
 /* ── light theme ──────────────────────────────────────────────────────────── */
+/* The dark card shadow (heavy rgba(0,0,0,.55)) reads muddy on a light surface —
+   use a soft, lifted shadow with a bright top edge instead. */
+body.light {
+  --shadow-card: 0 2px 10px rgba(17,17,30,.08), 0 1px 3px rgba(17,17,30,.06), inset 0 1px 0 rgba(255,255,255,.9);
+}
 body.light .form-input { color: var(--text); background: var(--surface); }
 body.light .roast-toast,
 body.light .alert-toast { background: #f0f0f8; }
@@ -1430,6 +1444,17 @@ body.light .section-title::before {
     grid-template-areas: "main";
   }
   #app.dawg-mode #main-content { grid-row: 1 / 2; }
+
+  /* The DAWG layout is a single full-width column. On tablets, unfolded
+     foldables (Z Fold inner ≈ 720–820px), and desktop, cap the content width
+     and center it so cards/ledger don't stretch edge-to-edge. Phones (< 700px)
+     are unaffected. */
+  #app.dawg-mode #main-content > .page,
+  #app.dawg-mode #main-content > .dawg-page {
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 
   /* Reset mobile nav-left / nav-right fixed positioning so it doesn't
      stack on top of the grid layout at this width */
@@ -2216,6 +2241,11 @@ body.light .section-title::before {
 /* ── accessibility: respect reduced-motion preference ──────────────────────── */
 /* Users who set "Reduce Motion" get near-instant animations/transitions — the dog
    bark loop, glitch effects, page slides, and tile stagger all settle immediately. */
+/* Reduce motion — honored for the OS-level prefers-reduced-motion media query
+   AND the in-app "Reduce motion & effects" toggle (body.fx-reduced).
+   The infinite idle glitch loops (nav glitch, hero bark, tile pulse, particles)
+   are the biggest battery drain on mobile; iteration-count:1 + near-zero
+   duration runs each animation once and freezes it on its end frame. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -2223,6 +2253,39 @@ body.light .section-title::before {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+body.fx-reduced *,
+body.fx-reduced *::before,
+body.fx-reduced *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+/* Safety net: entrance/reveal animations that start at opacity:0 must never
+   leave an element stuck invisible when motion is reduced — pin them to their
+   visible end-state. */
+@media (prefers-reduced-motion: reduce) {
+  .dawg-section-card, .dawg-balance-card, .dawg-overview-card, .dawg-breakdown-card,
+  .dawg-due-tile, .dawg-txn-row, .dawg-goal-row, .ledger-row, .bill-card, .goal-card,
+  .debt-acct-card, .budget-row, .ret-acct-card, .ret-dash-card, .ret-proj-card,
+  .pw-txn-row, .acct-row, .challenge-card, .form-card, .acct-settings-card,
+  .week-tracker, .ibp-card, .budget-suggest-banner {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+body.fx-reduced .dawg-section-card, body.fx-reduced .dawg-balance-card,
+body.fx-reduced .dawg-overview-card, body.fx-reduced .dawg-breakdown-card,
+body.fx-reduced .dawg-due-tile, body.fx-reduced .dawg-txn-row, body.fx-reduced .dawg-goal-row,
+body.fx-reduced .ledger-row, body.fx-reduced .bill-card, body.fx-reduced .goal-card,
+body.fx-reduced .debt-acct-card, body.fx-reduced .budget-row, body.fx-reduced .ret-acct-card,
+body.fx-reduced .ret-dash-card, body.fx-reduced .ret-proj-card, body.fx-reduced .pw-txn-row,
+body.fx-reduced .acct-row, body.fx-reduced .challenge-card, body.fx-reduced .form-card,
+body.fx-reduced .acct-settings-card, body.fx-reduced .week-tracker, body.fx-reduced .ibp-card,
+body.fx-reduced .budget-suggest-banner {
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 /* ── accessibility: keyboard focus indicator ───────────────────────────────── */
@@ -6104,6 +6167,23 @@ body.theme-vscode .page-title::after {
   content: ' {';
   color: #d4d4d4;
 }
+/* Terminal themes turn the section-title's decorative ::before bullet into an
+   inline code token (def/$/@/→). They all share the same reset — define it once
+   here; each theme below only sets its own content + color. */
+body.theme-vscode .section-title::before,
+body.theme-powershell .section-title::before,
+body.theme-cmd .section-title::before,
+body.theme-kali .section-title::before,
+body.theme-mintlinux .section-title::before,
+body.theme-ubuntu .section-title::before {
+  position: static;
+  transform: none;
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  display: inline;
+}
 body.theme-vscode .section-title {
   padding-left: 0;
   text-transform: none;
@@ -6114,13 +6194,6 @@ body.theme-vscode .section-title {
 body.theme-vscode .section-title::before {
   content: 'def ';
   color: #569cd6;
-  position: static;
-  transform: none;
-  width: auto;
-  height: auto;
-  background: none;
-  border-radius: 0;
-  display: inline;
 }
 body.theme-vscode .section-title::after {
   content: '():';
@@ -6142,13 +6215,6 @@ body.theme-powershell .section-title {
 body.theme-powershell .section-title::before {
   content: '$';
   color: #4fc1ff;
-  position: static;
-  transform: none;
-  width: auto;
-  height: auto;
-  background: none;
-  border-radius: 0;
-  display: inline;
 }
 body.theme-powershell .section-title::after {
   content: ' =';
@@ -6158,7 +6224,7 @@ body.theme-powershell .section-title::after {
 /* CMD — @LABEL style */
 body.theme-cmd .page-title::before {
   content: ':: ';
-  color: #2d9a2d;
+  color: #35bf35;  /* was #2d9a2d — too dim on the black CMD background */
 }
 body.theme-cmd .section-title {
   padding-left: 0;
@@ -6168,13 +6234,6 @@ body.theme-cmd .section-title {
 body.theme-cmd .section-title::before {
   content: '@';
   color: #00ff41;
-  position: static;
-  transform: none;
-  width: auto;
-  height: auto;
-  background: none;
-  border-radius: 0;
-  display: inline;
 }
 
 /* ── custom color wheel input ────────────────────────────────────────────── */
@@ -6202,13 +6261,6 @@ body.theme-kali .section-title {
 body.theme-kali .section-title::before {
   content: '$ ';
   color: #00ff88;
-  position: static;
-  transform: none;
-  width: auto;
-  height: auto;
-  background: none;
-  border-radius: 0;
-  display: inline;
 }
 
 /* Linux Mint — bash prompt style */
@@ -6226,13 +6278,6 @@ body.theme-mintlinux .section-title {
 body.theme-mintlinux .section-title::before {
   content: '→ ';
   color: #5fa832;
-  position: static;
-  transform: none;
-  width: auto;
-  height: auto;
-  background: none;
-  border-radius: 0;
-  display: inline;
 }
 
 /* Ubuntu — bash prompt style */
@@ -6250,13 +6295,6 @@ body.theme-ubuntu .section-title {
 body.theme-ubuntu .section-title::before {
   content: '→ ';
   color: #77216f;
-  position: static;
-  transform: none;
-  width: auto;
-  height: auto;
-  background: none;
-  border-radius: 0;
-  display: inline;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
