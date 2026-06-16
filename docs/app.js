@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.32';
+const VERSION = '5.43.33';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -3044,24 +3044,6 @@ function initSoundsToggle() {
 }
 
 // ── health score ───────────────────────────────────────────────────────────
-// ── reactive mascot mood ─────────────────────────────────────────────────────
-// The dashboard Doberman's vibe, derived from this month's money state.
-const MASCOT_MOODS = {
-  hype:  { lbl: 'PAYDAY',        col: 'var(--warn)' },
-  mad:   { lbl: 'OFF THE LEASH', col: 'var(--danger)' },
-  happy: { lbl: 'GOOD DAWG',     col: 'var(--success)' },
-  calm:  { lbl: 'ON WATCH',      col: 'var(--accent)' },
-};
-function _mascotMood() {
-  const m = localMonthKey();
-  const { income, expense } = monthTotals(m);
-  const bigIncomeToday = state.transactions.some(t => t.type === 'income' && t.date === today() && t.amount >= 100);
-  if (bigIncomeToday)                              return 'hype';
-  if (income > 0 && expense > income)              return 'mad';
-  if (income > 0 && (income - expense) / income >= 0.2) return 'happy';
-  return 'calm';
-}
-
 function calcHealthScore() {
   const m = localMonthKey();
   const { income, expense } = monthTotals(m);
@@ -5356,13 +5338,10 @@ function renderDashboardDawg() {
   const multiAcct = state.accounts && state.accounts.length > 1;
   const _curAcct  = state.accounts.find(a => a.id === currentAccountId);
   const _acctName = _curAcct?.name || 'Account';
-  const _mood = isPastDash ? 'calm' : _mascotMood();
-  const _moodCfg = MASCOT_MOODS[_mood] || MASCOT_MOODS.calm;
   return `<div class="dawg-page">
     ${backupBannerHtml()}
-    <div class="dawg-hero dawg-mood-${_mood}">
+    <div class="dawg-hero">
       <div class="dawg-hero-glow"></div>
-      <span class="dawg-mood-pill" style="color:${_moodCfg.col}"><span class="dawg-mood-dot" style="background:${_moodCfg.col}"></span>${_moodCfg.lbl}</span>
       <div class="dawg-hero-inner">
         ${heroTaglineHTML()}
         <div class="dawg-hero-dob">

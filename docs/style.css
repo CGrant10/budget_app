@@ -2929,23 +2929,6 @@ textarea:focus-visible,
 }
 .nav-btn:active, .dawg-nav-btn:active { transform: scale(.9); }
 
-/* ── reactive mascot mood ─────────────────────────────────────────────────────
-   The dashboard hero glow tints to the current money mood; a small pill names it. */
-.dawg-hero { position: relative; }
-.dawg-mood-pill {
-  position: absolute; top: 10px; right: 12px; z-index: 4;
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: .6rem; font-weight: 800; letter-spacing: .1em;
-  padding: 4px 9px; border-radius: 999px;
-  background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.08);
-  -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
-}
-.dawg-mood-dot { width: 6px; height: 6px; border-radius: 50%; }
-body.light .dawg-mood-pill { background: rgba(255,255,255,.6); border-color: rgba(0,0,0,.06); }
-.dawg-mood-mad   .dawg-hero-glow { background: radial-gradient(circle at 50% 40%, rgba(255,69,58,.22), transparent 70%) !important; }
-.dawg-mood-happy .dawg-hero-glow { background: radial-gradient(circle at 50% 40%, rgba(50,215,75,.18), transparent 70%) !important; }
-.dawg-mood-hype  .dawg-hero-glow { background: radial-gradient(circle at 50% 40%, rgba(255,214,10,.24), transparent 70%) !important; }
-
 /* ── DAWG Wrapped recap ──────────────────────────────────────────────────── */
 .wrap-hero { text-align: center; padding: 22px 0 18px; }
 .wrap-hero-kicker { font-size: .7rem; font-weight: 800; letter-spacing: .22em; color: var(--muted); }
