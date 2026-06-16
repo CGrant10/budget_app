@@ -2929,6 +2929,30 @@ textarea:focus-visible,
 }
 .nav-btn:active, .dawg-nav-btn:active { transform: scale(.9); }
 
+/* ── cross-account search toggle + read-only rows ─────────────────────────── */
+.lf-allacct-on { background: var(--accent) !important; color: var(--bg) !important; border-color: var(--accent) !important; }
+.ledger-row-ro .ledger-row-inner { cursor: default; }
+.ledger-row-ro { opacity: .96; }
+
+/* ── pull to refresh ──────────────────────────────────────────────────────── */
+.ptr-indicator {
+  position: fixed; top: 0; left: 50%;
+  transform: translateX(-50%) translateY(-50px);
+  margin-top: calc(var(--topbar-h) + var(--safe-top));
+  z-index: 60; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--card); border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+}
+.ptr-spinner {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+}
+.ptr-indicator.ptr-ready .ptr-spinner { border-top-color: var(--success); }
+.ptr-indicator.ptr-spinning .ptr-spinner { animation: ptr-spin .6s linear infinite; }
+@keyframes ptr-spin { to { transform: rotate(360deg); } }
+
 /* ── DAWG Wrapped recap ──────────────────────────────────────────────────── */
 .wrap-hero { text-align: center; padding: 22px 0 18px; }
 .wrap-hero-kicker { font-size: .7rem; font-weight: 800; letter-spacing: .22em; color: var(--muted); }

@@ -225,7 +225,7 @@
   <button id="tut-float-btn" class="tut-float" title="Tutorial" aria-label="Open tutorial">?</button>
 
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <!-- Chart.js is lazy-loaded on demand from app.js (_ensureChart) so it never blocks startup -->
   <script src="animations.js"></script>
   <!-- Splash escape: runs before app.js so it works even if app.js has an error -->
   <script>

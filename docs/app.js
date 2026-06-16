@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.33';
+const VERSION = '5.43.34';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -2802,7 +2802,7 @@ function _runCountUps(root) {
 // One-time global Chart.js styling so every chart (spending, insights, debt)
 // gets smooth easing, rounded bars, and a polished floating tooltip without
 // per-chart config. Chart.js loads before app.js, so window.Chart exists here.
-(function _initChartDefaults() {
+function _initChartDefaults() {
   if (!window.Chart) return;
   const C = window.Chart;
   C.defaults.font.family = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
@@ -2827,7 +2827,32 @@ function _runCountUps(root) {
     titleFont: { weight: '700', size: 12 },
     bodyFont: { weight: '500', size: 12 },
   });
-})();
+}
+
+// Chart.js is lazy-loaded (not a render-blocking <script>) so the app paints and
+// becomes interactive without waiting on ~200KB. _ensureChart() injects it once,
+// applies our defaults, and resolves; chart-creating code awaits it. If it fails
+// to load (offline), charts are simply skipped — the rest of the app is fine.
+let _chartPromise = null;
+function _ensureChart() {
+  if (window.Chart) return Promise.resolve(true);
+  if (_chartPromise) return _chartPromise;
+  _chartPromise = new Promise(resolve => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js';
+    s.onload  = () => { _initChartDefaults(); resolve(true); };
+    s.onerror = () => { _chartPromise = null; resolve(false); };
+    document.head.appendChild(s);
+  });
+  return _chartPromise;
+}
+// Run fn once Chart.js is available. If it's already loaded (every render after
+// the first), run synchronously — matching the original, proven creation timing.
+// Only the very first chart waits on the lazy download.
+function _withChart(fn) {
+  if (window.Chart) { fn(); return; }
+  _ensureChart().then(ok => { if (ok && window.Chart) fn(); });
+}
 
 // ── backup reminder ──────────────────────────────────────────────────────────
 // Whole numbers of days since the last JSON backup, or null if never.
@@ -3153,6 +3178,7 @@ let ledgerDateFrom = '';
 let ledgerDateTo = '';
 let _ledgerShowAll = false;          // when true, render the full filtered list (past the cap)
 const LEDGER_CAP = 300;              // max rows put in the DOM at once before a "Show all" button
+let ledgerAllAccounts = false;       // when true, the ledger searches across every account (read-only)
 let _insightTimer = null;
 let _dawgSparkGlobal = null; // module-level ref so tab switches can destroy it
 let _splitRows    = []; // [{cat, amount}] for split-transaction mode
@@ -3303,7 +3329,7 @@ function attachDashboard() {
       const wrap = chartEl.closest('.chart-wrap');
       if (wrap) wrap.innerHTML = '<p class="empty-msg" style="padding:40px 0;text-align:center">No spending this month yet.</p>';
     } else {
-      spendingChart = new Chart(chartEl, {
+      _withChart(() => { if (!document.body.contains(chartEl) || !chartEl.getContext || !chartEl.getContext('2d')) return; Chart.getChart(chartEl)?.destroy(); spendingChart = new Chart(chartEl, {
         type: 'bar',
         data: {
           labels,
@@ -3334,7 +3360,7 @@ function attachDashboard() {
             y: { ticks: { color: mutedColor, font: { size: 11 }, callback: v => '$' + v }, grid: { color: gridColor } },
           },
         },
-      });
+      }); });
     }
   } else {
     const { labels, data, colors } = getMonthCatData(dashMonth);
@@ -3343,7 +3369,7 @@ function attachDashboard() {
       if (wrap) wrap.innerHTML = '<p class="empty-msg" style="padding:40px 0;text-align:center">No spending this month yet.</p>';
     } else {
       const total = data.reduce((s, v) => s + v, 0);
-      spendingChart = new Chart(chartEl, {
+      _withChart(() => { if (!document.body.contains(chartEl) || !chartEl.getContext || !chartEl.getContext('2d')) return; Chart.getChart(chartEl)?.destroy(); spendingChart = new Chart(chartEl, {
         type: 'pie',
         data: {
           labels,
@@ -3387,7 +3413,7 @@ function attachDashboard() {
             },
           },
         },
-      });
+      }); });
     }
   }
 
@@ -6439,6 +6465,20 @@ function renderLedger() {
   const _allBillRows = rows.filter(isBillTxn);
   const _allTxnRows  = rows.filter(t => !isBillTxn(t));
   rows = ledgerView === 'bills' ? _allBillRows : _allTxnRows;
+  // Cross-account search (read-only): pull non-bill transactions from every
+  // account, each tagged with its source. Running balances / inline edit don't
+  // apply across accounts, so these rows are view-only.
+  const _crossAcct = ledgerAllAccounts && ledgerView !== 'bills' && state.accounts.length > 1;
+  if (_crossAcct) {
+    rows = [];
+    state.accounts.forEach(a => {
+      let d; try { d = JSON.parse(localStorage.getItem(accountDataKey(a.id)) || '{}'); } catch { d = {}; }
+      (d.transactions || []).forEach((t, i) => {
+        if (isBillTxn(t)) return;
+        rows.push({ ...t, _i: i, _acctName: a.name });
+      });
+    });
+  }
   if (ledgerTypeFilter !== 'all') rows = rows.filter(t => t.type === ledgerTypeFilter);
   if (ledgerCatFilter)  rows = rows.filter(t => t.category === ledgerCatFilter);
   if (ledgerDateFrom)   rows = rows.filter(t => t.date >= ledgerDateFrom);
@@ -6477,6 +6517,21 @@ function renderLedger() {
     const allCats   = catSet.has(t.category) ? cats : [...cats, t.category];
     const catOptions = allCats.map(c =>
       `<option value="${c}"${c === t.category ? ' selected' : ''}>${c}</option>`).join('');
+    // Cross-account rows are read-only: account badge, no running balance / edit / delete.
+    if (_crossAcct) {
+      return `
+      <div class="ledger-row ledger-row-ro">
+        <div class="ledger-row-inner">
+          <div class="ledger-main">
+            <div class="ledger-desc"><span class="cat-dot" style="background:${catColor}"></span>${prefix}${t.description}</div>
+            <div class="ledger-meta">${t.date} · ${t.category} <span class="acct-badge">${t._acctName}</span>${exTag}</div>
+          </div>
+          <div class="ledger-right">
+            <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
+          </div>
+        </div>
+      </div>`;
+    }
     return `
       <div class="ledger-row" data-idx="${t._i}">
         <div class="ledger-row-inner">
@@ -6515,7 +6570,7 @@ function renderLedger() {
   return `
     <div class="page">
       <h1 class="page-title">Ledger</h1>
-      <p class="page-sub">${rows.length} ${ledgerView === 'bills' ? 'bill' : 'transaction'}${rows.length !== 1 ? 's' : ''}</p>
+      <p class="page-sub">${rows.length} ${ledgerView === 'bills' ? 'bill' : 'transaction'}${rows.length !== 1 ? 's' : ''}${_crossAcct ? ' · all accounts (read-only)' : ''}</p>
       <div class="ledger-view-tabs">
         <button class="lv-tab${ledgerView === 'transactions' ? ' active' : ''}" data-view="transactions">Transactions${_allTxnRows.length ? ` <span class="lv-count">${_allTxnRows.length}</span>` : ''}</button>
         <button class="lv-tab${ledgerView === 'bills' ? ' active' : ''}" data-view="bills">Bills${_allBillRows.length ? ` <span class="lv-count">${_allBillRows.length}</span>` : ''}</button>
@@ -6530,6 +6585,7 @@ function renderLedger() {
             <option value="amount-asc"${ledgerSort === 'amount-asc' ? ' selected' : ''}>$ Low</option>
           </select>
           <button id="ledger-density" class="lf-density-btn" title="Row density" aria-label="Toggle row density (currently ${density})">${density === 'compact' ? '≣' : '≡'}</button>
+          ${state.accounts.length > 1 && ledgerView !== 'bills' ? `<button id="ledger-all-accts" class="lf-density-btn${ledgerAllAccounts ? ' lf-allacct-on' : ''}" title="Search across all accounts" aria-label="Toggle search across all accounts" aria-pressed="${ledgerAllAccounts}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>` : ''}
         </div>
         <div class="lf-row2">
           <div class="type-pills">
@@ -7569,7 +7625,10 @@ function renderInsights() {
 function attachInsights() {
   if (_insightsChart) { _insightsChart.destroy(); _insightsChart = null; }
   const el = document.getElementById('insights-trend');
-  if (el && window.Chart) {
+  if (el) _withChart(() => {
+    if (!document.body.contains(el)) return;
+    if (!el.getContext || !el.getContext('2d')) return;  // canvas can't yield a 2D context yet
+    Chart.getChart(el)?.destroy();   // clear any chart left on this canvas before reusing it
     const cs     = getComputedStyle(document.documentElement);
     const accent = (cs.getPropertyValue('--accent') || '#4ecb8d').trim();
     const muted  = (cs.getPropertyValue('--muted')  || '#999').trim();
@@ -7585,7 +7644,7 @@ function attachInsights() {
         },
       },
     });
-  }
+  });
   document.getElementById('insights-goto-ledger')?.addEventListener('click', () => showTab('ledger'));
 }
 
@@ -10246,6 +10305,10 @@ function attachDashboardDawg() {
         if (chart._pulseRaf) { cancelAnimationFrame(chart._pulseRaf); chart._pulseRaf = null; }
       }
     };
+    _withChart(() => {
+    if (!document.body.contains(canvas)) return;
+    if (!canvas.getContext || !canvas.getContext('2d')) return;  // canvas can't yield a 2D context yet
+    Chart.getChart(canvas)?.destroy();   // clear any chart left on this canvas before reusing it
     _dawgSpark = _dawgSparkGlobal = new Chart(canvas, {
       type:'line',
       data:{ labels, datasets:[{ data, borderColor:_lineGrad, borderWidth:2, pointRadius:0, tension:0.4, fill:true, backgroundColor:grad }] },
@@ -10257,6 +10320,7 @@ function attachDashboardDawg() {
         scales:{ x:{display:false}, y:{display:false} },
         animation:{ duration:0 }   // plugin drives all animation
       }
+    });
     });
   }
   document.querySelectorAll('.dawg-tbtn').forEach(btn => {
@@ -10863,6 +10927,12 @@ function attachLedger() {
     if (list) list.classList.toggle('compact', s.ledgerDensity === 'compact');
     const btn = document.getElementById('ledger-density');
     if (btn) { btn.textContent = s.ledgerDensity === 'compact' ? '≣' : '≡'; btn.setAttribute('aria-label', `Toggle row density (currently ${s.ledgerDensity})`); }
+  });
+
+  document.getElementById('ledger-all-accts')?.addEventListener('click', () => {
+    ledgerAllAccounts = !ledgerAllAccounts;
+    _ledgerShowAll = false;
+    render();
   });
 
   document.getElementById('ledger-clear-filters')?.addEventListener('click', () => {
@@ -12072,6 +12142,7 @@ window.addEventListener('popstate', () => {
       _checkPaychecks();
       _checkContributions();
       checkForUpdate();
+      _ensureChart();  // warm Chart.js after first paint so charts are ready when needed
     });
 
     // ── swipe between tabs ────────────────────────────────────────────────
@@ -12109,6 +12180,51 @@ window.addEventListener('popstate', () => {
         const idx = visible.indexOf(currentTab);
         if (dx < 0 && idx < visible.length - 1) showTab(visible[idx + 1]);
         else if (dx > 0 && idx > 0)              showTab(visible[idx - 1]);
+      }, { passive: true });
+    })();
+
+    // ── pull to refresh ───────────────────────────────────────────────────
+    (function attachPullToRefresh() {
+      const mc = document.getElementById('main-content');
+      if (!mc) return;
+      const ind = document.createElement('div');
+      ind.className = 'ptr-indicator';
+      ind.innerHTML = '<div class="ptr-spinner"></div>';
+      (document.getElementById('app') || document.body).appendChild(ind);
+      const TH = 72; // pull distance (px) to trigger a refresh
+      let startY = 0, dist = 0, active = false, refreshing = false;
+      mc.addEventListener('touchstart', e => {
+        // Only arm at the very top of the scroll, and not over the accounts picker
+        if (refreshing || mc.scrollTop > 0 || showingAccountPicker) { active = false; return; }
+        startY = e.touches[0].clientY; active = true; dist = 0;
+      }, { passive: true });
+      mc.addEventListener('touchmove', e => {
+        if (!active || refreshing) return;
+        dist = e.touches[0].clientY - startY;
+        if (dist <= 0) { ind.style.transform = ''; ind.style.opacity = ''; return; }
+        const pull = Math.min(dist * 0.5, 90);
+        ind.style.transform = `translateX(-50%) translateY(${pull}px)`;
+        ind.style.opacity = Math.min(pull / TH, 1);
+        ind.classList.toggle('ptr-ready', dist > TH);
+      }, { passive: true });
+      mc.addEventListener('touchend', () => {
+        if (!active || refreshing) return;
+        active = false;
+        if (dist > TH) {
+          refreshing = true;
+          ind.classList.add('ptr-spinning');
+          ind.style.transform = 'translateX(-50%) translateY(60px)';
+          ind.style.opacity = '1';
+          setTimeout(() => {
+            rerenderKeepScroll();
+            ind.classList.remove('ptr-spinning', 'ptr-ready');
+            ind.style.transform = ''; ind.style.opacity = '';
+            refreshing = false;
+          }, 520);
+        } else {
+          ind.style.transform = ''; ind.style.opacity = '';
+          ind.classList.remove('ptr-ready');
+        }
       }, { passive: true });
     })();
 
