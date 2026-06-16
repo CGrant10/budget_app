@@ -2946,22 +2946,6 @@ body.light .dawg-mood-pill { background: rgba(255,255,255,.6); border-color: rgb
 .dawg-mood-happy .dawg-hero-glow { background: radial-gradient(circle at 50% 40%, rgba(50,215,75,.18), transparent 70%) !important; }
 .dawg-mood-hype  .dawg-hero-glow { background: radial-gradient(circle at 50% 40%, rgba(255,214,10,.24), transparent 70%) !important; }
 
-/* ── Safe to Spend (beta) card ────────────────────────────────────────────── */
-.dawg-sts-card {
-  margin: 10px 14px 0; padding: 13px 16px;
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius-card); box-shadow: var(--shadow-card);
-}
-.dawg-sts-head { display: flex; align-items: center; justify-content: space-between; }
-.dawg-sts-label { font-size: .66rem; font-weight: 700; letter-spacing: .12em; color: var(--muted); }
-.dawg-sts-beta {
-  font-size: .56rem; font-weight: 800; letter-spacing: .1em;
-  color: var(--accent); border: 1px solid var(--accent);
-  border-radius: 999px; padding: 2px 7px; opacity: .85;
-}
-.dawg-sts-amt { font-size: 1.9rem; font-weight: 800; line-height: 1.1; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
-.dawg-sts-sub { font-size: .72rem; color: var(--muted); font-weight: 600; }
-
 /* ── DAWG Wrapped recap ──────────────────────────────────────────────────── */
 .wrap-hero { text-align: center; padding: 22px 0 18px; }
 .wrap-hero-kicker { font-size: .7rem; font-weight: 800; letter-spacing: .22em; color: var(--muted); }
