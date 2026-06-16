@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.34';
+const VERSION = '5.43.35';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -4523,7 +4523,7 @@ function render() {
   // new content when it's called, but the browser must NOT have painted it yet.
   // All of this is synchronous JS, so no intermediate paint occurs.
   switch (currentTab) {
-    case 'dashboard': main.innerHTML = renderDashboardDawg(); break;
+    case 'dashboard': main.innerHTML = loadSettings().calmView ? renderDashboardCalm() : renderDashboardDawg(); break;
     case 'add':       main.innerHTML = renderAdd();       break;
     case 'ledger':    main.innerHTML = renderLedger();    break;
     case 'weekly':    main.innerHTML = renderWeekly();    break;
@@ -5120,6 +5120,135 @@ function _dawgSkeleton() {
       <div class="skbar skbar-full" style="height:132px"></div>
       <div class="skbar skbar-full" style="height:120px"></div>
     </div>
+  </div>`;
+}
+
+// ── Calm view (beta) ─────────────────────────────────────────────────────────
+// Opt-in minimal dashboard gated by settings.calmView. Reuses the same data
+// helpers as renderDashboardDawg and the same sparkline/month-nav/countup ids so
+// the existing attachHandlers logic lights it up unchanged. Default view is
+// untouched — this only renders when the flag is on.
+function renderDashboardCalm() {
+  const _curAcctD = state.accounts.find(a => a.id === currentAccountId);
+  const _isDebt   = _curAcctD?.type === 'credit' || _curAcctD?.type === 'loan';
+  if (_curAcctD && RETIRE_TYPES.includes(_curAcctD.type)) {
+    return renderRetirementDashboard(_curAcctD);
+  }
+
+  const now      = new Date();
+  const currentM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const isPastDash = dashMonth < currentM;
+  const [dashYr, dashMo] = dashMonth.split('-').map(Number);
+  const dashMonthEndStr = new Date(dashYr, dashMo, 0).toISOString().split('T')[0];
+  const balAsOfStr = isPastDash ? dashMonthEndStr : today();
+
+  let balance;
+  if (_isDebt) {
+    let _inc = 0, _exp = 0;
+    for (const t of state.transactions) {
+      if (t.date <= balAsOfStr) { if (t.type==='income') _inc+=t.amount; else _exp+=t.amount; }
+    }
+    balance = Math.max(0, (state.startingBalance||0) + _exp - _inc);
+  } else {
+    balance = balanceAsOf(balAsOfStr);
+  }
+  let balColor = 'var(--text)';
+  if (!_isDebt && balance < 0) balColor = 'var(--danger)';
+
+  const dashMonthLabel = new Date(dashYr, dashMo - 1, 1)
+    .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const { income: mInc, expense: mExp, bycat } = monthTotals(dashMonth);
+  const monthDelta = mInc - mExp;
+
+  // Safe to spend — mirrors the planner's available-above-buffer figure.
+  const _wp = state.weekly_plan;
+  const { income: _ti, expense: _te } = totals();
+  const _liveBal  = (state.startingBalance || 0) + _ti - _te;
+  const _bills    = parseFloat(_wp?.bills   || 0) || 0;
+  const _stopAt   = parseFloat(_wp?.stop_at || 0) || 0;
+  const safeToSpend = Math.max(0, _liveBal - _stopAt - _bills);
+
+  // Week-to-date discretionary spend (excludes bills/flagged), matches planner.
+  const _wkNow = new Date(); _wkNow.setHours(0,0,0,0);
+  const _wkMon = new Date(_wkNow);
+  _wkMon.setDate(_wkNow.getDate() - (_wkNow.getDay() === 0 ? 6 : _wkNow.getDay() - 1));
+  const _monStr = _wkMon.toISOString().split('T')[0];
+  let weekSpent = 0;
+  for (const t of state.transactions) {
+    if (t.date >= _monStr && t.type === 'expense' && !isExcludedFromSpend(t)) weekSpent += t.amount;
+  }
+
+  // Spending breakdown — top categories this month, bars relative to the largest.
+  const catEntries = Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  const maxCat = catEntries.length ? catEntries[0][1] : 0;
+  const catHtml = catEntries.length ? catEntries.map(([cat,amt]) => {
+    const w = maxCat > 0 ? Math.max(6, amt/maxCat*100) : 0;
+    return `<div class="calm-row">
+      <span class="calm-row-name">${cat}</span>
+      <div class="calm-row-right">
+        <div class="calm-bar"><i style="width:${w.toFixed(0)}%"></i></div>
+        <span class="calm-row-val">${fmt(amt)}</span>
+      </div>
+    </div>`;
+  }).join('') : '<p class="calm-empty">No spending this month</p>';
+
+  // Recent transactions
+  const todayStr = today();
+  const yStr = new Date(Date.now()-86400000).toISOString().split('T')[0];
+  const recent = [...state.transactions]
+    .filter(t => (_isDebt ? t.type === 'income' : true) && t.date.startsWith(dashMonth))
+    .sort((a,b) => b.date.localeCompare(a.date) || (b.ts||0) - (a.ts||0))
+    .slice(0, 4);
+  const txnHtml = recent.length ? recent.map(t => {
+    const isInc = t.type === 'income';
+    const dlbl  = t.date === todayStr ? 'Today' : t.date === yStr ? 'Yesterday' : t.date.slice(5);
+    return `<div class="calm-txn">
+      <div class="calm-txn-info"><div class="calm-txn-desc">${t.description || t.category || '—'}</div><div class="calm-txn-date">${dlbl}</div></div>
+      <span class="calm-txn-amt" style="color:${isInc?'var(--success)':'var(--text)'}">${isInc?'+':'−'}${fmt(t.amount)}</span>
+    </div>`;
+  }).join('') : '<p class="calm-empty">No transactions yet</p>';
+
+  // Quiet static sparkline — thin line, no fill, no animation (calm by design).
+  const _spark = getDawgSparklineData('3m');
+  let sparkSvg = '';
+  if (_spark.data.length > 1) {
+    const d = _spark.data, n = d.length;
+    const lo = Math.min(...d), hi = Math.max(...d), rng = (hi - lo) || 1;
+    const pts = d.map((v,i) => `${(i/(n-1)*300).toFixed(1)},${(38 - (v-lo)/rng*34).toFixed(1)}`).join(' ');
+    const up = d[n-1] >= d[0];
+    sparkSvg = `<div class="calm-spark"><svg viewBox="0 0 300 40" width="100%" height="40" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${up ? 'var(--accent)' : 'var(--danger)'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/></svg></div>`;
+  }
+
+  const _acctName = _curAcctD?.name || 'Account';
+  const _hour = now.getHours();
+  const greeting = _hour < 12 ? 'Good morning' : _hour < 18 ? 'Good afternoon' : 'Good evening';
+
+  return `<div class="dawg-page calm-page">
+    ${backupBannerHtml()}
+    <div class="calm-head">
+      <div><div class="calm-greet">${greeting}</div><div class="calm-acct">${_acctName}</div></div>
+      <button class="calm-acct-edit" id="dash-acct-edit" title="Account settings"><img src="${mascotSrc()}" alt=""></button>
+    </div>
+
+    <div class="calm-balance">
+      <div class="calm-balance-label">${_isDebt ? (_curAcctD?.type==='loan'?'LOAN BALANCE':'BALANCE OWED') : 'AVAILABLE'}</div>
+      <div class="calm-balance-amt" style="color:${balColor}" data-countup="${balance}" data-countup-key="balance-${currentAccountId}">${fmt(balance)}</div>
+      ${!_isDebt ? `<div class="calm-balance-sub">${fmt(safeToSpend)} safe to spend${weekSpent>0?` · ${fmt(weekSpent)} spent this week`:''}</div>` : ''}
+    </div>
+
+    ${sparkSvg}
+
+    <div class="dawg-month-nav calm-month-nav">
+      <button class="dawg-mnav-btn" id="dash-month-prev">‹</button>
+      <span class="dawg-mnav-label">${dashMonthLabel}${isPastDash ? '' : ' · Now'}</span>
+      <button class="dawg-mnav-btn dawg-mnav-next${!isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
+    </div>
+
+    <div class="calm-section-label">Spending</div>
+    <div class="calm-list">${catHtml}</div>
+
+    <div class="calm-section-label">Recent</div>
+    <div class="calm-list">${txnHtml}</div>
   </div>`;
 }
 
@@ -8349,6 +8478,22 @@ function renderSettings() {
         </div>
       </div>
 
+      <div class="form-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <h2 class="section-title" style="margin-bottom:2px">Calm view <span style="font-size:.62rem;font-weight:700;letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:4px">BETA</span></h2>
+            <p class="code-hint" style="margin:0">A quieter, minimal dashboard — more whitespace, no glow. Nothing else changes.</p>
+          </div>
+          <label class="acct-pay-toggle-wrap" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <span style="font-size:.72rem;color:var(--muted)" id="calm-view-state">${s.calmView ? 'On' : 'Off'}</span>
+            <div class="toggle-pill${s.calmView?' toggle-pill-on':''}">
+              <input type="checkbox" id="calm-view-toggle" ${s.calmView?'checked':''} style="display:none">
+              <span class="toggle-knob"></span>
+            </div>
+          </label>
+        </div>
+      </div>
+
 
       <div class="form-card" style="cursor:pointer" id="goto-accounts-card">
         <div style="display:flex;align-items:center;justify-content:space-between">
@@ -8618,6 +8763,16 @@ function attachSettings() {
       saveSettings(s);
       render();
     });
+  });
+
+  document.getElementById('calm-view-toggle')?.addEventListener('change', e => {
+    const s = loadSettings();
+    s.calmView = e.target.checked;
+    saveSettings(s);
+    const pill = e.target.closest('.toggle-pill');
+    if (pill) pill.classList.toggle('toggle-pill-on', e.target.checked);
+    const lbl = document.getElementById('calm-view-state');
+    if (lbl) lbl.textContent = e.target.checked ? 'On' : 'Off';
   });
 
   document.getElementById('notif-toggle')?.addEventListener('change', async e => {
