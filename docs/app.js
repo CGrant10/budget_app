@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.35';
+const VERSION = '5.43.36';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -5249,6 +5249,11 @@ function renderDashboardCalm() {
 
     <div class="calm-section-label">Recent</div>
     <div class="calm-list">${txnHtml}</div>
+
+    <button class="calm-view-switch" id="dash-calm-toggle" data-calm="1">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      Switch to classic view
+    </button>
   </div>`;
 }
 
@@ -5532,6 +5537,11 @@ function renderDashboardDawg() {
       <span class="dawg-mnav-label">${dashMonthLabel}${isPastDash ? '' : ' · Now'}</span>
       <button class="dawg-mnav-btn dawg-mnav-next${!isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
     </div>
+
+    <button class="calm-view-switch" id="dash-calm-toggle" data-calm="0">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg>
+      Try Calm view <span class="calm-switch-beta">BETA</span>
+    </button>
 
     ${(() => {
       // Build tile HTML map — only tiles that have content get included
@@ -9613,8 +9623,6 @@ function renderAbout() {
       </div>
       <div class="form-card" style="text-align:center;margin-top:20px">
         <p class="code-hint" style="margin-bottom:12px">New here? Get a quick walkthrough of everything the app can do.</p>
-        <button id="open-tutorial-btn" class="btn-secondary" style="width:100%;margin-bottom:10px">📖 App Tutorial</button>
-        <hr style="border:none;border-top:1px solid var(--border);margin:0 0 12px">
         <p class="code-hint" style="margin-bottom:12px">If the app feels out of date, tap below to clear the cache and reload the latest version.</p>
         <button id="force-update-btn" class="btn-primary" style="width:100%">${ICONS.refresh} Force Update</button>
         <div id="force-update-status" class="form-status" style="margin-top:8px"></div>
@@ -9975,8 +9983,6 @@ function _renderWalkthroughStep(i) {
 // Keep old name as alias for any external references
 
 function attachAbout() {
-  document.getElementById('open-tutorial-btn')?.addEventListener('click', openTutorial);
-
   document.getElementById('force-update-btn')?.addEventListener('click', async () => {
     const btn    = document.getElementById('force-update-btn');
     const status = document.getElementById('force-update-status');
@@ -10260,6 +10266,11 @@ function attachDashboardDawg() {
     setTimeout(() => document.getElementById('backup-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
   });
   document.getElementById('dash-reconcile')?.addEventListener('click', showReconcileModal);
+
+  // Calm view (beta) quick toggle — flips the flag and re-renders the dashboard
+  document.getElementById('dash-calm-toggle')?.addEventListener('click', () => {
+    const s = loadSettings(); s.calmView = !s.calmView; saveSettings(s); render();
+  });
 
   // LOCK TF IN tap glitch
   const _lockinEl = document.querySelector('.dawg-lockin');

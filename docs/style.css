@@ -7026,3 +7026,7 @@ body.theme-ubuntu .section-title::before {
 .calm-txn-date { font-size: .74rem; color: var(--muted); margin-top: 2px; }
 .calm-txn-amt { font-size: .9rem; font-variant-numeric: tabular-nums; }
 .calm-empty { font-size: .82rem; color: var(--muted); padding: 12px 2px; }
+.calm-view-switch { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; margin: 4px 0 8px; padding: 11px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius-btn); font-size: .8rem; font-weight: 600; cursor: pointer; }
+.calm-view-switch:active { transform: scale(.985); }
+.calm-view-switch svg { opacity: .85; }
+.calm-switch-beta { font-size: .58rem; font-weight: 700; letter-spacing: .06em; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 1px 4px; }
