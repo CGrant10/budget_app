@@ -56,15 +56,8 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
-/* Ambient top-light — subtle studio glow from above on every screen */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: radial-gradient(ellipse 90% 45% at 50% -8%, rgba(255,255,255,.055) 0%, transparent 65%);
-  pointer-events: none;
-  z-index: 0;
-}
+/* Ambient top-light removed — the always-on white glow washed out contrast and
+   made the UI feel hazy. Flat, even background on every screen now. */
 /* #app sits above the body::before ambient glow; splash-screen is fixed/9999 via .splash-screen — don't touch it here */
 #app { position: relative; z-index: 1; }
 

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.40';
+const VERSION = '5.43.41';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -11604,10 +11604,8 @@ function triggerNavGlitch(btn) {
 function _screenFlash() {
   // Capture NOW — _applyPageTransition resets _pageTransition to 'fade' ~1 rAF later
   const _isSlide = _pageTransition === 'slide-right' || _pageTransition === 'slide-left';
-  const _f = document.createElement('div');
-  _f.className = 'screen-flash-overlay';
-  document.body.appendChild(_f);
-  _f.addEventListener('animationend', () => _f.remove(), { once: true });
+  // (Accent full-screen flash overlay removed — it tinted the whole UI on every
+  //  navigation. The page-title glitch below is kept.)
   // Slides take 340ms — wait until the panel finishes sliding in before glitching the title
   // Fade/zoom: 80ms is enough for the new page to be visible
   setTimeout(() => {
