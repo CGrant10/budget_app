@@ -7023,3 +7023,41 @@ body.theme-ubuntu .section-title::before {
 .dawg-txn-date, .dawg-goal-sub { opacity: .72; }
 .dawg-tbtn          { padding: 9px 2px; }
 .dash-reconcile-btn { font-size: .72rem; padding: 6px 14px; }
+
+/* ── Legacy-page harmonization (v5.43.39) ──────────────────────────────────
+   Flatten the older form-card scaffold to the flat solid surface used by the
+   polished pages (dashboard/bills/ledger/accounts): solid bg, subtle border,
+   the softened card shadow, no glossy top-shine. Lifts weekly, add, goals,
+   notes, debt, budgets, retirement, import/export and settings at once.
+   Scoped to legacy cards — bill-card / acct-row / net-worth-card untouched. */
+.form-card,
+.week-tracker,
+.goal-card,
+.health-card,
+.insight-item,
+.debt-acct-card,
+.debt-dash-card,
+.debt-summary-card,
+.challenge-card,
+.acct-settings-card,
+.wkb-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+/* Drop the skeuomorphic gloss reflection on those same legacy cards */
+.form-card::after,
+.week-tracker::after,
+.goal-card::after,
+.health-card::after,
+.insight-item::after,
+.debt-acct-card::after,
+.debt-dash-card::after,
+.debt-summary-card::after,
+.challenge-card::after,
+.acct-settings-card::after,
+.wkb-row::after { display: none; }
+
+/* Lighter, flatter page header to match the polished pages — drop the heavy
+   accent slab on the title; keep a slim accent tick on section labels. */
+.page-title { font-size: 22px; font-weight: 700; letter-spacing: -.2px; padding-left: 0; border-left: none; }
