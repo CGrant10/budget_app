@@ -7030,6 +7030,7 @@ body.theme-ubuntu .section-title::before {
    the softened card shadow, no glossy top-shine. Lifts weekly, add, goals,
    notes, debt, budgets, retirement, import/export and settings at once.
    Scoped to legacy cards — bill-card / acct-row / net-worth-card untouched. */
+.card,
 .form-card,
 .week-tracker,
 .goal-card,
@@ -7045,7 +7046,14 @@ body.theme-ubuntu .section-title::before {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
 }
+/* The full-width stat card (Weekly/Insights) — flatten its glassy hero override */
+.cards-grid .card:first-child {
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: var(--shadow-card);
+}
 /* Drop the skeuomorphic gloss reflection on those same legacy cards */
+.card::after,
 .form-card::after,
 .week-tracker::after,
 .goal-card::after,
