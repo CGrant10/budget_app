@@ -6996,3 +6996,30 @@ body.theme-ubuntu .section-title::before {
 .acct-row-name { font-size: .98rem; }
 .acct-row-bal  { font-size: 1.06rem; }
 .acct-row { gap: 16px; }
+
+/* ── Dashboard polish pass (v5.43.38) — subtle refinement, same layout ─────── */
+/* 1. Type hierarchy: reserve heaviest weight for the balance number; soften the
+      competing uppercase labels so only one thing shouts. */
+.dawg-balance-label { font-weight: 600; }
+.dawg-card-title    { font-weight: 700; }
+.dawg-mnav-label    { font-weight: 600; }
+.dawg-meter-pct     { font-weight: 700; }
+.dawg-tbtn          { font-weight: 600; }
+
+/* 2. Tighten the hero so the balance sits higher on first open (~40px reclaimed). */
+.dawg-hero, .dawg-hero-inner { min-height: 118px; }
+.dawg-hero-inner   { padding-top: 12px; }
+.dawg-hero-tagline { padding-bottom: 12px; }
+.dawg-hero-dob     { width: 126px; }
+.dawg-balance-card { margin-top: 2px; }
+
+/* 3. Consistency: snap dashboard cards to the 18px card token, soften the shadow. */
+:root { --shadow-card: 0 2px 16px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.08); }
+.dawg-section-card,
+.dawg-tile-grid .dawg-section-card,
+.dawg-tile-grid .dawg-budget-tile { border-radius: var(--radius-card); }
+
+/* 4. Color depth (a quieter tertiary tier) + comfier tap targets. */
+.dawg-txn-date, .dawg-goal-sub { opacity: .72; }
+.dawg-tbtn          { padding: 9px 2px; }
+.dash-reconcile-btn { font-size: .72rem; padding: 6px 14px; }
