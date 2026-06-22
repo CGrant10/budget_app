@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.47';
+const VERSION = '5.43.48';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -5408,11 +5408,12 @@ function renderDashboardDawg() {
             <div class="dawg-meter-amt">${fmt(weekSpent)} <span>/ ${fmt(_livePerWeek)}</span></div>
             ${wkFailed ? `<div class="dawg-tile-sub" style="color:var(--danger)">${_belowBuffer ? `−${fmt(_bufferDeficit)} below buffer` : `+${fmt(weekSpent - _livePerWeek)} over`}</div>` : ''}`;
         }
-        // ── Per-day tile: truly dynamic daily allowance ──────────────────────
-        // Limit = available-above-buffer / days left in the current month.
-        // When below buffer this is exactly $0 — no allowance until recovered.
-        // When above buffer it auto-adjusts each day so you never bust the floor.
-        const _perDayLimit = _dashAvail > 0 ? _dashAvail / _dashDays : 0;
+        // ── Per-day tile: adjusted daily allowance ───────────────────────────
+        // = this week's remaining budget ÷ days left this week (the same
+        // "Adj. per day" the Weekly Planner shows). It reacts to what you've
+        // already spent this week, so it's the real "what can I spend today"
+        // figure — not the flat month-average, which ignores this week's pace.
+        const _perDayLimit = dayBudget;
         if (_perDayLimit > 0 || daySpent > 0 || _belowBuffer) {
           const dayFailed = _belowBuffer || (_perDayLimit > 0 && daySpent > _perDayLimit);
           const dayPct    = dayFailed ? 100 : (_perDayLimit > 0 ? Math.min(daySpent / _perDayLimit * 100, 100) : (daySpent > 0 ? 100 : 0));
