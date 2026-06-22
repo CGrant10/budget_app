@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.49';
+const VERSION = '5.43.50';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -5409,11 +5409,11 @@ function renderDashboardDawg() {
             ${wkFailed ? `<div class="dawg-tile-sub" style="color:var(--danger)">${_belowBuffer ? `−${fmt(_bufferDeficit)} below buffer` : `+${fmt(weekSpent - _livePerWeek)} over`}</div>` : ''}`;
         }
         // ── Per-day tile: adjusted daily allowance ───────────────────────────
-        // = this week's remaining budget ÷ days left this week (the same
-        // "Adj. per day" the Weekly Planner shows). It reacts to what you've
-        // already spent this week, so it's the real "what can I spend today"
-        // figure — not the flat month-average, which ignores this week's pace.
-        const _perDayLimit = dayBudget;
+        // = (current balance − buffer − bills) ÷ days left in the month. Uses the
+        // live balance and remaining days, so it self-corrects daily: underspend
+        // and tomorrow rises, overspend and it falls — landing on your buffer at
+        // month end. ($0 while below the buffer floor.)
+        const _perDayLimit = _dashAvail > 0 ? _dashAvail / _dashDays : 0;
         if (_perDayLimit > 0 || daySpent > 0 || _belowBuffer) {
           const dayFailed = _belowBuffer || (_perDayLimit > 0 && daySpent > _perDayLimit);
           const dayPct    = dayFailed ? 100 : (_perDayLimit > 0 ? Math.min(daySpent / _perDayLimit * 100, 100) : (daySpent > 0 ? 100 : 0));
@@ -6970,7 +6970,7 @@ function calcWeekly() {
     ['THIS MONTH',   fmt(available),           'var(--accent)',  _reservedLabel ? `after ${_reservedLabel}` : `spendable in ${_monthName}`],
     ['BALANCE',      fmt(liveBalance),         'var(--text)',    `live — auto-updates`],
     ['PER WEEK',     fmt(_perWeekCardVal),     _perWeekColor,    _perWeekCardSub],
-    ['PER DAY',      fmt(adjustedPerDay),      _adjColor,        _adjSub],
+    ['PER DAY',      fmt(perDay),              'var(--accent)',  `${days} day${days!==1?'s':''} left · adjusts daily`],
   ].map(([t,v,c,s]) => `<div class="card"><div class="card-title">${t}</div><div class="card-value" style="color:${c}">${v}</div><div class="card-sub">${s}</div></div>`).join('');
 
   const thisWeekTxns = state.transactions.filter(t=>t.date>=mondayStr).sort((a,b)=>b.date.localeCompare(a.date));
@@ -7132,8 +7132,8 @@ function calcWeekly() {
       ? `<div class="wk-hist-stat"><span class="wk-hist-stat-val" style="color:${_statColor(spent, lim)}">${fmt(spent)} <span class="wk-hist-stat-of">/ ${fmt(lim)}</span></span><span class="wk-hist-stat-cap">${cap}</span></div>`
       : '';
 
-    const _dailyRows = buildDailyHistoryHTML(adjustedPerDay);
-    const _dailyHtml  = _dailyRows  ? _statHtml(_todaySpent, adjustedPerDay, 'spent today · per-day limit') + _dailyRows : '';
+    const _dailyRows = buildDailyHistoryHTML(perDay);
+    const _dailyHtml  = _dailyRows  ? _statHtml(_todaySpent, perDay, 'spent today · per-day limit') + _dailyRows : '';
     const _weeklyHtml = breakdownHtml ? _statHtml(weekNet, _effectivePerWeek, 'this week · per-week limit') + breakdownHtml : '';
 
     const card = document.getElementById('wk-hist-card');
