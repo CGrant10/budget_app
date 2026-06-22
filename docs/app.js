@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.41';
+const VERSION = '5.43.42';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -5267,21 +5267,41 @@ function renderDashboardDawg() {
     : 0;
 
 
-  // Daily history — one entry per day Mon through today
-  const _weekDays = [];
+  // Daily history — last 4 weeks, grouped by week (Mon–Sun), newest first.
+  // Each day is measured against the same live dayBudget as the PER DAY tile.
+  const _fmtMD = dt => dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const _weekGroups = [];
   if (dayBudget > 0 && !isPastDash) {
-    for (let i = 0; i < 7; i++) {
-      const _d = new Date(_wkMon); _d.setDate(_wkMon.getDate() + i);
-      const _dStr = localDateStr(_d);
-      if (_dStr > _todayStr2) break;
-      const _dSpent = state.transactions
-        .filter(t => t.type==='expense' && t.date===_dStr && !isExcludedFromSpend(t))
-        .reduce((s,t) => s+t.amount, 0);
-      _weekDays.push({
-        dStr: _dStr,
-        spent: _dSpent,
-        isToday: _dStr === _todayStr2,
-        label: _d.toLocaleDateString('en-US', { weekday: 'short' }),
+    for (let w = 0; w < 4; w++) {
+      const _wMon = new Date(_wkMon); _wMon.setDate(_wkMon.getDate() - w * 7);
+      const _days = [];
+      for (let i = 0; i < 7; i++) {
+        const _d = new Date(_wMon); _d.setDate(_wMon.getDate() + i);
+        const _dStr = localDateStr(_d);
+        if (_dStr > _todayStr2) break;   // don't show future days in the current week
+        const _dSpent = state.transactions
+          .filter(t => t.type === 'expense' && t.date === _dStr && !isExcludedFromSpend(t))
+          .reduce((s, t) => s + t.amount, 0);
+        _days.push({
+          dStr: _dStr,
+          spent: _dSpent,
+          isToday: _dStr === _todayStr2,
+          label: _d.toLocaleDateString('en-US', { weekday: 'short' }),
+          dayNum: _d.getDate(),
+        });
+      }
+      if (!_days.length) continue;
+      const _total = _days.reduce((s, d) => s + d.spent, 0);
+      if (w > 0 && _total === 0) continue;   // skip empty past weeks (no noise)
+      const _wSun = new Date(_wMon); _wSun.setDate(_wMon.getDate() + 6);
+      const _endDt = new Date(_days[_days.length - 1].dStr + 'T00:00:00');
+      _weekGroups.push({
+        isCurrent: w === 0,
+        relLabel: w === 0 ? 'This week' : w === 1 ? 'Last week'
+          : `${_fmtMD(_wMon)} – ${_fmtMD(_wSun)}`,
+        rangeLabel: `${_fmtMD(_wMon)} – ${_fmtMD(w === 0 ? _endDt : _wSun)}`,
+        total: _total,
+        days: _days,
       });
     }
   }
@@ -5449,16 +5469,17 @@ function renderDashboardDawg() {
             ${dayFailed ? `<div class="dawg-tile-sub" style="color:var(--danger)">${_belowBuffer ? `−${fmt(_bufferDeficit)} below buffer` : `+${fmt(daySpent - _perDayLimit)} over`}</div>` : ''}`;
         }
 
-        // Daily history tile — one row per day Mon through today
-        if (_weekDays.length > 0) {
-          const _histRows = _weekDays.map(d => {
+        // Daily history tile — last 4 weeks, grouped by week. Current week is shown
+        // expanded; previous weeks collapse into tappable <details> headers.
+        if (_weekGroups.length > 0) {
+          const _dhRow = d => {
             const _pct   = dayBudget > 0 ? d.spent / dayBudget : 0;
             const _over  = d.spent > dayBudget;
             const _color = _over ? 'var(--danger)' : _pct >= 0.75 ? 'var(--warn)' : 'var(--accent)';
             const _barW  = Math.min(_pct * 100, 100).toFixed(1);
             const _overAmt = d.spent - dayBudget;
             return `<div class="dh-row${d.isToday ? ' dh-row--today' : ''}">
-              <span class="dh-day">${d.label}</span>
+              <span class="dh-day">${d.label} ${d.dayNum}</span>
               <div class="dh-bar-wrap">
                 <div class="dh-bar" style="width:${_barW}%;background:${_color}"></div>
                 ${_over ? `<div class="dh-bar-mark"></div>` : ''}
@@ -5469,11 +5490,29 @@ function renderDashboardDawg() {
               ${_over  ? `<span class="dh-badge dh-badge--over">+${fmt(_overAmt)}</span>` : ''}
               ${!_over && d.spent > 0 && !d.isToday ? `<span class="dh-badge dh-badge--ok">✓</span>` : ''}
             </div>`;
-          }).join('');
+          };
+          const _cur  = _weekGroups[0];
+          const _prev = _weekGroups.slice(1);
+          const _curHtml = `
+            <div class="dh-week-hdr dh-week-hdr--current">
+              <span class="dh-week-name">${_cur.relLabel}</span>
+              <span class="dh-week-total">${fmt(_cur.total)}</span>
+            </div>
+            <div class="dh-list">${_cur.days.map(_dhRow).join('')}</div>`;
+          const _prevHtml = _prev.map(g => `
+            <details class="dh-week">
+              <summary class="dh-week-hdr">
+                <span class="dh-week-caret">›</span>
+                <span class="dh-week-name">${g.relLabel}</span>
+                ${g.relLabel !== g.rangeLabel ? `<span class="dh-week-sub">${g.rangeLabel}</span>` : ''}
+                <span class="dh-week-total">${fmt(g.total)}</span>
+              </summary>
+              <div class="dh-list">${g.days.map(_dhRow).join('')}</div>
+            </details>`).join('');
           _tileHtml['daily-history'] = `
             <div class="dawg-card-title">DAILY HISTORY</div>
-            <div class="dawg-tile-period">THIS WEEK · LIMIT ${fmt(dayBudget)}/DAY</div>
-            <div class="dh-list">${_histRows}</div>`;
+            <div class="dawg-tile-period">LIMIT ${fmt(dayBudget)}/DAY</div>
+            ${_curHtml}${_prevHtml}`;
         }
       }
 

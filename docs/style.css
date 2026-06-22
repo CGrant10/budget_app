@@ -3493,10 +3493,29 @@ body.light .dawg-tile-grid .dawg-budget-tile {
 .dawg-tile-adj--good { color: var(--success); }
 
 /* ── Daily History tile ──────────────────────────────────────────────────── */
+/* Daily-history week grouping (current week open; previous weeks collapsible) */
+.dh-week-hdr {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 2px 4px;
+  font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted);
+}
+.dh-week-hdr--current .dh-week-name { color: var(--text); }
+.dh-week-name { flex-shrink: 0; }
+.dh-week-sub  { font-size: .64rem; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--muted); opacity: .7; }
+.dh-week-total { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 700; }
+details.dh-week { border-top: 1px solid var(--border); }
+details.dh-week > summary {
+  cursor: pointer; list-style: none; user-select: none;
+}
+details.dh-week > summary::-webkit-details-marker { display: none; }
+.dh-week-caret { display: inline-block; transition: transform .2s ease; flex-shrink: 0; color: var(--muted); }
+details.dh-week[open] > summary .dh-week-caret { transform: rotate(90deg); }
 .dh-list {
   display: flex; flex-direction: column; gap: 5px;
   width: 100%; margin-top: 4px;
 }
+.dh-day { min-width: 44px; }
 .dh-row {
   display: flex; align-items: center; gap: 6px;
   padding: 4px 0;
