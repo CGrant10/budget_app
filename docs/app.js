@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.43';
+const VERSION = '5.43.44';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -6620,9 +6620,14 @@ function renderWeekly() {
         </div>
       </div>
       <div id="wk-live"></div>
-      <div id="wk-daily-history" class="form-card" style="display:none">
-        <h2 class="section-title" style="margin-bottom:8px">Daily History</h2>
-        <p class="page-sub" style="margin:-2px 0 8px">Per-day spend by week — tap a past week to see each day</p>
+      <div id="wk-hist-card" class="form-card" style="display:none">
+        <div class="wk-hist-head">
+          <h2 class="section-title" style="margin:0">Spending History</h2>
+          <div class="wk-seg" id="wk-hist-seg" role="tablist">
+            <button class="wk-seg-btn" data-view="day"  role="tab">Per Day</button>
+            <button class="wk-seg-btn" data-view="week" role="tab">Per Week</button>
+          </div>
+        </div>
         <div id="wk-dh-body"></div>
       </div>
       <div id="wk-week-section" style="display:none">
@@ -6764,6 +6769,53 @@ function removeLoanPayment(bill, mKey) {
   const payId  = billLinkedTxns(bill)[mKey];
   delete billLinkedTxns(bill)[mKey];
   if (acctId && payId) _removeTxnFromAccount(acctId, payId);
+}
+
+// Which Spending-History view is showing on the Weekly Planner ('day' | 'week').
+let _plannerHistView = 'day';
+
+// Weekly history — last 4 weeks, one row per week, spend vs the weekly limit.
+function buildWeeklyHistoryHTML(weekLimit) {
+  if (!(weekLimit > 0)) return '';
+  const _today = today();
+  const _now = new Date(); _now.setHours(0, 0, 0, 0);
+  const _mon = new Date(_now); _mon.setDate(_now.getDate() - (_now.getDay() === 0 ? 6 : _now.getDay() - 1));
+  const _fmtMD = dt => dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const rows = [];
+  for (let w = 0; w < 4; w++) {
+    const wMon = new Date(_mon); wMon.setDate(_mon.getDate() - w * 7);
+    const wSun = new Date(wMon); wSun.setDate(wMon.getDate() + 6);
+    const wMonStr = localDateStr(wMon);
+    const endStr = w === 0 ? _today : localDateStr(wSun);
+    let spent = 0;
+    for (const t of state.transactions) {
+      if (t.type === 'expense' && !isExcludedFromSpend(t) && t.date >= wMonStr && t.date <= endStr) spent += t.amount;
+    }
+    if (w > 0 && spent === 0) continue;
+    rows.push({
+      label: w === 0 ? 'This wk' : w === 1 ? 'Last wk' : `${w} wks`,
+      range: `${_fmtMD(wMon)} – ${_fmtMD(w === 0 ? _now : wSun)}`,
+      spent, isCurrent: w === 0,
+    });
+  }
+  if (!rows.length) return '';
+  const rowHtml = r => {
+    const _pct = weekLimit > 0 ? r.spent / weekLimit : 0;
+    const _over = r.spent > weekLimit;
+    const _color = _over ? 'var(--danger)' : _pct >= 0.8 ? 'var(--warn)' : 'var(--accent)';
+    const _barW = Math.min(_pct * 100, 100).toFixed(1);
+    return `<div class="dh-row${r.isCurrent ? ' dh-row--today' : ''}" title="${r.range}">
+      <span class="dh-day">${r.label}</span>
+      <div class="dh-bar-wrap">
+        <div class="dh-bar" style="width:${_barW}%;background:${_color}"></div>
+        ${_over ? `<div class="dh-bar-mark"></div>` : ''}
+      </div>
+      <span class="dh-amt" style="color:${r.spent > 0 ? _color : 'var(--muted)'}">${r.spent > 0 ? fmt(r.spent) : '—'}</span>
+      ${_over ? `<span class="dh-badge dh-badge--over">+${fmt(r.spent - weekLimit)}</span>` : ''}
+      ${!_over && r.spent > 0 && !r.isCurrent ? `<span class="dh-badge dh-badge--ok">✓</span>` : ''}
+    </div>`;
+  };
+  return `<div class="dawg-tile-period">LIMIT ${fmt(weekLimit)}/WEEK</div><div class="dh-list">${rows.map(rowHtml).join('')}</div>`;
 }
 
 // Daily history — last 4 weeks of per-day spend grouped by week. Current week is
@@ -7063,13 +7115,36 @@ function calcWeekly() {
     this.textContent = open ? '▲  hide transactions' : '▼  show transactions';
   });
 
-  // ── Daily history — per-day spend grouped by week (uses native <details>) ──
+  // ── Spending history — switchable Per Day / Per Week views on one card ─────
   const dhBody = document.getElementById('wk-dh-body');
   if (dhBody) {
-    const dhHtml = buildDailyHistoryHTML(adjustedPerDay);
-    dhBody.innerHTML = dhHtml;
-    const dhCard = document.getElementById('wk-daily-history');
-    if (dhCard) dhCard.style.display = dhHtml ? '' : 'none';
+    const _dailyHtml  = buildDailyHistoryHTML(adjustedPerDay);
+    const _weeklyHtml = buildWeeklyHistoryHTML(_effectivePerWeek);
+    const card = document.getElementById('wk-hist-card');
+    const seg  = document.getElementById('wk-hist-seg');
+    if (!_dailyHtml && !_weeklyHtml) {
+      if (card) card.style.display = 'none';
+    } else {
+      if (card) card.style.display = '';
+      // Fall back to whichever view actually has content.
+      let _view = _plannerHistView;
+      if (_view === 'day'  && !_dailyHtml)  _view = 'week';
+      if (_view === 'week' && !_weeklyHtml) _view = 'day';
+      const _paint = v => { dhBody.innerHTML = (v === 'week' ? _weeklyHtml : _dailyHtml); };
+      _paint(_view);
+      if (seg) {
+        seg.querySelectorAll('.wk-seg-btn').forEach(b => {
+          const _has = b.dataset.view === 'week' ? !!_weeklyHtml : !!_dailyHtml;
+          b.classList.toggle('active', b.dataset.view === _view);
+          b.disabled = !_has;
+          b.onclick = () => {
+            _plannerHistView = b.dataset.view;
+            _paint(b.dataset.view);
+            seg.querySelectorAll('.wk-seg-btn').forEach(x => x.classList.toggle('active', x === b));
+          };
+        });
+      }
+    }
   }
 
   // ── Write all weeks into one container, grouped by month ─────────────

@@ -3493,6 +3493,18 @@ body.light .dawg-tile-grid .dawg-budget-tile {
 .dawg-tile-adj--good { color: var(--success); }
 
 /* ── Daily History tile ──────────────────────────────────────────────────── */
+/* Spending-history card header + Per Day / Per Week segmented toggle */
+.wk-hist-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.wk-seg { display: inline-flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 2px; gap: 2px; }
+.wk-seg-btn {
+  border: none; background: transparent; cursor: pointer;
+  font-family: var(--font-body); font-size: .7rem; font-weight: 700; letter-spacing: .02em;
+  color: var(--muted); padding: 5px 11px; border-radius: 7px;
+  transition: background .15s, color .15s;
+}
+.wk-seg-btn.active { background: var(--accent); color: #08120d; }
+.wk-seg-btn:disabled { opacity: .4; cursor: default; }
+
 /* Daily-history week grouping (current week open; previous weeks collapsible) */
 .dh-week-hdr {
   display: flex; align-items: center; gap: 8px;
