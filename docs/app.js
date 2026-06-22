@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.46';
+const VERSION = '5.43.47';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -6859,8 +6859,6 @@ function buildDailyHistoryHTML(dayBudget) {
         ${_over ? `<div class="dh-bar-mark"></div>` : ''}
       </div>
       <span class="dh-amt" style="color:${d.spent > 0 ? _color : 'var(--muted)'}">${fmt(d.spent)}<span class="dh-amt-of"> / ${fmt(dayBudget)}</span></span>
-      ${_over ? `<span class="dh-badge dh-badge--over">+${fmt(_overAmt)}</span>` : ''}
-      ${!_over && d.spent > 0 && !d.isToday ? `<span class="dh-badge dh-badge--ok">✓</span>` : ''}
     </div>`;
   };
   const cur = groups[0], prev = groups.slice(1);

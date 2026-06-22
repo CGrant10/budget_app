@@ -3545,19 +3545,18 @@ details.dh-week[open] > summary .dh-week-caret { transform: rotate(90deg); }
   display: flex; flex-direction: column; gap: 5px;
   width: 100%; margin-top: 4px;
 }
-.dh-day { min-width: 44px; }
+/* Fixed 3-column grid so every day row lines up: [day] [bar] [spent / limit] */
 .dh-row {
-  display: flex; align-items: center; gap: 6px;
-  padding: 4px 0;
+  display: grid; grid-template-columns: 56px 1fr 110px;
+  align-items: center; gap: 8px; padding: 5px 6px;
 }
 .dh-row--today {
-  background: rgba(78,203,141, .07);
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
-  border-radius: 8px; padding: 5px 6px; margin: 0 -6px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 8px;
 }
 .dh-day {
   font-size: .68rem; font-weight: 700; color: var(--muted);
-  min-width: 28px; flex-shrink: 0; text-transform: uppercase;
+  text-transform: uppercase; white-space: nowrap; font-variant-numeric: tabular-nums;
 }
 .dh-row--today .dh-day { color: var(--accent); }
 .dh-bar-wrap {
@@ -3576,7 +3575,7 @@ details.dh-week[open] > summary .dh-week-caret { transform: rotate(90deg); }
 }
 .dh-amt {
   font-size: .68rem; font-weight: 700;
-  min-width: 92px; text-align: right; flex-shrink: 0; white-space: nowrap;
+  text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums;
 }
 .dh-amt-of { color: var(--muted); font-weight: 600; }
 .dh-badge {
