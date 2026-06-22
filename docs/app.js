@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.48';
+const VERSION = '5.43.49';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -6970,8 +6970,7 @@ function calcWeekly() {
     ['THIS MONTH',   fmt(available),           'var(--accent)',  _reservedLabel ? `after ${_reservedLabel}` : `spendable in ${_monthName}`],
     ['BALANCE',      fmt(liveBalance),         'var(--text)',    `live — auto-updates`],
     ['PER WEEK',     fmt(_perWeekCardVal),     _perWeekColor,    _perWeekCardSub],
-    ['PER DAY',      fmt(perDay),              'var(--warn)',    `${days} day${days!==1?'s':''} left`],
-    ['ADJ. PER DAY', fmt(adjustedPerDay),      _adjColor,        _adjSub],
+    ['PER DAY',      fmt(adjustedPerDay),      _adjColor,        _adjSub],
   ].map(([t,v,c,s]) => `<div class="card"><div class="card-title">${t}</div><div class="card-value" style="color:${c}">${v}</div><div class="card-sub">${s}</div></div>`).join('');
 
   const thisWeekTxns = state.transactions.filter(t=>t.date>=mondayStr).sort((a,b)=>b.date.localeCompare(a.date));
