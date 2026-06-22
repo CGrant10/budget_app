@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.50';
+const VERSION = '5.43.51';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -6808,12 +6808,25 @@ function _attachWkbToggles(scope) {
   });
 }
 
-// Daily history — last 4 weeks of per-day spend grouped by week. Current week is
+// The per-day budget that was in effect on a given date: (balance entering that
+// day − buffer − bills) ÷ days remaining in that day's month (including the day).
+// "Entering that day" = balance through the prior day, so the day's own spending
+// doesn't shrink its own budget. Uses the current buffer/bills settings.
+function dailyBudgetFor(dateStr, buffer, bills) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const prev = new Date(d); prev.setDate(d.getDate() - 1);
+  const startBal = balanceAsOf(localDateStr(prev));
+  const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  const daysRem  = Math.max(1, Math.round((monthEnd - d) / 86400000) + 1);
+  return Math.max(0, startBal - (buffer || 0) - (bills || 0)) / daysRem;
+}
+
+// Daily history — ~2 months of per-day spend grouped by week. Current week is
 // expanded; previous weeks collapse into native <details>. Each day is measured
-// against `dayBudget` (the remaining-weekly-budget-per-day, from calcWeekly).
-// Returns inner HTML, or '' when there's no budget/data to show.
-function buildDailyHistoryHTML(dayBudget) {
-  if (!(dayBudget > 0)) return '';
+// against the budget that applied THAT day (today uses the live figure; past
+// days reconstruct from that day's starting balance via dailyBudgetFor).
+// Returns inner HTML, or '' when there's no data to show.
+function buildDailyHistoryHTML(todayPerDay, buffer, bills) {
   const _today = today();
   const _now = new Date(); _now.setHours(0, 0, 0, 0);
   const _mon = new Date(_now); _mon.setDate(_now.getDate() - (_now.getDay() === 0 ? 6 : _now.getDay() - 1));
@@ -6833,7 +6846,8 @@ function buildDailyHistoryHTML(dayBudget) {
       const spent = state.transactions
         .filter(t => t.type === 'expense' && t.date === dStr && !isExcludedFromSpend(t))
         .reduce((s, t) => s + t.amount, 0);
-      days.push({ dStr, spent, isToday: dStr === _today, label: d.toLocaleDateString('en-US', { weekday: 'short' }), dayNum: d.getDate() });
+      const budget = dStr === _today ? todayPerDay : dailyBudgetFor(dStr, buffer, bills);
+      days.push({ dStr, spent, budget, isToday: dStr === _today, label: d.toLocaleDateString('en-US', { weekday: 'short' }), dayNum: d.getDate() });
     }
     if (!days.length) continue;
     const total = days.reduce((s, d) => s + d.spent, 0);
@@ -6848,18 +6862,18 @@ function buildDailyHistoryHTML(dayBudget) {
   }
   if (!groups.length) return '';
   const row = d => {
-    const _pct = dayBudget > 0 ? d.spent / dayBudget : 0;
-    const _over = d.spent > dayBudget;
+    const _b    = d.budget;
+    const _pct  = _b > 0 ? d.spent / _b : (d.spent > 0 ? 1 : 0);
+    const _over = _b > 0 && d.spent > _b;
     const _color = _over ? 'var(--danger)' : _pct >= 0.75 ? 'var(--warn)' : 'var(--accent)';
     const _barW = Math.min(_pct * 100, 100).toFixed(1);
-    const _overAmt = d.spent - dayBudget;
     return `<div class="dh-row${d.isToday ? ' dh-row--today' : ''}">
       <span class="dh-day">${d.label} ${d.dayNum}</span>
       <div class="dh-bar-wrap">
         <div class="dh-bar" style="width:${_barW}%;background:${_color}"></div>
         ${_over ? `<div class="dh-bar-mark"></div>` : ''}
       </div>
-      <span class="dh-amt" style="color:${d.spent > 0 ? _color : 'var(--muted)'}">${fmt(d.spent)}<span class="dh-amt-of"> / ${fmt(dayBudget)}</span></span>
+      <span class="dh-amt" style="color:${d.spent > 0 ? _color : 'var(--muted)'}">${fmt(d.spent)}<span class="dh-amt-of"> / ${fmt(_b)}</span></span>
     </div>`;
   };
   const cur = groups[0], prev = groups.slice(1);
@@ -7132,7 +7146,7 @@ function calcWeekly() {
       ? `<div class="wk-hist-stat"><span class="wk-hist-stat-val" style="color:${_statColor(spent, lim)}">${fmt(spent)} <span class="wk-hist-stat-of">/ ${fmt(lim)}</span></span><span class="wk-hist-stat-cap">${cap}</span></div>`
       : '';
 
-    const _dailyRows = buildDailyHistoryHTML(perDay);
+    const _dailyRows = buildDailyHistoryHTML(perDay, stopAt, bills);
     const _dailyHtml  = _dailyRows  ? _statHtml(_todaySpent, perDay, 'spent today · per-day limit') + _dailyRows : '';
     const _weeklyHtml = breakdownHtml ? _statHtml(weekNet, _effectivePerWeek, 'this week · per-week limit') + breakdownHtml : '';
 
