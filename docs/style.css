@@ -3505,6 +3505,22 @@ body.light .dawg-tile-grid .dawg-budget-tile {
 .wk-seg-btn.active { background: var(--accent); color: #08120d; }
 .wk-seg-btn:disabled { opacity: .4; cursor: default; }
 
+/* Prominent spent / limit stat at the top of each history view */
+.wk-hist-stat { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 12px; }
+.wk-hist-stat-val { font-size: 1.7rem; font-weight: 800; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.wk-hist-stat-of  { font-size: 1.1rem; font-weight: 700; color: var(--muted); }
+.wk-hist-stat-cap { font-size: .66rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* Year grouping in the Per Week breakdown (shown once history spans ≥ 12 months) */
+.wkb-year-header {
+  display: flex; align-items: center; gap: 8px;
+  margin: 10px 0 2px; padding: 9px 10px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  font-size: .95rem; font-weight: 800; letter-spacing: .01em; color: var(--text); cursor: pointer;
+}
+.wkb-year-total { margin-left: auto; font-size: .76rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.wkb-year-body { padding-left: 6px; }
+
 /* Daily-history week grouping (current week open; previous weeks collapsible) */
 .dh-week-hdr {
   display: flex; align-items: center; gap: 8px;

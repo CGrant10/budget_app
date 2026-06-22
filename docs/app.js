@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.44';
+const VERSION = '5.43.45';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -6630,10 +6630,6 @@ function renderWeekly() {
         </div>
         <div id="wk-dh-body"></div>
       </div>
-      <div id="wk-week-section" style="display:none">
-        <h2 class="section-title" style="margin-bottom:10px">Week-by-week breakdown</h2>
-        <div class="wkb-rows" id="wk-all-rows"></div>
-      </div>
     </div>`;
 }
 
@@ -6774,48 +6770,41 @@ function removeLoanPayment(bill, mKey) {
 // Which Spending-History view is showing on the Weekly Planner ('day' | 'week').
 let _plannerHistView = 'day';
 
-// Weekly history — last 4 weeks, one row per week, spend vs the weekly limit.
-function buildWeeklyHistoryHTML(weekLimit) {
-  if (!(weekLimit > 0)) return '';
-  const _today = today();
-  const _now = new Date(); _now.setHours(0, 0, 0, 0);
-  const _mon = new Date(_now); _mon.setDate(_now.getDate() - (_now.getDay() === 0 ? 6 : _now.getDay() - 1));
-  const _fmtMD = dt => dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const rows = [];
-  for (let w = 0; w < 4; w++) {
-    const wMon = new Date(_mon); wMon.setDate(_mon.getDate() - w * 7);
-    const wSun = new Date(wMon); wSun.setDate(wMon.getDate() + 6);
-    const wMonStr = localDateStr(wMon);
-    const endStr = w === 0 ? _today : localDateStr(wSun);
-    let spent = 0;
-    for (const t of state.transactions) {
-      if (t.type === 'expense' && !isExcludedFromSpend(t) && t.date >= wMonStr && t.date <= endStr) spent += t.amount;
-    }
-    if (w > 0 && spent === 0) continue;
-    rows.push({
-      label: w === 0 ? 'This wk' : w === 1 ? 'Last wk' : `${w} wks`,
-      range: `${_fmtMD(wMon)} – ${_fmtMD(w === 0 ? _now : wSun)}`,
-      spent, isCurrent: w === 0,
+// Attach collapse/expand handlers for the week-by-week breakdown (year → month →
+// week → transactions). Used by the Per Week view; safe to call on any scope.
+function _attachWkbToggles(scope) {
+  if (!scope) return;
+  const wire = (sel, bodyFromHdr, chevronSel, openChar, closeChar) => {
+    scope.querySelectorAll(sel).forEach(hdr => {
+      const toggle = () => {
+        const body = bodyFromHdr(hdr);
+        if (!body) return;
+        const chevron = chevronSel ? hdr.querySelector(chevronSel) : null;
+        const open = body.style.display === 'none' || (chevronSel ? false : body.style.display !== 'block');
+        body.style.display = open ? '' : 'none';
+        hdr.dataset.open = String(open);
+        hdr.setAttribute('aria-expanded', String(open));
+        if (chevron) chevron.textContent = open ? openChar : closeChar;
+      };
+      hdr.addEventListener('click', toggle);
+      hdr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
     });
-  }
-  if (!rows.length) return '';
-  const rowHtml = r => {
-    const _pct = weekLimit > 0 ? r.spent / weekLimit : 0;
-    const _over = r.spent > weekLimit;
-    const _color = _over ? 'var(--danger)' : _pct >= 0.8 ? 'var(--warn)' : 'var(--accent)';
-    const _barW = Math.min(_pct * 100, 100).toFixed(1);
-    return `<div class="dh-row${r.isCurrent ? ' dh-row--today' : ''}" title="${r.range}">
-      <span class="dh-day">${r.label}</span>
-      <div class="dh-bar-wrap">
-        <div class="dh-bar" style="width:${_barW}%;background:${_color}"></div>
-        ${_over ? `<div class="dh-bar-mark"></div>` : ''}
-      </div>
-      <span class="dh-amt" style="color:${r.spent > 0 ? _color : 'var(--muted)'}">${r.spent > 0 ? fmt(r.spent) : '—'}</span>
-      ${_over ? `<span class="dh-badge dh-badge--over">+${fmt(r.spent - weekLimit)}</span>` : ''}
-      ${!_over && r.spent > 0 && !r.isCurrent ? `<span class="dh-badge dh-badge--ok">✓</span>` : ''}
-    </div>`;
   };
-  return `<div class="dawg-tile-period">LIMIT ${fmt(weekLimit)}/WEEK</div><div class="dh-list">${rows.map(rowHtml).join('')}</div>`;
+  wire('.wkb-year-toggle',  h => h.nextElementSibling, '.wkb-month-chevron', '▲', '▶');
+  wire('.wkb-month-toggle', h => h.nextElementSibling, '.wkb-month-chevron', '▲', '▶');
+  // Week rows show/hide their transactions (display:block toggled)
+  scope.querySelectorAll('.wkb-header').forEach(hdr => {
+    const toggle = () => {
+      const txns = hdr.nextElementSibling;
+      const tog  = hdr.querySelector('.pw-week-toggle');
+      const open = txns.style.display !== 'block';
+      txns.style.display = open ? 'block' : 'none';
+      hdr.setAttribute('aria-expanded', String(open));
+      if (tog) tog.textContent = open ? '▲' : '▼';
+    };
+    hdr.addEventListener('click', toggle);
+    hdr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+  });
 }
 
 // Daily history — last 4 weeks of per-day spend grouped by week. Current week is
@@ -6828,9 +6817,13 @@ function buildDailyHistoryHTML(dayBudget) {
   const _now = new Date(); _now.setHours(0, 0, 0, 0);
   const _mon = new Date(_now); _mon.setDate(_now.getDate() - (_now.getDay() === 0 ? 6 : _now.getDay() - 1));
   const _fmtMD = dt => dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  // ~2 months of daily history (the full ledger lives in the Per Week breakdown).
+  const _cutoff = new Date(_now); _cutoff.setDate(_now.getDate() - 62);
   const groups = [];
-  for (let w = 0; w < 4; w++) {
+  for (let w = 0; w < 14; w++) {
     const wMon = new Date(_mon); wMon.setDate(_mon.getDate() - w * 7);
+    const wSunChk = new Date(wMon); wSunChk.setDate(wMon.getDate() + 6);
+    if (w > 0 && wSunChk < _cutoff) break;   // past the 2-month window
     const days = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(wMon); d.setDate(wMon.getDate() + i);
@@ -6887,7 +6880,7 @@ function buildDailyHistoryHTML(dayBudget) {
       </summary>
       <div class="dh-list">${g.days.map(row).join('')}</div>
     </details>`).join('');
-  return `<div class="dawg-tile-period">LIMIT ${fmt(dayBudget)}/DAY</div>${curHtml}${prevHtml}`;
+  return `${curHtml}${prevHtml}`;
 }
 
 function calcWeekly() {
@@ -6998,14 +6991,15 @@ function calcWeekly() {
   // shows; reach further back only if there is older transaction data worth displaying.
   const monthFirstMonday = new Date(monthStart);
   monthFirstMonday.setDate(monthStart.getDate() - ((monthStart.getDay() + 6) % 7));
+  // Per-week breakdown spans ALL history: start at the Monday of the week containing the
+  // earliest transaction, through the end of the current month.
   let startMonday = new Date(monthFirstMonday);
-  for (let i = 12; i >= 1; i--) {
-    const m  = new Date(monday); m.setDate(monday.getDate() - i*7);
-    if (m >= startMonday) continue;          // within the current month — already covered
-    const mS = m.toISOString().split('T')[0];
-    const mE = new Date(m); mE.setDate(m.getDate() + 6);
-    const mES = mE.toISOString().split('T')[0];
-    if (state.transactions.some(t => t.date >= mS && t.date <= mES)) { startMonday = m; break; }
+  let _earliestTx = null;
+  for (const t of state.transactions) { if (_earliestTx === null || t.date < _earliestTx) _earliestTx = t.date; }
+  if (_earliestTx) {
+    const _e = new Date(_earliestTx + 'T00:00:00');
+    const _eMon = new Date(_e); _eMon.setDate(_e.getDate() - ((_e.getDay() + 6) % 7));
+    if (_eMon < startMonday) startMonday = _eMon;
   }
 
   const totalDaysSpan = Math.round((listEnd - startMonday) / 86400000) + 1;
@@ -7013,9 +7007,8 @@ function calcWeekly() {
 
   const txnRow = t => `<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`;
 
-  const allRowsHtml = [];
-  let lastMonth     = null;
-
+  // 1) Build each week's row, tagged with its month/year.
+  const _weekItems = [];
   Array.from({length: totalWeeks}, (_, w) => {
     const sd = new Date(startMonday); sd.setDate(startMonday.getDate() + w*7);
     const ed = new Date(startMonday); ed.setDate(startMonday.getDate() + (w+1)*7 - 1);
@@ -7024,23 +7017,20 @@ function calcWeekly() {
     const edS = ed.toISOString().split('T')[0];
     const isCurrent  = sdS <= mondayStr && mondayStr <= edS;
     const isPast     = edS < mondayStr;
-    // Skip degenerate future weeks that start on or after the list end (e.g. "Jun 1 – Jun 1"),
-    // but never skip the current week — listEnd is always ≥ the current week's end.
     if (!isPast && !isCurrent && sdS >= listEndStr) return;
     const monthLabel = sd.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const monthName  = sd.toLocaleDateString('en-US', { month: 'long' });
+    const year       = sd.getFullYear();
     const lbl = `${sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
     const wkTxns = state.transactions.filter(t=>t.date>=sdS&&t.date<=edS);
     const wkExp  = wkTxns.filter(t=>t.type==='expense' && !isExcludedFromSpend(t)).reduce((s,t)=>s+t.amount,0);
-    const wkNet  = wkExp;   // spent stands alone — income lifts the budget, not this
+    const wkNet  = wkExp;
     const txnHtml = wkTxns.length
       ? wkTxns.sort((a,b)=>b.date.localeCompare(a.date)).map(txnRow).join('')
       : '<p class="pw-empty">No transactions.</p>';
-
     const isCurrentMonth = monthLabel === currentMonthLabel;
+    let rowHtml;
     if (isPast) {
-      // Past weeks — reconstruct historical per_week from the balance at the START of that week.
-      // This freezes each week's denominator to what the budget actually was during that week,
-      // so future transactions (or plan changes) never retroactively alter past-week display.
       let _hInc = 0, _hExp = 0;
       for (const t of state.transactions) {
         if (t.date < sdS) { if (t.type==='income') _hInc+=t.amount; else _hExp+=t.amount; }
@@ -7048,7 +7038,7 @@ function calcWeekly() {
       const _histBal = (state.startingBalance || 0) + _hInc - _hExp;
       const _histAvail = Math.max(0, _histBal - stopAt - bills);
       const _histMonthEnd = new Date(sd.getFullYear(), sd.getMonth() + 1, 0);
-      const _histWeeks    = weeksFromMonday(sd, _histMonthEnd);   // weeks from this week → end of its month
+      const _histWeeks    = weeksFromMonday(sd, _histMonthEnd);
       const _histPerWk    = _histWeeks > 0 ? _histAvail / _histWeeks : 0;
       const pastPct      = _histPerWk > 0 ? Math.min(wkExp / _histPerWk * 100, 100) : 0;
       const pastBarColor = wkExp > _histPerWk && _histPerWk > 0 ? 'var(--danger)' : wkExp >= _histPerWk * 0.8 && _histPerWk > 0 ? 'var(--warn)' : 'var(--muted)';
@@ -7058,31 +7048,48 @@ function calcWeekly() {
       const forfeited    = (state.weekly_plan.forfeitedWeeks || []).includes(sdS);
       const forfeitBtn   = `<button class="wkb-forfeit-btn" data-week="${sdS}">${forfeited ? '↩ Undo' : 'Forfeit'}</button>`;
       const displayLabel = forfeited ? `<span class="wkb-forfeited-badge">FORFEITED</span>` : `<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span>`;
-      if (monthLabel !== lastMonth) {
-        if (lastMonth !== null) allRowsHtml.push(`</div>`); // close previous month body
-        lastMonth = monthLabel;
-        const _mhBudget = isCurrentMonth ? ` <span style="font-weight:600;color:var(--accent);font-size:.82em">· ${fmt(available)} to spend</span>` : '';
-        allRowsHtml.push(`<div class="wkb-month-header wkb-month-toggle" data-open="${isCurrentMonth}" role="button" tabindex="0" aria-expanded="${isCurrentMonth}">${monthLabel}${_mhBudget}<span class="wkb-month-chevron">${isCurrentMonth ? '▲' : '▶'}</span></div>`);
-        allRowsHtml.push(`<div class="wkb-month-body"${isCurrentMonth ? '' : ' style="display:none"'}>`);
-      }
-      allRowsHtml.push(`<div class="wkb-row wkb-past${forfeited ? ' wkb-forfeited' : ''}"><div class="wkb-header" role="button" tabindex="0" aria-expanded="false"><span class="week-dates">${lbl}</span>${forfeited ? '<span style="flex:1"></span>' : miniBar}${displayLabel}${forfeitBtn}<span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
+      rowHtml = `<div class="wkb-row wkb-past${forfeited ? ' wkb-forfeited' : ''}"><div class="wkb-header" role="button" tabindex="0" aria-expanded="false"><span class="week-dates">${lbl}</span>${forfeited ? '<span style="flex:1"></span>' : miniBar}${displayLabel}${forfeitBtn}<span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`;
     } else {
-      // Current + future weeks — live, recalculated on every settings change
       const _rowDenominator = _effectivePerWeek > 0 ? _effectivePerWeek : (wkNet > 0 ? wkNet : perWeek);
       const wkPct   = _rowDenominator > 0 ? Math.min(wkNet/_rowDenominator*100,100) : 0;
       const wkColor = isCurrent && _wkFailed ? 'var(--danger)' : wkPct>=80?'var(--warn)':wkNet>0?'var(--success)':'var(--muted)';
       const badge   = isCurrent ? '<span class="wkb-current-badge">THIS WEEK</span>' : '';
-      if (monthLabel !== lastMonth) {
-        if (lastMonth !== null) allRowsHtml.push(`</div>`); // close previous month body
-        lastMonth = monthLabel;
-        const _mhBudget = isCurrentMonth ? ` <span style="font-weight:600;color:var(--accent);font-size:.82em">· ${fmt(available)} to spend</span>` : '';
-        allRowsHtml.push(`<div class="wkb-month-header wkb-month-toggle" data-open="${isCurrentMonth}" role="button" tabindex="0" aria-expanded="${isCurrentMonth}">${monthLabel}${_mhBudget}<span class="wkb-month-chevron">${isCurrentMonth ? '▲' : '▶'}</span></div>`);
-        allRowsHtml.push(`<div class="wkb-month-body"${isCurrentMonth ? '' : ' style="display:none"'}>`);
-      }
-      allRowsHtml.push(`<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header" role="button" tabindex="0" aria-expanded="false">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(_rowDenominator)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`);
+      rowHtml = `<div class="wkb-row${isCurrent?' wkb-current':''}"><div class="wkb-header" role="button" tabindex="0" aria-expanded="false">${badge}<span class="week-dates">${lbl}</span><div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${wkPct.toFixed(1)}%;background:${wkColor}"></div></div><span class="wkb-amounts" style="color:${wkColor}">${fmt(wkNet)} / ${fmt(_rowDenominator)}</span><span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`;
     }
+    _weekItems.push({ monthLabel, monthName, year, isCurrentMonth, exp: wkExp, rowHtml });
   });
-  if (lastMonth !== null) allRowsHtml.push(`</div>`); // close last month body
+
+  // 2) Group: months normally; once history spans ≥ 12 months, wrap months in
+  //    collapsible year sections (year → month → week → transactions).
+  const _distinctMonths = new Set(_weekItems.map(i => i.monthLabel)).size;
+  const _yearMode = _distinctMonths >= 12;
+  const _curYearNum = now.getFullYear();
+  const _yearTotals = {};
+  if (_yearMode) _weekItems.forEach(i => { _yearTotals[i.year] = (_yearTotals[i.year] || 0) + i.exp; });
+  const allRowsHtml = [];
+  let lastYear = null, lastMonth = null;
+  for (const it of _weekItems) {
+    if (_yearMode && it.year !== lastYear) {
+      if (lastMonth !== null) allRowsHtml.push(`</div>`);   // close month body
+      if (lastYear !== null)  allRowsHtml.push(`</div>`);   // close year body
+      lastMonth = null; lastYear = it.year;
+      const yOpen = it.year === _curYearNum;
+      allRowsHtml.push(`<div class="wkb-year-header wkb-year-toggle" data-open="${yOpen}" role="button" tabindex="0" aria-expanded="${yOpen}">${it.year}<span class="wkb-year-total">${fmt(_yearTotals[it.year])} spent</span><span class="wkb-month-chevron">${yOpen ? '▲' : '▶'}</span></div>`);
+      allRowsHtml.push(`<div class="wkb-year-body"${yOpen ? '' : ' style="display:none"'}>`);
+    }
+    if (it.monthLabel !== lastMonth) {
+      if (lastMonth !== null) allRowsHtml.push(`</div>`);   // close previous month body
+      lastMonth = it.monthLabel;
+      const _mhBudget = it.isCurrentMonth ? ` <span style="font-weight:600;color:var(--accent);font-size:.82em">· ${fmt(available)} to spend</span>` : '';
+      const _mLabel = _yearMode ? it.monthName : it.monthLabel;
+      allRowsHtml.push(`<div class="wkb-month-header wkb-month-toggle" data-open="${it.isCurrentMonth}" role="button" tabindex="0" aria-expanded="${it.isCurrentMonth}">${_mLabel}${_mhBudget}<span class="wkb-month-chevron">${it.isCurrentMonth ? '▲' : '▶'}</span></div>`);
+      allRowsHtml.push(`<div class="wkb-month-body"${it.isCurrentMonth ? '' : ' style="display:none"'}>`);
+    }
+    allRowsHtml.push(it.rowHtml);
+  }
+  if (lastMonth !== null) allRowsHtml.push(`</div>`);       // close last month body
+  if (_yearMode && lastYear !== null) allRowsHtml.push(`</div>`); // close last year body
+  const breakdownHtml = allRowsHtml.join('');
 
   // ── Write summary + this-week tracker to #wk-live (always updated) ─────
   const liveEl = document.getElementById('wk-live');
@@ -7118,75 +7125,54 @@ function calcWeekly() {
   // ── Spending history — switchable Per Day / Per Week views on one card ─────
   const dhBody = document.getElementById('wk-dh-body');
   if (dhBody) {
-    const _dailyHtml  = buildDailyHistoryHTML(adjustedPerDay);
-    const _weeklyHtml = buildWeeklyHistoryHTML(_effectivePerWeek);
+    // Prominent "spent / limit" stat per view (e.g. $10 / $100).
+    const _todayStr = today();
+    let _todaySpent = 0;
+    for (const t of state.transactions) {
+      if (t.type === 'expense' && t.date === _todayStr && !isExcludedFromSpend(t)) _todaySpent += t.amount;
+    }
+    const _statColor = (spent, lim) => spent > lim && lim > 0 ? 'var(--danger)' : (lim > 0 && spent >= lim * 0.8 ? 'var(--warn)' : 'var(--accent)');
+    const _statHtml = (spent, lim, cap) => lim > 0
+      ? `<div class="wk-hist-stat"><span class="wk-hist-stat-val" style="color:${_statColor(spent, lim)}">${fmt(spent)} <span class="wk-hist-stat-of">/ ${fmt(lim)}</span></span><span class="wk-hist-stat-cap">${cap}</span></div>`
+      : '';
+
+    const _dailyRows = buildDailyHistoryHTML(adjustedPerDay);
+    const _dailyHtml  = _dailyRows  ? _statHtml(_todaySpent, adjustedPerDay, 'spent today · per-day limit') + _dailyRows : '';
+    const _weeklyHtml = breakdownHtml ? _statHtml(weekNet, _effectivePerWeek, 'this week · per-week limit') + breakdownHtml : '';
+
     const card = document.getElementById('wk-hist-card');
     const seg  = document.getElementById('wk-hist-seg');
     if (!_dailyHtml && !_weeklyHtml) {
       if (card) card.style.display = 'none';
     } else {
       if (card) card.style.display = '';
-      // Fall back to whichever view actually has content.
       let _view = _plannerHistView;
       if (_view === 'day'  && !_dailyHtml)  _view = 'week';
       if (_view === 'week' && !_weeklyHtml) _view = 'day';
-      const _paint = v => { dhBody.innerHTML = (v === 'week' ? _weeklyHtml : _dailyHtml); };
-      _paint(_view);
+      // Render both views once and toggle visibility, so the Per Week breakdown's
+      // collapse handlers survive view switches (no re-attach needed).
+      dhBody.innerHTML =
+        `<div id="wk-dh-day"${_view === 'day' ? '' : ' style="display:none"'}>${_dailyHtml}</div>` +
+        `<div id="wk-dh-week"${_view === 'week' ? '' : ' style="display:none"'}>${_weeklyHtml}</div>`;
+      _attachWkbToggles(document.getElementById('wk-dh-week'));
+      const _dayDiv  = document.getElementById('wk-dh-day');
+      const _weekDiv = document.getElementById('wk-dh-week');
       if (seg) {
         seg.querySelectorAll('.wk-seg-btn').forEach(b => {
           const _has = b.dataset.view === 'week' ? !!_weeklyHtml : !!_dailyHtml;
           b.classList.toggle('active', b.dataset.view === _view);
           b.disabled = !_has;
           b.onclick = () => {
+            if (b.disabled) return;
             _plannerHistView = b.dataset.view;
-            _paint(b.dataset.view);
+            if (_dayDiv)  _dayDiv.style.display  = b.dataset.view === 'day'  ? '' : 'none';
+            if (_weekDiv) _weekDiv.style.display = b.dataset.view === 'week' ? '' : 'none';
             seg.querySelectorAll('.wk-seg-btn').forEach(x => x.classList.toggle('active', x === b));
           };
         });
       }
     }
   }
-
-  // ── Write all weeks into one container, grouped by month ─────────────
-  const allEl = document.getElementById('wk-all-rows');
-  if (allEl) {
-    allEl.innerHTML = allRowsHtml.join('');
-    // Month-section collapse/expand
-    allEl.querySelectorAll('.wkb-month-toggle').forEach(hdr => {
-      const toggle = () => {
-        const body    = hdr.nextElementSibling;
-        const chevron = hdr.querySelector('.wkb-month-chevron');
-        const open    = body.style.display === 'none';
-        body.style.display = open ? '' : 'none';
-        hdr.dataset.open = String(open);
-        hdr.setAttribute('aria-expanded', String(open));
-        if (chevron) chevron.textContent = open ? '▲' : '▶';
-      };
-      hdr.addEventListener('click', toggle);
-      hdr.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
-      });
-    });
-    // Week-row expand/collapse
-    allEl.querySelectorAll('.wkb-header').forEach(hdr => {
-      const toggle = () => {
-        const txns = hdr.nextElementSibling;
-        const tog  = hdr.querySelector('.pw-week-toggle');
-        const open = txns.style.display !== 'block';
-        txns.style.display = open ? 'block' : 'none';
-        hdr.setAttribute('aria-expanded', String(open));
-        if (tog) tog.textContent = open ? '▲' : '▼';
-      };
-      hdr.addEventListener('click', toggle);
-      hdr.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
-      });
-    });
-  }
-
-  // Show the week-by-week section if there's anything to show
-  const weekSection = document.getElementById('wk-week-section');
-  if (weekSection) weekSection.style.display = '';
 }
 
 // ── bills ──────────────────────────────────────────────────────────────────
@@ -11169,7 +11155,7 @@ function attachWeekly() {
   });
 
   // ── Forfeit / undo forfeit past week ────────────────────────────────────
-  document.getElementById('wk-all-rows')?.addEventListener('click', async e => {
+  document.getElementById('wk-dh-body')?.addEventListener('click', async e => {
     const btn = e.target.closest('.wkb-forfeit-btn');
     if (!btn) return;
     e.stopPropagation(); // don't trigger the row expand toggle
