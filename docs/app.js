@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.45';
+const VERSION = '5.43.46';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -6858,7 +6858,7 @@ function buildDailyHistoryHTML(dayBudget) {
         <div class="dh-bar" style="width:${_barW}%;background:${_color}"></div>
         ${_over ? `<div class="dh-bar-mark"></div>` : ''}
       </div>
-      <span class="dh-amt" style="color:${d.spent > 0 ? _color : 'var(--muted)'}">${d.spent > 0 ? fmt(d.spent) : '—'}</span>
+      <span class="dh-amt" style="color:${d.spent > 0 ? _color : 'var(--muted)'}">${fmt(d.spent)}<span class="dh-amt-of"> / ${fmt(dayBudget)}</span></span>
       ${_over ? `<span class="dh-badge dh-badge--over">+${fmt(_overAmt)}</span>` : ''}
       ${!_over && d.spent > 0 && !d.isToday ? `<span class="dh-badge dh-badge--ok">✓</span>` : ''}
     </div>`;
@@ -7045,10 +7045,8 @@ function calcWeekly() {
       const spentColor   = _histPerWk > 0 && wkExp > _histPerWk ? 'var(--danger)' : wkExp > 0 ? 'var(--text)' : 'var(--muted)';
       const spentLabel   = wkExp > 0 ? `${fmt(wkExp)} / ${fmt(_histPerWk)}` : 'No spending';
       const miniBar      = _histPerWk > 0 ? `<div class="breakdown-bar-bg small" style="flex:1;margin:0 8px"><div class="breakdown-bar-fill" style="width:${pastPct.toFixed(1)}%;background:${pastBarColor}"></div></div>` : `<span style="flex:1"></span>`;
-      const forfeited    = (state.weekly_plan.forfeitedWeeks || []).includes(sdS);
-      const forfeitBtn   = `<button class="wkb-forfeit-btn" data-week="${sdS}">${forfeited ? '↩ Undo' : 'Forfeit'}</button>`;
-      const displayLabel = forfeited ? `<span class="wkb-forfeited-badge">FORFEITED</span>` : `<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span>`;
-      rowHtml = `<div class="wkb-row wkb-past${forfeited ? ' wkb-forfeited' : ''}"><div class="wkb-header" role="button" tabindex="0" aria-expanded="false"><span class="week-dates">${lbl}</span>${forfeited ? '<span style="flex:1"></span>' : miniBar}${displayLabel}${forfeitBtn}<span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`;
+      const displayLabel = `<span class="wkb-amounts" style="color:${spentColor}">${spentLabel}</span>`;
+      rowHtml = `<div class="wkb-row wkb-past"><div class="wkb-header" role="button" tabindex="0" aria-expanded="false"><span class="week-dates">${lbl}</span>${miniBar}${displayLabel}<span class="pw-week-toggle">▼</span></div><div class="pw-week-txns">${txnHtml}</div></div>`;
     } else {
       const _rowDenominator = _effectivePerWeek > 0 ? _effectivePerWeek : (wkNet > 0 ? wkNet : perWeek);
       const wkPct   = _rowDenominator > 0 ? Math.min(wkNet/_rowDenominator*100,100) : 0;
