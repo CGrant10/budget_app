@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.42';
+const VERSION = '5.43.43';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -4776,7 +4776,6 @@ function renderRetirementDashboard(acct) {
 const DASH_TILE_META = {
   'budget-week':    { label: 'Per Week Budget',      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="3"/></svg>` },
   'budget-day':     { label: 'Per Day Budget',       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>` },
-  'daily-history':  { label: 'Daily History',        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>` },
   'breakdown':      { label: 'Spending Breakdown',   icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="15" y2="6"/><line x1="3" y1="18" x2="9" y2="18"/></svg>` },
   'goals':          { label: 'Savings Goals',        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>` },
   'transactions':   { label: 'Recent Transactions',  icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>` },
@@ -4791,7 +4790,6 @@ const DASH_TILE_META = {
 const DEFAULT_DASH_LAYOUT = [
   { id: 'budget-week',    size: 'half', visible: true  },
   { id: 'budget-day',     size: 'half', visible: true  },
-  { id: 'daily-history',  size: 'full', visible: true  },
   { id: 'breakdown',      size: 'full', visible: true  },
   { id: 'goals',          size: 'full', visible: true  },
   { id: 'transactions',   size: 'full', visible: true  },
@@ -4806,8 +4804,8 @@ const DEFAULT_DASH_LAYOUT = [
 const DASH_PRESETS = {
   default:  [
     { id:'budget-week',    size:'half', visible:true  }, { id:'budget-day',     size:'half', visible:true  },
-    { id:'daily-history',  size:'full', visible:true  }, { id:'breakdown',      size:'full', visible:true  },
-    { id:'goals',          size:'full', visible:true  }, { id:'transactions',   size:'full', visible:true  },
+    { id:'breakdown',      size:'full', visible:true  }, { id:'goals',          size:'full', visible:true  },
+    { id:'transactions',   size:'full', visible:true  },
     { id:'networth',       size:'full', visible:false }, { id:'bills-upcoming', size:'full', visible:false },
     { id:'debt-summary',   size:'full', visible:false }, { id:'weekly-plan',    size:'half', visible:false },
     { id:'budgets-cats',   size:'full', visible:false }, { id:'monthly-stats',  size:'half', visible:false },
@@ -4815,8 +4813,8 @@ const DASH_PRESETS = {
   ],
   budget: [
     { id:'budget-week',    size:'full', visible:true  }, { id:'budget-day',     size:'full', visible:true  },
-    { id:'daily-history',  size:'full', visible:true  }, { id:'breakdown',      size:'full', visible:true  },
-    { id:'budgets-cats',   size:'full', visible:true  }, { id:'weekly-plan',    size:'half', visible:true  },
+    { id:'breakdown',      size:'full', visible:true  }, { id:'budgets-cats',   size:'full', visible:true  },
+    { id:'weekly-plan',    size:'half', visible:true  },
     { id:'monthly-stats',  size:'half', visible:true  }, { id:'transactions',   size:'half', visible:true  },
     { id:'goals',          size:'half', visible:true  }, { id:'bills-upcoming', size:'full', visible:false },
     { id:'networth',       size:'full', visible:false }, { id:'debt-summary',   size:'full', visible:false },
@@ -4826,16 +4824,16 @@ const DASH_PRESETS = {
     { id:'budget-week',    size:'half', visible:true  }, { id:'budget-day',     size:'half', visible:true  },
     { id:'weekly-plan',    size:'half', visible:true  }, { id:'monthly-stats',  size:'half', visible:true  },
     { id:'quick-add',      size:'half', visible:true  }, { id:'bills-upcoming', size:'half', visible:true  },
-    { id:'transactions',   size:'full', visible:true  }, { id:'daily-history',  size:'full', visible:false },
-    { id:'breakdown',      size:'full', visible:false }, { id:'goals',          size:'full', visible:false },
+    { id:'transactions',   size:'full', visible:true  }, { id:'breakdown',      size:'full', visible:false },
+    { id:'goals',          size:'full', visible:false },
     { id:'networth',       size:'full', visible:false }, { id:'budgets-cats',   size:'full', visible:false },
     { id:'debt-summary',   size:'full', visible:false },
   ],
   spending: [
     { id:'breakdown',      size:'full', visible:true  }, { id:'budgets-cats',   size:'full', visible:true  },
     { id:'transactions',   size:'full', visible:true  }, { id:'budget-week',    size:'half', visible:true  },
-    { id:'budget-day',     size:'half', visible:true  }, { id:'daily-history',  size:'full', visible:true  },
-    { id:'monthly-stats',  size:'half', visible:true  }, { id:'goals',          size:'half', visible:false },
+    { id:'budget-day',     size:'half', visible:true  }, { id:'monthly-stats',  size:'half', visible:true  },
+    { id:'goals',          size:'half', visible:false },
     { id:'networth',       size:'full', visible:false }, { id:'bills-upcoming', size:'full', visible:false },
     { id:'debt-summary',   size:'full', visible:false }, { id:'weekly-plan',    size:'half', visible:false },
     { id:'quick-add',      size:'half', visible:false },
@@ -5259,52 +5257,14 @@ function renderDashboardDawg() {
   const budgetColor = budgetPct >= 90 ? 'var(--danger)' : budgetPct >= 75 ? 'var(--warn)' : 'var(--accent)';
   const budgetLbl   = weekBudget ? 'weekly' : 'monthly';
 
-  // Daily history bar budget (remaining weekly budget spread across days left this week)
+  // Per-day budget (remaining weekly budget spread across days left this week) —
+  // used by the budget-day tile color. The daily-history view now lives on the
+  // Weekly Planner page (see buildDailyHistoryHTML / calcWeekly).
   const _todayDayIdx = Math.round((_wkNow - _wkMon) / 86400000);
   const _daysLeft    = Math.max(1, 7 - _todayDayIdx);
   const dayBudget    = _livePerWeek > 0 && !isPastDash
     ? Math.max(0, _livePerWeek - weekSpent) / _daysLeft
     : 0;
-
-
-  // Daily history — last 4 weeks, grouped by week (Mon–Sun), newest first.
-  // Each day is measured against the same live dayBudget as the PER DAY tile.
-  const _fmtMD = dt => dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const _weekGroups = [];
-  if (dayBudget > 0 && !isPastDash) {
-    for (let w = 0; w < 4; w++) {
-      const _wMon = new Date(_wkMon); _wMon.setDate(_wkMon.getDate() - w * 7);
-      const _days = [];
-      for (let i = 0; i < 7; i++) {
-        const _d = new Date(_wMon); _d.setDate(_wMon.getDate() + i);
-        const _dStr = localDateStr(_d);
-        if (_dStr > _todayStr2) break;   // don't show future days in the current week
-        const _dSpent = state.transactions
-          .filter(t => t.type === 'expense' && t.date === _dStr && !isExcludedFromSpend(t))
-          .reduce((s, t) => s + t.amount, 0);
-        _days.push({
-          dStr: _dStr,
-          spent: _dSpent,
-          isToday: _dStr === _todayStr2,
-          label: _d.toLocaleDateString('en-US', { weekday: 'short' }),
-          dayNum: _d.getDate(),
-        });
-      }
-      if (!_days.length) continue;
-      const _total = _days.reduce((s, d) => s + d.spent, 0);
-      if (w > 0 && _total === 0) continue;   // skip empty past weeks (no noise)
-      const _wSun = new Date(_wMon); _wSun.setDate(_wMon.getDate() + 6);
-      const _endDt = new Date(_days[_days.length - 1].dStr + 'T00:00:00');
-      _weekGroups.push({
-        isCurrent: w === 0,
-        relLabel: w === 0 ? 'This week' : w === 1 ? 'Last week'
-          : `${_fmtMD(_wMon)} – ${_fmtMD(_wSun)}`,
-        rangeLabel: `${_fmtMD(_wMon)} – ${_fmtMD(w === 0 ? _endDt : _wSun)}`,
-        total: _total,
-        days: _days,
-      });
-    }
-  }
   const _ds           = loadSettings();
   const _showInsights = _ds.dawgInsights === true;
 
@@ -5469,51 +5429,6 @@ function renderDashboardDawg() {
             ${dayFailed ? `<div class="dawg-tile-sub" style="color:var(--danger)">${_belowBuffer ? `−${fmt(_bufferDeficit)} below buffer` : `+${fmt(daySpent - _perDayLimit)} over`}</div>` : ''}`;
         }
 
-        // Daily history tile — last 4 weeks, grouped by week. Current week is shown
-        // expanded; previous weeks collapse into tappable <details> headers.
-        if (_weekGroups.length > 0) {
-          const _dhRow = d => {
-            const _pct   = dayBudget > 0 ? d.spent / dayBudget : 0;
-            const _over  = d.spent > dayBudget;
-            const _color = _over ? 'var(--danger)' : _pct >= 0.75 ? 'var(--warn)' : 'var(--accent)';
-            const _barW  = Math.min(_pct * 100, 100).toFixed(1);
-            const _overAmt = d.spent - dayBudget;
-            return `<div class="dh-row${d.isToday ? ' dh-row--today' : ''}">
-              <span class="dh-day">${d.label} ${d.dayNum}</span>
-              <div class="dh-bar-wrap">
-                <div class="dh-bar" style="width:${_barW}%;background:${_color}"></div>
-                ${_over ? `<div class="dh-bar-mark"></div>` : ''}
-              </div>
-              <span class="dh-amt" style="color:${d.spent>0?_color:'var(--muted)'}">
-                ${d.spent > 0 ? fmt(d.spent) : '—'}
-              </span>
-              ${_over  ? `<span class="dh-badge dh-badge--over">+${fmt(_overAmt)}</span>` : ''}
-              ${!_over && d.spent > 0 && !d.isToday ? `<span class="dh-badge dh-badge--ok">✓</span>` : ''}
-            </div>`;
-          };
-          const _cur  = _weekGroups[0];
-          const _prev = _weekGroups.slice(1);
-          const _curHtml = `
-            <div class="dh-week-hdr dh-week-hdr--current">
-              <span class="dh-week-name">${_cur.relLabel}</span>
-              <span class="dh-week-total">${fmt(_cur.total)}</span>
-            </div>
-            <div class="dh-list">${_cur.days.map(_dhRow).join('')}</div>`;
-          const _prevHtml = _prev.map(g => `
-            <details class="dh-week">
-              <summary class="dh-week-hdr">
-                <span class="dh-week-caret">›</span>
-                <span class="dh-week-name">${g.relLabel}</span>
-                ${g.relLabel !== g.rangeLabel ? `<span class="dh-week-sub">${g.rangeLabel}</span>` : ''}
-                <span class="dh-week-total">${fmt(g.total)}</span>
-              </summary>
-              <div class="dh-list">${g.days.map(_dhRow).join('')}</div>
-            </details>`).join('');
-          _tileHtml['daily-history'] = `
-            <div class="dawg-card-title">DAILY HISTORY</div>
-            <div class="dawg-tile-period">LIMIT ${fmt(dayBudget)}/DAY</div>
-            ${_curHtml}${_prevHtml}`;
-        }
       }
 
       // Spending breakdown
@@ -6705,6 +6620,11 @@ function renderWeekly() {
         </div>
       </div>
       <div id="wk-live"></div>
+      <div id="wk-daily-history" class="form-card" style="display:none">
+        <h2 class="section-title" style="margin-bottom:8px">Daily History</h2>
+        <p class="page-sub" style="margin:-2px 0 8px">Per-day spend by week — tap a past week to see each day</p>
+        <div id="wk-dh-body"></div>
+      </div>
       <div id="wk-week-section" style="display:none">
         <h2 class="section-title" style="margin-bottom:10px">Week-by-week breakdown</h2>
         <div class="wkb-rows" id="wk-all-rows"></div>
@@ -6844,6 +6764,78 @@ function removeLoanPayment(bill, mKey) {
   const payId  = billLinkedTxns(bill)[mKey];
   delete billLinkedTxns(bill)[mKey];
   if (acctId && payId) _removeTxnFromAccount(acctId, payId);
+}
+
+// Daily history — last 4 weeks of per-day spend grouped by week. Current week is
+// expanded; previous weeks collapse into native <details>. Each day is measured
+// against `dayBudget` (the remaining-weekly-budget-per-day, from calcWeekly).
+// Returns inner HTML, or '' when there's no budget/data to show.
+function buildDailyHistoryHTML(dayBudget) {
+  if (!(dayBudget > 0)) return '';
+  const _today = today();
+  const _now = new Date(); _now.setHours(0, 0, 0, 0);
+  const _mon = new Date(_now); _mon.setDate(_now.getDate() - (_now.getDay() === 0 ? 6 : _now.getDay() - 1));
+  const _fmtMD = dt => dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const groups = [];
+  for (let w = 0; w < 4; w++) {
+    const wMon = new Date(_mon); wMon.setDate(_mon.getDate() - w * 7);
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(wMon); d.setDate(wMon.getDate() + i);
+      const dStr = localDateStr(d);
+      if (dStr > _today) break;   // no future days in the current week
+      const spent = state.transactions
+        .filter(t => t.type === 'expense' && t.date === dStr && !isExcludedFromSpend(t))
+        .reduce((s, t) => s + t.amount, 0);
+      days.push({ dStr, spent, isToday: dStr === _today, label: d.toLocaleDateString('en-US', { weekday: 'short' }), dayNum: d.getDate() });
+    }
+    if (!days.length) continue;
+    const total = days.reduce((s, d) => s + d.spent, 0);
+    if (w > 0 && total === 0) continue;   // skip empty past weeks (no noise)
+    const wSun = new Date(wMon); wSun.setDate(wMon.getDate() + 6);
+    const endDt = new Date(days[days.length - 1].dStr + 'T00:00:00');
+    groups.push({
+      relLabel: w === 0 ? 'This week' : w === 1 ? 'Last week' : `${_fmtMD(wMon)} – ${_fmtMD(wSun)}`,
+      rangeLabel: `${_fmtMD(wMon)} – ${_fmtMD(w === 0 ? endDt : wSun)}`,
+      total, days,
+    });
+  }
+  if (!groups.length) return '';
+  const row = d => {
+    const _pct = dayBudget > 0 ? d.spent / dayBudget : 0;
+    const _over = d.spent > dayBudget;
+    const _color = _over ? 'var(--danger)' : _pct >= 0.75 ? 'var(--warn)' : 'var(--accent)';
+    const _barW = Math.min(_pct * 100, 100).toFixed(1);
+    const _overAmt = d.spent - dayBudget;
+    return `<div class="dh-row${d.isToday ? ' dh-row--today' : ''}">
+      <span class="dh-day">${d.label} ${d.dayNum}</span>
+      <div class="dh-bar-wrap">
+        <div class="dh-bar" style="width:${_barW}%;background:${_color}"></div>
+        ${_over ? `<div class="dh-bar-mark"></div>` : ''}
+      </div>
+      <span class="dh-amt" style="color:${d.spent > 0 ? _color : 'var(--muted)'}">${d.spent > 0 ? fmt(d.spent) : '—'}</span>
+      ${_over ? `<span class="dh-badge dh-badge--over">+${fmt(_overAmt)}</span>` : ''}
+      ${!_over && d.spent > 0 && !d.isToday ? `<span class="dh-badge dh-badge--ok">✓</span>` : ''}
+    </div>`;
+  };
+  const cur = groups[0], prev = groups.slice(1);
+  const curHtml = `
+    <div class="dh-week-hdr dh-week-hdr--current">
+      <span class="dh-week-name">${cur.relLabel}</span>
+      <span class="dh-week-total">${fmt(cur.total)}</span>
+    </div>
+    <div class="dh-list">${cur.days.map(row).join('')}</div>`;
+  const prevHtml = prev.map(g => `
+    <details class="dh-week">
+      <summary class="dh-week-hdr">
+        <span class="dh-week-caret">›</span>
+        <span class="dh-week-name">${g.relLabel}</span>
+        ${g.relLabel !== g.rangeLabel ? `<span class="dh-week-sub">${g.rangeLabel}</span>` : ''}
+        <span class="dh-week-total">${fmt(g.total)}</span>
+      </summary>
+      <div class="dh-list">${g.days.map(row).join('')}</div>
+    </details>`).join('');
+  return `<div class="dawg-tile-period">LIMIT ${fmt(dayBudget)}/DAY</div>${curHtml}${prevHtml}`;
 }
 
 function calcWeekly() {
@@ -7070,6 +7062,15 @@ function calcWeekly() {
     body.style.display = open ? 'block' : 'none';
     this.textContent = open ? '▲  hide transactions' : '▼  show transactions';
   });
+
+  // ── Daily history — per-day spend grouped by week (uses native <details>) ──
+  const dhBody = document.getElementById('wk-dh-body');
+  if (dhBody) {
+    const dhHtml = buildDailyHistoryHTML(adjustedPerDay);
+    dhBody.innerHTML = dhHtml;
+    const dhCard = document.getElementById('wk-daily-history');
+    if (dhCard) dhCard.style.display = dhHtml ? '' : 'none';
+  }
 
   // ── Write all weeks into one container, grouped by month ─────────────
   const allEl = document.getElementById('wk-all-rows');
