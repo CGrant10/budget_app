@@ -6905,6 +6905,21 @@ body.theme-ubuntu .section-title::before {
   transition: background .1s, color .1s, border-color .1s;
 }
 .fas-cat-active { background: rgba(78,203,141,.16); border-color: var(--accent); color: var(--accent); }
+
+/* "Frequent" auto-template chips (Add page + quick-add sheet) */
+.tmpl-chips { display: flex; flex-wrap: wrap; gap: 7px; flex: 1; }
+.tmpl-chip {
+  display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+  padding: 7px 12px; border-radius: 20px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-size: .8rem; font-weight: 700;
+  font-family: inherit; cursor: pointer; white-space: nowrap;
+  transition: background .1s, color .1s, border-color .1s;
+}
+.tmpl-chip:hover { border-color: var(--accent); }
+.tmpl-chip-amt { color: var(--accent); font-weight: 800; }
+.tmpl-chip-active { background: rgba(78,203,141,.16); border-color: var(--accent); }
+.tmpl-chip-active .tmpl-chip-lbl { color: var(--accent); }
 .fas-desc-input {
   width: 100%; background: var(--surface2); border: 1px solid var(--border);
   border-radius: 12px; padding: 12px 14px; font-size: .92rem;

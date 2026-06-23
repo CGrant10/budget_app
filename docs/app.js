@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.51';
+const VERSION = '5.43.52';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.52', date: '2026-06-23', changes: [
+    'Frequent expense templates — the Add Entry page and the quick-add sheet now suggest things you log almost every day (like a daily coffee) as one-tap chips that pre-fill the amount, category, and description',
+    'Suggestions learn automatically from your last 30 days and only appear for daily / every-other-day habits — nothing to set up, and they fade out if you stop logging them',
+  ]},
   { version: '5.43.26', date: '2026-06-11', changes: [
     'Team logo nav circle size reduced so logos have breathing room inside the button',
     'Pokemon sprite in accounts overview hero capped to container height so it no longer overlaps the account text',
@@ -2762,6 +2766,69 @@ function today() { return localDateStr(new Date()); }
 // which uses UTC and can roll to the next month on the last evening of a month (US).
 function localMonthKey(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+// Minimal HTML-escape for injecting user text (descriptions) into chip markup.
+function _escHtml(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+}
+
+// ── "commonly used" expense templates ────────────────────────────────────────
+// Surfaces expenses the user logs on a (roughly) daily / every-other-day
+// cadence — e.g. a daily coffee — so we can offer a one-tap pre-fill on the
+// Add page and the quick-add sheet. Expenses only; learns the usual price.
+// Deterministic (pure read of state.transactions) so callers can recompute it
+// to map a chip index back to its template.
+function getCommonTemplates(limit = 3) {
+  const txns = state.transactions || [];
+  if (txns.length < 6) return [];
+  const WINDOW      = 30;   // days of history considered
+  const MIN_DAYS    = 6;    // distinct days seen → a real habit, not a few repeats
+  const MAX_GAP     = 2;    // median spacing ≤ every-other-day
+  const STALE_AFTER = 4;    // drop it if not seen in the last few days
+
+  const dayNum = s => {     // YYYY-MM-DD → integer day index (local, DST-safe)
+    const [y, m, d] = s.split('-').map(Number);
+    return Math.floor(Date.UTC(y, m - 1, d) / 86400000);
+  };
+  const todayNum = dayNum(today());
+  const cutoff   = todayNum - WINDOW;
+
+  const groups = new Map();
+  for (const t of txns) {
+    if (t.type !== 'expense' || t._xfer) continue;
+    if (t.category === 'Transfer' || t.category === 'Payment') continue;
+    if (!t.date) continue;
+    const dn = dayNum(t.date);
+    if (dn < cutoff || dn > todayNum) continue;
+    const desc = (t.description || '').trim();
+    const cat  = t.category || 'Other';
+    const key  = `${cat} ${desc.toLowerCase()}`;
+    let g = groups.get(key);
+    if (!g) { g = { cat, desc, days: [], amounts: [] }; groups.set(key, g); }
+    g.days.push(dn);
+    g.amounts.push(Number(t.amount) || 0);
+  }
+
+  const out = [];
+  for (const g of groups.values()) {
+    const uniqDays = [...new Set(g.days)].sort((a, b) => a - b);
+    if (uniqDays.length < MIN_DAYS) continue;
+    if (todayNum - uniqDays[uniqDays.length - 1] > STALE_AFTER) continue;
+    const gaps = [];
+    for (let i = 1; i < uniqDays.length; i++) gaps.push(uniqDays[i] - uniqDays[i - 1]);
+    gaps.sort((a, b) => a - b);
+    const median = gaps[Math.floor(gaps.length / 2)];
+    if (median > MAX_GAP) continue;
+    // usual price = most frequent amount; tie-break → most recent
+    const freq = new Map();
+    g.amounts.forEach(a => freq.set(a, (freq.get(a) || 0) + 1));
+    let amount = g.amounts[g.amounts.length - 1], best = -1;
+    for (const [a, c] of freq) if (c > best) { best = c; amount = a; }
+    out.push({ type: 'expense', category: g.cat, description: g.desc, amount, count: uniqDays.length });
+  }
+  out.sort((a, b) => b.count - a.count);
+  return out.slice(0, limit);
 }
 
 // ── animated count-ups ───────────────────────────────────────────────────────
@@ -6341,6 +6408,20 @@ function renderAdd() {
       <h1 class="page-title">Add Entry</h1>
       <p class="page-sub">record income or expense</p>
       <div class="form-card">
+        ${(() => {
+          const tmpls = getCommonTemplates();
+          if (!tmpls.length) return '';
+          return `<div class="form-row tmpl-row" id="add-tmpl-row">
+          <label class="form-label">Frequent</label>
+          <div class="tmpl-chips" id="add-tmpl-chips">
+            ${tmpls.map((t, i) => `<button type="button" class="tmpl-chip" data-tmpl="${i}" title="Tap to fill — logged ~daily">
+              <span class="cat-dot" style="background:${CAT_COLORS[t.category] || '#9896a4'}"></span>
+              <span class="tmpl-chip-lbl">${_escHtml(t.description || t.category)}</span>
+              <span class="tmpl-chip-amt">${fmt(t.amount)}</span>
+            </button>`).join('')}
+          </div>
+        </div>`;
+        })()}
         <div class="form-row">
           <label class="form-label">Type</label>
           <div class="radio-group">
@@ -10464,6 +10545,7 @@ function _showFastAdd() {
   const todayStr = today();
   const accounts = state.accounts || [];
   const multiAcct = accounts.length > 1;
+  const tmpls    = getCommonTemplates();
 
   // Account chips for a picker; `selId` is highlighted (null = none selected yet)
   const acctChips = (selId) => accounts.map(a =>
@@ -10482,6 +10564,17 @@ function _showFastAdd() {
         <button class="fas-type-btn" data-type="income">Income</button>
         ${multiAcct ? `<button class="fas-type-btn" data-type="transfer">Transfer</button>` : ''}
       </div>
+      ${tmpls.length ? `
+      <div class="fas-field" id="fas-tmpl-field">
+        <label class="fas-label">Frequent</label>
+        <div class="fas-cats" id="fas-tmpls">
+          ${tmpls.map((t, i) => `<button class="tmpl-chip" data-tmpl="${i}">
+            <span class="cat-dot" style="background:${CAT_COLORS[t.category] || '#9896a4'}"></span>
+            <span class="tmpl-chip-lbl">${_escHtml(t.description || t.category)}</span>
+            <span class="tmpl-chip-amt">${fmt(t.amount)}</span>
+          </button>`).join('')}
+        </div>
+      </div>` : ''}
       <div class="fas-amount-row">
         <span class="fas-currency">$</span>
         <input type="number" id="fas-amount" class="fas-amount-input" placeholder="0.00"
@@ -10553,6 +10646,26 @@ function _showFastAdd() {
   };
   wireAccts('fas-from-accts', id => { fromAcct = id; });
   wireAccts('fas-to-accts',   id => { toAcct = id; });
+
+  // "Frequent" template chips — tap to pre-fill amount / category / description
+  overlay.querySelectorAll('#fas-tmpls .tmpl-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const t = tmpls[+chip.dataset.tmpl];
+      if (!t) return;
+      applyType('expense');
+      const amtEl = overlay.querySelector('#fas-amount');
+      if (amtEl) amtEl.value = t.amount;
+      const descEl = overlay.querySelector('#fas-desc');
+      if (descEl) descEl.value = t.description || '';
+      selCat = t.category;
+      overlay.querySelectorAll('.fas-cat-chip').forEach(c =>
+        c.classList.toggle('fas-cat-active', c.dataset.cat === t.category));
+      overlay.querySelectorAll('#fas-tmpls .tmpl-chip').forEach(c => c.classList.remove('tmpl-chip-active'));
+      chip.classList.add('tmpl-chip-active');
+      if (amtEl) { amtEl.focus(); amtEl.select(); }
+      haptic([8]);
+    });
+  });
 
   // Push a history entry so the phone/browser back button closes the sheet
   // instead of leaving the page. close(fromPop=true) is called by the popstate
@@ -10676,6 +10789,37 @@ function attachAdd() {
     if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change', { bubbles: true })); }
     _quickAddType = null;
   }
+
+  // ── "Frequent" template chips — tap to pre-fill (expenses only) ───────────
+  document.querySelectorAll('#add-tmpl-chips .tmpl-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const t = getCommonTemplates()[+chip.dataset.tmpl];
+      if (!t) return;
+      const expRadio = document.querySelector('input[name="etype"][value="expense"]');
+      if (expRadio && !expRadio.checked) { expRadio.checked = true; expRadio.dispatchEvent(new Event('change', { bubbles: true })); }
+      const amtEl = document.getElementById('add-amount');
+      if (amtEl) amtEl.value = t.amount;
+      const descEl = document.getElementById('add-desc');
+      if (descEl) descEl.value = t.description || '';
+      const catEl = document.getElementById('add-cat');
+      if (catEl) {
+        catEl._userTouched = true;  // don't let auto-categorize override the chip
+        if ([...catEl.options].some(o => o.value === t.category)) {
+          catEl.value = t.category;
+          const ci = document.getElementById('add-cat-custom');
+          if (ci) ci.style.display = 'none';
+        } else {
+          catEl.value = '__custom__';
+          const ci = document.getElementById('add-cat-custom');
+          if (ci) { ci.style.display = ''; ci.value = t.category; }
+        }
+      }
+      document.querySelectorAll('#add-tmpl-chips .tmpl-chip').forEach(c => c.classList.remove('tmpl-chip-active'));
+      chip.classList.add('tmpl-chip-active');
+      if (amtEl) { amtEl.focus(); amtEl.select(); }  // ready to tweak today's price
+      haptic([8]);
+    });
+  });
 
   // ── split helpers ───────────────────────────────────────────────────────
   const cats = getCategories();
