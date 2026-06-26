@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.53';
+const VERSION = '5.43.54';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.54', date: '2026-06-26', changes: [
+    'Tapping a Frequent chip in quick-add now selects its category even when that category isn\'t one of the default chips (e.g. an imported or custom category) — it\'s added as a highlighted chip instead of leaving none selected',
+  ]},
   { version: '5.43.53', date: '2026-06-26', changes: [
     'Frequent expense chips now appear sooner — a habit surfaces after 4 logged days (was 6), counts up to every-third-day cadence, and stays for a full week before fading',
     'Frequent chips now group by the same word regardless of capitalization or punctuation — "Coffee", "coffee" and "coffee." count as one habit (different words like Coffee vs Starbucks stay separate)',
@@ -10673,6 +10676,23 @@ function _showFastAdd() {
       selCat = t.category;
       overlay.querySelectorAll('.fas-cat-chip').forEach(c =>
         c.classList.toggle('fas-cat-active', c.dataset.cat === t.category));
+      // If the habit's category isn't one of the rendered chips (e.g. a custom /
+      // imported category), add it so the selection is actually visible.
+      if (![...overlay.querySelectorAll('.fas-cat-chip')].some(c => c.dataset.cat === t.category)) {
+        const catBox = overlay.querySelector('#fas-cats');
+        if (catBox) {
+          const nc = document.createElement('button');
+          nc.className = 'fas-cat-chip fas-cat-active';
+          nc.dataset.cat = t.category;
+          nc.textContent = t.category;
+          nc.addEventListener('click', () => {
+            overlay.querySelectorAll('.fas-cat-chip').forEach(c => c.classList.remove('fas-cat-active'));
+            nc.classList.add('fas-cat-active');
+            selCat = nc.dataset.cat;
+          });
+          catBox.prepend(nc);
+        }
+      }
       overlay.querySelectorAll('#fas-tmpls .tmpl-chip').forEach(c => c.classList.remove('tmpl-chip-active'));
       chip.classList.add('tmpl-chip-active');
       if (amtEl) { amtEl.focus(); amtEl.select(); }
