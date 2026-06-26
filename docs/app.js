@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.52';
+const VERSION = '5.43.53';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.53', date: '2026-06-26', changes: [
+    'Frequent expense chips now appear sooner — a habit surfaces after 4 logged days (was 6), counts up to every-third-day cadence, and stays for a full week before fading',
+    'Frequent chips now group by the same word regardless of capitalization or punctuation — "Coffee", "coffee" and "coffee." count as one habit (different words like Coffee vs Starbucks stay separate)',
+  ]},
   { version: '5.43.52', date: '2026-06-23', changes: [
     'Frequent expense templates — the Add Entry page and the quick-add sheet now suggest things you log almost every day (like a daily coffee) as one-tap chips that pre-fill the amount, category, and description',
     'Suggestions learn automatically from your last 30 days and only appear for daily / every-other-day habits — nothing to set up, and they fade out if you stop logging them',
@@ -2774,7 +2778,7 @@ function _escHtml(s) {
 }
 
 // ── "commonly used" expense templates ────────────────────────────────────────
-// Surfaces expenses the user logs on a (roughly) daily / every-other-day
+// Surfaces expenses the user logs on a (roughly) twice-a-week-or-more
 // cadence — e.g. a daily coffee — so we can offer a one-tap pre-fill on the
 // Add page and the quick-add sheet. Expenses only; learns the usual price.
 // Deterministic (pure read of state.transactions) so callers can recompute it
@@ -2783,9 +2787,9 @@ function getCommonTemplates(limit = 3) {
   const txns = state.transactions || [];
   if (txns.length < 6) return [];
   const WINDOW      = 30;   // days of history considered
-  const MIN_DAYS    = 6;    // distinct days seen → a real habit, not a few repeats
-  const MAX_GAP     = 2;    // median spacing ≤ every-other-day
-  const STALE_AFTER = 4;    // drop it if not seen in the last few days
+  const MIN_DAYS    = 4;    // distinct days seen → an emerging habit, not a one-off
+  const MAX_GAP     = 3;    // median spacing ≤ every third day (twice-a-week+)
+  const STALE_AFTER = 7;    // drop it only if not seen in the last week
 
   const dayNum = s => {     // YYYY-MM-DD → integer day index (local, DST-safe)
     const [y, m, d] = s.split('-').map(Number);
@@ -2793,6 +2797,11 @@ function getCommonTemplates(limit = 3) {
   };
   const todayNum = dayNum(today());
   const cutoff   = todayNum - WINDOW;
+
+  // Normalize a description for grouping: case-insensitive, punctuation- and
+  // whitespace-agnostic — so "Coffee", "coffee" and "coffee." are the same word,
+  // but genuinely different words (coffee vs Starbucks) stay separate.
+  const norm = s => s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim();
 
   const groups = new Map();
   for (const t of txns) {
@@ -2803,11 +2812,12 @@ function getCommonTemplates(limit = 3) {
     if (dn < cutoff || dn > todayNum) continue;
     const desc = (t.description || '').trim();
     const cat  = t.category || 'Other';
-    const key  = `${cat} ${desc.toLowerCase()}`;
+    const key  = `${cat}|${norm(desc)}`;
     let g = groups.get(key);
-    if (!g) { g = { cat, desc, days: [], amounts: [] }; groups.set(key, g); }
+    if (!g) { g = { cat, days: [], amounts: [], descFreq: new Map() }; groups.set(key, g); }
     g.days.push(dn);
     g.amounts.push(Number(t.amount) || 0);
+    if (desc) g.descFreq.set(desc, (g.descFreq.get(desc) || 0) + 1);  // track original spellings for the label
   }
 
   const out = [];
@@ -2825,7 +2835,10 @@ function getCommonTemplates(limit = 3) {
     g.amounts.forEach(a => freq.set(a, (freq.get(a) || 0) + 1));
     let amount = g.amounts[g.amounts.length - 1], best = -1;
     for (const [a, c] of freq) if (c > best) { best = c; amount = a; }
-    out.push({ type: 'expense', category: g.cat, description: g.desc, amount, count: uniqDays.length });
+    // label = most-frequently-typed original spelling for this group
+    let desc = '', dBest = -1;
+    for (const [d, c] of g.descFreq) if (c > dBest) { dBest = c; desc = d; }
+    out.push({ type: 'expense', category: g.cat, description: desc, amount, count: uniqDays.length });
   }
   out.sort((a, b) => b.count - a.count);
   return out.slice(0, limit);
