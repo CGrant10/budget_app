@@ -1142,7 +1142,14 @@ html, body {
 .bill-card-meta  { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .bill-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .bill-card-amt   { font-size: 15px; color: var(--accent2); font-weight: bold; }
-.bill-card-actions { display: flex; gap: 8px; }
+.bill-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.bill-edit-form {
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.bill-edit-form .form-row { margin-bottom: 8px; }
+.bill-edit-actions { display: flex; gap: 8px; margin-top: 4px; }
+.bill-edit-save { background: var(--accent); color: #fff; border-color: var(--accent); }
 .bill-card-paid {
   opacity: .55;
   border-left: 3px solid var(--success);

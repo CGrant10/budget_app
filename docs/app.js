@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.57';
+const VERSION = '5.43.58';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.58', date: '2026-06-26', changes: [
+    'Edit existing bills — each bill now has an Edit button that opens an inline form to change its name, amount, due day, and category (no need to delete and re-add)',
+  ]},
   { version: '5.43.57', date: '2026-06-26', changes: [
     'New full Spending Breakdown page — tap "View full breakdown" on the dashboard to see every category for the month, not just the top 8',
     'On that page, tap any category to hide it from the dashboard preview (the dashboard still shows your top 8 visible categories). Hidden categories stay listed on the full page, dimmed and tagged, and your choice is remembered',
@@ -7405,10 +7408,33 @@ function renderBills() {
         <div class="bill-card-actions">
           <button class="btn-xs bill-paid-btn${paid ? ' bill-unpaid-btn' : ''}" data-idx="${i}" data-paid="${paid}">${paid ? '↩ Mark Unpaid' : '✓ Mark Paid'}</button>
           ${paid && !deducted ? `<button class="btn-xs bill-deduct-btn" data-idx="${i}">${ICONS.dollar} Deduct cash</button>` : ''}
+          <button class="btn-xs bill-edit-btn" data-idx="${i}">Edit</button>
           <button class="btn-xs bill-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-idx="${i}">Delete</button>
         </div>
         ${paid ? `<div class="bill-deduct-note ${deducted ? 'is-deducted' : 'not-deducted'}">${deducted ? `✓ ${fmt(b.amount)} deducted from cash` : 'Not deducted from your cash balance'}</div>` : ''}
         ${debtAccts.length ? `<div class="bill-link-row"><span class="bill-link-lbl">Pays loan</span><select class="bill-link-select form-input" data-idx="${i}">${linkOpts(b.linkedAccountId)}</select></div>` : ''}
+        <div class="bill-edit-form" id="bill-edit-${i}" style="display:none">
+          <div class="form-row">
+            <label class="form-label">Bill name</label>
+            <input type="text" class="form-input bill-edit-name" value="${_escHtml(b.name)}">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Amount ($)</label>
+            <input type="number" class="form-input bill-edit-amount" value="${b.amount}" step="0.01" min="0" inputmode="decimal">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Due day of month (1–31)</label>
+            <input type="number" class="form-input bill-edit-dueday" value="${b.dueDay}" min="1" max="31" inputmode="numeric">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Category</label>
+            <select class="form-input form-select bill-edit-cat">${getCategories().map(c => `<option${c === b.category ? ' selected' : ''}>${c}</option>`).join('')}</select>
+          </div>
+          <div class="bill-edit-actions">
+            <button class="btn-xs bill-edit-save" data-idx="${i}">Save changes</button>
+            <button class="btn-xs bill-edit-cancel" data-idx="${i}">Cancel</button>
+          </div>
+        </div>
       </div>`;
   }).join('') : emptyState('No bills yet', 'Add a recurring bill below to start tracking');
 
@@ -7690,6 +7716,43 @@ function attachBills() {
           onCancel: refreshCard,
         });
       }
+    });
+  });
+
+  // Edit an existing bill — reveal the inline form, then save its fields back to the bill.
+  document.querySelectorAll('.bill-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.idx);
+      const form = document.getElementById(`bill-edit-${i}`);
+      if (!form) return;
+      const open = form.style.display !== 'none';
+      form.style.display = open ? 'none' : '';
+      if (!open) form.querySelector('.bill-edit-name')?.focus();
+    });
+  });
+  document.querySelectorAll('.bill-edit-cancel').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.idx);
+      const form = document.getElementById(`bill-edit-${i}`);
+      if (form) form.style.display = 'none';
+    });
+  });
+  document.querySelectorAll('.bill-edit-save').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const i = parseInt(btn.dataset.idx);
+      const b = state.bills[i];
+      if (!b) return;
+      const form   = document.getElementById(`bill-edit-${i}`);
+      const name   = form.querySelector('.bill-edit-name').value.trim();
+      const amount = parseFloat(form.querySelector('.bill-edit-amount').value);
+      const dueDay = parseInt(form.querySelector('.bill-edit-dueday').value);
+      const category = form.querySelector('.bill-edit-cat').value;
+      if (!name) { showAlert('Enter a bill name.'); return; }
+      if (isNaN(amount) || amount <= 0) { showAlert('Enter a valid amount.'); return; }
+      if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) { showAlert('Enter a day 1–31.'); return; }
+      b.name = name; b.amount = amount; b.dueDay = dueDay; b.category = category;
+      await api.saveBills(state.bills);
+      render();
     });
   });
 
