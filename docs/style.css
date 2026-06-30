@@ -6935,6 +6935,14 @@ body.theme-ubuntu .section-title::before {
 .cat-toggle .cat-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .cat-toggle-off { opacity: .42; text-decoration: line-through; }
 .cat-toggle-off .cat-dot { filter: grayscale(1); }
+
+/* Full breakdown page — categories hidden from the dashboard preview */
+.brk-hidden { opacity: .5; }
+.brk-hidden-tag {
+  font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); border: 1px solid var(--border); border-radius: 6px;
+  padding: 1px 5px; margin-left: 6px; vertical-align: middle;
+}
 .fas-desc-input {
   width: 100%; background: var(--surface2); border: 1px solid var(--border);
   border-radius: 12px; padding: 12px 14px; font-size: .92rem;
