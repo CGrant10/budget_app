@@ -6920,6 +6920,21 @@ body.theme-ubuntu .section-title::before {
 .tmpl-chip-amt { color: var(--accent); font-weight: 800; }
 .tmpl-chip-active { background: rgba(78,203,141,.16); border-color: var(--accent); }
 .tmpl-chip-active .tmpl-chip-lbl { color: var(--accent); }
+
+/* Spending-breakdown category visibility toggles (dashboard + Insights range) */
+.cat-toggle-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.cat-toggle {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 16px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-size: .72rem; font-weight: 700;
+  font-family: inherit; cursor: pointer; white-space: nowrap;
+  transition: opacity .1s, border-color .1s, background .1s;
+}
+.cat-toggle:hover { border-color: var(--accent); }
+.cat-toggle .cat-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.cat-toggle-off { opacity: .42; text-decoration: line-through; }
+.cat-toggle-off .cat-dot { filter: grayscale(1); }
 .fas-desc-input {
   width: 100%; background: var(--surface2); border: 1px solid var(--border);
   border-radius: 12px; padding: 12px 14px; font-size: .92rem;

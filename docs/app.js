@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.54';
+const VERSION = '5.43.56';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,13 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.56', date: '2026-06-26', changes: [
+    'Spending Breakdown now shows every category (no longer capped at the top 8) on both the dashboard and the Insights range summary',
+    'Tap the category chips above the breakdown to hide or show individual categories — your choice is remembered and shared across both views. Hidden categories are only removed from the list; the total and each category\'s percentage still include them',
+  ]},
+  { version: '5.43.55', date: '2026-06-26', changes: [
+    'Custom range summary on the Insights page — pick any start and end date to total your spending by category, with per-category bars, each category\'s share of the total, transaction count, and income in that window',
+  ]},
   { version: '5.43.54', date: '2026-06-26', changes: [
     'Tapping a Frequent chip in quick-add now selects its category even when that category isn\'t one of the default chips (e.g. an imported or custom category) — it\'s added as a highlighted chip instead of leaving none selected',
   ]},
@@ -2313,6 +2320,35 @@ function saveSettings(s) {
 }
 function defaultAccounts() { return [{ id: 'main', name: 'Main', type: 'checking' }]; }
 
+// ── Spending-breakdown category visibility ───────────────────────────────────
+// Categories the user has toggled off are hidden from the breakdown lists
+// (dashboard card + Insights range summary). Totals and percentages still
+// include them — this only hides the row. Persisted in settings so the choice
+// sticks and is shared across both views.
+function getHiddenCats() {
+  const h = loadSettings().hiddenBreakdownCats;
+  return Array.isArray(h) ? h : [];
+}
+function isCatHidden(cat) { return getHiddenCats().includes(cat); }
+function toggleHiddenCat(cat) {
+  const s = loadSettings();
+  const h = Array.isArray(s.hiddenBreakdownCats) ? s.hiddenBreakdownCats.slice() : [];
+  const i = h.indexOf(cat);
+  if (i >= 0) h.splice(i, 1); else h.push(cat);
+  s.hiddenBreakdownCats = h;
+  saveSettings(s);
+}
+// Toggle-chip row listing every category present (shown + hidden). Off chips are
+// dimmed. `cats` is [{name, color}]. Caller wires clicks on `.cat-toggle`.
+function _catToggleChipsHTML(cats) {
+  if (!cats || !cats.length) return '';
+  return `<div class="cat-toggle-row">${cats.map(c => {
+    const off = isCatHidden(c.name);
+    return `<button type="button" class="cat-toggle${off ? ' cat-toggle-off' : ''}" data-cat="${_escHtml(c.name)}" aria-pressed="${off ? 'false' : 'true'}" title="${off ? 'Show' : 'Hide'} ${_escHtml(c.name)}">
+      <span class="cat-dot" style="background:${c.color}"></span>${_escHtml(c.name)}</button>`;
+  }).join('')}</div>`;
+}
+
 // Credit cards and loans are debt — you pay these down, you don't budget weekly spending
 // against them, so the Weekly Planner is hidden for them.
 function _isDebtAcct(a) { return !!a && (a.type === 'credit' || a.type === 'loan'); }
@@ -3372,6 +3408,60 @@ function getMonthCatData(monthStr) {
     data:   entries.map(([, v]) => v),
     colors: entries.map(([c]) => CAT_COLORS[c] || '#9896a4'),
   };
+}
+
+// Per-category expense totals between two YYYY-MM-DD dates (inclusive). Skips
+// internal transfers; returns categories sorted high→low plus a grand total,
+// income in the same window, and the transaction count. Used by the custom
+// date-range summary on the Insights page.
+function rangeCategoryTotals(start, end) {
+  // tolerate inputs given in either order
+  if (start && end && start > end) { const t = start; start = end; end = t; }
+  const bycat = {};
+  let total = 0, income = 0, count = 0;
+  for (const t of (state.transactions || [])) {
+    if (t._xfer) continue;
+    if (!t.date) continue;
+    if (start && t.date < start) continue;
+    if (end && t.date > end) continue;
+    const amt = Number(t.amount) || 0;
+    if (t.type === 'income') { income += amt; continue; }
+    if (t.type !== 'expense') continue;
+    if (t.category === 'Transfer' || t.category === 'Payment') continue;
+    const cat = t.category || 'Other';
+    bycat[cat] = (bycat[cat] || 0) + amt;
+    total += amt; count++;
+  }
+  const cats = Object.entries(bycat)
+    .filter(([, v]) => v > 0)
+    .map(([name, amt]) => ({ name, amt, color: CAT_COLORS[name] || '#9896a4' }))
+    .sort((a, b) => b.amt - a.amt);
+  return { cats, total, income, count, start, end };
+}
+
+// Inner markup for the Insights date-range summary results — recomputed on
+// every "Run summary" tap, so it lives in its own function.
+function _rangeSummaryHTML(start, end) {
+  const { cats, total, income, count } = rangeCategoryTotals(start, end);
+  if (!count) return '<p class="code-hint" style="margin:6px 0 0">No expenses recorded in this range.</p>';
+  // Toggle chips list every category in range; hidden ones are removed from the
+  // bars below but the total / % stay based on all spending in the range.
+  const toggles = _catToggleChipsHTML(cats);
+  const shown = cats.filter(c => !isCatHidden(c.name));
+  const max = Math.max(...cats.map(c => c.amt), 1);
+  const rows = shown.length ? shown.map(c => `
+    <div class="ins-cat">
+      <div class="ins-cat-top">
+        <span><span class="cat-dot" style="background:${c.color}"></span>${_escHtml(c.name)}</span>
+        <span>${fmt(c.amt)} <span style="color:var(--muted);font-size:.7rem">${(c.amt / total * 100).toFixed(0)}%</span></span>
+      </div>
+      <div class="ins-bar-bg"><div class="ins-bar-fill" style="width:${(c.amt / max * 100).toFixed(1)}%;background:${c.color}"></div></div>
+    </div>`).join('') : '<p class="code-hint" style="margin:6px 0 0">All categories hidden — tap a chip above to show one.</p>';
+  return `
+    <div class="ins-row ins-row-net" style="margin:10px 0 4px"><span>Total spent</span><span style="color:var(--danger);font-weight:700">${fmt(total)}</span></div>
+    <p class="code-hint" style="margin:0 0 10px">${count} transaction${count === 1 ? '' : 's'} across ${cats.length} categor${cats.length === 1 ? 'y' : 'ies'}${income > 0 ? ` · ${fmt(income)} income` : ''}</p>
+    ${toggles}
+    ${rows}`;
 }
 
 function attachDashboard() {
@@ -5351,8 +5441,9 @@ function renderDashboardDawg() {
   const _ds           = loadSettings();
   const _showInsights = _ds.dawgInsights === true;
 
-  const totalMExp  = Object.values(bycat).reduce((s,v)=>s+v, 0);
-  const catEntries = Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const totalMExp     = Object.values(bycat).reduce((s,v)=>s+v, 0);
+  const allCatEntries = Object.entries(bycat).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const catEntries    = allCatEntries.filter(([cat]) => !isCatHidden(cat));  // hidden = removed from list only
   const _si = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
   const catIcons = {
     'Food':          _si('<path d="M3 2v7c0 1.1.9 2 2 2s2-.9 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6h5"/><path d="M21 22v-7"/>'),
@@ -5385,7 +5476,10 @@ function renderDashboardDawg() {
       <span class="dawg-cat-amt">${fmt(amt)}</span>
       <span class="dawg-cat-pct">${pct}%</span>
     </div>`;
-  }).join('') : '<p class="dawg-empty">No spending this month</p>';
+  }).join('') : (allCatEntries.length ? '<p class="dawg-empty">All categories hidden — tap a chip above to show one.</p>' : '<p class="dawg-empty">No spending this month</p>');
+
+  // Toggle chips for every category with spending this month (shown + hidden)
+  const breakdownToggles = _catToggleChipsHTML(allCatEntries.map(([cat]) => ({ name: cat, color: CAT_COLORS[cat] || 'var(--accent)' })));
 
   const goals = state.goals || [];
   const goalsHtml = goals.slice(0,3).map(g => {
@@ -5519,6 +5613,7 @@ function renderDashboardDawg() {
       if (_isDebt ? _curAcctD?.type !== 'loan' : true) {
         _tileHtml['breakdown'] = `
           <div class="dawg-card-title">SPENDING BREAKDOWN</div>
+          ${breakdownToggles}
           <div class="dawg-cat-list dawg-cat-list--wide">${spendHtml}</div>
           <button class="dawg-view-btn" id="dawg-goto-ledger">VIEW ANALYTICS ›</button>`;
       }
@@ -7827,6 +7922,23 @@ function renderInsights() {
         </div>`).join('')}
       </div>` : ''}
 
+      <div class="form-card" id="range-summary-card">
+        <h2 class="section-title" style="margin:0 0 4px">Custom range summary</h2>
+        <p class="code-hint" style="margin:0 0 10px">Pick a start and end date to total your spending by category.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <label class="form-label" style="font-size:.7rem">From</label>
+            <input type="date" id="range-start" class="form-input" value="${curM}-01" max="${today()}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:.7rem">To</label>
+            <input type="date" id="range-end" class="form-input" value="${today()}" max="${today()}">
+          </div>
+        </div>
+        <button class="btn-primary" id="range-run-btn" style="width:100%">Run summary</button>
+        <div id="range-summary-results">${_rangeSummaryHTML(curM + '-01', today())}</div>
+      </div>
+
       <button class="btn-secondary" id="insights-goto-ledger" style="width:100%">View full ledger ›</button>
     </div>`;
 }
@@ -7855,6 +7967,26 @@ function attachInsights() {
     });
   });
   document.getElementById('insights-goto-ledger')?.addEventListener('click', () => showTab('ledger'));
+
+  // Custom date-range category summary
+  const runRange = () => {
+    const start = document.getElementById('range-start')?.value;
+    const end   = document.getElementById('range-end')?.value;
+    const out   = document.getElementById('range-summary-results');
+    if (!out) return;
+    if (!start || !end) { out.innerHTML = '<p class="code-hint" style="margin:6px 0 0">Pick both a start and end date.</p>'; return; }
+    out.innerHTML = _rangeSummaryHTML(start, end);
+    haptic([6]);
+  };
+  document.getElementById('range-run-btn')?.addEventListener('click', runRange);
+
+  // Category toggle chips (delegated — the results container persists across re-renders)
+  document.getElementById('range-summary-results')?.addEventListener('click', e => {
+    const chip = e.target.closest('.cat-toggle');
+    if (!chip) return;
+    toggleHiddenCat(chip.dataset.cat);
+    runRange();
+  });
 }
 
 // ── goals ──────────────────────────────────────────────────────────────────
@@ -10332,6 +10464,10 @@ function attachDashboardDawg() {
   document.getElementById('dash-layout-btn')?.addEventListener('click', enterDashEditMode);
   document.getElementById('dawg-goto-budgets')?.addEventListener('click',      () => showTab('weekly'));
   document.getElementById('dawg-goto-ledger')?.addEventListener('click',       () => showTab('ledger'));
+  // Spending-breakdown category toggles — hide/show a category's row (re-renders the dashboard)
+  document.querySelectorAll('.cat-toggle').forEach(chip => {
+    chip.addEventListener('click', () => { toggleHiddenCat(chip.dataset.cat); haptic([6]); render(); });
+  });
   document.getElementById('dawg-goto-goals')?.addEventListener('click',        () => showTab('goals'));
   document.getElementById('dawg-goto-txns')?.addEventListener('click',         () => showTab('ledger'));
   // New tile nav buttons
