@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.58';
+const VERSION = '5.43.59';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.59', date: '2026-07-01', changes: [
+    'New Monthly Report — tap "Monthly savings report" on the Insights page to see a full spending summary for any month (defaults to last month)',
+    'The report shows income, total spent, and what you could save (net + savings rate), with a per-category breakdown including how many transactions each',
+    'Tick/untick categories to include or exclude them from the totals — instantly see how much you\'d save without them (e.g. "cutting these is worth $155/mo"). Browse month-to-month with the arrows',
+  ]},
   { version: '5.43.58', date: '2026-06-26', changes: [
     'Edit existing bills — each bill now has an Edit button that opens an inline form to change its name, amount, due day, and category (no need to delete and re-add)',
   ]},
@@ -3425,7 +3430,7 @@ function getMonthCatData(monthStr) {
 function rangeCategoryTotals(start, end) {
   // tolerate inputs given in either order
   if (start && end && start > end) { const t = start; start = end; end = t; }
-  const bycat = {};
+  const bycat = {}, bycatN = {};
   let total = 0, income = 0, count = 0;
   for (const t of (state.transactions || [])) {
     if (t._xfer) continue;
@@ -3438,13 +3443,21 @@ function rangeCategoryTotals(start, end) {
     if (t.category === 'Transfer' || t.category === 'Payment') continue;
     const cat = t.category || 'Other';
     bycat[cat] = (bycat[cat] || 0) + amt;
+    bycatN[cat] = (bycatN[cat] || 0) + 1;
     total += amt; count++;
   }
   const cats = Object.entries(bycat)
     .filter(([, v]) => v > 0)
-    .map(([name, amt]) => ({ name, amt, color: CAT_COLORS[name] || '#9896a4' }))
+    .map(([name, amt]) => ({ name, amt, count: bycatN[name] || 0, color: CAT_COLORS[name] || '#9896a4' }))
     .sort((a, b) => b.amt - a.amt);
   return { cats, total, income, count, start, end };
+}
+
+// End-of-month YYYY-MM-DD for a YYYY-MM key (handles 28/29/30/31).
+function _monthEndDate(mKey) {
+  const [y, m] = mKey.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return `${mKey}-${String(last).padStart(2, '0')}`;
 }
 
 // Inner markup for the Insights date-range summary results — recomputed on
@@ -4706,6 +4719,7 @@ function render() {
     case 'bills':     main.innerHTML = renderBills();     break;
     case 'insights':  main.innerHTML = renderInsights();  break;
     case 'breakdown': main.innerHTML = renderBreakdown(); break;
+    case 'report':    main.innerHTML = renderReport();    break;
     case 'debt':      main.innerHTML = renderDebt();      break;
     case 'goals':     main.innerHTML = renderGoals();     break;
     case 'import':    main.innerHTML = renderImport();    break;
@@ -7950,6 +7964,8 @@ function renderInsights() {
         </div>
       </div>
 
+      <button class="btn-primary" id="insights-goto-report" style="width:100%;margin-bottom:16px">📊 Monthly savings report ›</button>
+
       <div class="form-card">
         <h2 class="section-title" style="margin:0 0 4px">Spending — last 6 months</h2>
         <p class="code-hint" style="margin:0 0 10px">${fmt(cur.expense)} this month · ${deltaStr}</p>
@@ -8028,6 +8044,7 @@ function attachInsights() {
     });
   });
   document.getElementById('insights-goto-ledger')?.addEventListener('click', () => showTab('ledger'));
+  document.getElementById('insights-goto-report')?.addEventListener('click', () => showTab('report'));
 
   // Custom date-range category summary
   const runRange = () => {
@@ -8084,6 +8101,102 @@ function attachBreakdown() {
   document.getElementById('breakdown-back')?.addEventListener('click', () => showTab('dashboard'));
   document.querySelectorAll('.cat-toggle').forEach(chip => {
     chip.addEventListener('click', () => { toggleHiddenCat(chip.dataset.cat); haptic([6]); render(); });
+  });
+}
+
+// ── monthly summary report ───────────────────────────────────────────────────
+// A generate-and-tweak spending report for one month: income, spending, net
+// (what you keep / could save), and a per-category list where you can
+// include/exclude categories to see the effect on the total and savings.
+let _reportMonth = null;          // YYYY-MM being reported (defaults to last month)
+let _reportExcluded = new Set();  // category names excluded from this report's totals
+
+function renderReport() {
+  if (!_reportMonth) _reportMonth = shiftMonthKey(curMonthKey(), -1);   // default: last month
+  const m = _reportMonth;
+  const isCur  = m === curMonthKey();
+  const isLast = m === shiftMonthKey(curMonthKey(), -1);
+  const { cats, income } = rangeCategoryTotals(m + '-01', _monthEndDate(m));
+  const included = cats.filter(c => !_reportExcluded.has(c.name));
+  const excluded = cats.filter(c => _reportExcluded.has(c.name));
+  const spent = included.reduce((s, c) => s + c.amt, 0);
+  const excludedTotal = excluded.reduce((s, c) => s + c.amt, 0);
+  const txns = included.reduce((s, c) => s + c.count, 0);
+  const net  = income - spent;
+  const rate = income > 0 ? (net / income * 100) : 0;
+  const max  = Math.max(...cats.map(c => c.amt), 1);
+  const rateColor = rate >= 20 ? 'var(--success)' : rate >= 0 ? 'var(--warn)' : 'var(--danger)';
+
+  const catRows = cats.length ? cats.map(c => {
+    const off = _reportExcluded.has(c.name);
+    const pct = (!off && spent > 0) ? `<span class="report-cat-pct">${(c.amt / spent * 100).toFixed(0)}%</span>` : '';
+    return `<label class="report-cat${off ? ' report-cat-off' : ''}">
+      <input type="checkbox" class="report-cat-cb" data-cat="${_escHtml(c.name)}"${off ? '' : ' checked'}>
+      <span class="cat-dot" style="background:${c.color}"></span>
+      <span class="report-cat-name">${_escHtml(c.name)}</span>
+      <span class="report-cat-meta">${c.count}×</span>
+      <span class="report-cat-amt">${fmt(c.amt)} ${pct}</span>
+    </label>
+    <div class="ins-bar-bg report-cat-bar"><div class="ins-bar-fill" style="width:${(c.amt / max * 100).toFixed(1)}%;background:${c.color};${off ? 'opacity:.35' : ''}"></div></div>`;
+  }).join('') : `<p class="code-hint" style="margin:6px 0 0">No spending recorded in ${monthKeyLabel(m)}.</p>`;
+
+  return `
+    <div class="page">
+      <h1 class="page-title">Monthly Report</h1>
+      <p class="page-sub">spending summary &amp; savings</p>
+
+      <div class="bills-month-nav">
+        <button class="bills-month-arrow" id="report-prev" aria-label="Previous month">‹</button>
+        <div class="bills-month-label">${monthKeyLabel(m)}${!isLast ? ' <button class="bills-month-today" id="report-lastmonth">Last month</button>' : ''}</div>
+        <button class="bills-month-arrow" id="report-next" aria-label="Next month"${isCur ? ' disabled style="opacity:.35"' : ''}>›</button>
+      </div>
+
+      <div class="cards-grid" style="margin-bottom:14px">
+        <div class="card">
+          <div class="card-title">SPENT</div>
+          <div class="card-value" style="color:var(--danger)">${fmt(spent)}</div>
+          <div class="card-sub">${txns} transaction${txns === 1 ? '' : 's'} · ${included.length} categor${included.length === 1 ? 'y' : 'ies'}</div>
+        </div>
+        <div class="card">
+          <div class="card-title">${net >= 0 ? 'COULD SAVE' : 'OVERSPENT'}</div>
+          <div class="card-value" style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(Math.abs(net))}</div>
+          <div class="card-sub">${income > 0 ? `${rate.toFixed(0)}% of ${fmt(income)} income` : 'no income logged'}</div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="ins-row"><span>Income</span><span style="color:var(--success);font-weight:700">${fmt(income)}</span></div>
+        <div class="ins-row"><span>Spending${excluded.length ? ' (included)' : ''}</span><span style="color:var(--danger);font-weight:700">${fmt(spent)}</span></div>
+        <div class="ins-row ins-row-net"><span>${net >= 0 ? 'Left to save' : 'Shortfall'}</span><span style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:800">${fmt(net)}</span></div>
+        ${excluded.length ? `<p class="code-hint" style="margin:8px 0 0">Excluding ${excluded.length} categor${excluded.length === 1 ? 'y' : 'ies'} (${fmt(excludedTotal)}). ${net >= 0 ? `Cutting them is worth ${fmt(excludedTotal)}/mo.` : ''} <button class="report-reset-btn" id="report-reset">Include all</button></p>` : ''}
+      </div>
+
+      <div class="form-card">
+        <h2 class="section-title" style="margin:0 0 4px">Categories</h2>
+        <p class="code-hint" style="margin:0 0 10px">Untick a category to exclude it from the totals above — see what you'd save without it.</p>
+        ${catRows}
+      </div>
+
+      <button class="btn-secondary" id="report-back" style="width:100%">‹ Back to Insights</button>
+    </div>`;
+}
+
+function attachReport() {
+  document.getElementById('report-back')?.addEventListener('click', () => showTab('insights'));
+  document.getElementById('report-prev')?.addEventListener('click', () => { _reportMonth = shiftMonthKey(_reportMonth, -1); render(); });
+  document.getElementById('report-next')?.addEventListener('click', () => {
+    if (_reportMonth >= curMonthKey()) return;   // don't go into the future
+    _reportMonth = shiftMonthKey(_reportMonth, +1); render();
+  });
+  document.getElementById('report-lastmonth')?.addEventListener('click', () => { _reportMonth = shiftMonthKey(curMonthKey(), -1); render(); });
+  document.getElementById('report-reset')?.addEventListener('click', () => { _reportExcluded.clear(); render(); });
+  document.querySelectorAll('.report-cat-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const cat = cb.dataset.cat;
+      if (cb.checked) _reportExcluded.delete(cat); else _reportExcluded.add(cat);
+      haptic([6]);
+      render();
+    });
   });
 }
 
@@ -11012,6 +11125,7 @@ function attachHandlers() {
     case 'bills':     attachBills();     break;
     case 'insights':  attachInsights();  break;
     case 'breakdown': attachBreakdown(); break;
+    case 'report':    attachReport();    break;
     case 'debt':      attachDebt();      break;
     case 'goals':     attachGoals();     break;
     case 'import':    attachImport();    break;
