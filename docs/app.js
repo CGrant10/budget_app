@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.59';
+const VERSION = '5.43.60';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.60', date: '2026-07-01', changes: [
+    'Find duplicates — a new "Duplicates" button on the Ledger scans for repeated transactions (same amount, type & description, ignoring capitalization) and lets you delete the accidental copy with one tap. Great for tracking down a double-charged bill when your balance doesn\'t match the bank',
+  ]},
   { version: '5.43.59', date: '2026-07-01', changes: [
     'New Monthly Report — tap "Monthly savings report" on the Insights page to see a full spending summary for any month (defaults to last month)',
     'The report shows income, total spent, and what you could save (net + savings rate), with a per-category breakdown including how many transactions each',
@@ -6766,6 +6769,7 @@ function renderLedger() {
           <span class="lf-dash">—</span>
           <input type="date" id="ledger-date-to" class="form-input lf-date" value="${ledgerDateTo}" title="To date">
           <button id="ledger-export-csv" class="btn-xs"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</button>
+          <button id="ledger-find-dupes" class="btn-xs" title="Scan for duplicate transactions"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Duplicates</button>
         </div>
         ${(ledgerFilter || ledgerTypeFilter !== 'all' || ledgerCatFilter || ledgerDateFrom || ledgerDateTo)
           ? `<button id="ledger-clear-filters" class="lf-clear-btn">✕ Clear filters</button>` : ''}
@@ -6779,6 +6783,85 @@ function renderLedger() {
         ${capped ? `<button id="ledger-show-all" class="lf-clear-btn" style="margin:12px auto 0;display:block">Show all ${totalRows} ${ledgerView === 'bills' ? 'bills' : 'transactions'} (showing ${LEDGER_CAP})</button>` : ''}
       </div>
     </div>`;
+}
+
+// Group this account's transactions by type + amount + normalized description.
+// Any group with more than one member is a likely accidental double-entry
+// (e.g. a bill or charge logged twice). Skips internal transfers.
+function _findDuplicateGroups() {
+  const norm = s => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const groups = new Map();
+  for (const t of (state.transactions || [])) {
+    if (t._xfer) continue;
+    const k = `${t.type}|${(Number(t.amount) || 0).toFixed(2)}|${norm(t.description)}`;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(t);
+  }
+  return [...groups.values()]
+    .filter(g => g.length > 1)
+    .sort((a, b) => b.length - a.length || (Number(b[0].amount) || 0) - (Number(a[0].amount) || 0));
+}
+
+// Modal that lists suspected duplicate transactions with a one-tap delete on
+// each copy. Rebuilds after every delete so the list stays accurate.
+function showDuplicatesModal() {
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+
+  function build() {
+    const groups = _findDuplicateGroups();
+    const extraValue = groups.reduce((s, g) =>
+      s + g.slice(1).reduce((x, t) => x + (t.type === 'expense' ? (Number(t.amount) || 0) : 0), 0), 0);
+    const listHtml = groups.length ? groups.map((g, gi) => {
+      const rows = g.map((t, ri) => {
+        const bill = isBillTxn(t) ? ' <span class="dupe-bill-tag">bill</span>' : '';
+        const sign = t.type === 'income' ? '+' : '−';
+        return `<div class="dupe-row">
+          <div class="dupe-row-info">
+            <span class="dupe-row-desc">${_escHtml(t.description || t.category || '(no description)')}${bill}</span>
+            <span class="dupe-row-date">${t.date || '—'}${t.category ? ` · ${_escHtml(t.category)}` : ''}</span>
+          </div>
+          <span class="dupe-row-amt ${t.type}">${sign}${fmt(Math.abs(Number(t.amount) || 0))}</span>
+          <button class="btn-xs dupe-del" data-gi="${gi}" data-ri="${ri}" style="background:var(--danger);color:#fff;border-color:var(--danger)">Delete</button>
+        </div>`;
+      }).join('');
+      return `<div class="dupe-group">
+        <div class="dupe-group-hdr">${g.length}× ${fmt(Math.abs(Number(g[0].amount) || 0))} — ${_escHtml(g[0].description || g[0].category || '(no description)')}</div>
+        ${rows}
+      </div>`;
+    }).join('') : '<p class="code-hint" style="text-align:center;padding:24px 0">No duplicate transactions found in this account. 🎉</p>';
+
+    ov.innerHTML = `<div class="dupe-modal">
+      <div class="dupe-modal-hdr"><span>Find duplicates</span><button class="dupe-close" aria-label="Close">✕</button></div>
+      ${groups.length ? `<p class="code-hint" style="margin:0 0 10px">${groups.length} group${groups.length === 1 ? '' : 's'} of repeated transactions (same amount, type &amp; description).${extraValue > 0 ? ` Extra expense copies total <strong>${fmt(extraValue)}</strong>.` : ''} Delete the accidental copy in each — this is permanent.</p>` : ''}
+      <div class="dupe-list">${listHtml}</div>
+      <button class="btn-secondary dupe-done" style="width:100%;margin-top:12px">Done</button>
+    </div>`;
+
+    ov.querySelector('.dupe-close').addEventListener('click', close);
+    ov.querySelector('.dupe-done').addEventListener('click', close);
+    ov.querySelectorAll('.dupe-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const t = groups[+btn.dataset.gi]?.[+btn.dataset.ri];
+        if (!t) return;
+        showConfirmModal({
+          title: 'Delete transaction',
+          message: `Delete ${fmt(Math.abs(Number(t.amount) || 0))} "${_escHtml(t.description || t.category || '')}" on ${t.date || '—'}? This cannot be undone.`,
+          confirmText: 'Delete', danger: true,
+          onConfirm: async () => {
+            const idx = state.transactions.indexOf(t);
+            if (idx >= 0) await api.deleteTransaction(idx);
+            build();      // refresh the modal list
+            render();     // refresh the ledger behind it
+          },
+        });
+      });
+    });
+  }
+  build();
 }
 
 // ── weekly ─────────────────────────────────────────────────────────────────
@@ -11576,6 +11659,7 @@ function attachLedger() {
   _attachLedgerRows();
 
   document.getElementById('ledger-export-csv')?.addEventListener('click', () => exportCSV(false));
+  document.getElementById('ledger-find-dupes')?.addEventListener('click', showDuplicatesModal);
 }
 
 // Re-render ONLY the ledger list + count, leaving the filter bar (and the focused search

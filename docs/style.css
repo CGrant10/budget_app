@@ -6943,6 +6943,40 @@ body.theme-ubuntu .section-title::before {
 .cat-toggle-off { opacity: .42; text-decoration: line-through; }
 .cat-toggle-off .cat-dot { filter: grayscale(1); }
 
+/* Find-duplicates modal */
+.dupe-modal {
+  background: var(--card); border: 1.5px solid var(--border); border-radius: 18px;
+  padding: 18px 16px; max-width: 460px; width: 100%;
+  max-height: 82vh; display: flex; flex-direction: column;
+  box-shadow: 0 8px 40px rgba(0,0,0,.6);
+}
+.dupe-modal-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 1rem; font-weight: 800; color: var(--text); margin-bottom: 8px;
+}
+.dupe-close {
+  background: none; border: none; color: var(--muted); font-size: 1.1rem;
+  cursor: pointer; padding: 2px 6px; line-height: 1;
+}
+.dupe-list { overflow-y: auto; flex: 1; }
+.dupe-group { border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; margin-bottom: 10px; }
+.dupe-group-hdr { font-size: .78rem; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.dupe-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0; border-top: 1px solid var(--border);
+}
+.dupe-row:first-of-type { border-top: none; }
+.dupe-row-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.dupe-row-desc { font-weight: 700; font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dupe-row-date { color: var(--muted); font-size: .68rem; }
+.dupe-row-amt { font-weight: 800; white-space: nowrap; font-size: .82rem; }
+.dupe-row-amt.expense { color: var(--danger); }
+.dupe-row-amt.income { color: var(--success); }
+.dupe-bill-tag {
+  font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); border: 1px solid var(--border); border-radius: 5px; padding: 0 4px; margin-left: 5px;
+}
+
 /* Monthly report — category include/exclude rows */
 .report-cat {
   display: flex; align-items: center; gap: 8px;
