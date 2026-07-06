@@ -1740,6 +1740,16 @@ body.light .section-title::before {
 }
 .header, #main-content, .bottom-nav { z-index: 1; }
 
+/* ── Jurassic Park background overlay ─────────────────────────────────────── */
+#jp-bg {
+  position: fixed;
+  inset: 0;
+  background: url('trexbanner.png') center 15% / 130% no-repeat;
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: 0;
+}
+
 /* ── nav bill badge ───────────────────────────────────────────────────────── */
 .nav-btn { position: relative; }
 .nav-bill-badge {

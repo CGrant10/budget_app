@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.61';
+const VERSION = '5.43.62';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.62', date: '2026-07-06', changes: [
+    'New theme: Jurassic Park 🦖 gets its own mascot, tagline, and glitch-color identity — pick it from the Dark accent grid in Settings',
+    'Jurassic Park theme now shows a faint T-Rex watermark behind the app and swaps in the movie logo on the About page',
+    'Shrunk the Doberman, DAWG hero, and Jurassic Park artwork (several were multiple megabytes at print resolution) — faster loads with no visible quality loss',
+  ]},
   { version: '5.43.61', date: '2026-07-01', changes: [
     'Find matching amount — a new "Find $" button on the Ledger: enter an amount and a date range and it lists the expenses that add up to it, as single items, pairs, or triples. Perfect for tracking down which charges make up a bank-vs-app difference',
   ]},
@@ -1580,9 +1585,11 @@ const THEMES = {
     cats:{ Food:'#78a858', Gas:'#c85040', Car:'#b07830', Boat:'#509880', Tools:'#c86830', Home:'#a89840', Entertainment:'#b06070', Health:'#609878', Other:'#988060' },
   },
   jurassicpark: {
-    label:'Gold', shortLabel:'Gold',
+    label:'Jurassic Park', shortLabel:'Gold', team:true, mascot:'./raptor.png',
+    tagline:'CLEVER GIRL,<br>WATCH YOUR SPEND.', splashTagline:'Hold onto your budget.',
     ..._D,
     accent:'#b8a048', accent2:'#b06040', success:'#5aaa40', warn:'#c8a020', danger:'#c84030',
+    gl1:'rgba(184,160,72,.95)', gl2:'rgba(90,170,64,.85)',
     cats:{ Food:'#5aaa40', Gas:'#c84030', Car:'#c8a020', Boat:'#409870', Tools:'#c86020', Home:'#80a830', Entertainment:'#a07020', Health:'#50a860', Other:'#788858' },
   },
   darkslate: {
@@ -2528,6 +2535,13 @@ function heroTaglineHTML() {
 // Eerie ambient overlay for Pokémon themes (vignette + per-mon particles). Removed for all other themes.
 function _applyThemeFx(theme) {
   document.getElementById('poke-fx')?.remove();
+  document.getElementById('jp-bg')?.remove();
+  if (theme === 'jurassicpark') {
+    const bg = document.createElement('div');
+    bg.id = 'jp-bg';
+    bg.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(bg);
+  }
   const t = THEMES[theme] || {};
   if (!t.pokemon) return;
   const fx = document.createElement('div');
@@ -2581,7 +2595,7 @@ function applyTheme(theme) {
     document.body.classList.add('theme-' + theme);
   }
   // Pokémon themes — body.theme-pokemon gates off the Doberman/glitch identity (see CSS)
-  document.body.classList.remove('theme-pokemon','theme-team','theme-gengar','theme-charizard','theme-squirtle','theme-bears','theme-dodgers','theme-knights','theme-celtics');
+  document.body.classList.remove('theme-pokemon','theme-team','theme-gengar','theme-charizard','theme-squirtle','theme-bears','theme-dodgers','theme-knights','theme-celtics','theme-jurassicpark');
   if (t.pokemon) document.body.classList.add('theme-pokemon', 'theme-' + theme);
   if (t.team)    document.body.classList.add('theme-team', 'theme-' + theme);
   _applyThemeFx(theme);
@@ -10188,7 +10202,7 @@ function renderAbout() {
     <div class="page">
       <h1 class="page-title">About</h1>
       <div class="form-card" style="text-align:center;padding:24px 20px">
-        <img src="${mascotSrc()}" alt="Budget DAWGs"
+        <img src="${s.theme === 'jurassicpark' ? './logo.png' : mascotSrc()}" alt="Budget DAWGs"
              style="width:100%;height:auto;display:block;margin:0 auto 16px;filter:drop-shadow(0 4px 24px rgba(0,0,0,0.7))">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
         <div style="font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:20px">v${VERSION}</div>
