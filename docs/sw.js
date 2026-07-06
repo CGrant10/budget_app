@@ -1,4 +1,4 @@
-const CACHE = "slawminyaw-v414";
+const CACHE = "slawminyaw-v415";
 const ASSETS = [
   "./",
   "./index.html",
@@ -21,10 +21,7 @@ const ASSETS = [
   "./team-bears.png",
   "./team-dodgers.png",
   "./team-knights.png",
-  "./team-celtics.png",
-  "./raptor.png",
-  "./trexbanner.png",
-  "./logo.png"
+  "./team-celtics.png"
 ];
 
 self.addEventListener("install", e => {
