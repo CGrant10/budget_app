@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.60';
+const VERSION = '5.43.61';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.61', date: '2026-07-01', changes: [
+    'Find matching amount — a new "Find $" button on the Ledger: enter an amount and a date range and it lists the expenses that add up to it, as single items, pairs, or triples. Perfect for tracking down which charges make up a bank-vs-app difference',
+  ]},
   { version: '5.43.60', date: '2026-07-01', changes: [
     'Find duplicates — a new "Duplicates" button on the Ledger scans for repeated transactions (same amount, type & description, ignoring capitalization) and lets you delete the accidental copy with one tap. Great for tracking down a double-charged bill when your balance doesn\'t match the bank',
   ]},
@@ -6770,6 +6773,7 @@ function renderLedger() {
           <input type="date" id="ledger-date-to" class="form-input lf-date" value="${ledgerDateTo}" title="To date">
           <button id="ledger-export-csv" class="btn-xs"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</button>
           <button id="ledger-find-dupes" class="btn-xs" title="Scan for duplicate transactions"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Duplicates</button>
+          <button id="ledger-find-amount" class="btn-xs" title="Find transactions that add up to an amount"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Find $</button>
         </div>
         ${(ledgerFilter || ledgerTypeFilter !== 'all' || ledgerCatFilter || ledgerDateFrom || ledgerDateTo)
           ? `<button id="ledger-clear-filters" class="lf-clear-btn">✕ Clear filters</button>` : ''}
@@ -6862,6 +6866,110 @@ function showDuplicatesModal() {
     });
   }
   build();
+}
+
+// Subset-sum finder: which expenses in [start,end] add up to `amountCents`,
+// as single items, pairs, or triples. Uses integer cents (no float drift) and
+// a sorted list with early breaks. Caps results per size so a common amount
+// can't flood the UI. Triples are skipped past a candidate cap for speed.
+function _findAmountCombos(amountCents, start, end, maxResults = 30) {
+  const T = amountCents;
+  const cand = [];
+  for (const t of (state.transactions || [])) {
+    if (t._xfer || t.type !== 'expense') continue;
+    if (t.category === 'Transfer' || t.category === 'Payment') continue;
+    if (!t.date || (start && t.date < start) || (end && t.date > end)) continue;
+    cand.push({ t, c: Math.round((Number(t.amount) || 0) * 100) });
+  }
+  cand.sort((a, b) => a.c - b.c);
+  const n = cand.length;
+  const singles = [], pairs = [], triples = [];
+
+  for (let i = 0; i < n; i++) if (cand[i].c === T) singles.push([cand[i].t]);
+
+  for (let i = 0; i < n && pairs.length < maxResults; i++) {
+    if (cand[i].c * 2 > T) break;                 // smallest partner ≥ cand[i], so no pair possible past here
+    for (let j = i + 1; j < n; j++) {
+      const s = cand[i].c + cand[j].c;
+      if (s === T) { pairs.push([cand[i].t, cand[j].t]); if (pairs.length >= maxResults) break; }
+      else if (s > T) break;                      // sorted asc → larger j only grows the sum
+    }
+  }
+
+  const tripleCap = n <= 500;                      // O(n²·early-break); skip on huge ranges
+  if (tripleCap) {
+    for (let i = 0; i < n && triples.length < maxResults; i++) {
+      if (cand[i].c * 3 > T) break;
+      for (let j = i + 1; j < n && triples.length < maxResults; j++) {
+        if (cand[i].c + cand[j].c * 2 > T) break;  // remaining third ≥ cand[j]
+        for (let k = j + 1; k < n; k++) {
+          const s = cand[i].c + cand[j].c + cand[k].c;
+          if (s === T) { triples.push([cand[i].t, cand[j].t, cand[k].t]); if (triples.length >= maxResults) break; }
+          else if (s > T) break;
+        }
+      }
+    }
+  }
+  return { singles, pairs, triples, n, maxResults, triplesSkipped: !tripleCap };
+}
+
+// Modal: enter an amount + date range, list single / pair / triple expense
+// combinations that sum to it. Investigative (no edits) — handy for tracking
+// down which charges make up a bank-vs-app difference.
+function showAmountFinderModal() {
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+  ov.innerHTML = `<div class="dupe-modal">
+    <div class="dupe-modal-hdr"><span>Find matching amount</span><button class="dupe-close" aria-label="Close">✕</button></div>
+    <p class="code-hint" style="margin:0 0 10px">Enter an amount and a date range — see which expenses add up to it (alone, or in twos and threes).</p>
+    <div class="amtf-controls">
+      <div class="amtf-amt-wrap"><span class="amtf-dollar">$</span><input type="number" id="amtf-amount" class="form-input" placeholder="0.00" step="0.01" min="0" inputmode="decimal" style="padding-left:22px"></div>
+      <div class="amtf-dates">
+        <input type="date" id="amtf-start" class="form-input" value="${localMonthKey()}-01" max="${today()}" title="From">
+        <span class="lf-dash">—</span>
+        <input type="date" id="amtf-end" class="form-input" value="${today()}" max="${today()}" title="To">
+      </div>
+      <button id="amtf-run" class="btn-primary" style="width:100%">Find combinations</button>
+    </div>
+    <div id="amtf-results" class="dupe-list"></div>
+    <button class="btn-secondary dupe-done" style="width:100%;margin-top:12px">Done</button>
+  </div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  ov.querySelector('.dupe-close').addEventListener('click', close);
+  ov.querySelector('.dupe-done').addEventListener('click', close);
+
+  const comboBlock = (items, targetCents) => {
+    const lines = items.map(t => `<div class="combo-item"><span class="combo-item-desc">${t.date || '—'} · ${_escHtml(t.description || t.category || '(no description)')}</span><span class="combo-item-amt">${fmt(Math.abs(Number(t.amount) || 0))}</span></div>`).join('');
+    const sum = items.length > 1 ? `<div class="combo-sum">= ${fmt(targetCents / 100)}</div>` : '';
+    return `<div class="combo">${lines}${sum}</div>`;
+  };
+  const section = (title, combos, targetCents, note) => {
+    if (!combos.length) return '';
+    return `<div class="amtf-section"><div class="amtf-section-hdr">${title} <span class="lv-count">${combos.length}${note || ''}</span></div>${combos.map(c => comboBlock(c, targetCents)).join('')}</div>`;
+  };
+
+  const run = () => {
+    const amount = parseFloat(ov.querySelector('#amtf-amount').value);
+    const start  = ov.querySelector('#amtf-start').value;
+    const end    = ov.querySelector('#amtf-end').value;
+    const out    = ov.querySelector('#amtf-results');
+    if (isNaN(amount) || amount <= 0) { out.innerHTML = '<p class="code-hint" style="text-align:center;padding:16px 0">Enter an amount to search for.</p>'; return; }
+    const cents = Math.round(amount * 100);
+    const { singles, pairs, triples, maxResults, triplesSkipped } = _findAmountCombos(cents, start, end);
+    const total = singles.length + pairs.length + triples.length;
+    if (!total) { out.innerHTML = `<p class="code-hint" style="text-align:center;padding:16px 0">No expenses add up to ${fmt(amount)} in this range${triplesSkipped ? ' (too many transactions to check triples — narrow the range)' : ''}.</p>`; return; }
+    const cap = (arr) => arr.length >= maxResults ? `+` : '';
+    out.innerHTML =
+      section('Single expense', singles, cents, cap(singles)) +
+      section('Pairs', pairs, cents, cap(pairs)) +
+      section('Triples', triples, cents, cap(triples)) +
+      (triplesSkipped ? '<p class="code-hint" style="margin:8px 0 0">Triples skipped — too many transactions in range. Narrow the dates to check them.</p>' : '');
+  };
+  ov.querySelector('#amtf-run').addEventListener('click', run);
+  ov.querySelector('#amtf-amount').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+  setTimeout(() => ov.querySelector('#amtf-amount')?.focus(), 60);
 }
 
 // ── weekly ─────────────────────────────────────────────────────────────────
@@ -11660,6 +11768,7 @@ function attachLedger() {
 
   document.getElementById('ledger-export-csv')?.addEventListener('click', () => exportCSV(false));
   document.getElementById('ledger-find-dupes')?.addEventListener('click', showDuplicatesModal);
+  document.getElementById('ledger-find-amount')?.addEventListener('click', showAmountFinderModal);
 }
 
 // Re-render ONLY the ledger list + count, leaving the filter bar (and the focused search

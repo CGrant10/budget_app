@@ -6977,6 +6977,25 @@ body.theme-ubuntu .section-title::before {
   color: var(--muted); border: 1px solid var(--border); border-radius: 5px; padding: 0 4px; margin-left: 5px;
 }
 
+/* Find-amount (subset-sum) modal */
+.amtf-controls { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.amtf-amt-wrap { position: relative; }
+.amtf-dollar { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 700; }
+.amtf-dates { display: flex; align-items: center; gap: 8px; }
+.amtf-dates .form-input { flex: 1; }
+.amtf-section { margin-bottom: 12px; }
+.amtf-section-hdr { font-size: .78rem; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.combo {
+  border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; margin-bottom: 8px;
+}
+.combo-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 2px 0; }
+.combo-item-desc { font-size: .8rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.combo-item-amt { font-weight: 700; font-size: .8rem; color: var(--danger); white-space: nowrap; }
+.combo-sum {
+  text-align: right; font-weight: 800; font-size: .82rem; color: var(--accent);
+  border-top: 1px dashed var(--border); margin-top: 4px; padding-top: 4px;
+}
+
 /* Monthly report — category include/exclude rows */
 .report-cat {
   display: flex; align-items: center; gap: 8px;
