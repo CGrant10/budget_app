@@ -2799,6 +2799,12 @@ textarea:focus-visible,
   pointer-events:none;
   z-index:1;
 }
+.jp-hero-badge {
+  position:absolute; top:12px; left:16px; z-index:2;
+  width:56px; height:auto;
+  filter:drop-shadow(0 2px 8px rgba(0,0,0,.6));
+  pointer-events:none;
+}
 .dawg-hero::after {
   content:''; position:absolute; bottom:0; left:0; right:0; height:44px;
   background:linear-gradient(to bottom,transparent,var(--bg)); pointer-events:none; z-index:1;

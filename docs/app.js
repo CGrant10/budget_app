@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.63';
+const VERSION = '5.43.64';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.64', date: '2026-07-06', changes: [
+    'Jurassic Park theme: added a small logo badge to the dashboard hero, so the raptor mascot, JP logo, and T-Rex banner watermark are all visible together on the dashboard',
+  ]},
   { version: '5.43.63', date: '2026-07-06', changes: [
     'Jurassic Park theme: the T-Rex banner watermark is now much more visible (and correctly framed — it\'s the actual "when dinosaurs ruled the earth" banner art, not a stretched crop) instead of an 8%-opacity ghost',
   ]},
@@ -2527,6 +2530,10 @@ function applyNavItems(hiddenTabs) {
 function mascotSrc() {
   const t = THEMES[loadSettings().theme];
   return (t && t.mascot) ? t.mascot : './doberman.png';
+}
+// Jurassic Park hero badge — small logo stamp in the corner of the dashboard hero
+function jpHeroBadgeHTML() {
+  return loadSettings().theme === 'jurassicpark' ? `<img src="./logo.png" class="jp-hero-badge" alt="">` : '';
 }
 // Dashboard hero tagline — themed for Pokémon, else the DAWG "LOCK TF IN." glitch tagline
 function heroTaglineHTML() {
@@ -5565,6 +5572,7 @@ function renderDashboardDawg() {
     ${backupBannerHtml()}
     <div class="dawg-hero">
       <div class="dawg-hero-glow"></div>
+      ${jpHeroBadgeHTML()}
       <div class="dawg-hero-inner">
         ${heroTaglineHTML()}
         <div class="dawg-hero-dob">
