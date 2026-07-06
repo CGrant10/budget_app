@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.62';
+const VERSION = '5.43.63';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.63', date: '2026-07-06', changes: [
+    'Jurassic Park theme: the T-Rex banner watermark is now much more visible (and correctly framed — it\'s the actual "when dinosaurs ruled the earth" banner art, not a stretched crop) instead of an 8%-opacity ghost',
+  ]},
   { version: '5.43.62', date: '2026-07-06', changes: [
     'New theme: Jurassic Park 🦖 gets its own mascot, tagline, and glitch-color identity — pick it from the Dark accent grid in Settings',
     'Jurassic Park theme now shows a faint T-Rex watermark behind the app and swaps in the movie logo on the About page',
