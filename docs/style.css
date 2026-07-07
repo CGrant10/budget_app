@@ -4820,6 +4820,28 @@ body.theme-pokemon .splash-dob-bark, body.theme-team .splash-dob-bark { display:
 body.theme-pokemon .dawg-dob-idle, body.theme-team .dawg-dob-idle,
 body.theme-pokemon .splash-dob-idle, body.theme-team .splash-dob-idle { animation: none !important; opacity: 1 !important; }
 body.theme-pokemon .dawg-hero-dob, body.theme-team .dawg-hero-dob { animation: none !important; }
+
+/* ── Gengar theme: ghost-line trio in the dashboard hero (Haunter · Gengar · Gastly) ──
+   Gengar (center) is the vibrant Gen-4 sprite; the animated Gen-5 flankers keep the
+   group in gentle motion. Scoped to body.theme-gengar so no other theme is affected. */
+body.theme-gengar .gengar-trio {
+  display: flex; align-items: flex-end; justify-content: center;
+  width: auto; filter: none;
+}
+body.theme-gengar .gengar-trio img { image-rendering: pixelated; display: block; height: auto; }
+body.theme-gengar .gtrio-mid {
+  width: 88px; z-index: 2;
+  filter: drop-shadow(0 5px 12px rgba(0,0,0,.6));
+  animation: gtrioBobMid 3s ease-in-out infinite .5s !important; opacity: 1 !important;
+}
+body.theme-gengar .gtrio-side {
+  width: 48px; opacity: .85;
+  filter: drop-shadow(0 4px 9px rgba(0,0,0,.55));
+}
+body.theme-gengar .gtrio-l { margin-right: -8px; animation: gtrioBob 3.4s ease-in-out infinite !important; }
+body.theme-gengar .gtrio-r { margin-left: -8px; animation: gtrioBob 3.4s ease-in-out infinite 1.1s !important; }
+@keyframes gtrioBob    { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes gtrioBobMid { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 /* Glitch is NOT gated for Pokémon / team themes — it runs in each theme's own colors
    via the --gl-1 / --gl-2 variables (set in applyTheme). The hero mascot stays steady
    (rule above), but the nav mascot, titles, and sparkline keep the recolored glitch. */

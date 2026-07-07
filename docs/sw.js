@@ -1,4 +1,4 @@
-const CACHE = "slawminyaw-v419";
+const CACHE = "slawminyaw-v420";
 const ASSETS = [
   "./",
   "./index.html",
@@ -16,6 +16,8 @@ const ASSETS = [
   "./maddawg.png",
   "./newicon.png",
   "./poke-gengar.gif",
+  "./poke-gastly.gif",
+  "./poke-haunter.gif",
   "./poke-charizard.gif",
   "./poke-squirtle.gif",
   "./team-bears.png",

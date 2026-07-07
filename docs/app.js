@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.69';
+const VERSION = '5.43.70';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.70', date: '2026-07-06', changes: [
+    'Gengar theme now shows the whole ghost line on the dashboard — Gengar front and center, flanked by animated Haunter and Gastly',
+  ]},
   { version: '5.43.69', date: '2026-07-06', changes: [
     'Removed the Beta Dashboard toggle experiment',
   ]},
@@ -2534,6 +2537,22 @@ function heroTaglineHTML() {
   const t = THEMES[loadSettings().theme];
   if (t && (t.pokemon || t.team) && t.tagline) return `<div class="dawg-hero-tagline">${t.tagline}</div>`;
   return `<div class="dawg-hero-tagline">YOUR DAWG<br>IS WATCHING.<br><em class="dawg-lockin" data-glitch="LOCK TF IN.">LOCK TF IN.</em></div>`;
+}
+// Dashboard hero mascot — the Gengar theme shows the full ghost line (Haunter · Gengar ·
+// Gastly). Gengar (center) is the vibrant Gen-4 sprite; the animated Gen-5 flankers keep
+// the group in motion. Every other theme keeps the single mascot + bark pair untouched.
+function heroMascotHTML() {
+  if (loadSettings().theme === 'gengar') {
+    return `<div class="dawg-hero-dob gengar-trio">
+        <img src="./poke-haunter.gif" class="gtrio-side gtrio-l" alt="">
+        <img src="./poke-gengar.gif"  class="gtrio-mid" alt="">
+        <img src="./poke-gastly.gif"  class="gtrio-side gtrio-r" alt="">
+      </div>`;
+  }
+  return `<div class="dawg-hero-dob">
+          <img src="${mascotSrc()}" class="dawg-dob-idle" alt="">
+          <img src="./maddawg.png"  class="dawg-dob-bark" alt="">
+        </div>`;
 }
 
 // Eerie ambient overlay for Pokémon themes (vignette + per-mon particles). Removed for all other themes.
@@ -5561,10 +5580,7 @@ function renderDashboardDawg() {
       <div class="dawg-hero-glow"></div>
       <div class="dawg-hero-inner">
         ${heroTaglineHTML()}
-        <div class="dawg-hero-dob">
-          <img src="${mascotSrc()}" class="dawg-dob-idle" alt="">
-          <img src="./maddawg.png"  class="dawg-dob-bark" alt="">
-        </div>
+        ${heroMascotHTML()}
       </div>
     </div>
 
