@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.65';
+const VERSION = '5.43.66';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.66', date: '2026-07-06', changes: [
+    'Dashboard balance chart now shows a loading shimmer instead of blank space while the chart library loads (only noticeable on a very first visit or slow connection)',
+    'Notes & Reminders empty state now shows the illustrated "no notes yet" card (matching the Ledger) instead of unstyled plain text',
+    'Light mode contrast fixes — nav labels, "View all" links, and the dashboard\'s "LOCK TF IN." text were below readable contrast against light backgrounds; darkened just enough to pass while keeping the same accent color everywhere else',
+  ]},
   { version: '5.43.65', date: '2026-07-06', changes: [
     'Shrunk the Doberman and DAWG hero artwork (several were multiple megabytes at print resolution) — faster loads with no visible quality loss',
   ]},
@@ -8624,7 +8629,7 @@ function renderNotes() {
 
   const listHtml = sorted.length
     ? sorted.map(noteHtml).join('')
-    : `<div class="empty-state-wrap"><p class="empty-state-msg">No notes yet</p><p class="empty-state-sub">Add a reminder below</p></div>`;
+    : emptyState('No notes yet', 'Add a reminder below');
 
   return `<div class="page">
     <h1 class="page-title">Notes &amp; Reminders</h1>
@@ -8683,7 +8688,7 @@ function attachNotes() {
         </div>
         <button class="note-del-btn" data-id="${n.id}" aria-label="Delete note">✕</button>
       </div>`;
-    }).join('') || `<div class="empty-state-wrap"><p class="empty-state-msg">No notes yet</p><p class="empty-state-sub">Add a reminder below</p></div>`;
+    }).join('') || emptyState('No notes yet', 'Add a reminder below');
     updateNotesBadge();
     playSound('success');
   });
@@ -8710,7 +8715,7 @@ function attachNotes() {
     saveNotes(notes);
     btn.closest('.note-card')?.remove();
     if (!document.querySelector('.note-card')) {
-      document.getElementById('notes-list').innerHTML = `<div class="empty-state-wrap"><p class="empty-state-msg">No notes yet</p><p class="empty-state-sub">Add a reminder below</p></div>`;
+      document.getElementById('notes-list').innerHTML = emptyState('No notes yet', 'Add a reminder below');
     }
     updateNotesBadge();
   });
@@ -10907,9 +10912,10 @@ function attachDashboardDawg() {
   function buildSparkline(range) {
     const canvas = document.getElementById('dawg-sparkline');
     if (!canvas) return;
+    const _sparkWrap = canvas.closest('.dawg-sparkline-wrap');
     if (_dawgSpark) { _dawgSpark.destroy(); _dawgSpark = null; _dawgSparkGlobal = null; }
     const { labels, data } = getDawgSparklineData(range, _sparkMaxDate);
-    if (!data.length) return;
+    if (!data.length) { _sparkWrap?.classList.add('chart-ready'); return; }
     const ctx  = canvas.getContext('2d');
     const grad = ctx.createLinearGradient(0, 0, 0, canvas.offsetHeight||80);
     // Debt sparkline: red when high balance, yellow mid, green when low
@@ -11065,6 +11071,7 @@ function attachDashboardDawg() {
         animation:{ duration:0 }   // plugin drives all animation
       }
     });
+    _sparkWrap?.classList.add('chart-ready');
     });
   }
   document.querySelectorAll('.dawg-tbtn').forEach(btn => {
