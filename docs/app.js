@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.66';
+const VERSION = '5.43.67';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.67', date: '2026-07-06', changes: [
+    'New Settings → Beta toggle: "Try the new Dashboard look" — a quieter redesign with flattened cards, a smaller mascot mark, no glitch tagline, and a new color palette (dark: brass gold, light: forest green). Dashboard only for now, and reversible anytime',
+  ]},
   { version: '5.43.66', date: '2026-07-06', changes: [
     'Dashboard balance chart now shows a loading shimmer instead of blank space while the chart library loads (only noticeable on a very first visit or slow connection)',
     'Notes & Reminders empty state now shows the illustrated "no notes yet" card (matching the Ledger) instead of unstyled plain text',
@@ -2443,6 +2446,8 @@ function applySettings() {
   // "Reduce motion & effects" — freezes the infinite idle glitch loops to save
   // battery and calm the UI. CSS handles the rest via body.fx-reduced.
   document.body.classList.toggle('fx-reduced', !!s.reduceFx);
+  // Beta design preview — quieter dashboard look. CSS handles the rest via body.beta-ui.
+  document.body.classList.toggle('beta-ui', !!s.betaUI);
 }
 
 
@@ -9175,6 +9180,17 @@ function renderSettings() {
       </div>
 
       <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Beta</h2>
+        <div class="form-row">
+          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="beta-ui-toggle" ${s.betaUI ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
+            Try the new Dashboard look
+          </label>
+          <p class="code-hint" style="margin-top:6px">A cleaner, quieter redesign of the Dashboard — flatter cards, a smaller mascot mark, and a new color palette. Everything else still looks the same for now. Flip it off anytime.</p>
+        </div>
+      </div>
+
+      <div class="form-card">
         <h2 class="section-title" style="margin-bottom:8px">Font</h2>
         <p class="code-hint" style="margin-bottom:12px">Changes text style throughout the entire app.</p>
         <div class="nav-pos-grid">${fontBtns}</div>
@@ -9429,6 +9445,13 @@ function attachSettings() {
     s.reduceFx = e.target.checked;
     saveSettings(s);
     document.body.classList.toggle('fx-reduced', e.target.checked);
+  });
+
+  document.getElementById('beta-ui-toggle')?.addEventListener('change', e => {
+    const s = loadSettings();
+    s.betaUI = e.target.checked;
+    saveSettings(s);
+    document.body.classList.toggle('beta-ui', e.target.checked);
   });
 
 

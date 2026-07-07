@@ -7248,3 +7248,59 @@ body.theme-ubuntu .section-title::before {
 /* Lighter, flatter page header to match the polished pages — drop the heavy
    accent slab on the title; keep a slim accent tick on section labels. */
 .page-title { font-size: 22px; font-weight: 700; letter-spacing: -.2px; padding-left: 0; border-left: none; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BETA UI — Dashboard-only redesign preview (Settings → Beta).
+   Dusk (dark) / Daybreak (light, via body.light). Own fixed palette,
+   independent of whatever accent/theme is otherwise selected, so switching
+   it on always shows the same two looks. CSS-only — no markup or scoring
+   logic changed, so turning it off restores the exact classic dashboard.
+   ══════════════════════════════════════════════════════════════════════════ */
+body.beta-ui {
+  --bg: #0d1210; --surface: #151b18; --surface2: #1b211d; --card: #151b18;
+  --text: #eceeec; --muted: #8b958f; --border: rgba(255,255,255,.08);
+  --accent: #e8c15e; --accent2: #b98f38; --success: #6fbf8a; --danger: #d97757; --warn: #e0b95e;
+}
+body.beta-ui.light {
+  --bg: #f4f6f3; --surface: #ffffff; --surface2: #eef1ec; --card: #ffffff;
+  --text: #1b211d; --muted: #6b756f; --border: rgba(27,33,29,.09);
+  --accent: #2f6b4f; --accent2: #1f4d38; --success: #2f6b4f; --danger: #b5533c; --warn: #a3762f;
+}
+
+/* Flatten the boxed-card-on-boxed-card look: drop borders/shadows, keep a
+   quiet surface tint so cards still separate from the page. */
+body.beta-ui .dawg-balance-card,
+body.beta-ui .dawg-overview-card,
+body.beta-ui .dawg-breakdown-card,
+body.beta-ui .dawg-section-card,
+body.beta-ui .dawg-due-tile {
+  border: none;
+  box-shadow: none;
+  background: var(--surface);
+}
+body.beta-ui .dawg-balance-card::after,
+body.beta-ui .dawg-balance-card::before { display: none; }
+
+/* Quiet hero — drop the glitch tagline and the glow/fade layers, shrink the
+   mascot to a small mark instead of a hero illustration. */
+body.beta-ui .dawg-hero { min-height: auto; background: none; }
+body.beta-ui .dawg-hero-glow,
+body.beta-ui .dawg-hero::after { display: none; }
+body.beta-ui .dawg-hero-inner {
+  min-height: auto; align-items: center; justify-content: flex-start;
+  gap: 10px; padding: 18px 20px 10px;
+}
+body.beta-ui .dawg-hero-tagline { display: none; }
+body.beta-ui .dawg-hero-dob { width: 34px !important; }
+
+/* Tabular digits wherever amounts line up, and simpler category bars
+   (drop the diagonal chevron cut for a plain rounded track). */
+body.beta-ui .dawg-cat-amt,
+body.beta-ui .dawg-txn-amt,
+body.beta-ui .dawg-meter-amt,
+body.beta-ui .dawg-stat-val { font-variant-numeric: tabular-nums; }
+body.beta-ui .dawg-cat-bar-wrap {
+  clip-path: none; border-radius: 4px; background: var(--surface2);
+}
+body.beta-ui .dawg-cat-bar-wrap::after { display: none; }
+body.beta-ui .dawg-cat-bar { border-radius: 4px; }
