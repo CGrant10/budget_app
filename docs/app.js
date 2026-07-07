@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.68';
+const VERSION = '5.43.69';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,11 +71,8 @@ const ICONS = {
 };
 
 const CHANGELOG = [
-  { version: '5.43.68', date: '2026-07-06', changes: [
-    'Fixed the Beta Dashboard toggle actually looking like the redesign: the balance chart was still drawing in the old neon green (it reads colors in JS, not CSS, so the beta palette never reached it), the per-week/per-day tiles still had their old border, and the mascot had no wordmark next to it. All three now match',
-  ]},
-  { version: '5.43.67', date: '2026-07-06', changes: [
-    'New Settings → Beta toggle: "Try the new Dashboard look" — a quieter redesign with flattened cards, a smaller mascot mark, no glitch tagline, and a new color palette (dark: brass gold, light: forest green). Dashboard only for now, and reversible anytime',
+  { version: '5.43.69', date: '2026-07-06', changes: [
+    'Removed the Beta Dashboard toggle experiment',
   ]},
   { version: '5.43.66', date: '2026-07-06', changes: [
     'Dashboard balance chart now shows a loading shimmer instead of blank space while the chart library loads (only noticeable on a very first visit or slow connection)',
@@ -2449,8 +2446,6 @@ function applySettings() {
   // "Reduce motion & effects" — freezes the infinite idle glitch loops to save
   // battery and calm the UI. CSS handles the rest via body.fx-reduced.
   document.body.classList.toggle('fx-reduced', !!s.reduceFx);
-  // Beta design preview — quieter dashboard look. CSS handles the rest via body.beta-ui.
-  document.body.classList.toggle('beta-ui', !!s.betaUI);
 }
 
 
@@ -2627,39 +2622,6 @@ function applyTheme(theme) {
   }
   // All themes use the DAWG layout — always enable dawg-mode
   document.getElementById('app')?.classList.add('dawg-mode');
-  _applyBetaColors();
-}
-
-// Beta Dashboard preview (Settings → Beta) — its own fixed palette, independent
-// of whatever accent/theme is otherwise selected. Runs last in applyTheme() so
-// it wins over the theme's own --accent/--bg/etc, and JS color reads that use
-// getComputedStyle(document.documentElement) (e.g. the sparkline chart) see it
-// too — a body-scoped CSS override alone wouldn't reach those.
-function _applyBetaColors() {
-  if (!loadSettings().betaUI) return;
-  const root    = document.documentElement;
-  const isLight = document.body.classList.contains('light');
-  const p = isLight
-    ? { bg:'#f4f6f3', surface:'#ffffff', surface2:'#eef1ec', card:'#ffffff',
-        text:'#1b211d', muted:'#6b756f', border:'rgba(27,33,29,.09)',
-        accent:'#2f6b4f', accent2:'#1f4d38', success:'#2f6b4f', danger:'#b5533c', warn:'#a3762f' }
-    : { bg:'#0d1210', surface:'#151b18', surface2:'#1b211d', card:'#151b18',
-        text:'#eceeec', muted:'#8b958f', border:'rgba(255,255,255,.08)',
-        accent:'#e8c15e', accent2:'#b98f38', success:'#6fbf8a', danger:'#d97757', warn:'#e0b95e' };
-  root.style.setProperty('--bg', p.bg);
-  root.style.setProperty('--surface', p.surface);
-  root.style.setProperty('--surface2', p.surface2);
-  root.style.setProperty('--card', p.card);
-  root.style.setProperty('--text', p.text);
-  root.style.setProperty('--muted', p.muted);
-  root.style.setProperty('--border', p.border);
-  root.style.setProperty('--accent', p.accent);
-  root.style.setProperty('--accent2', p.accent2);
-  root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${p.accent} 0%, ${p.accent2} 100%)`);
-  root.style.setProperty('--success', p.success);
-  root.style.setProperty('--danger', p.danger);
-  root.style.setProperty('--warn', p.warn);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', p.bg);
 }
 
 function _save() {
@@ -5603,7 +5565,6 @@ function renderDashboardDawg() {
           <img src="${mascotSrc()}" class="dawg-dob-idle" alt="">
           <img src="./maddawg.png"  class="dawg-dob-bark" alt="">
         </div>
-        <span class="dawg-hero-brandmark">Budget DAWGs</span>
       </div>
     </div>
 
@@ -9217,17 +9178,6 @@ function renderSettings() {
       </div>
 
       <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Beta</h2>
-        <div class="form-row">
-          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
-            <input type="checkbox" id="beta-ui-toggle" ${s.betaUI ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
-            Try the new Dashboard look
-          </label>
-          <p class="code-hint" style="margin-top:6px">A cleaner, quieter redesign of the Dashboard — flatter cards, a smaller mascot mark, and a new color palette. Everything else still looks the same for now. Flip it off anytime.</p>
-        </div>
-      </div>
-
-      <div class="form-card">
         <h2 class="section-title" style="margin-bottom:8px">Font</h2>
         <p class="code-hint" style="margin-bottom:12px">Changes text style throughout the entire app.</p>
         <div class="nav-pos-grid">${fontBtns}</div>
@@ -9482,15 +9432,6 @@ function attachSettings() {
     s.reduceFx = e.target.checked;
     saveSettings(s);
     document.body.classList.toggle('fx-reduced', e.target.checked);
-  });
-
-  document.getElementById('beta-ui-toggle')?.addEventListener('change', e => {
-    const s = loadSettings();
-    s.betaUI = e.target.checked;
-    saveSettings(s);
-    document.body.classList.toggle('beta-ui', e.target.checked);
-    applyTheme(s.theme || 'dark');  // re-apply colors: on = beta palette, off = restore the real theme's colors
-    render();
   });
 
 
@@ -10999,11 +10940,6 @@ function attachDashboardDawg() {
       if (_spCurBal < 0) {
         _sparkClrRgb = '220,50,50';
         _sparkClr    = getComputedStyle(document.documentElement).getPropertyValue('--danger').trim() || '#dc3232';
-      } else if (loadSettings().betaUI) {
-        // Beta palette: growing-balance line follows the beta accent (brass gold / forest
-        // green) instead of the fixed neon green every other theme uses.
-        _sparkClrRgb = document.body.classList.contains('light') ? '47,107,79' : '232,193,94';
-        _sparkClr    = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
       } else {
         _sparkClrRgb = document.body.classList.contains('light') ? '34,170,34' : '57,255,20';
         _sparkClr    = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
