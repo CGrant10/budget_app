@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.70';
+const VERSION = '5.43.71';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.71', date: '2026-07-13', changes: [
+    'Fixed a display bug where transactions, bills, goals, accounts, or categories containing quotes or angle brackets (like a 7" pipe or "AT&T") rendered incorrectly or broke the inline edit form — all user-entered text is now escaped consistently everywhere it appears (ledger, dashboard, bills, goals, debt, retirement, import preview, and confirm dialogs)',
+    'Consolidated a duplicate internal escape helper that had been silently weakening quote handling app-wide',
+  ]},
   { version: '5.43.70', date: '2026-07-06', changes: [
     'Gengar theme now shows the whole ghost line on the dashboard — Gengar front and center, flanked by animated Haunter and Gastly',
   ]},
@@ -2860,10 +2864,9 @@ function localMonthKey(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 }
 
-// Minimal HTML-escape for injecting user text (descriptions) into chip markup.
-function _escHtml(s) {
-  return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
-}
+// _escHtml is defined once, earlier in the file (escapes & < > " '). This spot
+// used to redefine a weaker copy that dropped the single-quote escape; removed
+// so the complete version wins everywhere.
 
 // ── "commonly used" expense templates ────────────────────────────────────────
 // Surfaces expenses the user logs on a (roughly) twice-a-week-or-more
@@ -3424,7 +3427,7 @@ function showCatModal(cat) {
   const total = txns.reduce((s, t) => s + t.amount, 0);
   const catColor = CAT_COLORS[cat] || 'var(--accent)';
   const rowsHtml = txns.length
-    ? txns.map(t => `<div class="cat-modal-row"><span class="cat-modal-date">${t.date.slice(5)}</span><span class="cat-modal-desc">${t.description}</span><span class="cat-modal-amt">-${fmt(t.amount)}</span></div>`).join('')
+    ? txns.map(t => `<div class="cat-modal-row"><span class="cat-modal-date">${t.date.slice(5)}</span><span class="cat-modal-desc">${_escHtml(t.description)}</span><span class="cat-modal-amt">-${fmt(t.amount)}</span></div>`).join('')
     : '<p style="color:var(--muted);font-size:.85rem;text-align:center;padding:12px">No transactions</p>';
 
   let overlay = document.getElementById('cat-modal-overlay');
@@ -3986,7 +3989,7 @@ function renderDebt() {
     const paymentRows = payments.slice(0, 20).map(t => `
       <div class="debt-txn-row">
         <span class="debt-txn-date">${t.date}</span>
-        <span class="debt-txn-desc">${t.description || 'Payment'}</span>
+        <span class="debt-txn-desc">${_escHtml(t.description || 'Payment')}</span>
         <span class="debt-txn-amt success">-${fmt(t.amount)}</span>
       </div>`).join('');
 
@@ -3995,7 +3998,7 @@ function renderDebt() {
     const chargeRows = charges.slice(0, 20).map(t => `
       <div class="debt-txn-row">
         <span class="debt-txn-date">${t.date}</span>
-        <span class="debt-txn-desc">${t.description || t.category || '—'}</span>
+        <span class="debt-txn-desc">${_escHtml(t.description || t.category || '—')}</span>
         <span class="debt-txn-amt danger">+${fmt(t.amount)}</span>
       </div>`).join('');
 
@@ -4028,7 +4031,7 @@ function renderDebt() {
     return `
       <div class="debt-acct-card">
         <div class="debt-acct-header">
-          <div class="debt-acct-name">${acct.name}</div>
+          <div class="debt-acct-name">${_escHtml(acct.name)}</div>
           <div class="debt-acct-type">${acct.type === 'loan' ? `${ICONS.bank} Loan` : `${ICONS.card} Credit`}</div>
         </div>
         <div class="debt-owed-row">
@@ -4234,7 +4237,7 @@ function renderAccountPicker() {
         <div class="acct-row-stripe" style="background:${stripe}"></div>
         <div class="acct-row-icon" style="color:${stripe}">${icon}</div>
         <div class="acct-row-info">
-          <div class="acct-row-name">${acct.name}</div>
+          <div class="acct-row-name">${_escHtml(acct.name)}</div>
           <div class="acct-row-type">${typeLbl}</div>
         </div>
         <div class="acct-row-right">
@@ -4903,7 +4906,7 @@ function renderRetirementDashboard(acct) {
   const recentRows = recentContribs.map(t => `
     <div class="ret-dash-contrib-row">
       <span class="ret-dash-contrib-date">${t.date}</span>
-      <span class="ret-dash-contrib-desc">${t.description || 'Contribution'}</span>
+      <span class="ret-dash-contrib-desc">${_escHtml(t.description || 'Contribution')}</span>
       <span class="ret-dash-contrib-amt" style="color:var(--success)">+${fmt(t.amount)}</span>
     </div>`).join('');
 
@@ -5539,7 +5542,7 @@ function renderDashboardDawg() {
     return `<div class="dawg-goal-row">
       <div class="dawg-goal-icon">🎯</div>
       <div class="dawg-goal-info">
-        <div class="dawg-goal-name">${g.name}</div>
+        <div class="dawg-goal-name">${_escHtml(g.name)}</div>
         <div class="dawg-goal-sub">${fmt(g.current)} / ${fmt(g.target)}</div>
       </div>
       <div class="dawg-goal-right">
@@ -5564,7 +5567,7 @@ function renderDashboardDawg() {
     return `<div class="dawg-txn-row">
       <div class="dawg-txn-icon">${icon}</div>
       <div class="dawg-txn-info">
-        <div class="dawg-txn-desc">${t.description || t.category || '—'}</div>
+        <div class="dawg-txn-desc">${_escHtml(t.description || t.category || '—')}</div>
         <div class="dawg-txn-date">${dlbl}</div>
       </div>
       <div class="dawg-txn-amt" style="color:${color}">${sign}${fmt(t.amount)}</div>
@@ -5717,7 +5720,7 @@ function renderDashboardDawg() {
             ${nw.accounts.map(a => {
               const isDebtA = a.type === 'credit' || a.type === 'loan';
               return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
-                <span style="font-size:.82rem;color:var(--text)">${a.name}${isDebtA ? `<span style="font-size:.7rem;color:var(--muted);margin-left:4px">(${a.type})</span>` : ''}</span>
+                <span style="font-size:.82rem;color:var(--text)">${_escHtml(a.name)}${isDebtA ? `<span style="font-size:.7rem;color:var(--muted);margin-left:4px">(${a.type})</span>` : ''}</span>
                 <span style="font-size:.82rem;font-weight:600;color:${a.balance >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(a.balance)}</span>
               </div>`;
             }).join('')}`;
@@ -5751,7 +5754,7 @@ function renderDashboardDawg() {
             const _col  = _d === 0 ? 'var(--danger)' : _d <= 3 ? 'var(--warn)' : 'var(--muted)';
             const _dlbl = _d === 0 ? 'TODAY' : _d === 1 ? 'TOMORROW' : `${_d}d`;
             return `<div class="dawg-bill-row">
-              <span class="dawg-bill-name">${b.name}</span>
+              <span class="dawg-bill-name">${_escHtml(b.name)}</span>
               <span class="dawg-bill-due" style="color:${_col}">${_dlbl}</span>
               <span class="dawg-bill-amt">${fmt(b.amount)}</span>
             </div>`;
@@ -5780,7 +5783,7 @@ function renderDashboardDawg() {
             const _col  = _owed > 0 ? 'var(--danger)' : 'var(--success)';
             return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
               <div style="min-width:0;flex:1">
-                <span style="font-size:.82rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.name}</span>
+                <span style="font-size:.82rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_escHtml(a.name)}</span>
                 <span style="font-size:.68rem;color:var(--muted);margin-left:4px;text-transform:capitalize">${a.type}</span>
               </div>
               <span style="font-size:.82rem;font-weight:700;color:${_col};flex-shrink:0;margin-left:8px">${_owed > 0 ? fmt(_owed) : '✓ Paid off'}</span>
@@ -6243,7 +6246,7 @@ function renderChallenges() {
   const active   = state.challenges.filter(c => c.status === 'active');
   const done     = state.challenges.filter(c => c.status !== 'active');
 
-  const catOptions = getCategories().map(c => `<option>${c}</option>`).join('');
+  const catOptions = getCategories().map(c => `<option>${_escHtml(c)}</option>`).join('');
 
   const cardHtml = ch => {
     const def      = CHALLENGE_TYPES[ch.type] || {};
@@ -6285,7 +6288,7 @@ function renderChallenges() {
       const days   = Math.max(0, Math.ceil((new Date(ch.data.endDate + 'T00:00:00') - today) / 86400000));
       progressHtml = `
         <div style="font-size:.75rem;color:var(--muted);margin-bottom:6px">
-          ${ch.data.category} · ${days} day${days !== 1 ? 's' : ''} left
+          ${_escHtml(ch.data.category)} · ${days} day${days !== 1 ? 's' : ''} left
           ${autoStatus === 'pass' ? '<span style="color:var(--success);font-weight:700;margin-left:6px">✓ On track</span>' : autoStatus === 'fail' ? '<span style="color:var(--danger);font-weight:700;margin-left:6px">✗ Spending detected</span>' : ''}
         </div>`;
     } else if (ch.type === 'beat_last_month') {
@@ -6297,7 +6300,7 @@ function renderChallenges() {
       const barCol = pct >= 100 ? 'var(--danger)' : pct >= 80 ? 'var(--warn)' : 'var(--accent)';
       progressHtml = `
         <div style="font-size:.75rem;color:var(--muted);margin-bottom:6px">
-          ${ch.data.category} · ${fmt(spent)} of ${fmt(ch.data.target)} target
+          ${_escHtml(ch.data.category)} · ${fmt(spent)} of ${fmt(ch.data.target)} target
           ${autoStatus === 'pass' ? '<span style="color:var(--success);font-weight:700;margin-left:6px">✓ Winning</span>' : autoStatus === 'fail' ? '<span style="color:var(--danger);font-weight:700;margin-left:6px">✗ Over target</span>' : ''}
         </div>
         <div class="challenge-progress-bar"><div class="challenge-progress-fill" style="width:${pct}%;background:${barCol}"></div></div>`;
@@ -6559,9 +6562,9 @@ function renderAdd() {
     .filter(d => { const k = d.trim().toLowerCase(); if (_descSeen.has(k)) return false; _descSeen.add(k); return true; })
     .slice(0, 60)
     .map(d => `<option value="${String(d).replace(/"/g, '&quot;')}"></option>`).join('');
-  const catOptions  = getCategories().map(c => `<option>${c}</option>`).join('');
-  const acctOptions = state.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-  const toAcctOptions = state.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+  const catOptions  = getCategories().map(c => `<option>${_escHtml(c)}</option>`).join('');
+  const acctOptions = state.accounts.map(a => `<option value="${a.id}">${_escHtml(a.name)}</option>`).join('');
+  const toAcctOptions = state.accounts.map(a => `<option value="${a.id}">${_escHtml(a.name)}</option>`).join('');
   return `
     <div class="page">
       <h1 class="page-title">Add Entry</h1>
@@ -6606,7 +6609,7 @@ function renderAdd() {
         <div class="form-row" id="add-cat-row">
           <label class="form-label">Category</label>
           <div style="flex:1">
-            <select id="add-cat" class="form-input">${getCategories().map(c=>`<option value="${c}">${c}</option>`).join('')}<option value="__custom__">Custom…</option></select>
+            <select id="add-cat" class="form-input">${getCategories().map(c=>`<option value="${_escHtml(c)}">${_escHtml(c)}</option>`).join('')}<option value="__custom__">Custom…</option></select>
             <input type="text" id="add-cat-custom" class="form-input" placeholder="Type custom category" style="display:none;margin-top:6px">
           </div>
         </div>
@@ -6654,7 +6657,7 @@ function renderLedger() {
   const cats = getCategories();
   const density = loadSettings().ledgerDensity === 'compact' ? 'compact' : 'comfortable';
   const catOptFilter = cats.map(c =>
-    `<option value="${c}"${c === ledgerCatFilter ? ' selected' : ''}>${c}</option>`).join('');
+    `<option value="${_escHtml(c)}"${c === ledgerCatFilter ? ' selected' : ''}>${_escHtml(c)}</option>`).join('');
 
   let rows = state.transactions.map((t, i) => ({ ...t, _i: i }));
   // Split into Bills (logged from the Bills tab) vs normal Transactions before any other filter.
@@ -6709,18 +6712,18 @@ function renderLedger() {
     const exTag     = (t.excludeFromBudget && !isBillTxn(t)) ? ' <span class="ledger-extag">not in weekly</span>' : '';
     const catColor  = CAT_COLORS[t.category] || '#9896a4';
     const acct      = acctById.get(t.account || 'main');
-    const acctBadge = acct && acct.id !== 'main' ? `<span class="acct-badge">${acct.name}</span>` : '';
+    const acctBadge = acct && acct.id !== 'main' ? `<span class="acct-badge">${_escHtml(acct.name)}</span>` : '';
     const allCats   = catSet.has(t.category) ? cats : [...cats, t.category];
     const catOptions = allCats.map(c =>
-      `<option value="${c}"${c === t.category ? ' selected' : ''}>${c}</option>`).join('');
+      `<option value="${_escHtml(c)}"${c === t.category ? ' selected' : ''}>${_escHtml(c)}</option>`).join('');
     // Cross-account rows are read-only: account badge, no running balance / edit / delete.
     if (_crossAcct) {
       return `
       <div class="ledger-row ledger-row-ro">
         <div class="ledger-row-inner">
           <div class="ledger-main">
-            <div class="ledger-desc"><span class="cat-dot" style="background:${catColor}"></span>${prefix}${t.description}</div>
-            <div class="ledger-meta">${t.date} · ${t.category} <span class="acct-badge">${t._acctName}</span>${exTag}</div>
+            <div class="ledger-desc"><span class="cat-dot" style="background:${catColor}"></span>${prefix}${_escHtml(t.description)}</div>
+            <div class="ledger-meta">${t.date} · ${_escHtml(t.category)} <span class="acct-badge">${_escHtml(t._acctName)}</span>${exTag}</div>
           </div>
           <div class="ledger-right">
             <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
@@ -6732,14 +6735,14 @@ function renderLedger() {
       <div class="ledger-row" data-idx="${t._i}">
         <div class="ledger-row-inner">
           <div class="ledger-main">
-            <div class="ledger-desc"><span class="cat-dot" style="background:${catColor}"></span>${prefix}${t.description}</div>
-            <div class="ledger-meta">${t.date} · ${t.category}${acctBadge}${exTag}</div>
+            <div class="ledger-desc"><span class="cat-dot" style="background:${catColor}"></span>${prefix}${_escHtml(t.description)}</div>
+            <div class="ledger-meta">${t.date} · ${_escHtml(t.category)}${acctBadge}${exTag}</div>
           </div>
           <div class="ledger-right">
             <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
             <div class="ledger-running-bal">bal: ${fmt(runBal[t._i])}</div>
-            <button class="ledger-edit-btn" data-idx="${t._i}" title="Edit" aria-label="Edit ${t.description||'transaction'}">✏️</button>
-            <button class="ledger-delete" data-idx="${t._i}" aria-label="Delete ${t.description||'transaction'}">✕</button>
+            <button class="ledger-edit-btn" data-idx="${t._i}" title="Edit" aria-label="Edit ${_escHtml(t.description||'transaction')}">✏️</button>
+            <button class="ledger-delete" data-idx="${t._i}" aria-label="Delete ${_escHtml(t.description||'transaction')}">✕</button>
           </div>
         </div>
         <div class="ledger-inline-edit">
@@ -6750,7 +6753,7 @@ function renderLedger() {
             </select>
             <input type="date" class="form-input ie-date" value="${t.date}">
             <select class="form-input ie-cat">${catOptions}</select>
-            <input type="text" class="form-input ie-desc" value="${t.description}" placeholder="Description">
+            <input type="text" class="form-input ie-desc" value="${_escHtml(t.description)}" placeholder="Description">
             <input type="number" class="form-input ie-amount" value="${t.amount}" step="0.01" min="0" placeholder="Amount" inputmode="decimal">
           </div>
           <label class="ie-exclude-label"><input type="checkbox" class="ie-exclude"${t.excludeFromBudget ? ' checked' : ''}> Don't count toward weekly spending</label>
@@ -7414,7 +7417,7 @@ function calcWeekly() {
 
   const thisWeekTxns = state.transactions.filter(t=>t.date>=mondayStr).sort((a,b)=>b.date.localeCompare(a.date));
   const thisWeekTxnHtml = thisWeekTxns.length
-    ? thisWeekTxns.map(t=>`<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`).join('')
+    ? thisWeekTxns.map(t=>`<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${_escHtml(t.category||'')}</span><span class="pw-txn-desc">${_escHtml(t.description||'')}</span></div>`).join('')
     : '<p class="pw-empty">No transactions yet this week.</p>';
 
   const monLabel = monday.toLocaleDateString('en-US',{month:'short',day:'numeric'});
@@ -7442,7 +7445,7 @@ function calcWeekly() {
   const totalDaysSpan = Math.round((listEnd - startMonday) / 86400000) + 1;
   const totalWeeks    = Math.max(1, Math.ceil(totalDaysSpan / 7));
 
-  const txnRow = t => `<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${t.category||''}</span><span class="pw-txn-desc">${t.description||''}</span></div>`;
+  const txnRow = t => `<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${_escHtml(t.category||'')}</span><span class="pw-txn-desc">${_escHtml(t.description||'')}</span></div>`;
 
   // 1) Build each week's row, tagged with its month/year.
   const _weekItems = [];
@@ -7615,10 +7618,10 @@ function renderBills() {
   const m = billsMonth;
   const isCurMonth = m === curMonthKey();
   const [mY, mM] = m.split('-').map(Number);
-  const catOptions = getCategories().map(c => `<option>${c}</option>`).join('');
+  const catOptions = getCategories().map(c => `<option>${_escHtml(c)}</option>`).join('');
   const debtAccts = state.accounts.filter(a => a.type === 'credit' || a.type === 'loan');
   const linkOpts = sel => `<option value="">— not linked —</option>` +
-    debtAccts.map(a => `<option value="${a.id}"${a.id === sel ? ' selected' : ''}>${a.name}</option>`).join('');
+    debtAccts.map(a => `<option value="${a.id}"${a.id === sel ? ' selected' : ''}>${_escHtml(a.name)}</option>`).join('');
   const billsHtml = state.bills.length ? state.bills.map((b, i) => {
     const paid  = isBillPaidFor(b, m);
     const badge = billBadgeHtml(b, m, isCurMonth);
@@ -7629,8 +7632,8 @@ function renderBills() {
         <div class="bill-card-main">
           <span class="cat-dot" style="background:${CAT_COLORS[b.category]||'#9896a4'}"></span>
           <div class="bill-card-info">
-            <div class="bill-card-name">${b.name}</div>
-            <div class="bill-card-meta">${b.category} · due day ${b.dueDay}${linkName ? ` · ${ICONS.link} ${linkName}` : ''}</div>
+            <div class="bill-card-name">${_escHtml(b.name)}</div>
+            <div class="bill-card-meta">${_escHtml(b.category)} · due day ${b.dueDay}${linkName ? ` · ${ICONS.link} ${_escHtml(linkName)}` : ''}</div>
           </div>
           <div class="bill-card-right">
             <div class="bill-card-amt">${fmt(b.amount)}</div>
@@ -7660,7 +7663,7 @@ function renderBills() {
           </div>
           <div class="form-row">
             <label class="form-label">Category</label>
-            <select class="form-input form-select bill-edit-cat">${getCategories().map(c => `<option${c === b.category ? ' selected' : ''}>${c}</option>`).join('')}</select>
+            <select class="form-input form-select bill-edit-cat">${getCategories().map(c => `<option${c === b.category ? ' selected' : ''}>${_escHtml(c)}</option>`).join('')}</select>
           </div>
           <div class="bill-edit-actions">
             <button class="btn-xs bill-edit-save" data-idx="${i}">Save changes</button>
@@ -7930,8 +7933,8 @@ function attachBills() {
         showConfirmModal({
           title: 'Mark Paid',
           message: linkName
-            ? `Paid ${fmt(b.amount)} toward ${linkName} — its balance is updated. Also deduct this from your ${curAcctName} balance as an expense?`
-            : `"${b.name}" is now marked paid for ${monthKeyLabel(m)}. Also log a ${fmt(b.amount)} expense and deduct it from your balance? Skip this if you've already recorded the payment.`,
+            ? `Paid ${fmt(b.amount)} toward ${_escHtml(linkName)} — its balance is updated. Also deduct this from your ${_escHtml(curAcctName)} balance as an expense?`
+            : `"${_escHtml(b.name)}" is now marked paid for ${monthKeyLabel(m)}. Also log a ${fmt(b.amount)} expense and deduct it from your balance? Skip this if you've already recorded the payment.`,
           confirmText: 'Log & Deduct',
           cancelText: 'Just Mark Paid',
           onConfirm: async () => {
@@ -7996,7 +7999,7 @@ function attachBills() {
       const extra = loggedIds.length ? ' Any logged expenses for this bill will also be removed from your ledger.' : '';
       showConfirmModal({
         title: 'Delete Bill',
-        message: `Delete "${b.name}"? This cannot be undone.${extra}`,
+        message: `Delete "${_escHtml(b.name)}"? This cannot be undone.${extra}`,
         confirmText: 'Delete', danger: true,
         onConfirm: async () => {
           // Remove every logged expense for this bill (re-find each time — indices shift on delete)
@@ -8045,8 +8048,8 @@ function attachBills() {
           <div class="bcal-detail-row">
             <span class="cat-dot" style="background:${color}"></span>
             <div class="bcal-detail-info">
-              <div class="bcal-detail-name">${b.name}</div>
-              <div class="bcal-detail-meta">${b.category} · ${fmt(b.amount)}</div>
+              <div class="bcal-detail-name">${_escHtml(b.name)}</div>
+              <div class="bcal-detail-meta">${_escHtml(b.category)} · ${fmt(b.amount)}</div>
             </div>
             <button class="btn-xs bcal-quick-paid" data-bidx="${billIdx}" data-paid="${paid}"
               style="${paid ? 'background:rgba(50,215,75,.15);color:var(--success);border-color:rgba(50,215,75,.3)' : ''}">
@@ -8441,7 +8444,7 @@ function renderGoals() {
     return `
       <div class="goal-card">
         <div class="goal-header">
-          <span class="goal-name">${g.name}</span>
+          <span class="goal-name">${_escHtml(g.name)}</span>
           <button class="btn-xs goal-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-idx="${i}">✕</button>
         </div>
         <div class="goal-amounts">${fmt(g.current)} <span class="goal-of">of</span> ${fmt(g.target)}</div>
@@ -8805,7 +8808,7 @@ function renderRetirement() {
       <div class="ret-acct-card">
         <div class="ret-acct-header">
           <div>
-            <div class="ret-acct-name">${a.name}</div>
+            <div class="ret-acct-name">${_escHtml(a.name)}</div>
             <div class="ret-acct-badge" style="background:${color}22;color:${color}">${typeName}</div>
           </div>
           <div class="ret-acct-bal">${fmt(bal)}</div>
@@ -8833,7 +8836,7 @@ function renderRetirement() {
   const defaultReturn = firstAcct?.expectedReturn != null ? firstAcct.expectedReturn : 7;
 
   const projOptions = accts.map(a =>
-    `<option value="${a.id}" data-bal="${_retireBalance(a.id)}">${a.name} (${RETIRE_LIMITS[a.type]?.label || a.type})</option>`
+    `<option value="${a.id}" data-bal="${_retireBalance(a.id)}">${_escHtml(a.name)} (${RETIRE_LIMITS[a.type]?.label || a.type})</option>`
   ).join('');
 
   return `<div class="dawg-page ret-page">
@@ -9013,7 +9016,7 @@ function renderWrapped() {
       ${stat('You brought in', fmt(income), 'total income', 'var(--success)')}
       ${stat(net >= 0 ? 'You saved' : 'You overspent', fmt(Math.abs(net)), net >= 0 ? `${savingsRate}% savings rate` : 'spent more than you earned', net >= 0 ? 'var(--success)' : 'var(--danger)')}
       ${topCat ? stat('Top category', topCat[0], `${fmt(topCat[1])} — your biggest habit`, catColor) : ''}
-      ${biggest ? stat('Biggest splurge', fmt(biggest.amount), `${biggest.description || biggest.category} · ${biggest.date}`, 'var(--warn)') : ''}
+      ${biggest ? stat('Biggest splurge', fmt(biggest.amount), `${_escHtml(biggest.description || biggest.category)} · ${biggest.date}`, 'var(--warn)') : ''}
       ${topMonth ? stat('Spendiest month', monthName, `${fmt(topMonth[1])} flew out the door`, 'var(--accent)') : ''}
     </div>
     <p class="wrap-foot">Based on ${txns.length} transactions${periodLabel === year ? ` in ${year}` : ''}. Keep your DAWG fed. 🐾</p>
@@ -9037,7 +9040,7 @@ function renderSettings() {
 
   const customCatRows = customCats.length ? customCats.map((c, i) => `
     <div class="custom-cat-row">
-      <span class="custom-cat-name">${c}</span>
+      <span class="custom-cat-name">${_escHtml(c)}</span>
       <button class="btn-xs custom-cat-del" data-idx="${i}" style="background:var(--danger);color:#fff;border-color:var(--danger)">✕</button>
     </div>`).join('') : '<p style="font-size:.8rem;color:var(--muted);margin-bottom:6px">No custom categories yet.</p>';
 
@@ -9552,7 +9555,7 @@ function _buildAccountCards() {
     // Paycheck accounts available to link to a retirement account
     const paycheckAcctOpts = state.accounts
       .filter(ac => ac.type !== 'credit' && ac.type !== 'loan' && !RETIRE_TYPES.includes(ac.type) && ac.paySchedule?.enabled)
-      .map(ac => `<option value="${ac.id}"${ac.id === a.linkedPaycheckAcctId ? ' selected' : ''}>${ac.name}</option>`)
+      .map(ac => `<option value="${ac.id}"${ac.id === a.linkedPaycheckAcctId ? ' selected' : ''}>${_escHtml(ac.name)}</option>`)
       .join('');
     const retireFields = isRetireAcct ? `
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
@@ -9684,14 +9687,14 @@ function _buildAccountCards() {
           </div>
           <div class="form-row" style="margin-bottom:4px">
             <label class="form-label" style="font-size:.72rem">Label (optional)</label>
-            <input type="text" class="form-input acct-pay-desc" data-id="${a.id}" placeholder="Paycheck" value="${ps.description||''}">
+            <input type="text" class="form-input acct-pay-desc" data-id="${a.id}" placeholder="Paycheck" value="${_escHtml(ps.description||'')}">
           </div>
           ${ps.nextPayDate ? `<p style="font-size:.7rem;color:var(--accent);margin-top:4px">Next auto-entry: ${ps.nextPayDate}</p>` : ''}
         </div>
       </div>` : '';
 
     const billFillOpts = state.bills.length
-      ? state.bills.map(b => `<option value="${b.id}" data-amount="${b.amount}" data-day="${b.dueDay}">${b.name} · ${fmt(b.amount)} · due day ${b.dueDay}</option>`).join('')
+      ? state.bills.map(b => `<option value="${b.id}" data-amount="${b.amount}" data-day="${b.dueDay}">${_escHtml(b.name)} · ${fmt(b.amount)} · due day ${b.dueDay}</option>`).join('')
       : '';
     const debtFields = isDebtAcct ? `
       <div class="acct-settings-debt" style="margin-top:10px">
@@ -9724,7 +9727,7 @@ function _buildAccountCards() {
     <div class="acct-settings-card acct-card-collapsed">
       <div class="acct-card-header" data-id="${a.id}">
         <div style="display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden">
-          <span class="acct-card-name">${a.name}</span>
+          <span class="acct-card-name">${_escHtml(a.name)}</span>
           <span class="acct-card-type-lbl" style="font-size:11px;color:var(--muted);white-space:nowrap">${typeMeta.icon} ${typeMeta.label}</span>
           ${a.id === currentAccountId ? '<span class="acct-badge" style="font-size:9px">active</span>' : ''}
         </div>
@@ -9734,7 +9737,7 @@ function _buildAccountCards() {
         </div>
       </div>
       <div class="acct-card-body" style="display:none">
-        <input type="text" class="form-input acct-name-input" value="${a.name}" data-id="${a.id}"
+        <input type="text" class="form-input acct-name-input" value="${_escHtml(a.name)}" data-id="${a.id}"
           style="width:100%;margin-bottom:10px;font-size:16px;font-weight:600;box-sizing:border-box${a.id === currentAccountId ? ';border-color:var(--accent)' : ''}"
           placeholder="Account name">
         <p style="font-size:11px;color:var(--muted);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em">Account Type</p>
@@ -10173,7 +10176,7 @@ function attachAccounts() {
       const acct = state.accounts.find(a => a.id === id);
       if (!acct) return;
       showConfirmModal({
-        title: `Delete "${acct.name}"?`, danger: true,
+        title: `Delete "${_escHtml(acct.name)}"?`, danger: true,
         message: 'All transactions, budgets, and bills for this account will be permanently removed.',
         confirmText: 'Delete Account',
         onConfirm: async () => { await api.deleteAccount(id); render(); },
@@ -10804,7 +10807,7 @@ function toggleDawgAcctDropdown() {
     const isActive = a.id === currentAccountId;
     return `<button class="dawg-acct-dd-row${isActive ? ' active' : ''}" data-id="${a.id}">
       <span class="dawg-acct-dd-icon">${_ACCT_SVG[a.type] || _ACCT_SVG.checking}</span>
-      <span class="dawg-acct-dd-name">${a.name}</span>
+      <span class="dawg-acct-dd-name">${_escHtml(a.name)}</span>
       ${isActive ? '<span class="dawg-acct-dd-check">✓</span>' : ''}
     </button>`;
   }).join('');
@@ -10846,7 +10849,7 @@ function toggleDawgBell() {
     const notes = getDawgNotifications();
     panel.innerHTML = `<div class="dawg-notif-header">NOTIFICATIONS</div>` +
       (notes.length
-        ? notes.map(n => `<div class="dawg-notif-row"><span class="dawg-notif-icon">${n.icon}</span><div class="dawg-notif-body"><div class="dawg-notif-title">${n.title}</div><div class="dawg-notif-sub">${n.body}</div></div></div>`).join('')
+        ? notes.map(n => `<div class="dawg-notif-row"><span class="dawg-notif-icon">${n.icon}</span><div class="dawg-notif-body"><div class="dawg-notif-title">${_escHtml(n.title)}</div><div class="dawg-notif-sub">${_escHtml(n.body)}</div></div></div>`).join('')
         : `<div class="dawg-notif-empty">No new notifications</div>`);
     panel.classList.remove('hidden');
     panel._releaseTrap = _trapFocus(panel, closeBell);
@@ -11129,7 +11132,7 @@ function _showFastAdd() {
 
   // Account chips for a picker; `selId` is highlighted (null = none selected yet)
   const acctChips = (selId) => accounts.map(a =>
-    `<button class="fas-acct-chip${a.id === selId ? ' fas-acct-active' : ''}" data-acct="${a.id}">${a.name}</button>`
+    `<button class="fas-acct-chip${a.id === selId ? ' fas-acct-active' : ''}" data-acct="${a.id}">${_escHtml(a.name)}</button>`
   ).join('');
 
   const overlay = document.createElement('div');
@@ -11172,7 +11175,7 @@ function _showFastAdd() {
       <div class="fas-field" id="fas-cat-field">
         <label class="fas-label">Category</label>
         <div class="fas-cats" id="fas-cats">
-          ${cats.map((c, i) => `<button class="fas-cat-chip${i === 0 ? ' fas-cat-active' : ''}" data-cat="${c}">${c}</button>`).join('')}
+          ${cats.map((c, i) => `<button class="fas-cat-chip${i === 0 ? ' fas-cat-active' : ''}" data-cat="${_escHtml(c)}">${_escHtml(c)}</button>`).join('')}
         </div>
       </div>
       <input type="text" id="fas-desc" class="fas-desc-input" placeholder="Description (optional)" autocomplete="off">
@@ -11449,7 +11452,7 @@ function attachAdd() {
     container.innerHTML = _splitRows.map((row, i) => `
       <div class="split-row" style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
         <select class="form-input split-cat" data-idx="${i}" style="flex:1;padding:6px 8px;font-size:13px">
-          ${cats.map(c => `<option${c === row.cat ? ' selected' : ''}>${c}</option>`).join('')}
+          ${cats.map(c => `<option${c === row.cat ? ' selected' : ''}>${_escHtml(c)}</option>`).join('')}
         </select>
         <input type="number" class="form-input split-amount" data-idx="${i}"
           value="${row.amount}" placeholder="$0.00" step="0.01" min="0" inputmode="decimal"
@@ -11646,7 +11649,7 @@ function attachAdd() {
     if (_dup) {
       const ok = await confirmAsync({
         title: 'Possible duplicate',
-        message: `You just added "${t.description}" for ${fmt(t.amount)} a moment ago. Add it again?`,
+        message: `You just added "${_escHtml(t.description)}" for ${fmt(t.amount)} a moment ago. Add it again?`,
         confirmText: 'Add anyway', cancelText: 'Cancel',
       });
       if (!ok) { showStatus('add-status', 'Cancelled — duplicate not added.', 'error'); return; }
@@ -11874,7 +11877,7 @@ async function _onLedgerListClick(e) {
     const t   = state.transactions[idx];
     showConfirmModal({
       title: 'Delete Transaction', danger: true,
-      message: `Delete "${t.description}" (${fmt(t.amount)})? This cannot be undone.`,
+      message: `Delete "${_escHtml(t.description)}" (${fmt(t.amount)})? This cannot be undone.`,
       confirmText: 'Delete',
       onConfirm: async () => { await api.deleteTransaction(idx); selectedLedgerIdx = null; rerenderKeepScroll(); },
     });
@@ -12163,8 +12166,8 @@ function attachImport() {
                 ${sample.map(t => `<tr style="border-top:1px solid var(--border)">
                   <td style="padding:4px 6px">${t.date}</td>
                   <td style="padding:4px 6px;color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type}</td>
-                  <td style="padding:4px 6px">${t.category}</td>
-                  <td style="padding:4px 6px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.description}</td>
+                  <td style="padding:4px 6px">${_escHtml(t.category)}</td>
+                  <td style="padding:4px 6px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_escHtml(t.description)}</td>
                   <td style="padding:4px 6px;text-align:right">${fmt(t.amount)}</td>
                 </tr>`).join('')}
               </table>
@@ -12233,7 +12236,7 @@ function updateAccountSwitcher() {
   }
   sel.style.display = '';
   sel.innerHTML = state.accounts.map(a =>
-    `<option value="${a.id}"${a.id === currentAccountId ? ' selected' : ''}>${a.name}</option>`
+    `<option value="${a.id}"${a.id === currentAccountId ? ' selected' : ''}>${_escHtml(a.name)}</option>`
   ).join('');
   // Inject home/picker button once
   if (!document.getElementById('acct-home-btn')) {
