@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.73';
+const VERSION = '5.43.74';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.74', date: '2026-07-13', changes: [
+    'Moved the hide-balances eye button into the top-right corner next to the edit pencil so it no longer overlaps the "TOTAL BALANCE" label',
+  ]},
   { version: '5.43.73', date: '2026-07-13', changes: [
     'Polish pass: light themes now use a slightly darker secondary text color so small labels meet accessibility contrast against the light background',
     'The Challenges page empty state now shows the illustrated mascot card, matching every other list instead of a plain line of text',

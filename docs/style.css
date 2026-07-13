@@ -5762,7 +5762,9 @@ body.theme-pokemon .dawg-page { background: transparent; }
 .dash-privacy-btn {
   position: absolute;
   top: 12px;
-  left: 12px;
+  /* Sits just left of the edit pencil (right:12px) in the clear top-right
+     corner — the left side holds the left-aligned TOTAL BALANCE label. */
+  right: 46px;
   background: rgba(128,128,128,.15);
   border: none;
   border-radius: 8px;
