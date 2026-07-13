@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.71';
+const VERSION = '5.43.72';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.72', date: '2026-07-13', changes: [
+    'New: Hide balances — tap the eye icon on the balance card (or Settings → Privacy) to blur every dollar amount across the app, so you can open it in public without flashing your finances. The choice sticks until you turn it back off',
+  ]},
   { version: '5.43.71', date: '2026-07-13', changes: [
     'Fixed a display bug where transactions, bills, goals, accounts, or categories containing quotes or angle brackets (like a 7" pipe or "AT&T") rendered incorrectly or broke the inline edit form — all user-entered text is now escaped consistently everywhere it appears (ledger, dashboard, bills, goals, debt, retirement, import preview, and confirm dialogs)',
     'Consolidated a duplicate internal escape helper that had been silently weakening quote handling app-wide',
@@ -2453,6 +2456,8 @@ function applySettings() {
   // "Reduce motion & effects" — freezes the infinite idle glitch loops to save
   // battery and calm the UI. CSS handles the rest via body.fx-reduced.
   document.body.classList.toggle('fx-reduced', !!s.reduceFx);
+  // Privacy: blur all money amounts if the user left "hide balances" on.
+  _applyAmountsHidden();
 }
 
 
@@ -2942,6 +2947,31 @@ function getCommonTemplates(limit = 3) {
 function _reduceMotion() {
   if (loadSettings().reduceFx) return true;
   return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+// ── privacy: hide balances (blur all money amounts) ──────────────────────────
+function _amountsHidden() { return !!loadSettings().hideAmounts; }
+function _eyeIconSvg(hidden) {
+  return hidden
+    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+}
+function _applyAmountsHidden() { document.body.classList.toggle('amounts-hidden', _amountsHidden()); }
+function toggleAmountsHidden() {
+  const s = loadSettings();
+  s.hideAmounts = !s.hideAmounts;
+  saveSettings(s);
+  _applyAmountsHidden();
+  try { navigator.vibrate && navigator.vibrate(8); } catch {}
+  // Refresh any visible eye toggles to match the new state.
+  document.querySelectorAll('.dash-privacy-btn').forEach(b => {
+    b.classList.toggle('is-hidden', s.hideAmounts);
+    b.title = s.hideAmounts ? 'Show amounts' : 'Hide amounts';
+    b.setAttribute('aria-pressed', s.hideAmounts ? 'true' : 'false');
+    b.innerHTML = _eyeIconSvg(s.hideAmounts);
+  });
+  const cb = document.getElementById('hide-amounts-settings');
+  if (cb) cb.checked = s.hideAmounts;
 }
 function _countUp(el, from, to, fmtFn, duration = 700) {
   const ease = t => 1 - Math.pow(1 - t, 3);  // easeOutCubic
@@ -5588,6 +5618,7 @@ function renderDashboardDawg() {
     </div>
 
     <div class="dawg-balance-card" style="position:relative">
+      <button class="dash-privacy-btn${_amountsHidden() ? ' is-hidden' : ''}" id="dash-privacy-btn" title="${_amountsHidden() ? 'Show amounts' : 'Hide amounts'}" aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden() ? 'true' : 'false'}">${_eyeIconSvg(_amountsHidden())}</button>
       <button class="dash-acct-edit-btn" id="dash-acct-edit" title="Edit account settings">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
@@ -9245,6 +9276,13 @@ function renderSettings() {
           <button id="bio-set-btn" class="btn-sm"${!window.PublicKeyCredential ? ' disabled title="Not supported on this device/browser"' : ''}>Enable Phone Lock</button>`}
           <span id="bio-status" class="form-status" style="font-size:11px;margin-top:8px"></span>
         </div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="hide-amounts-settings" ${s.hideAmounts ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
+            Hide balances (blur amounts)
+          </label>
+          <p class="code-hint" style="margin-top:6px">Blurs every dollar amount across the app so you can open it in public. Tap the eye icon on the balance card to toggle it any time.</p>
+        </div>
       </div>
 
       <div class="form-card">
@@ -9451,6 +9489,13 @@ function attachSettings() {
     s.reduceFx = e.target.checked;
     saveSettings(s);
     document.body.classList.toggle('fx-reduced', e.target.checked);
+  });
+
+  document.getElementById('hide-amounts-settings')?.addEventListener('change', e => {
+    const s = loadSettings();
+    s.hideAmounts = e.target.checked;
+    saveSettings(s);
+    _applyAmountsHidden();
   });
 
 
@@ -10875,6 +10920,7 @@ function attachDashboardDawg() {
     setTimeout(() => document.getElementById('backup-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
   });
   document.getElementById('dash-reconcile')?.addEventListener('click', showReconcileModal);
+  document.getElementById('dash-privacy-btn')?.addEventListener('click', toggleAmountsHidden);
 
   // LOCK TF IN tap glitch
   const _lockinEl = document.querySelector('.dawg-lockin');

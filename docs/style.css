@@ -5733,6 +5733,89 @@ body.theme-pokemon .dawg-page { background: transparent; }
   background: rgba(128,128,128,.28);
 }
 
+/* ── Privacy / hide-balances toggle ──────────────────────────────────────────
+   Eye button on the balance card (mirrors the edit pencil, left side), plus a
+   blur applied to every money-display element when amounts are hidden. Blur is
+   in em so it scales with each number's font size — the big hero balance blurs
+   more than a tiny ledger row, staying uniformly unreadable. */
+.dash-privacy-btn {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(128,128,128,.15);
+  border: none;
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 7px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color .15s, background .15s;
+  z-index: 2;
+}
+.dash-privacy-btn:hover,
+.dash-privacy-btn:active { color: var(--text); background: rgba(128,128,128,.28); }
+.dash-privacy-btn.is-hidden { color: var(--accent); }
+
+body.amounts-hidden .dawg-balance-amt,
+body.amounts-hidden .dawg-balance-due,
+body.amounts-hidden .dawg-balance-delta,
+body.amounts-hidden .dawg-meter-amt,
+body.amounts-hidden .ledger-amt,
+body.amounts-hidden .ledger-running-bal,
+body.amounts-hidden .dawg-cat-amt,
+body.amounts-hidden .dawg-txn-amt,
+body.amounts-hidden .pw-txn-amt,
+body.amounts-hidden .combo-item-amt,
+body.amounts-hidden .cat-modal-amt,
+body.amounts-hidden .tmpl-chip-amt,
+body.amounts-hidden .txn-tamt,
+body.amounts-hidden .dh-amt,
+body.amounts-hidden .bill-card-amt,
+body.amounts-hidden .dawg-bill-amt,
+body.amounts-hidden .dawg-bcat-amt,
+body.amounts-hidden .goal-amounts,
+body.amounts-hidden .debt-txn-amt,
+body.amounts-hidden .debt-owed-value,
+body.amounts-hidden .debt-summary-value,
+body.amounts-hidden .acct-row-bal,
+body.amounts-hidden .acct-nw2-value,
+body.amounts-hidden .card-value,
+body.amounts-hidden .ret-acct-bal,
+body.amounts-hidden .ret-dash-balance,
+body.amounts-hidden .ret-dash-contrib-amt,
+body.amounts-hidden .ret-proj-ms-bal,
+body.amounts-hidden .acct-contrib-amt,
+body.amounts-hidden .acct-contrib-sched-amt,
+body.amounts-hidden .acct-employer-match-amt,
+body.amounts-hidden .report-cat-amt,
+body.amounts-hidden .wrap-stat-value,
+body.amounts-hidden .budget-suggest-amt,
+body.amounts-hidden .ibp-amt {
+  /* em is unreliable inside filter: blur() (some engines clamp it to 0), so use
+     px. Smaller row amounts get a light blur; big display numbers get more via
+     the overrides below. */
+  /* No transition on filter: interpolating out of `filter: none` leaves the
+     transition stuck at 0 in some engines (blur never applies). Instant is also
+     snappier for a deliberate privacy toggle. */
+  filter: blur(6px);
+  -webkit-filter: blur(6px);
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+/* Large display numbers need a heavier blur to stay unreadable. */
+body.amounts-hidden .dawg-balance-amt { filter: blur(15px); -webkit-filter: blur(15px); }
+body.amounts-hidden .debt-owed-value,
+body.amounts-hidden .debt-summary-value,
+body.amounts-hidden .ret-dash-balance,
+body.amounts-hidden .acct-nw2-value,
+body.amounts-hidden .card-value,
+body.amounts-hidden .wrap-stat-value,
+body.amounts-hidden .ret-acct-bal,
+body.amounts-hidden .acct-row-bal { filter: blur(10px); -webkit-filter: blur(10px); }
+
 /* ── Retirement contribution split card ─────────────────────────────────── */
 .ret-dash-match-rows { display: flex; flex-direction: column; gap: 10px; }
 .ret-dash-match-row  { display: flex; align-items: center; justify-content: space-between; }
