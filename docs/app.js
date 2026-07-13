@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.72';
+const VERSION = '5.43.73';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.73', date: '2026-07-13', changes: [
+    'Polish pass: light themes now use a slightly darker secondary text color so small labels meet accessibility contrast against the light background',
+    'The Challenges page empty state now shows the illustrated mascot card, matching every other list instead of a plain line of text',
+    'Under the hood: added a shared type-scale and elevation-shadow token set and consolidated a few duplicate shadows — groundwork for keeping the look consistent as the app grows (no visible change)',
+  ]},
   { version: '5.43.72', date: '2026-07-13', changes: [
     'New: Hide balances — tap the eye icon on the balance card (or Settings → Privacy) to blur every dollar amount across the app, so you can open it in public without flashing your finances. The choice sticks until you turn it back off',
   ]},
@@ -1585,7 +1590,7 @@ const THEMES = {
     bg:'#f5f5f7', surface:'#ffffff', surface2:'#ececef', card:'#ffffff',
     accent:'#2fa56f', accent2:'#9a7850', success:'#3a9e6e', warn:'#9a7d12', danger:'#cc3b30',
     grad:'linear-gradient(135deg, #1a4030 0%, #5ab592 100%)',
-    text:'#1d1d1f', muted:'#6e6e73', border:'#e3e3e6', light:true, font:'default',
+    text:'#1d1d1f', muted:'#5b5b60', border:'#e3e3e6', light:true, font:'default',
     cats:{ Food:'#4aaa80', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
   },
   denim: {
@@ -1631,7 +1636,7 @@ const THEMES = {
   customlight: {
     label:'Custom', shortLabel:'Custom',
     bg:'#f5f5f7', surface:'#ffffff', surface2:'#ececef', card:'#ffffff',
-    text:'#1d1d1f', muted:'#6e6e73', border:'#e3e3e6', light:true, font:'default',
+    text:'#1d1d1f', muted:'#5b5b60', border:'#e3e3e6', light:true, font:'default',
     accent:'#5ab592', accent2:'#5ab592', success:'#5ab592', warn:'#a08030', danger:'#c05050',
     grad:'linear-gradient(135deg, #d8d8d5 0%, #5ab592 100%)',
   },
@@ -1641,7 +1646,7 @@ const THEMES = {
     bg:'#f5f5f7', surface:'#ffffff', surface2:'#ececef', card:'#ffffff',
     accent:'#5492bc', accent2:'#c07840', success:'#2e9a68', warn:'#b07800', danger:'#a84040',
     grad:'linear-gradient(135deg, #1a304a 0%, #5492bc 100%)',
-    text:'#1d1d1f', muted:'#6e6e73', border:'#e3e3e6', light:true, font:'default',
+    text:'#1d1d1f', muted:'#5b5b60', border:'#e3e3e6', light:true, font:'default',
     cats:{ Food:'#2e9a68', Gas:'#a84040', Car:'#5492bc', Boat:'#2888a8', Tools:'#986030', Home:'#608038', Entertainment:'#7848a8', Health:'#3888a0', Other:'#606078' },
   },
   lightrose: {
@@ -1649,7 +1654,7 @@ const THEMES = {
     bg:'#f5f5f7', surface:'#ffffff', surface2:'#ececef', card:'#ffffff',
     accent:'#b05878', accent2:'#987838', success:'#2ea870', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #4a1a2c 0%, #b05878 100%)',
-    text:'#1d1d1f', muted:'#6e6e73', border:'#e3e3e6', light:true, font:'default',
+    text:'#1d1d1f', muted:'#5b5b60', border:'#e3e3e6', light:true, font:'default',
     cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a8', Boat:'#308898', Tools:'#986030', Home:'#608038', Entertainment:'#b05878', Health:'#308898', Other:'#606078' },
   },
   lightsand: {
@@ -1657,7 +1662,7 @@ const THEMES = {
     bg:'#f5f5f7', surface:'#ffffff', surface2:'#ececef', card:'#ffffff',
     accent:'#a8843c', accent2:'#c05830', success:'#2ea870', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #4a3010 0%, #a8843c 100%)',
-    text:'#1d1d1f', muted:'#6e6e73', border:'#e3e3e6', light:true, font:'default',
+    text:'#1d1d1f', muted:'#5b5b60', border:'#e3e3e6', light:true, font:'default',
     cats:{ Food:'#2ea870', Gas:'#a84040', Car:'#4858a0', Boat:'#308898', Tools:'#a8843c', Home:'#608038', Entertainment:'#804898', Health:'#308898', Other:'#606078' },
   },
   lightsilver: {
@@ -1665,7 +1670,7 @@ const THEMES = {
     bg:'#f5f5f7', surface:'#ffffff', surface2:'#ececef', card:'#ffffff',
     accent:'#70788a', accent2:'#8a8080', success:'#4a9870', warn:'#988018', danger:'#a84040',
     grad:'linear-gradient(135deg, #282c38 0%, #70788a 100%)',
-    text:'#1d1d1f', muted:'#6e6e73', border:'#e3e3e6', light:true, font:'default',
+    text:'#1d1d1f', muted:'#5b5b60', border:'#e3e3e6', light:true, font:'default',
     cats:{ Food:'#4a9870', Gas:'#a84040', Car:'#5068a0', Boat:'#407890', Tools:'#986030', Home:'#608038', Entertainment:'#706890', Health:'#407890', Other:'#606078' },
   },
   // ── Pokémon themes ──────────────────────────────────────────────────────
@@ -6363,7 +6368,7 @@ function renderChallenges() {
 
   const activeHtml = active.length
     ? active.map(cardHtml).join('')
-    : `<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:.85rem">No active challenges — start one below!</div>`;
+    : emptyState('No active challenges', 'Start one below to build the habit');
 
   const doneHtml = done.length
     ? `<h2 class="section-title" style="margin-top:18px">Past Challenges</h2>${done.map(cardHtml).join('')}`

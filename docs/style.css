@@ -18,6 +18,27 @@
   --radius-card: 18px;
   --radius-btn: 11px;
   --radius-input: 11px;
+
+  /* ── Type scale ────────────────────────────────────────────────────────────
+     Canonical steps to replace the ~75 ad-hoc font sizes that had drifted.
+     Adopt incrementally via var(--fs-N); values chosen to land on the existing
+     dominant sizes so nothing jumps. */
+  --fs-1: 0.68rem;   /* micro caps labels, tags        (~11px) */
+  --fs-2: 0.78rem;   /* secondary / meta text          (~12.5px) */
+  --fs-3: 0.85rem;   /* body                           (~13.6px) */
+  --fs-4: 0.95rem;   /* emphasized body / list titles  (~15px) */
+  --fs-5: 1.1rem;    /* card titles / subheads         (~17.6px) */
+  --fs-6: 1.35rem;   /* section numbers                (~21.6px) */
+  --fs-7: 2rem;      /* hero numbers                   (~32px) */
+
+  /* ── Elevation ─────────────────────────────────────────────────────────────
+     Three consistent steps (single light source). Values match the existing
+     repeated secondary shadows so adopting them is a zero-visual-change dedupe;
+     the primary card look stays in --shadow-card, the floating/modal look in --elev-3. */
+  --elev-1: 0 2px 8px rgba(0,0,0,.2);
+  --elev-2: 0 2px 12px rgba(0,0,0,.3);
+  --elev-3: 0 8px 40px rgba(0,0,0,.55);
+
   --shadow-card: 0 4px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.16), inset 0 -1px 0 rgba(0,0,0,.18);
   --accent-gradient: linear-gradient(135deg, #2d3830 0%, var(--accent) 100%);
   /* Clear top-lit glass — brighter at top like light catching the surface */
@@ -1122,7 +1143,7 @@ html, body {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 14px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  box-shadow: var(--elev-1);
 }
 .bill-name { flex: 1; font-size: 13px; color: var(--text); }
 .bill-amt  { font-size: 13px; color: var(--accent2); font-weight: 600; }
@@ -1130,7 +1151,7 @@ html, body {
 .bill-card {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  box-shadow: 0 2px 12px rgba(0,0,0,.3);
+  box-shadow: var(--elev-2);
   border-radius: 18px;
   padding: 16px 18px; margin-bottom: 10px;
 }
@@ -1167,7 +1188,7 @@ html, body {
 .goal-card {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  box-shadow: 0 2px 12px rgba(0,0,0,.3);
+  box-shadow: var(--elev-2);
   border-radius: 18px; padding: 18px; margin-bottom: 10px;
 }
 .goal-header {
@@ -1893,7 +1914,7 @@ body.light .section-title::before {
   font-size: .85rem;
   color: var(--text);
   line-height: 1.5;
-  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  box-shadow: var(--elev-1);
 }
 
 /* ── pin lock ─────────────────────────────────────────────────────────────── */
@@ -3817,7 +3838,7 @@ details.dh-week[open] > summary .dh-week-caret { transform: rotate(90deg); }
   background:var(--surface) !important; border-radius:50% !important;
   border:1.5px solid var(--accent) !important;
   color:var(--text) !important; padding:0; margin:0;
-  box-shadow:0 2px 12px rgba(0,0,0,.25);
+  box-shadow: var(--elev-2);
   justify-content:center; align-items:center; overflow:visible; gap:0;
   transform:translateY(0);
   position:relative; z-index:1;
