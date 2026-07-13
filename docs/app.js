@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.74';
+const VERSION = '5.43.75';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.75', date: '2026-07-13', changes: [
+    'New on Insights: an Average spending card showing your typical per day, per week, and per month spend, based on the last 90 days of expenses (or your whole history if shorter)',
+  ]},
   { version: '5.43.74', date: '2026-07-13', changes: [
     'Moved the hide-balances eye button into the top-right corner next to the edit pencil so it no longer overlaps the "TOTAL BALANCE" label',
   ]},
@@ -2860,6 +2863,34 @@ function monthTotals(monthStr) {
   if (keys.length > 12) delete _monthCache[keys[0]];
   _monthCache[key] = result;
   return result;
+}
+
+// Average actual spending (per day / week / month) over a trailing window of the
+// current account's expense history. Rate-based: weekly and monthly are the daily
+// average scaled, so the three numbers stay internally consistent. Counts the same
+// non-income transactions as monthTotals() so it matches the "Expenses" figures.
+function _spendingAverages(windowDays = 90) {
+  let earliest = null;
+  const exps = [];
+  for (const t of state.transactions) {
+    if (t.type === 'income' || !t.date) continue;
+    exps.push(t);
+    if (!earliest || t.date < earliest) earliest = t.date;
+  }
+  if (!exps.length) return null;
+  const todayD = new Date(); todayD.setHours(0, 0, 0, 0);
+  const firstD = new Date(earliest + 'T00:00:00');
+  const spanDays = Math.max(1, Math.floor((todayD - firstD) / 86400000) + 1);
+  const win = Math.min(windowDays, spanDays);          // don't divide by more days than we have
+  const cutoff = new Date(todayD); cutoff.setDate(cutoff.getDate() - (win - 1));
+  const cutoffStr = localDateStr(cutoff);
+  const todayStr = today();
+  let total = 0;
+  for (const t of exps) {
+    if (t.date >= cutoffStr && t.date <= todayStr) total += Number(t.amount) || 0;
+  }
+  const daily = total / win;
+  return { daily, weekly: daily * 7, monthly: daily * 365.25 / 12, windowDays: win, total };
 }
 
 // Cached formatter — ~8× faster than calling toLocaleString() with options each time
@@ -8238,6 +8269,18 @@ function renderInsights() {
         <div class="ins-row"><span>Expenses</span><span style="color:var(--danger);font-weight:700">${fmt(cur.expense)}</span></div>
         <div class="ins-row ins-row-net"><span>Net</span><span style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:700">${fmt(net)}</span></div>
       </div>
+
+      ${(() => {
+        const avg = _spendingAverages();
+        if (!avg) return '';
+        return `<div class="ins-section">
+        <div class="ins-section-hdr">Average spending</div>
+        <div class="ins-row"><span>Per day</span><span style="font-weight:700">${fmt(avg.daily)}</span></div>
+        <div class="ins-row"><span>Per week</span><span style="font-weight:700">${fmt(avg.weekly)}</span></div>
+        <div class="ins-row"><span>Per month</span><span style="font-weight:700">${fmt(avg.monthly)}</span></div>
+        <p class="code-hint" style="margin:8px 0 0">Based on the last ${avg.windowDays} day${avg.windowDays === 1 ? '' : 's'} of expenses.</p>
+      </div>`;
+      })()}
 
       <div class="ins-section">
         <div class="ins-section-hdr">Top categories</div>
