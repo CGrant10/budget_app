@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.75';
+const VERSION = '5.43.76';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.76', date: '2026-07-13', changes: [
+    'Average spending is now customizable: tap the Bills chip or any category chip on the Insights "Average spending" card to leave it out of your per day/week/month averages. Your choices are remembered',
+  ]},
   { version: '5.43.75', date: '2026-07-13', changes: [
     'New on Insights: an Average spending card showing your typical per day, per week, and per month spend, based on the last 90 days of expenses (or your whole history if shorter)',
   ]},
@@ -2389,6 +2392,30 @@ function toggleHiddenCat(cat) {
   s.hiddenBreakdownCats = h;
   saveSettings(s);
 }
+// ── Average-spending exclusions ──────────────────────────────────────────────
+// Separate from the breakdown's hiddenBreakdownCats: these categories (and,
+// optionally, bill payments) are left OUT of the Insights "Average spending"
+// figures so the average reflects only the discretionary spending you care about.
+function getAvgExcludedCats() {
+  const h = loadSettings().avgExcludeCats;
+  return Array.isArray(h) ? h : [];
+}
+function isAvgCatExcluded(cat) { return getAvgExcludedCats().includes(cat); }
+function toggleAvgExcludedCat(cat) {
+  const s = loadSettings();
+  const h = Array.isArray(s.avgExcludeCats) ? s.avgExcludeCats.slice() : [];
+  const i = h.indexOf(cat);
+  if (i >= 0) h.splice(i, 1); else h.push(cat);
+  s.avgExcludeCats = h;
+  saveSettings(s);
+}
+function getAvgExcludeBills() { return !!loadSettings().avgExcludeBills; }
+function toggleAvgExcludeBills() {
+  const s = loadSettings();
+  s.avgExcludeBills = !s.avgExcludeBills;
+  saveSettings(s);
+}
+
 // Toggle-chip row listing every category present (shown + hidden). Off chips are
 // dimmed. `cats` is [{name, color}]. Caller wires clicks on `.cat-toggle`.
 function _catToggleChipsHTML(cats) {
@@ -2870,10 +2897,14 @@ function monthTotals(monthStr) {
 // average scaled, so the three numbers stay internally consistent. Counts the same
 // non-income transactions as monthTotals() so it matches the "Expenses" figures.
 function _spendingAverages(windowDays = 90) {
+  const exCats  = getAvgExcludedCats();
+  const exBills = getAvgExcludeBills();
   let earliest = null;
   const exps = [];
   for (const t of state.transactions) {
     if (t.type === 'income' || !t.date) continue;
+    if (exBills && isBillTxn(t)) continue;               // user excluded bill payments
+    if (exCats.includes(t.category)) continue;           // user excluded this category
     exps.push(t);
     if (!earliest || t.date < earliest) earliest = t.date;
   }
@@ -2891,6 +2922,38 @@ function _spendingAverages(windowDays = 90) {
   }
   const daily = total / win;
   return { daily, weekly: daily * 7, monthly: daily * 365.25 / 12, windowDays: win, total };
+}
+
+// True if the current account has any expense transaction at all (before exclusions).
+function _hasAnyExpense() {
+  return state.transactions.some(t => t.type !== 'income' && t.date);
+}
+
+// Chip row for the Average-spending card: a Bills toggle (if any bill payments
+// exist) plus one chip per expense category. Dimmed = excluded from the average.
+// Handler is wired in attachInsights on `.avg-cat-toggle`.
+function _avgExclusionChipsHTML() {
+  const set = new Map();
+  for (const t of state.transactions) {
+    if (t.type === 'income' || !t.date) continue;
+    const c = t.category || 'Other';
+    if (!set.has(c)) set.set(c, CAT_COLORS[c] || '#9896a4');
+  }
+  const cats = [...set.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  const billsOff = getAvgExcludeBills();
+  const anyBills = state.transactions.some(isBillTxn);
+  const billChip = anyBills
+    ? `<button type="button" class="cat-toggle avg-cat-toggle${billsOff ? ' cat-toggle-off' : ''}" data-avgbills="1" aria-pressed="${billsOff ? 'false' : 'true'}" title="${billsOff ? 'Include' : 'Exclude'} bill payments">🧾 Bills</button>`
+    : '';
+  const catChips = cats.map(([name, color]) => {
+    const off = isAvgCatExcluded(name);
+    return `<button type="button" class="cat-toggle avg-cat-toggle${off ? ' cat-toggle-off' : ''}" data-cat="${_escHtml(name)}" aria-pressed="${off ? 'false' : 'true'}" title="${off ? 'Include' : 'Exclude'} ${_escHtml(name)}"><span class="cat-dot" style="background:${color}"></span>${_escHtml(name)}</button>`;
+  }).join('');
+  if (!billChip && !catChips) return '';
+  return `<div class="avg-exclude-wrap">
+    <div class="avg-exclude-lbl">Tap to exclude from the average</div>
+    <div class="cat-toggle-row">${billChip}${catChips}</div>
+  </div>`;
 }
 
 // Cached formatter — ~8× faster than calling toLocaleString() with options each time
@@ -8271,14 +8334,18 @@ function renderInsights() {
       </div>
 
       ${(() => {
+        if (!_hasAnyExpense()) return '';
         const avg = _spendingAverages();
-        if (!avg) return '';
-        return `<div class="ins-section">
-        <div class="ins-section-hdr">Average spending</div>
+        const body = avg ? `
         <div class="ins-row"><span>Per day</span><span style="font-weight:700">${fmt(avg.daily)}</span></div>
         <div class="ins-row"><span>Per week</span><span style="font-weight:700">${fmt(avg.weekly)}</span></div>
         <div class="ins-row"><span>Per month</span><span style="font-weight:700">${fmt(avg.monthly)}</span></div>
-        <p class="code-hint" style="margin:8px 0 0">Based on the last ${avg.windowDays} day${avg.windowDays === 1 ? '' : 's'} of expenses.</p>
+        <p class="code-hint" style="margin:8px 0 0">Based on the last ${avg.windowDays} day${avg.windowDays === 1 ? '' : 's'} of expenses.</p>`
+        : `<p class="code-hint" style="margin:6px 0 0">Everything's excluded right now — tap a chip below to add it back.</p>`;
+        return `<div class="ins-section">
+        <div class="ins-section-hdr">Average spending</div>
+        ${body}
+        ${_avgExclusionChipsHTML()}
       </div>`;
       })()}
 
@@ -8348,6 +8415,16 @@ function attachInsights() {
   });
   document.getElementById('insights-goto-ledger')?.addEventListener('click', () => showTab('ledger'));
   document.getElementById('insights-goto-report')?.addEventListener('click', () => showTab('report'));
+
+  // Average-spending exclusion chips (Bills + per-category)
+  document.querySelectorAll('.avg-cat-toggle').forEach(chip => {
+    chip.addEventListener('click', () => {
+      if (chip.dataset.avgbills) toggleAvgExcludeBills();
+      else toggleAvgExcludedCat(chip.dataset.cat);
+      haptic([6]);
+      render();
+    });
+  });
 
   // Custom date-range category summary
   const runRange = () => {

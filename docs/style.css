@@ -7091,6 +7091,14 @@ body.theme-ubuntu .section-title::before {
 .cat-toggle-off { opacity: .42; text-decoration: line-through; }
 .cat-toggle-off .cat-dot { filter: grayscale(1); }
 
+/* Average-spending exclusion controls */
+.avg-exclude-wrap { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+.avg-exclude-lbl {
+  font-size: .6rem; font-weight: 800; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 2px;
+}
+.avg-exclude-wrap .cat-toggle-row { margin-bottom: 0; }
+
 /* Find-duplicates modal */
 .dupe-modal {
   background: var(--card); border: 1.5px solid var(--border); border-radius: 18px;
