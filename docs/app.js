@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.79';
+const VERSION = '5.43.80';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.80', date: '2026-07-13', changes: [
+    'The app now gives a subtle haptic tap-tick on buttons and controls across every screen, so it feels more responsive in the hand (phones only). You can turn it off in Settings → Animations → Haptic feedback',
+  ]},
   { version: '5.43.79', date: '2026-07-13', changes: [
     'Average-spending exclusions are now grouped into Recurring (bills) and Categories for easier scanning',
     'Toggling the Adjust panel or excluding/including an item on Insights no longer jumps you back to the top of the page — you stay right where you were',
@@ -1788,8 +1791,34 @@ function emptyState(title, hint = '') {
 }
 
 // ── haptic feedback ────────────────────────────────────────────────────────
+// Global on/off (default on). A light single tap-tick from the global listener
+// and a handler's own light tick for the same gesture are coalesced so a tap
+// never stutters; multi-pulse confirmation patterns (add/delete/milestone)
+// always fire, so you still feel the press-tick + the result.
+function _hapticsOn() { return loadSettings().hapticsOff !== true; }
+let _lastHapticTs = 0;
 function haptic(pattern = [10]) {
-  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch(e) {}
+  if (!_hapticsOn()) return;
+  if (!navigator.vibrate) return;
+  const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  const isLight = Array.isArray(pattern) ? (pattern.length === 1 && pattern[0] <= 12) : (pattern <= 12);
+  if (isLight && (now - _lastHapticTs) < 130) return;   // dedupe redundant light ticks
+  _lastHapticTs = now;
+  try { navigator.vibrate(pattern); } catch(e) {}
+}
+
+// One delegated listener gives every control a subtle tap-tick, so the whole app
+// feels responsive without wiring haptics into each handler. Fires on pointerdown
+// for immediacy; only for deliberate controls (not scrollable rows). Attached once.
+let _tapHapticsBound = false;
+function initTapHaptics() {
+  if (_tapHapticsBound) return;
+  _tapHapticsBound = true;
+  document.addEventListener('pointerdown', e => {
+    const el = e.target.closest('button, [role="button"], input[type="checkbox"], input[type="radio"], select, .nav-btn, .dawg-nav-btn');
+    if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
+    haptic([5]);
+  }, { capture: true, passive: true });
 }
 
 // ── audio ──────────────────────────────────────────────────────────────────
@@ -9487,6 +9516,13 @@ function renderSettings() {
           </label>
           <p class="code-hint" style="margin-top:6px">Freezes the looping glitch animations across the app — calmer UI and better battery life. Page transitions stay snappy.</p>
         </div>
+        <div class="form-row" style="margin-top:10px">
+          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="haptics-settings" ${loadSettings().hapticsOff ? '' : 'checked'} style="accent-color:var(--accent);width:16px;height:16px">
+            Haptic feedback
+          </label>
+          <p class="code-hint" style="margin-top:6px">A subtle vibration tick when you tap buttons and controls. Turn off if you'd rather the app stay silent. (Phones only.)</p>
+        </div>
       </div>
 
     </div>`;
@@ -9682,6 +9718,13 @@ function attachSettings() {
     s.hideAmounts = e.target.checked;
     saveSettings(s);
     _applyAmountsHidden();
+  });
+
+  document.getElementById('haptics-settings')?.addEventListener('change', e => {
+    const s = loadSettings();
+    s.hapticsOff = !e.target.checked;
+    saveSettings(s);
+    if (e.target.checked) haptic([10]);   // confirmation buzz when turning it on
   });
 
 
@@ -13198,6 +13241,7 @@ window.addEventListener('popstate', () => {
     await api.load();
     await processRecurring();
     initSoundsToggle();
+    initTapHaptics();
     applySettings();
     // Re-fit logo once custom fonts finish loading — applySettings fires before
     // web fonts are ready, so the first measurement uses the fallback font width.
