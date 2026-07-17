@@ -7091,13 +7091,29 @@ body.theme-ubuntu .section-title::before {
 .cat-toggle-off { opacity: .42; text-decoration: line-through; }
 .cat-toggle-off .cat-dot { filter: grayscale(1); }
 
-/* Average-spending exclusion controls */
-.avg-exclude-wrap { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+/* Average-spending exclusion controls (collapsible) */
+.avg-adjust { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.avg-adjust-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; background: none; border: none; padding: 2px 0; cursor: pointer;
+  font-family: var(--font-body); -webkit-tap-highlight-color: transparent;
+}
+.avg-adjust-toggle:active { opacity: .7; }
+.avg-adjust-summary {
+  font-size: .8rem; color: var(--muted); text-align: left; line-height: 1.35;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.avg-adjust-action {
+  display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;
+  font-size: .78rem; font-weight: 700; color: var(--accent);
+}
+.avg-adjust-caret { font-size: .68rem; }
+.avg-exclude-wrap { margin-top: 10px; }
 .avg-exclude-lbl {
   font-size: .6rem; font-weight: 800; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: 2px;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
 }
-.avg-exclude-wrap .cat-toggle-row { margin-bottom: 0; }
+.avg-exclude-wrap .cat-toggle-row { margin: 0; }
 
 /* Find-duplicates modal */
 .dupe-modal {

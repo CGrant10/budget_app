@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.76';
+const VERSION = '5.43.77';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.77', date: '2026-07-13', changes: [
+    'Cleaner Insights: the average-spending category/bills chips are now tucked behind a compact "Adjust" toggle with a one-line summary of what you\'re excluding — tap to expand and manage, tap Done to collapse',
+  ]},
   { version: '5.43.76', date: '2026-07-13', changes: [
     'Average spending is now customizable: tap the Bills chip or any category chip on the Insights "Average spending" card to leave it out of your per day/week/month averages. Your choices are remembered',
   ]},
@@ -2956,6 +2959,27 @@ function _avgExclusionChipsHTML() {
   </div>`;
 }
 
+// Collapsible "Adjust" control for the average card: a one-line summary of what's
+// excluded, tappable to reveal the exclusion chips. Kept collapsed by default so
+// the card stays clean. forceOpen keeps it open when there's nothing left to average.
+function _avgAdjustHTML(forceOpen) {
+  const open = _avgExcludeOpen || !!forceOpen;
+  const exCats  = getAvgExcludedCats();
+  const parts   = [];
+  if (getAvgExcludeBills()) parts.push('Bills');
+  parts.push(...exCats);
+  const summary = parts.length
+    ? `Excluding ${parts.map(_escHtml).join(', ')}`
+    : 'Counting all spending';
+  return `<div class="avg-adjust${open ? ' is-open' : ''}">
+    <button type="button" class="avg-adjust-toggle" id="avg-adjust-toggle" aria-expanded="${open ? 'true' : 'false'}">
+      <span class="avg-adjust-summary">${summary}</span>
+      <span class="avg-adjust-action">${open ? 'Done' : 'Adjust'}<span class="avg-adjust-caret">${open ? '▴' : '▾'}</span></span>
+    </button>
+    ${open ? _avgExclusionChipsHTML() : ''}
+  </div>`;
+}
+
 // Cached formatter — ~8× faster than calling toLocaleString() with options each time
 const _usd = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 function fmt(n) { return '$' + _usd.format(Number(n)); }
@@ -3550,6 +3574,7 @@ function showTab(key) {
 let spendingChart = null;
 let _insightsChart = null;
 let _insTrend = { labels: [], data: [] };   // 6-month expense trend, set by renderInsights()
+let _avgExcludeOpen = false;                 // is the average-spending "Adjust" panel expanded?
 
 function showCatModal(cat) {
   const m = dashMonth;
@@ -8345,7 +8370,7 @@ function renderInsights() {
         return `<div class="ins-section">
         <div class="ins-section-hdr">Average spending</div>
         ${body}
-        ${_avgExclusionChipsHTML()}
+        ${_avgAdjustHTML(!avg)}
       </div>`;
       })()}
 
@@ -8416,6 +8441,12 @@ function attachInsights() {
   document.getElementById('insights-goto-ledger')?.addEventListener('click', () => showTab('ledger'));
   document.getElementById('insights-goto-report')?.addEventListener('click', () => showTab('report'));
 
+  // Average-spending: expand/collapse the exclusion panel
+  document.getElementById('avg-adjust-toggle')?.addEventListener('click', () => {
+    _avgExcludeOpen = !_avgExcludeOpen;
+    haptic([6]);
+    render();
+  });
   // Average-spending exclusion chips (Bills + per-category)
   document.querySelectorAll('.avg-cat-toggle').forEach(chip => {
     chip.addEventListener('click', () => {
