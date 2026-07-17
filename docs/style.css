@@ -7115,6 +7115,18 @@ body.theme-ubuntu .section-title::before {
 }
 .avg-exclude-wrap .cat-toggle-row { margin: 0; }
 
+/* Generic collapsible section header (Insights custom range, etc.) */
+.ins-collapse-hdr {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; background: none; border: none; padding: 0 0 8px;
+  border-bottom: 1px solid var(--border); cursor: pointer;
+  font-family: var(--font-body); -webkit-tap-highlight-color: transparent;
+}
+.ins-collapse-hdr:active { opacity: .7; }
+
+/* Insights bottom action buttons, stacked with consistent spacing */
+.ins-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+
 /* Find-duplicates modal */
 .dupe-modal {
   background: var(--card); border: 1.5px solid var(--border); border-radius: 18px;

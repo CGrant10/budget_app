@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.77';
+const VERSION = '5.43.78';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.78', date: '2026-07-13', changes: [
+    'Insights page tidied up: the snapshot cards and This-month totals now sit together at the top, every section uses the same clean hairline style, the Custom range summary is collapsed by default (tap to open), and the Monthly report / View ledger buttons are grouped at the bottom',
+  ]},
   { version: '5.43.77', date: '2026-07-13', changes: [
     'Cleaner Insights: the average-spending category/bills chips are now tucked behind a compact "Adjust" toggle with a one-line summary of what you\'re excluding — tap to expand and manage, tap Done to collapse',
   ]},
@@ -3575,6 +3578,7 @@ let spendingChart = null;
 let _insightsChart = null;
 let _insTrend = { labels: [], data: [] };   // 6-month expense trend, set by renderInsights()
 let _avgExcludeOpen = false;                 // is the average-spending "Adjust" panel expanded?
+let _insRangeOpen   = false;                 // is the Insights custom-range summary expanded?
 
 function showCatModal(cat) {
   const m = dashMonth;
@@ -8330,7 +8334,7 @@ function renderInsights() {
       <h1 class="page-title">Insights</h1>
       <p class="page-sub">${monthKeyLabel(curM)}</p>
 
-      <div class="cards-grid" style="margin-bottom:16px">
+      <div class="cards-grid" style="margin-bottom:12px">
         <div class="card">
           <div class="card-title">NET WORTH</div>
           <div class="card-value" style="color:${netWorth >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(netWorth)}</div>
@@ -8343,19 +8347,17 @@ function renderInsights() {
         </div>
       </div>
 
-      <button class="btn-primary" id="insights-goto-report" style="width:100%;margin-bottom:16px">📊 Monthly savings report ›</button>
-
-      <div class="form-card">
-        <h2 class="section-title" style="margin:0 0 4px">Spending — last 6 months</h2>
-        <p class="code-hint" style="margin:0 0 10px">${fmt(cur.expense)} this month · ${deltaStr}</p>
-        <div style="height:170px"><canvas id="insights-trend"></canvas></div>
-      </div>
-
       <div class="ins-section">
         <div class="ins-section-hdr">This month</div>
         <div class="ins-row"><span>Income</span><span style="color:var(--success);font-weight:700">${fmt(cur.income)}</span></div>
         <div class="ins-row"><span>Expenses</span><span style="color:var(--danger);font-weight:700">${fmt(cur.expense)}</span></div>
         <div class="ins-row ins-row-net"><span>Net</span><span style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:700">${fmt(net)}</span></div>
+      </div>
+
+      <div class="ins-section">
+        <div class="ins-section-hdr">Spending — last 6 months</div>
+        <p class="code-hint" style="margin:6px 0 10px">${fmt(cur.expense)} this month · ${deltaStr}</p>
+        <div style="height:170px"><canvas id="insights-trend"></canvas></div>
       </div>
 
       ${(() => {
@@ -8394,9 +8396,13 @@ function renderInsights() {
         </div>`).join('')}
       </div>` : ''}
 
-      <div class="form-card" id="range-summary-card">
-        <h2 class="section-title" style="margin:0 0 4px">Custom range summary</h2>
-        <p class="code-hint" style="margin:0 0 10px">Pick a start and end date to total your spending by category.</p>
+      <div class="ins-section" id="range-summary-card">
+        <button type="button" class="ins-collapse-hdr" id="range-toggle" aria-expanded="${_insRangeOpen ? 'true' : 'false'}">
+          <span class="ins-section-hdr" style="border:none;padding:0;margin:0">Custom range summary</span>
+          <span class="avg-adjust-action">${_insRangeOpen ? 'Hide' : 'Open'}<span class="avg-adjust-caret">${_insRangeOpen ? '▴' : '▾'}</span></span>
+        </button>
+        ${_insRangeOpen ? `
+        <p class="code-hint" style="margin:10px 0 10px">Pick a start and end date to total your spending by category.</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
           <div>
             <label class="form-label" style="font-size:.7rem">From</label>
@@ -8408,10 +8414,13 @@ function renderInsights() {
           </div>
         </div>
         <button class="btn-primary" id="range-run-btn" style="width:100%">Run summary</button>
-        <div id="range-summary-results">${_rangeSummaryHTML(curM + '-01', today())}</div>
+        <div id="range-summary-results">${_rangeSummaryHTML(curM + '-01', today())}</div>` : ''}
       </div>
 
-      <button class="btn-secondary" id="insights-goto-ledger" style="width:100%">View full ledger ›</button>
+      <div class="ins-actions">
+        <button class="btn-primary" id="insights-goto-report" style="width:100%">📊 Monthly savings report ›</button>
+        <button class="btn-secondary" id="insights-goto-ledger" style="width:100%">View full ledger ›</button>
+      </div>
     </div>`;
 }
 
@@ -8440,6 +8449,13 @@ function attachInsights() {
   });
   document.getElementById('insights-goto-ledger')?.addEventListener('click', () => showTab('ledger'));
   document.getElementById('insights-goto-report')?.addEventListener('click', () => showTab('report'));
+
+  // Custom range summary: expand/collapse
+  document.getElementById('range-toggle')?.addEventListener('click', () => {
+    _insRangeOpen = !_insRangeOpen;
+    haptic([6]);
+    render();
+  });
 
   // Average-spending: expand/collapse the exclusion panel
   document.getElementById('avg-adjust-toggle')?.addEventListener('click', () => {
