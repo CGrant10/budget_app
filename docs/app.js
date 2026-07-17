@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.80';
+const VERSION = '5.43.81';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.81', date: '2026-07-13', changes: [
+    'Bigger tap zones on the ledger edit/delete buttons — easier to hit without changing how the row looks',
+  ]},
   { version: '5.43.80', date: '2026-07-13', changes: [
     'The app now gives a subtle haptic tap-tick on buttons and controls across every screen, so it feels more responsive in the hand (phones only). You can turn it off in Settings → Animations → Haptic feedback',
   ]},

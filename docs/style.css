@@ -709,21 +709,26 @@ html, body {
   border: none;
   font-size: 14px;
   cursor: pointer;
-  padding: 4px 6px;
+  /* Taller hit area for easier tapping; negative margin keeps the row height
+     and icon position unchanged. */
+  padding: 11px 8px;
+  margin: -7px -1px;
   border-radius: 4px;
   opacity: .5;
   transition: opacity .15s;
 }
-.ledger-edit-btn:hover { opacity: 1; }
+.ledger-edit-btn:hover, .ledger-edit-btn:active { opacity: 1; }
 .ledger-delete {
   background: none;
   border: none;
   color: var(--danger);
   font-size: 14px;
   cursor: pointer;
-  padding: 4px 6px;
+  padding: 11px 8px;
+  margin: -7px -1px;
   border-radius: 4px;
 }
+.ledger-delete:active { opacity: .6; }
 .ledger-inline-edit {
   display: none;
   padding: 10px 4px 4px;
