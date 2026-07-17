@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.78';
+const VERSION = '5.43.79';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.43.79', date: '2026-07-13', changes: [
+    'Average-spending exclusions are now grouped into Recurring (bills) and Categories for easier scanning',
+    'Toggling the Adjust panel or excluding/including an item on Insights no longer jumps you back to the top of the page — you stay right where you were',
+  ]},
   { version: '5.43.78', date: '2026-07-13', changes: [
     'Insights page tidied up: the snapshot cards and This-month totals now sit together at the top, every section uses the same clean hairline style, the Custom range summary is collapsed by default (tap to open), and the Monthly report / View ledger buttons are grouped at the bottom',
   ]},
@@ -2957,8 +2961,15 @@ function _avgExclusionChipsHTML() {
   }).join('');
   if (!billChip && !catChips) return '';
   return `<div class="avg-exclude-wrap">
-    <div class="avg-exclude-lbl">Tap to exclude from the average</div>
-    <div class="cat-toggle-row">${billChip}${catChips}</div>
+    <div class="avg-exclude-hint">Tap an item to leave it out of the average.</div>
+    ${billChip ? `<div class="avg-exclude-group">
+      <div class="avg-exclude-lbl">Recurring</div>
+      <div class="cat-toggle-row">${billChip}</div>
+    </div>` : ''}
+    ${catChips ? `<div class="avg-exclude-group">
+      <div class="avg-exclude-lbl">Categories</div>
+      <div class="cat-toggle-row">${catChips}</div>
+    </div>` : ''}
   </div>`;
 }
 
@@ -8454,14 +8465,14 @@ function attachInsights() {
   document.getElementById('range-toggle')?.addEventListener('click', () => {
     _insRangeOpen = !_insRangeOpen;
     haptic([6]);
-    render();
+    rerenderKeepScroll();
   });
 
   // Average-spending: expand/collapse the exclusion panel
   document.getElementById('avg-adjust-toggle')?.addEventListener('click', () => {
     _avgExcludeOpen = !_avgExcludeOpen;
     haptic([6]);
-    render();
+    rerenderKeepScroll();
   });
   // Average-spending exclusion chips (Bills + per-category)
   document.querySelectorAll('.avg-cat-toggle').forEach(chip => {
@@ -8469,7 +8480,7 @@ function attachInsights() {
       if (chip.dataset.avgbills) toggleAvgExcludeBills();
       else toggleAvgExcludedCat(chip.dataset.cat);
       haptic([6]);
-      render();
+      rerenderKeepScroll();
     });
   });
 

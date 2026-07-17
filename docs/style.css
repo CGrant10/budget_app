@@ -7109,9 +7109,11 @@ body.theme-ubuntu .section-title::before {
 }
 .avg-adjust-caret { font-size: .68rem; }
 .avg-exclude-wrap { margin-top: 10px; }
+.avg-exclude-hint { font-size: .72rem; color: var(--muted); margin-bottom: 10px; }
+.avg-exclude-group + .avg-exclude-group { margin-top: 10px; }
 .avg-exclude-lbl {
-  font-size: .6rem; font-weight: 800; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  font-size: .58rem; font-weight: 800; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 6px; opacity: .85;
 }
 .avg-exclude-wrap .cat-toggle-row { margin: 0; }
 
