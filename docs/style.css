@@ -7270,6 +7270,14 @@ body.theme-ubuntu .section-title::before {
 /* Reuse the shared privacy-eye button position on the leash balance card */
 .leash-balcard .dash-privacy-btn{top:12px;right:12px}
 
+/* Theme mascot (doberman / Gengar trio) atop the leash dashboard */
+.leash-hero{display:flex;justify-content:center;align-items:flex-end;position:relative;z-index:2;margin:-2px 0 -4px;min-height:96px}
+.leash-hero .dawg-hero-dob{width:104px}
+/* Tappable "recent · ledger" header */
+.leash-rh-btn{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:none;border:none;cursor:pointer;font-family:inherit;color:inherit;text-align:left;-webkit-tap-highlight-color:transparent}
+.leash-rh-btn:active{opacity:.65}
+.leash-viewall{color:var(--accent);font-size:.56rem;letter-spacing:.12em;font-weight:700}
+
 /* Find-duplicates modal */
 .dupe-modal {
   background: var(--card); border: 1.5px solid var(--border); border-radius: 18px;

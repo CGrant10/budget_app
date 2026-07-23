@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.44.1';
+const VERSION = '5.44.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.44.2', date: '2026-07-13', changes: [
+    'Leash beta dashboard now shows your theme mascot (the Gengar/Haunter/Gastly trio, the Doberman, etc.) at the top, and lists your recent transactions inline (tap the header to open the full ledger)',
+  ]},
   { version: '5.44.1', date: '2026-07-13', changes: [
     'New beta look: a "Leash" tactical-HUD dashboard — a bolder command-center take with your balance, the week budget "on a leash", today vs net, and bills due as a status feed. Turn it on in Settings → Beta features (checking-style accounts)',
   ]},
@@ -5913,13 +5916,21 @@ function renderDashboardDawg() {
         }).join('')
       : '<div class="leash-empty">No bills due in the next 7 days.</div>';
 
+    const txnFeed = recentTxns.length
+      ? recentTxns.slice(0, 6).map(t => {
+          const isInc = t.type === 'income';
+          const dlbl  = t.date === todayStr ? 'today' : t.date === yesterdayStr ? '1d' : (t.date || '').slice(5);
+          return `<div class="leash-rl"><span class="leash-st" style="background:${isInc ? 'var(--accent)' : 'var(--muted)'}"></span><span class="leash-nm">${_escHtml(t.description || t.category || '—')}</span><span class="leash-due">${dlbl}</span><span class="leash-amt money" style="${isInc ? 'color:var(--accent)' : ''}">${isInc ? '+' : '−'}${fmt(t.amount)}</span></div>`;
+        }).join('')
+      : '<div class="leash-empty">No transactions yet.</div>';
+
     return `<div class="dawg-page leash-dash">
       ${backupBannerHtml()}
-      <svg class="leash-dogwm" viewBox="0 0 120 150" aria-hidden="true"><path d="M20 8l14 26 26-8 26 8 14-26 6 40c0 30-20 54-46 54S20 78 20 48z" fill="currentColor"/><path d="M44 60l16 14 16-14" fill="none" stroke="var(--bg)" stroke-width="5" stroke-linecap="round"/></svg>
       <div class="leash-hudtop">
         <span>DAWG&nbsp;OS</span><span class="leash-hudacct">· ${_escHtml(_acctName)}</span>
         <span class="leash-live">WATCHING</span>
       </div>
+      <div class="leash-hero">${heroMascotHTML()}</div>
       <div class="leash-balcard">
         <button class="dash-privacy-btn${_amountsHidden() ? ' is-hidden' : ''}" id="dash-privacy-btn" title="${_amountsHidden() ? 'Show amounts' : 'Hide amounts'}" aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden() ? 'true' : 'false'}">${_eyeIconSvg(_amountsHidden())}</button>
         <div class="leash-glab">${isPastDash ? _escHtml(dashMonthLabel) + ' balance' : 'Total balance'}</div>
@@ -5935,10 +5946,13 @@ function renderDashboardDawg() {
         <div class="leash-cell"><div class="leash-k">NET · ${monLbl}</div><div class="leash-v money" style="color:${monthDelta >= 0 ? 'var(--accent)' : 'var(--danger)'}">${monthDelta >= 0 ? '+' : '−'}${fmt(Math.abs(monthDelta))}</div></div>
       </div>
       <div class="leash-readout">
+        <button class="leash-rh leash-rh-btn" id="dawg-goto-ledger">RECENT · LEDGER<span class="leash-viewall">VIEW ALL ›</span></button>
+        ${txnFeed}
+      </div>
+      <div class="leash-readout">
         <div class="leash-rh">DUE — NEXT 7 DAYS</div>
         ${feed}
       </div>
-      <button class="leash-cta" id="dawg-goto-ledger">OPEN LEDGER ›</button>
     </div>`;
   }
 
