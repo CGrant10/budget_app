@@ -7289,20 +7289,27 @@ body.theme-ubuntu .section-title::before {
    section headers become tactical readouts. Numbers/inputs untouched.
    ============================================================ */
 body.leash-skin{--leash-mono:'JetBrains Mono','SF Mono',ui-monospace,'Cascadia Code',Consolas,monospace}
-/* Ambient: soft accent glow + faint scanlines behind content */
+/* Ambient: accent glow + scanlines behind content */
 body.leash-skin #main-content::before{
   content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
   background:
-    radial-gradient(120% 34% at 50% 0,color-mix(in srgb,var(--accent) 9%,transparent),transparent 60%),
-    repeating-linear-gradient(0deg,color-mix(in srgb,var(--accent) 4%,transparent) 0 1px,transparent 1px 3px);
-  opacity:.5;
+    radial-gradient(130% 40% at 50% 0,color-mix(in srgb,var(--accent) 15%,transparent),transparent 60%),
+    repeating-linear-gradient(0deg,color-mix(in srgb,var(--accent) 6%,transparent) 0 1px,transparent 1px 3px);
+  opacity:.85;
 }
 body.leash-skin #main-content>*{position:relative;z-index:1}
 
+/* Page titles → HUD header: mono, uppercase, accent bracket + underline */
+body.leash-skin .page-title{
+  font-family:var(--leash-mono);text-transform:uppercase;letter-spacing:.06em;font-weight:800;
+  font-size:1.3rem;position:relative;padding:0 0 9px;margin-bottom:6px;border-left:none;
+}
+body.leash-skin .page-title::before{content:"▚ ";color:var(--accent)}
+body.leash-skin .page-title::after{content:"";position:absolute;left:0;bottom:0;width:52px;height:2px;background:var(--accent);box-shadow:0 0 8px var(--accent)}
 /* Page sub-headers → mono readout */
 body.leash-skin .page-sub{
   font-family:var(--leash-mono);text-transform:uppercase;letter-spacing:.12em;font-size:.62rem;
-  color:color-mix(in srgb,var(--accent) 45%,var(--muted));
+  color:color-mix(in srgb,var(--accent) 55%,var(--muted));
 }
 /* Section headers across pages → tactical labels */
 body.leash-skin .section-title,
@@ -7319,16 +7326,24 @@ body.leash-skin .dawg-card-title::before{content:"▸";color:var(--accent);font-
 body.leash-skin .form-card,
 body.leash-skin .card,
 body.leash-skin .dawg-section-card{
-  border:1px solid color-mix(in srgb,var(--accent) 18%,var(--border));
-  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 4%,transparent),transparent),var(--card);
-  border-radius:10px;
+  border:1px solid color-mix(in srgb,var(--accent) 30%,var(--border));
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 7%,transparent),transparent),var(--card);
+  border-radius:8px;
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--accent) 22%,transparent);
+}
+/* Corner tick — a small HUD bracket on cards */
+body.leash-skin .form-card{position:relative}
+body.leash-skin .form-card::before{
+  content:"";position:absolute;top:6px;right:6px;width:9px;height:9px;
+  border-top:2px solid color-mix(in srgb,var(--accent) 60%,transparent);
+  border-right:2px solid color-mix(in srgb,var(--accent) 60%,transparent);pointer-events:none;
 }
 /* Accounts overview → HUD readout */
 body.leash-skin .acct-grp>span:first-child{
   font-family:var(--leash-mono);text-transform:uppercase;letter-spacing:.14em;
   color:color-mix(in srgb,var(--accent) 55%,var(--muted));
 }
-body.leash-skin .acct-nw2{border:1px solid color-mix(in srgb,var(--accent) 20%,var(--border));border-radius:10px}
+body.leash-skin .acct-nw2{border:1px solid color-mix(in srgb,var(--accent) 32%,var(--border));border-radius:8px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--accent) 22%,transparent)}
 body.leash-skin .acct-nw2-label{font-family:var(--leash-mono);letter-spacing:.18em}
 body.leash-skin .acct-row{
   border-radius:8px;

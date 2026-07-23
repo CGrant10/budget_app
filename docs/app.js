@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.44.4';
+const VERSION = '5.44.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.44.5', date: '2026-07-13', changes: [
+    'Made the "Leash" beta skin much more visible across the app — HUD-style page titles (mono, bracketed, accent underline), stronger accent card borders with corner ticks, and a bolder ambient glow/scanline — so the accounts overview and every other page clearly match the dashboard, not just the dashboard alone',
+  ]},
   { version: '5.44.4', date: '2026-07-13', changes: [
     'Fixed the cramped date range on the Ledger — the From/To date pickers now sit on their own row with full width (the CSV / Duplicates / Find $ / Select buttons moved to the row below), so the dates are no longer clipped inside tiny boxes',
   ]},
