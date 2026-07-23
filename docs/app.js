@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.43.81';
+const VERSION = '5.44.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.44.0', date: '2026-07-13', changes: [
+    'Restore points — the app now keeps automatic on-device snapshots of your data (one per day, plus before any bulk delete, import, or restore). Roll back to one anytime from Import / Export → Restore points if something goes wrong',
+    'Ledger multi-select — tap Select in the ledger toolbar to check off several transactions, then Delete or Recategorize them all at once (a restore point is saved first, so bulk delete is reversible)',
+  ]},
   { version: '5.43.81', date: '2026-07-13', changes: [
     'Bigger tap zones on the ledger edit/delete buttons — easier to hit without changing how the row looks',
   ]},
@@ -3239,6 +3243,105 @@ function daysSinceBackup() {
 function markBackupDone() {
   const s = loadSettings(); s.lastBackupDate = today(); saveSettings(s);
 }
+
+// ── restore points (automatic local snapshots) ──────────────────────────────
+// A safety net against accidental in-app data loss (bad overwrite-import, bulk
+// delete). Full data blobs kept in localStorage, newest few only, quota-safe.
+const SNAPSHOTS_KEY = 'slawminyaw_snapshots';
+const MAX_SNAPSHOTS = 4;
+
+// Build the complete backup payload (same shape the JSON export writes).
+function _buildBackupPayload() {
+  _save();  // flush current account so its stored data is fresh
+  const accountData = {};
+  (state.accounts || []).forEach(a => {
+    try { accountData[a.id] = JSON.parse(localStorage.getItem(accountDataKey(a.id)) || '{}'); }
+    catch { accountData[a.id] = {}; }
+  });
+  return {
+    _backupVersion: VERSION,
+    _multiAccount:  true,
+    accounts:       state.accounts,
+    currentAccountId,
+    accountData,
+    notes:          state.notes,
+    settings:       loadSettings(),
+    // Legacy single-account fields so older versions can still restore:
+    transactions:   state.transactions,
+    weekly_plan:    state.weekly_plan,
+    budgets:        state.budgets,
+    bills:          state.bills,
+    goals:          state.goals,
+    challenges:     state.challenges,
+    startingBalance: state.startingBalance,
+  };
+}
+
+function _payloadTxnCount(data) {
+  if (data && data._multiAccount && data.accountData) {
+    return Object.values(data.accountData).reduce((s, d) => s + ((d.transactions || []).length), 0);
+  }
+  return (data && data.transactions ? data.transactions.length : 0);
+}
+
+// Apply a backup payload to app state (shared by JSON restore + restore points).
+function _applyBackupPayload(data) {
+  const isMulti  = data._multiAccount === true && data.accountData;
+  const acctList = data.accounts || defaultAccounts();
+  if (data.settings && typeof data.settings === 'object') saveSettings(data.settings);
+  state.notes = data.notes || [];
+  saveNotes(state.notes);
+  if (isMulti) {
+    state.accounts = acctList.length ? acctList : defaultAccounts();
+    _saveAccounts();
+    Object.entries(data.accountData).forEach(([id, d]) => {
+      localStorage.setItem(accountDataKey(id), JSON.stringify(d || {}));
+    });
+    const startId = state.accounts.find(a => a.id === data.currentAccountId) ? data.currentAccountId : state.accounts[0].id;
+    currentAccountId = startId;
+    _loadAccountData(startId);
+  } else {
+    state.transactions = data.transactions || [];
+    state.weekly_plan  = data.weekly_plan  || {};
+    state.budgets      = data.budgets      || {};
+    state.bills        = data.bills        || [];
+    state.goals        = data.goals        || [];
+    state.challenges   = data.challenges   || [];
+    if (typeof data.startingBalance === 'number') state.startingBalance = data.startingBalance;
+    state.accounts     = acctList.length ? acctList : defaultAccounts();
+    _save(); _saveAccounts();
+  }
+  updateAccountSwitcher();
+}
+
+function loadSnapshots() {
+  try { return JSON.parse(localStorage.getItem(SNAPSHOTS_KEY) || '[]'); } catch { return []; }
+}
+// Persist snapshots, dropping the oldest until the write fits under the quota.
+function _writeSnapshots(list) {
+  let arr = list.slice();
+  while (arr.length) {
+    try { localStorage.setItem(SNAPSHOTS_KEY, JSON.stringify(arr)); return true; }
+    catch (e) { arr.shift(); }   // over quota — drop oldest and retry
+  }
+  return false;
+}
+function takeSnapshot(reason) {
+  try {
+    const payload = _buildBackupPayload();
+    const list = loadSnapshots();
+    list.push({ ts: Date.now(), reason: reason || 'auto', txnCount: _payloadTxnCount(payload), payload });
+    while (list.length > MAX_SNAPSHOTS) list.shift();
+    _writeSnapshots(list);
+  } catch (e) { /* never let a snapshot failure block the real action */ }
+}
+// One automatic snapshot per calendar day, taken at startup.
+function maybeDailySnapshot() {
+  const s = loadSettings();
+  if (s.lastSnapshotDate === today()) return;
+  takeSnapshot('daily');
+  const s2 = loadSettings(); s2.lastSnapshotDate = today(); saveSettings(s2);
+}
 const BACKUP_STALE_DAYS = 30;
 let _backupBannerDismissed = false;   // per-session
 function backupStatusHtml() {
@@ -3552,6 +3655,8 @@ let ledgerDateTo = '';
 let _ledgerShowAll = false;          // when true, render the full filtered list (past the cap)
 const LEDGER_CAP = 300;              // max rows put in the DOM at once before a "Show all" button
 let ledgerAllAccounts = false;       // when true, the ledger searches across every account (read-only)
+let _ledgerSelectMode = false;       // multi-select mode in the transactions ledger
+let _ledgerSelected = new Set();     // real indices (_i) into state.transactions
 let _insightTimer = null;
 let _dawgSparkGlobal = null; // module-level ref so tab switches can destroy it
 let _splitRows    = []; // [{cat, amount}] for split-transaction mode
@@ -6937,7 +7042,7 @@ function renderLedger() {
       </div>`;
     }
     return `
-      <div class="ledger-row" data-idx="${t._i}">
+      <div class="ledger-row${_ledgerSelectMode && _ledgerSelected.has(t._i) ? ' row-selected' : ''}" data-idx="${t._i}">
         <div class="ledger-row-inner">
           <div class="ledger-main">
             <div class="ledger-desc"><span class="cat-dot" style="background:${catColor}"></span>${prefix}${_escHtml(t.description)}</div>
@@ -7009,11 +7114,12 @@ function renderLedger() {
           <button id="ledger-export-csv" class="btn-xs"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</button>
           <button id="ledger-find-dupes" class="btn-xs" title="Scan for duplicate transactions"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Duplicates</button>
           <button id="ledger-find-amount" class="btn-xs" title="Find transactions that add up to an amount"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Find $</button>
+          ${ledgerView !== 'bills' && !_crossAcct ? `<button id="ledger-select-toggle" class="btn-xs${_ledgerSelectMode ? ' btn-xs-active' : ''}" title="Select multiple to delete or recategorize"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>${_ledgerSelectMode ? 'Cancel' : 'Select'}</button>` : ''}
         </div>
         ${(ledgerFilter || ledgerTypeFilter !== 'all' || ledgerCatFilter || ledgerDateFrom || ledgerDateTo)
           ? `<button id="ledger-clear-filters" class="lf-clear-btn">✕ Clear filters</button>` : ''}
       </div>
-      <div class="ledger-list${density === 'compact' ? ' compact' : ''}">
+      <div class="ledger-list${density === 'compact' ? ' compact' : ''}${_ledgerSelectMode ? ' select-mode' : ''}">
         ${rowsHtml || (state.transactions.length === 0
           ? emptyState('No transactions yet', 'Tap Add to log your first one')
           : ledgerView === 'bills'
@@ -7021,6 +7127,14 @@ function renderLedger() {
             : '<p style="padding:24px 0;text-align:center;color:var(--muted);font-size:.85rem">No matching transactions</p>')}
         ${capped ? `<button id="ledger-show-all" class="lf-clear-btn" style="margin:12px auto 0;display:block">Show all ${totalRows} ${ledgerView === 'bills' ? 'bills' : 'transactions'} (showing ${LEDGER_CAP})</button>` : ''}
       </div>
+      ${_ledgerSelectMode ? `<div class="ledger-select-bar" id="ledger-select-bar">
+        <span class="lsb-count" id="lsb-count">${_ledgerSelected.size} selected</span>
+        <div class="lsb-actions">
+          <button class="lsb-btn" id="lsb-recat"${_ledgerSelected.size ? '' : ' disabled'}>Recategorize</button>
+          <button class="lsb-btn lsb-del" id="lsb-delete"${_ledgerSelected.size ? '' : ' disabled'}>Delete</button>
+          <button class="lsb-btn lsb-done" id="lsb-done">Done</button>
+        </div>
+      </div>` : ''}
     </div>`;
 }
 
@@ -8846,7 +8960,43 @@ function renderImport() {
           <input type="file" id="import-json-file" accept=".json" style="display:none">
         </label>
       </div>
+
+      ${_restorePointsHtml()}
     </div>`;
+}
+
+// Reason → friendly label for a restore point.
+function _snapReasonLabel(r) {
+  return ({
+    'daily':             'Daily auto-save',
+    'before-restore':    'Before restore',
+    'before-bulk-delete':'Before bulk delete',
+    'before-import':     'Before import',
+  })[r] || 'Snapshot';
+}
+// Restore-points card: automatic on-device snapshots, newest first.
+function _restorePointsHtml() {
+  const snaps = loadSnapshots().slice().reverse();
+  const rows = snaps.length
+    ? snaps.map(s => {
+        const d = new Date(s.ts);
+        const when = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' · ' +
+                     d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        return `<div class="restore-pt-row">
+          <div class="restore-pt-info">
+            <div class="restore-pt-when">${when}</div>
+            <div class="restore-pt-meta">${_snapReasonLabel(s.reason)} · ${s.txnCount} txn${s.txnCount !== 1 ? 's' : ''}</div>
+          </div>
+          <button class="btn-xs restore-pt-btn" data-snap-ts="${s.ts}">Restore</button>
+        </div>`;
+      }).join('')
+    : '<p class="code-hint" style="margin:0">No restore points yet — one is saved automatically each day you open the app, and before any bulk delete, import, or restore.</p>';
+  return `<div class="form-card">
+    <h2 class="section-title" style="margin-bottom:6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 3"/></svg>Restore points</h2>
+    <p class="code-hint" style="margin-bottom:10px">Automatic on-device snapshots — undo an accidental bulk delete, import, or restore. Keeps the last ${MAX_SNAPSHOTS}.</p>
+    <div id="restore-pt-status" class="form-status" style="margin-bottom:6px"></div>
+    <div class="restore-pt-list">${rows}</div>
+  </div>`;
 }
 
 // ── notes & reminders ─────────────────────────────────────────────────────
@@ -10941,6 +11091,7 @@ function attachSwipeDelete() {
   document.querySelectorAll('.ledger-row').forEach(row => {
     row.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, { passive: true });
     row.addEventListener('touchmove', e => {
+      if (_ledgerSelectMode) return;   // swipe disabled while selecting
       const dx = e.touches[0].clientX - startX;
       const dy = Math.abs(e.touches[0].clientY - startY);
       if (dy > 20) return;
@@ -12079,6 +12230,44 @@ function attachLedger() {
   document.getElementById('ledger-export-csv')?.addEventListener('click', () => exportCSV(false));
   document.getElementById('ledger-find-dupes')?.addEventListener('click', showDuplicatesModal);
   document.getElementById('ledger-find-amount')?.addEventListener('click', showAmountFinderModal);
+
+  // ── multi-select ──
+  document.getElementById('ledger-select-toggle')?.addEventListener('click', () => {
+    _ledgerSelectMode = !_ledgerSelectMode;
+    if (!_ledgerSelectMode) _ledgerSelected.clear();
+    rerenderKeepScroll();
+  });
+  document.getElementById('lsb-done')?.addEventListener('click', _exitLedgerSelect);
+  document.getElementById('lsb-delete')?.addEventListener('click', () => {
+    const n = _ledgerSelected.size;
+    if (!n) return;
+    showConfirmModal({
+      title: `Delete ${n} transaction${n !== 1 ? 's' : ''}?`, danger: true,
+      message: `This removes ${n} selected transaction${n !== 1 ? 's' : ''}. A restore point is saved first, so you can undo it from Import → Restore points.`,
+      confirmText: 'Delete',
+      onConfirm: async () => {
+        takeSnapshot('before-bulk-delete');
+        const objs = _selectedTxnObjs();
+        state.transactions = state.transactions.filter(t => !objs.has(t));
+        _save();
+        await autoUpdateWeeklyPlan();
+        _ledgerSelectMode = false; _ledgerSelected.clear();
+        rerenderKeepScroll();
+      },
+    });
+  });
+  document.getElementById('lsb-recat')?.addEventListener('click', () => {
+    if (!_ledgerSelected.size) return;
+    _showBulkRecatModal(async cat => {
+      takeSnapshot('before-bulk-delete');
+      const objs = _selectedTxnObjs();
+      state.transactions.forEach(t => { if (objs.has(t)) t.category = cat; });
+      _save();
+      await autoUpdateWeeklyPlan();
+      _ledgerSelectMode = false; _ledgerSelected.clear();
+      rerenderKeepScroll();
+    });
+  });
 }
 
 // Re-render ONLY the ledger list + count, leaving the filter bar (and the focused search
@@ -12109,7 +12298,60 @@ function _attachLedgerRows() {
   attachSwipeDelete();
 }
 
+// ── ledger multi-select helpers ─────────────────────────────────────────────
+function _updateSelectBar() {
+  const n = _ledgerSelected.size;
+  const c = document.getElementById('lsb-count'); if (c) c.textContent = `${n} selected`;
+  const del = document.getElementById('lsb-delete'); if (del) del.disabled = n === 0;
+  const rec = document.getElementById('lsb-recat');  if (rec) rec.disabled = n === 0;
+}
+function _exitLedgerSelect() {
+  _ledgerSelectMode = false;
+  _ledgerSelected.clear();
+  rerenderKeepScroll();
+}
+// The transaction objects currently selected (identity-based, so index shifts
+// during the mutation don't matter).
+function _selectedTxnObjs() {
+  return new Set([..._ledgerSelected].map(i => state.transactions[i]).filter(Boolean));
+}
+function _showBulkRecatModal(onPick) {
+  const cats = getCategories();
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+  ov.innerHTML = `<div style="background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:24px 20px;max-width:320px;width:100%;box-shadow:var(--elev-3)">
+    <div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:14px">Recategorize ${_ledgerSelected.size} transaction${_ledgerSelected.size !== 1 ? 's' : ''}</div>
+    <select id="_bulk-recat-sel" class="form-input" style="width:100%;margin-bottom:16px">${cats.map(c => `<option>${_escHtml(c)}</option>`).join('')}</select>
+    <div style="display:flex;gap:10px">
+      <button id="_bulk-recat-cancel" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-weight:700;cursor:pointer;font-family:var(--font-body)">Cancel</button>
+      <button id="_bulk-recat-ok" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--accent);color:var(--bg);font-weight:700;cursor:pointer;font-family:var(--font-body)">Apply</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.querySelector('#_bulk-recat-cancel').addEventListener('click', close);
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  ov.querySelector('#_bulk-recat-ok').addEventListener('click', () => {
+    const cat = ov.querySelector('#_bulk-recat-sel').value;
+    close();
+    onPick(cat);
+  });
+}
+
 async function _onLedgerListClick(e) {
+  // In select mode, any tap on a row toggles its selection (in place, no re-render).
+  if (_ledgerSelectMode) {
+    const selRow = e.target.closest('.ledger-row');
+    if (selRow && selRow.dataset.idx != null) {
+      const i = parseInt(selRow.dataset.idx);
+      if (_ledgerSelected.has(i)) { _ledgerSelected.delete(i); selRow.classList.remove('row-selected'); }
+      else { _ledgerSelected.add(i); selRow.classList.add('row-selected'); }
+      _updateSelectBar();
+      return;
+    }
+    // not a row (e.g. "Show all") → fall through to normal handling
+  }
+
   const editBtn = e.target.closest('.ledger-edit-btn');
   if (editBtn) {
     e.stopPropagation();
@@ -12246,32 +12488,8 @@ function attachImport() {
           message: `This will replace ALL current data with the backup (${txnCount} transaction${txnCount !== 1 ? 's' : ''} across ${acctCount} account${acctCount !== 1 ? 's' : ''}). This cannot be undone.`,
           confirmText: 'Restore', danger: true,
           onConfirm: () => {
-            if (data.settings && typeof data.settings === 'object') saveSettings(data.settings);
-            state.notes = data.notes || [];
-            saveNotes(state.notes);
-            if (isMulti) {
-              // Write every account's data back to its own key, then load the chosen account.
-              state.accounts = acctList.length ? acctList : defaultAccounts();
-              _saveAccounts();
-              Object.entries(data.accountData).forEach(([id, d]) => {
-                localStorage.setItem(accountDataKey(id), JSON.stringify(d || {}));
-              });
-              const startId = state.accounts.find(a => a.id === data.currentAccountId) ? data.currentAccountId : state.accounts[0].id;
-              currentAccountId = startId;
-              _loadAccountData(startId);
-            } else {
-              // Legacy single-account backup → restore into the current account.
-              state.transactions = data.transactions || [];
-              state.weekly_plan  = data.weekly_plan  || {};
-              state.budgets      = data.budgets      || {};
-              state.bills        = data.bills        || [];
-              state.goals        = data.goals        || [];
-              state.challenges   = data.challenges   || [];
-              if (typeof data.startingBalance === 'number') state.startingBalance = data.startingBalance;
-              state.accounts     = acctList.length ? acctList : defaultAccounts();
-              _save(); _saveAccounts();
-            }
-            updateAccountSwitcher();
+            takeSnapshot('before-restore');   // so a restore is itself undoable
+            _applyBackupPayload(data);
             showStatus('json-import-status', `✓ Restored ${txnCount} transaction${txnCount !== 1 ? 's' : ''} from backup.`, 'success', 0);
             render();
           },
@@ -12287,31 +12505,30 @@ function attachImport() {
   document.getElementById('export-csv-all-btn')?.addEventListener('click', () => exportCSV(true));
   document.getElementById('export-template-btn')?.addEventListener('click', exportCSVTemplate);
 
-  document.getElementById('export-json-btn')?.addEventListener('click', () => {
-    _save();   // flush the current account so its stored data is fresh
-    // Collect EVERY account's data, not just the current one.
-    const accountData = {};
-    (state.accounts || []).forEach(a => {
-      try { accountData[a.id] = JSON.parse(localStorage.getItem(accountDataKey(a.id)) || '{}'); }
-      catch { accountData[a.id] = {}; }
+  // Restore points — roll back to an automatic snapshot
+  document.querySelectorAll('.restore-pt-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ts = Number(btn.dataset.snapTs);
+      const snap = loadSnapshots().find(s => s.ts === ts);
+      if (!snap) { showStatus('restore-pt-status', 'That restore point is no longer available.', 'error', 0); return; }
+      const d = new Date(snap.ts);
+      const when = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      showConfirmModal({
+        title: 'Restore this snapshot?', danger: true,
+        message: `Replace all current data with the snapshot from ${when} (${snap.txnCount} transaction${snap.txnCount !== 1 ? 's' : ''})? Your current data is saved as a new restore point first, so this is reversible.`,
+        confirmText: 'Restore',
+        onConfirm: () => {
+          takeSnapshot('before-restore');
+          _applyBackupPayload(snap.payload);
+          render();
+          showStatus('restore-pt-status', `✓ Restored snapshot from ${when}.`, 'success', 0);
+        },
+      });
     });
-    const payload = JSON.stringify({
-      _backupVersion: VERSION,
-      _multiAccount:  true,
-      accounts:       state.accounts,
-      currentAccountId,
-      accountData,                 // { accountId: {transactions, weekly_plan, budgets, bills, goals, challenges, startingBalance} }
-      notes:          state.notes, // notes are global (not per-account)
-      settings:       loadSettings(),
-      // Legacy single-account fields (current account) so older app versions can still restore:
-      transactions:   state.transactions,
-      weekly_plan:    state.weekly_plan,
-      budgets:        state.budgets,
-      bills:          state.bills,
-      goals:          state.goals,
-      challenges:     state.challenges,
-      startingBalance: state.startingBalance,
-    }, null, 2);
+  });
+
+  document.getElementById('export-json-btn')?.addEventListener('click', () => {
+    const payload = JSON.stringify(_buildBackupPayload(), null, 2);
     const blob = new Blob([payload], { type: 'application/json' });
     const a    = document.createElement('a');
     a.href     = URL.createObjectURL(blob);
@@ -12460,6 +12677,7 @@ function attachImport() {
             const doImport = async () => {
               const importBtn = document.getElementById('import-confirm-btn');
               if (importBtn) { importBtn.disabled = true; importBtn.textContent = 'Importing…'; }
+              takeSnapshot('before-import');   // safety net before applying an import
               if (importMode === 'overwrite') {
                 state.transactions = [];
               }
@@ -13246,6 +13464,7 @@ window.addEventListener('popstate', () => {
     initSoundsToggle();
     initTapHaptics();
     applySettings();
+    maybeDailySnapshot();   // one automatic restore point per day
     // Re-fit logo once custom fonts finish loading — applySettings fires before
     // web fonts are ready, so the first measurement uses the fallback font width.
     updateAccountSwitcher();
