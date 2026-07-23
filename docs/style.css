@@ -7278,6 +7278,61 @@ body.theme-ubuntu .section-title::before {
 .leash-rh-btn:active{opacity:.65}
 .leash-viewall{color:var(--accent);font-size:.56rem;letter-spacing:.12em;font-weight:700}
 
+/* ============================================================
+   BETA: "Leash" SKIN — reskins every page's existing markup
+   when the beta is on (body.leash-skin). Adapts to any theme
+   via var(--accent); labels go mono, cards get an accent hairline,
+   section headers become tactical readouts. Numbers/inputs untouched.
+   ============================================================ */
+body.leash-skin{--leash-mono:'JetBrains Mono','SF Mono',ui-monospace,'Cascadia Code',Consolas,monospace}
+/* Ambient: soft accent glow + faint scanlines behind content */
+body.leash-skin #main-content::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(120% 34% at 50% 0,color-mix(in srgb,var(--accent) 9%,transparent),transparent 60%),
+    repeating-linear-gradient(0deg,color-mix(in srgb,var(--accent) 4%,transparent) 0 1px,transparent 1px 3px);
+  opacity:.5;
+}
+body.leash-skin #main-content>*{position:relative;z-index:1}
+
+/* Page sub-headers → mono readout */
+body.leash-skin .page-sub{
+  font-family:var(--leash-mono);text-transform:uppercase;letter-spacing:.12em;font-size:.62rem;
+  color:color-mix(in srgb,var(--accent) 45%,var(--muted));
+}
+/* Section headers across pages → tactical labels */
+body.leash-skin .section-title,
+body.leash-skin .ins-section-hdr,
+body.leash-skin .dawg-card-title{
+  font-family:var(--leash-mono);text-transform:uppercase;letter-spacing:.14em;
+  color:color-mix(in srgb,var(--accent) 62%,var(--text));
+  display:flex;align-items:center;gap:7px;
+}
+body.leash-skin .section-title::before,
+body.leash-skin .ins-section-hdr::before,
+body.leash-skin .dawg-card-title::before{content:"▸";color:var(--accent);font-size:.85em;line-height:1}
+/* Cards → accent hairline + faint wash + squarer corners */
+body.leash-skin .form-card,
+body.leash-skin .card,
+body.leash-skin .dawg-section-card{
+  border:1px solid color-mix(in srgb,var(--accent) 18%,var(--border));
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 4%,transparent),transparent),var(--card);
+  border-radius:10px;
+}
+/* Accounts overview → HUD readout */
+body.leash-skin .acct-grp>span:first-child{
+  font-family:var(--leash-mono);text-transform:uppercase;letter-spacing:.14em;
+  color:color-mix(in srgb,var(--accent) 55%,var(--muted));
+}
+body.leash-skin .acct-nw2{border:1px solid color-mix(in srgb,var(--accent) 20%,var(--border));border-radius:10px}
+body.leash-skin .acct-nw2-label{font-family:var(--leash-mono);letter-spacing:.18em}
+body.leash-skin .acct-row{
+  border-radius:8px;
+  /* .acct-picker-page already draws an accent box-shadow ring (kept); add a wash */
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 6%,transparent),transparent),var(--glass-bg);
+}
+body.leash-skin .acct-row-type{font-family:var(--leash-mono);text-transform:uppercase;letter-spacing:.1em;font-size:.58rem}
+
 /* Find-duplicates modal */
 .dupe-modal {
   background: var(--card); border: 1.5px solid var(--border); border-radius: 18px;

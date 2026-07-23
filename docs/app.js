@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.44.2';
+const VERSION = '5.44.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.44.3', date: '2026-07-13', changes: [
+    'The "Leash" beta now skins the whole app, not just the dashboard — the accounts overview and other pages pick up the tactical HUD look (mono section labels, accent hairlines, ambient glow) when the beta is on',
+  ]},
   { version: '5.44.2', date: '2026-07-13', changes: [
     'Leash beta dashboard now shows your theme mascot (the Gengar/Haunter/Gastly trio, the Doberman, etc.) at the top, and lists your recent transactions inline (tap the header to open the full ledger)',
   ]},
@@ -2549,6 +2552,8 @@ function applySettings() {
   // "Reduce motion & effects" — freezes the infinite idle glitch loops to save
   // battery and calm the UI. CSS handles the rest via body.fx-reduced.
   document.body.classList.toggle('fx-reduced', !!s.reduceFx);
+  // Beta: the "Leash" HUD skin restyles every page's existing markup when on.
+  document.body.classList.toggle('leash-skin', isLeashDash());
   // Privacy: blur all money amounts if the user left "hide balances" on.
   _applyAmountsHidden();
 }
@@ -9966,6 +9971,7 @@ function attachSettings() {
     const s = loadSettings();
     s.dashStyle = e.target.checked ? 'leash' : '';
     saveSettings(s);
+    document.body.classList.toggle('leash-skin', e.target.checked);
     haptic([10]);
   });
 
