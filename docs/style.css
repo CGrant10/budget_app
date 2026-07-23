@@ -2262,9 +2262,13 @@ body.light .section-title::before {
 .lf-sort { width: auto; flex-shrink: 0; font-size: .8rem; padding: 8px 10px; }
 .lf-row2 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .lf-cat { flex: 1; min-width: 120px; font-size: .8rem; padding: 8px 10px; }
-.lf-row3 { display: flex; gap: 6px; align-items: center; }
-.lf-date { flex: 1; min-width: 0; font-size: .8rem; padding: 8px 8px; }
+.lf-row3 { display: flex; gap: 8px; align-items: center; }
+/* Date inputs now sit on their own row, so give them real width — native date
+   fields need room for mm/dd/yyyy plus the calendar icon. */
+.lf-date { flex: 1; min-width: 0; font-size: .82rem; padding: 9px 10px; min-height: 40px; }
 .lf-dash { color: var(--muted); font-size: .9rem; flex-shrink: 0; }
+.lf-row4 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.lf-row4 .btn-xs { flex: 1 1 auto; justify-content: center; }
 
 /* ── type pills ───────────────────────────────────────────────────────────── */
 .type-pills { display: flex; gap: 4px; flex-shrink: 0; }

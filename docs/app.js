@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.44.3';
+const VERSION = '5.44.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.44.4', date: '2026-07-13', changes: [
+    'Fixed the cramped date range on the Ledger — the From/To date pickers now sit on their own row with full width (the CSV / Duplicates / Find $ / Select buttons moved to the row below), so the dates are no longer clipped inside tiny boxes',
+  ]},
   { version: '5.44.3', date: '2026-07-13', changes: [
     'The "Leash" beta now skins the whole app, not just the dashboard — the accounts overview and other pages pick up the tactical HUD look (mono section labels, accent hairlines, ambient glow) when the beta is on',
   ]},
@@ -7186,6 +7189,8 @@ function renderLedger() {
           <input type="date" id="ledger-date-from" class="form-input lf-date" value="${ledgerDateFrom}" title="From date">
           <span class="lf-dash">—</span>
           <input type="date" id="ledger-date-to" class="form-input lf-date" value="${ledgerDateTo}" title="To date">
+        </div>
+        <div class="lf-row4">
           <button id="ledger-export-csv" class="btn-xs"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</button>
           <button id="ledger-find-dupes" class="btn-xs" title="Scan for duplicate transactions"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Duplicates</button>
           <button id="ledger-find-amount" class="btn-xs" title="Find transactions that add up to an amount"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Find $</button>
