@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.44.0';
+const VERSION = '5.44.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.44.1', date: '2026-07-13', changes: [
+    'New beta look: a "Leash" tactical-HUD dashboard — a bolder command-center take with your balance, the week budget "on a leash", today vs net, and bills due as a status feed. Turn it on in Settings → Beta features (checking-style accounts)',
+  ]},
   { version: '5.44.0', date: '2026-07-13', changes: [
     'Restore points — the app now keeps automatic on-device snapshots of your data (one per day, plus before any bulk delete, import, or restore). Roll back to one anytime from Import / Export → Restore points if something goes wrong',
     'Ledger multi-select — tap Select in the ledger toolbar to check off several transactions, then Delete or Recategorize them all at once (a restore point is saved first, so bulk delete is reversible)',
@@ -2481,6 +2484,9 @@ function _currentAcct() { return state.accounts.find(a => a.id === currentAccoun
 // Simple (Tracker) mode hides the budgeting features for users who only want
 // to track balance + transactions. 'full' is the default for existing users.
 function isSimpleMode() { return loadSettings().appMode === 'simple'; }
+
+// Beta: the "Leash" tactical-HUD dashboard variant (Settings → Beta features).
+function isLeashDash() { return loadSettings().dashStyle === 'leash'; }
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Dashboard', required: true,
@@ -5886,6 +5892,56 @@ function renderDashboardDawg() {
   const multiAcct = state.accounts && state.accounts.length > 1;
   const _curAcct  = state.accounts.find(a => a.id === currentAccountId);
   const _acctName = _curAcct?.name || 'Account';
+
+  // ── Beta: "Leash" tactical-HUD dashboard (checking-style accounts only) ─────
+  if (isLeashDash() && !_isDebt) {
+    const _todayStr = today();
+    let todaySpent = 0;
+    for (const t of state.transactions) if (t.date === _todayStr) todaySpent += (t.type === 'income' ? -t.amount : t.amount);
+    todaySpent = Math.max(0, todaySpent);
+    const perDayLimit = _livePerDay || (_livePerWeek ? _livePerWeek / 7 : 0);
+    const wkPct   = _livePerWeek > 0 ? Math.min(weekSpent / _livePerWeek * 100, 100) : 0;
+    const wkOver  = _livePerWeek > 0 && weekSpent > _livePerWeek;
+    const dayOver = perDayLimit > 0 && todaySpent > perDayLimit;
+    const monLbl  = dashMonthLabel.split(' ')[0].toUpperCase();
+    const upcoming = getUpcomingBills(7);
+    const feed = upcoming.length
+      ? upcoming.map(b => {
+          const dU  = getDaysUntilDue(b.dueDay);
+          const col = dU <= 2 ? 'var(--danger)' : dU <= 5 ? 'var(--warn)' : 'var(--accent)';
+          return `<div class="leash-rl"><span class="leash-st" style="background:${col}"></span><span class="leash-nm">${_escHtml(b.name)}</span><span class="leash-due">${dU === 0 ? 'today' : dU + 'd'}</span><span class="leash-amt money">${fmt(b.amount)}</span></div>`;
+        }).join('')
+      : '<div class="leash-empty">No bills due in the next 7 days.</div>';
+
+    return `<div class="dawg-page leash-dash">
+      ${backupBannerHtml()}
+      <svg class="leash-dogwm" viewBox="0 0 120 150" aria-hidden="true"><path d="M20 8l14 26 26-8 26 8 14-26 6 40c0 30-20 54-46 54S20 78 20 48z" fill="currentColor"/><path d="M44 60l16 14 16-14" fill="none" stroke="var(--bg)" stroke-width="5" stroke-linecap="round"/></svg>
+      <div class="leash-hudtop">
+        <span>DAWG&nbsp;OS</span><span class="leash-hudacct">· ${_escHtml(_acctName)}</span>
+        <span class="leash-live">WATCHING</span>
+      </div>
+      <div class="leash-balcard">
+        <button class="dash-privacy-btn${_amountsHidden() ? ' is-hidden' : ''}" id="dash-privacy-btn" title="${_amountsHidden() ? 'Show amounts' : 'Hide amounts'}" aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden() ? 'true' : 'false'}">${_eyeIconSvg(_amountsHidden())}</button>
+        <div class="leash-glab">${isPastDash ? _escHtml(dashMonthLabel) + ' balance' : 'Total balance'}</div>
+        <div class="dawg-balance-amt leash-bal money" style="color:${balColor}">${fmt(balance)}</div>
+        <div class="dawg-lockin leash-lockin" data-glitch="LOCK TF IN.">LOCK&nbsp;TF&nbsp;IN.</div>
+      </div>
+      ${_livePerWeek > 0 ? `<div class="leash-leashbar">
+        <div class="leash-lrow"><span>WEEK BUDGET — ON A LEASH</span><span class="leash-amt money">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</span></div>
+        <div class="leash-track${wkOver ? ' over' : ''}"><i style="width:${wkPct}%"></i></div>
+      </div>` : ''}
+      <div class="leash-grid2">
+        <div class="leash-cell"><div class="leash-k">TODAY</div><div class="leash-v money${dayOver ? ' warn' : ''}">${fmt(todaySpent)} <span>/ ${perDayLimit ? fmt(perDayLimit) : '—'}</span></div></div>
+        <div class="leash-cell"><div class="leash-k">NET · ${monLbl}</div><div class="leash-v money" style="color:${monthDelta >= 0 ? 'var(--accent)' : 'var(--danger)'}">${monthDelta >= 0 ? '+' : '−'}${fmt(Math.abs(monthDelta))}</div></div>
+      </div>
+      <div class="leash-readout">
+        <div class="leash-rh">DUE — NEXT 7 DAYS</div>
+        ${feed}
+      </div>
+      <button class="leash-cta" id="dawg-goto-ledger">OPEN LEDGER ›</button>
+    </div>`;
+  }
+
   return `<div class="dawg-page">
     ${backupBannerHtml()}
     <div class="dawg-hero">
@@ -9678,6 +9734,18 @@ function renderSettings() {
         </div>
       </div>
 
+      <div class="form-card">
+        <h2 class="section-title" style="margin-bottom:8px">Beta features</h2>
+        <p class="code-hint" style="margin-bottom:12px">Experimental looks we're trying out. Toggle freely — nothing here touches your data.</p>
+        <div class="form-row">
+          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="leash-dash-settings" ${isLeashDash() ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
+            "Leash" dashboard (tactical HUD)
+          </label>
+          <p class="code-hint" style="margin-top:6px">A bolder, monospace command-center take on the dashboard — balance, budget "on a leash", and bills due as a status feed. Applies to checking-style accounts.</p>
+        </div>
+      </div>
+
     </div>`;
 }
 
@@ -9878,6 +9946,13 @@ function attachSettings() {
     s.hapticsOff = !e.target.checked;
     saveSettings(s);
     if (e.target.checked) haptic([10]);   // confirmation buzz when turning it on
+  });
+
+  document.getElementById('leash-dash-settings')?.addEventListener('change', e => {
+    const s = loadSettings();
+    s.dashStyle = e.target.checked ? 'leash' : '';
+    saveSettings(s);
+    haptic([10]);
   });
 
 
