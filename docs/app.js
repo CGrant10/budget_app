@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.3';
+const VERSION = '5.45.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.4', date: '2026-07-27', changes: [
+    'The Weekly Planner now follows the skin too — stat cards use the same label-and-figure pairing as the dashboard, the week tracker and every progress bar sit on the skin\'s own bar height and corner style, and the history toggles match the other pills',
+    'The Accounts page follows the skin as well: account cards, type chips, the net-worth block, badges and buttons all lose the glassy look and pick up the skin\'s hairlines and figures',
+  ]},
   { version: '5.45.3', date: '2026-07-27', changes: [
     'Fixed unreadable text on the splash screen — the wordmark sat on top of the Doberman, and with a light skin both were near-black so "Budget DAWGs" disappeared into the dog\'s fur. The mascot and the wordmark no longer overlap, and the text keeps a soft halo as a safeguard. The mascot also stops barking and colour-fringing while a skin is on',
     'The rest of the app now follows the skin, not just the dashboard: page titles, the ledger list, filters, inputs, buttons, pills, budget bars and empty states all pick up the skin\'s type, spacing and hairlines. Pages also fade in on the same easing curve as everything else',

@@ -7528,6 +7528,113 @@ body.skinned .budget-spent-lbl {
   font-size: 11px; font-weight: var(--sk-num-weight);
 }
 
+/* ── Weekly planner ───────────────────────────────────────────────────────── */
+/* Stat cards carry the same eyebrow-label + big-figure pairing as the dashboard's
+   3-up row, so they read as the same component rather than a second dialect. */
+body.skinned .cards-grid { gap: var(--sk-gap); }
+body.skinned .card-title {
+  font-size: var(--sk-lbl-size); letter-spacing: var(--sk-lbl-track);
+  text-transform: var(--sk-lbl-case); font-weight: var(--sk-lbl-weight);
+  color: var(--muted);
+}
+body.skinned .card-value {
+  font-family: var(--sk-num); font-variant-numeric: tabular-nums;
+  font-size: 20px; font-weight: var(--sk-num-weight); letter-spacing: -.02em;
+  color: var(--text); margin-top: 6px;
+}
+body.skinned .card-sub { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+/* Every progress track in the app on one spec */
+body.skinned .progress-bar-bg,
+body.skinned .wt-amounts + .progress-bar-bg {
+  height: var(--sk-track-h) !important;
+  border-radius: var(--sk-pill-r) !important;
+  background: color-mix(in srgb, var(--text) 8%, transparent) !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+body.skinned .progress-bar-fill {
+  border-radius: inherit !important;
+  box-shadow: none !important;
+  transition: width var(--sk-slow) var(--sk-ease);
+}
+body.skinned .week-tracker {
+  background: transparent !important;
+  border: 0 !important; border-top: 1px solid var(--border) !important;
+  border-radius: 0 !important; box-shadow: none !important;
+}
+body.skin-quiet .week-tracker {
+  background: var(--card) !important; border: 1px solid #1e2328 !important;
+  border-radius: var(--skin-radius) !important;
+}
+body.skinned .wt-header {
+  font-size: var(--sk-lbl-size); letter-spacing: var(--sk-lbl-track);
+  text-transform: var(--sk-lbl-case); font-weight: var(--sk-lbl-weight);
+  color: var(--muted);
+}
+body.skinned .wt-amounts {
+  font-family: var(--sk-num); font-variant-numeric: tabular-nums;
+  font-weight: var(--sk-num-weight);
+}
+body.skinned .wk-seg > *,
+body.skinned .wk-hist-head .wk-seg > * {
+  border-radius: var(--sk-pill-r) !important;
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+body.skinned .wk-seg > .active { border-color: var(--accent) !important; color: var(--accent) !important; }
+body.skinned .btn-row { gap: 8px; }
+body.skinned .status-inline,
+body.skinned .form-status { font-size: 11.5px; color: var(--muted); }
+
+/* ── Accounts overview ────────────────────────────────────────────────────── */
+body.skinned .accounts-list { display: flex; flex-direction: column; }
+body.skinned .acct-settings-card {
+  background: transparent !important;
+  border: 0 !important; border-top: 1px solid var(--border) !important;
+  border-radius: 0 !important; box-shadow: none !important;
+}
+body.skin-quiet .acct-settings-card {
+  background: var(--card) !important; border: 1px solid #1e2328 !important;
+  border-radius: var(--skin-radius) !important; margin-bottom: 8px;
+}
+body.skinned .acct-type-chip,
+body.skinned .btn-sm {
+  border-radius: var(--sk-pill-r) !important;
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  color: var(--text) !important;
+  backdrop-filter: none !important;
+}
+body.skinned .acct-type-chip.active {
+  border-color: var(--accent) !important; color: var(--accent) !important;
+}
+body.skinned .code-hint { font-size: 11.5px; color: var(--muted); }
+/* Net-worth block + badges: the stock inset sheen reads as glass on a flat page */
+body.skinned .acct-nw2 {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--skin-radius-sm) !important;
+  box-shadow: none !important;
+}
+body.skinned .acct-nw2-label {
+  font-size: var(--sk-lbl-size); letter-spacing: var(--sk-lbl-track);
+  text-transform: var(--sk-lbl-case); font-weight: var(--sk-lbl-weight);
+}
+body.skinned .acct-nw2-val,
+body.skinned .acct-row-bal {
+  font-family: var(--sk-num); font-variant-numeric: tabular-nums;
+  font-weight: var(--sk-num-weight);
+}
+body.skinned .acct-badge { box-shadow: none !important; border-radius: var(--sk-pill-r) !important; }
+body.skinned .acct-row-type {
+  font-size: var(--sk-lbl-size); letter-spacing: var(--sk-lbl-track);
+  text-transform: var(--sk-lbl-case); font-weight: var(--sk-lbl-weight);
+  color: var(--muted);
+}
+
 /* Empty states: the mascot illustration fights a restrained page */
 body.skinned .empty-dob { display: none; }
 body.skinned .empty-state { padding: 40px 0; text-align: left; }
