@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clean / Minimal Design Directions — Budget App</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   PAGE CHROME (the mockup gallery itself — not part of any design direction)
+   ══════════════════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: #0d0f11;
+  color: #e8eaed;
+  font: 400 15px/1.6 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  padding: 0 24px 120px;
+}
+.wrap { max-width: 1400px; margin: 0 auto; }
+.page-head { max-width: 720px; margin-bottom: 64px; }
+
+/* ── sticky direction switcher ────────────────────────────────────────────── */
+.switcher {
+  position: sticky; top: 0; z-index: 50;
+  margin: 0 -24px 44px; padding: 14px 24px;
+  background: rgba(13,15,17,.88); backdrop-filter: blur(14px);
+  border-bottom: 1px solid #1e2126;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+}
+.switcher-lbl {
+  font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase;
+  color: #6b727b; margin-right: 6px;
+}
+.sw-btn {
+  font: 500 13px/1 inherit; color: #b6bec8; cursor: pointer;
+  background: #14171a; border: 1px solid #23262b; border-radius: 7px;
+  padding: 9px 13px; display: inline-flex; align-items: center; gap: 8px;
+}
+.sw-btn:hover { border-color: #3a3f46; color: #e8eaed; }
+.sw-btn.on { background: #e8eaed; border-color: #e8eaed; color: #0d0f11; font-weight: 600; }
+.sw-swatch { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(255,255,255,.18); }
+.sw-btn.on .sw-swatch { border-color: rgba(0,0,0,.25); }
+
+/* filter state — set on <body> by the switcher */
+body[data-show="1"] .dir:not([data-dir="1"]),
+body[data-show="2"] .dir:not([data-dir="2"]),
+body[data-show="3"] .dir:not([data-dir="3"]) { display: none; }
+body:not([data-show="all"]) .page-head { display: none; }
+body:not([data-show="all"]) .dir { margin-bottom: 24px; }
+.page-kicker {
+  font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+  color: #7a828c; margin-bottom: 14px;
+}
+.page-head h1 { font-size: 34px; line-height: 1.15; margin: 0 0 14px; font-weight: 600; letter-spacing: -.02em; }
+.page-head p { margin: 0; color: #9aa2ac; font-size: 15px; }
+
+.dir { margin-bottom: 96px; }
+.dir-head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+.dir-num {
+  font: 600 12px/1 ui-monospace, monospace; letter-spacing: .1em;
+  color: #0d0f11; background: #e8eaed; padding: 6px 9px; border-radius: 5px;
+}
+.dir-head h2 { font-size: 24px; margin: 0; font-weight: 600; letter-spacing: -.01em; }
+.dir-tag { font-size: 13px; color: #7a828c; }
+.dir-desc { max-width: 780px; color: #9aa2ac; font-size: 14.5px; margin: 0 0 12px; }
+.dir-specs {
+  display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 32px; padding: 0; list-style: none;
+}
+.dir-specs li {
+  font: 500 11.5px/1 ui-monospace, monospace; color: #b6bec8;
+  border: 1px solid #23262b; background: #14171a; padding: 7px 10px; border-radius: 5px;
+}
+/* 4 screens per direction — scroll sideways rather than wrap into a ragged grid */
+.frames {
+  display: flex; gap: 28px; align-items: flex-start;
+  overflow-x: auto; overflow-y: hidden;
+  padding-bottom: 14px; margin: 0 -24px; padding-left: 24px; padding-right: 24px;
+  scrollbar-width: thin; scrollbar-color: #33383f transparent;
+}
+.frames::-webkit-scrollbar { height: 9px; }
+.frames::-webkit-scrollbar-track { background: #14171a; border-radius: 9px; }
+.frames::-webkit-scrollbar-thumb { background: #33383f; border-radius: 9px; }
+.frame-col { display: flex; flex-direction: column; gap: 12px; }
+.frame-label { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #6b727b; }
+
+/* ── Phone shell ─────────────────────────────────────────────────────────── */
+.phone {
+  width: 340px; height: 748px; flex: none;
+  border-radius: 40px; padding: 9px;
+  background: #1b1e22;
+  box-shadow: 0 0 0 1px #2c3036, 0 30px 60px -20px rgba(0,0,0,.8);
+}
+.screen {
+  width: 100%; height: 100%; border-radius: 32px; overflow: hidden;
+  position: relative; display: flex; flex-direction: column;
+  font-feature-settings: "tnum" 1, "cv01" 1;
+}
+.screen-scroll { flex: 1; overflow: hidden; }
+
+/* status bar */
+.sbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 22px 2px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em;
+  flex: none;
+}
+.sbar-r { display: flex; gap: 5px; align-items: center; opacity: .85; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SHARED SCREEN SKELETON — every direction reuses these class names and
+   re-skins them with its own tokens. Structural overrides live in each
+   direction's block below.
+   ══════════════════════════════════════════════════════════════════════════ */
+.screen {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+.body { padding: var(--pad-y) var(--pad-x); }
+
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px var(--pad-x) 0; }
+.topbar-title { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.topbar-acct { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted); }
+.avatar {
+  width: 26px; height: 26px; border-radius: 50%; flex: none;
+  background: var(--accent-soft); color: var(--accent);
+  display: grid; place-items: center; font-size: 11px; font-weight: 700;
+}
+.icon-btn {
+  width: 30px; height: 30px; border-radius: var(--r-sm); border: var(--hairline);
+  background: transparent; color: var(--muted); display: grid; place-items: center;
+  font-size: 13px; cursor: default;
+}
+
+/* eyebrow / section labels */
+.eyebrow {
+  font-size: var(--label-size); letter-spacing: var(--label-track);
+  text-transform: var(--label-case); color: var(--muted); font-weight: var(--label-weight);
+}
+.section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+.section-more { font-size: 12px; color: var(--accent); font-weight: 500; }
+
+/* hero balance */
+.hero { padding: var(--hero-pad); }
+.hero-label { margin-bottom: 10px; }
+.hero-amt {
+  font-family: var(--font-num); font-size: var(--hero-size); line-height: 1;
+  font-weight: var(--hero-weight); letter-spacing: var(--hero-track);
+  display: flex; align-items: baseline; gap: 2px;
+}
+.hero-amt .cur { font-size: .46em; font-weight: 500; opacity: .5; align-self: flex-start; margin-top: .28em; }
+.hero-amt .cents { font-size: .48em; opacity: .45; margin-left: 2px; }
+.hero-delta { margin-top: 12px; display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: var(--r-pill); font-size: 11.5px; font-weight: 600;
+  background: var(--up-soft); color: var(--up);
+}
+.pill.down { background: var(--down-soft); color: var(--down); }
+.hero-sub { color: var(--muted); }
+
+/* sparkline */
+.spark { display: block; width: 100%; height: 46px; margin-top: 18px; }
+
+/* stat row */
+.stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--gap); }
+.stat { padding: var(--cell-pad); border-radius: var(--r-md); background: var(--surface); border: var(--card-border); }
+.stat-label { margin-bottom: 7px; display: block; white-space: nowrap; }
+.stat-val { font-family: var(--font-num); font-size: 17px; font-weight: var(--num-weight); letter-spacing: -.01em; }
+.stat-val small { font-size: 11px; font-weight: 500; opacity: .5; margin-left: 1px; }
+
+/* card */
+.card {
+  border-radius: var(--r-lg); background: var(--surface); border: var(--card-border);
+  padding: var(--card-pad); box-shadow: var(--card-shadow);
+}
+.card + .card, .stats + .card, .card + .stats, .block + .block { margin-top: var(--stack); }
+.block { margin-top: var(--stack); }
+
+/* weekly allowance meter */
+.meter-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.meter-amt { font-family: var(--font-num); font-size: 26px; font-weight: var(--hero-weight); letter-spacing: -.02em; }
+.meter-of { font-size: 12.5px; color: var(--muted); }
+.track { height: var(--track-h); border-radius: var(--r-pill); background: var(--track-bg); overflow: hidden; }
+.track > i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.track.warn > i { background: var(--warn); }
+.meter-foot { display: flex; justify-content: space-between; margin-top: 9px; font-size: 11.5px; color: var(--muted); }
+
+/* budget rows */
+.brow + .brow { margin-top: var(--row-gap); padding-top: var(--row-gap); border-top: var(--hairline-row); }
+.brow-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.brow-name { font-size: 13.5px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.brow-num { font-family: var(--font-num); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.brow-num b { color: var(--text); font-weight: var(--num-weight); }
+
+/* transaction rows */
+.trow { display: flex; align-items: center; gap: 12px; padding: var(--trow-pad) 0; }
+.trow + .trow { border-top: var(--hairline-row); }
+.tico {
+  width: var(--tico-size); height: var(--tico-size); border-radius: var(--r-ico); flex: none;
+  display: grid; place-items: center; font-size: 14px;
+  background: var(--surface2); border: var(--ico-border);
+}
+.tmain { flex: 1; min-width: 0; }
+.tname { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tmeta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.tamt { font-family: var(--font-num); font-size: 14px; font-weight: var(--num-weight); letter-spacing: -.01em; white-space: nowrap; }
+.tamt.in { color: var(--up); }
+.day-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: var(--dayhead-pad); margin-top: var(--stack);
+}
+.day-head:first-child { margin-top: 0; }
+
+/* donut */
+.donut-wrap { display: flex; align-items: center; gap: 20px; }
+.donut { width: 104px; height: 104px; flex: none; }
+.legend { flex: 1; display: flex; flex-direction: column; gap: 9px; }
+.lrow { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.lrow .lname { flex: 1; color: var(--muted); }
+.lrow .lval { font-family: var(--font-num); font-weight: var(--num-weight); }
+
+/* bottom nav */
+.nav {
+  flex: none; display: flex; align-items: flex-end; justify-content: space-around;
+  padding: 10px 8px 20px; background: var(--nav-bg); border-top: var(--nav-border);
+  backdrop-filter: blur(20px);
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;
+  color: var(--muted); font-size: 9.5px; letter-spacing: .04em; font-weight: 500;
+}
+.nav-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+.nav-btn.on { color: var(--accent); }
+.nav-fab {
+  width: 46px; height: 46px; border-radius: var(--r-fab); flex: none;
+  background: var(--fab-bg); color: var(--fab-fg);
+  display: grid; place-items: center; font-size: 21px; font-weight: 300;
+  margin-bottom: 2px; box-shadow: var(--fab-shadow);
+}
+
+/* ── splash screen (shared skeleton) ─────────────────────────────────────── */
+.sp {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 0; padding: 0 34px; text-align: center;
+  position: relative;
+}
+.sp-mascot { width: 96px; height: 96px; object-fit: contain; }
+.sp-brand { margin-top: 22px; }
+.sp-tag { margin-top: 9px; font-size: 13px; color: var(--muted); }
+.sp-boot {
+  margin-top: 30px; width: 100%; display: flex; flex-direction: column; gap: 6px;
+  font-size: 11px; color: var(--muted);
+}
+.sp-boot-line { display: flex; justify-content: space-between; align-items: baseline; }
+.sp-ok { color: var(--up); }
+.sp-alt { margin-top: 30px; font-size: 12px; color: var(--muted); display: none; }
+.sp-prog { margin-top: 26px; width: 100%; }
+.sp-hint {
+  position: absolute; bottom: 34px; left: 0; right: 0;
+  font-size: 11px; color: var(--muted); opacity: .8;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DIRECTION 1 — "LEDGER"  ·  editorial light, serif numerals, hairline rules
+   ══════════════════════════════════════════════════════════════════════════ */
+.d1 {
+  --bg: #fbfaf7;
+  --surface: transparent;
+  --surface2: #f2efe9;
+  --text: #14150f;
+  --muted: #8b8a80;
+  --accent: #1f4d3d;
+  --accent-soft: #e4ece7;
+  --up: #1f4d3d; --up-soft: #e4ece7;
+  --down: #9c3025; --down-soft: #f6e6e3;
+  --warn: #b07a1e;
+  --track-bg: #ebe7df;
+  --track-h: 3px;
+
+  --font-ui: ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  --font-num: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --hero-size: 46px; --hero-weight: 400; --hero-track: -.02em;
+  --num-weight: 500;
+  --label-size: 10px; --label-track: .16em; --label-case: uppercase; --label-weight: 600;
+
+  --pad-x: 22px; --pad-y: 4px;
+  --hero-pad: 26px 0 4px;
+  --gap: 0px; --stack: 26px; --row-gap: 13px; --trow-pad: 12px; --dayhead-pad: 0 0 8px;
+  --cell-pad: 0 14px 0 0; --card-pad: 0;
+  --card-border: 0; --card-shadow: none;
+  --hairline: 1px solid #e5e1d8;
+  --hairline-row: 1px solid #ece8e0;
+  --r-sm: 6px; --r-md: 0px; --r-lg: 0px; --r-pill: 99px; --r-ico: 50%; --r-fab: 50%;
+  --tico-size: 34px; --ico-border: 0;
+
+  --nav-bg: rgba(251,250,247,.92); --nav-border: 1px solid #e5e1d8;
+  --fab-bg: #14150f; --fab-fg: #fbfaf7; --fab-shadow: 0 6px 16px -4px rgba(20,21,15,.4);
+}
+/* editorial rules instead of boxes */
+.d1 .stats { border-top: 1px solid #e5e1d8; border-bottom: 1px solid #e5e1d8; padding: 15px 0; }
+.d1 .stat + .stat { border-left: 1px solid #ece8e0; padding-left: 14px; }
+.d1 .hero-amt { font-style: normal; }
+.d1 .section-head { border-bottom: 1px solid #e5e1d8; padding-bottom: 8px; }
+.d1 .topbar-title { font-family: var(--font-num); font-size: 17px; font-weight: 500; letter-spacing: 0; }
+.d1 .pill { background: transparent; padding: 0; font-weight: 600; }
+.d1 .day-head { border-bottom: 1px solid #ece8e0; }
+/* splash: no boot log — an editorial title page instead */
+.d1 .sp-brand {
+  font-family: var(--font-num); font-size: 27px; font-weight: 500; letter-spacing: -.01em;
+  padding-bottom: 14px; border-bottom: 1px solid #ddd8cc;
+}
+.d1 .sp-tag { font-style: italic; font-family: var(--font-num); font-size: 14px; }
+.d1 .sp-boot { display: none; }
+.d1 .sp-alt { display: block; letter-spacing: .1em; text-transform: uppercase; font-size: 10px; font-weight: 600; }
+.d1 .sp-prog { height: 1px; background: #e5e1d8; }
+.d1 .sp-prog > i { display: block; height: 100%; width: 62%; background: var(--accent); }
+.d1 .sp-mascot { width: 84px; height: 84px; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DIRECTION 2 — "QUIET"  ·  soft dark, elevated cards, one mint accent
+   ══════════════════════════════════════════════════════════════════════════ */
+.d2 {
+  --bg: #0e1013;
+  --surface: #16191d;
+  --surface2: #1f2429;
+  --text: #f0f2f4;
+  --muted: #838d98;
+  --accent: #5ecf9e;
+  --accent-soft: rgba(94,207,158,.14);
+  --up: #5ecf9e; --up-soft: rgba(94,207,158,.14);
+  --down: #f0836f; --down-soft: rgba(240,131,111,.14);
+  --warn: #e9b949;
+  --track-bg: #23282e;
+  --track-h: 6px;
+
+  --font-ui: ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  --font-num: ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  --hero-size: 42px; --hero-weight: 600; --hero-track: -.035em;
+  --num-weight: 600;
+  --label-size: 11px; --label-track: .02em; --label-case: none; --label-weight: 500;
+
+  --pad-x: 18px; --pad-y: 8px;
+  --hero-pad: 22px 0 2px;
+  --gap: 9px; --stack: 14px; --row-gap: 14px; --trow-pad: 11px; --dayhead-pad: 0 2px 8px;
+  --cell-pad: 13px 12px; --card-pad: 17px;
+  --card-border: 1px solid #1e2328; --card-shadow: 0 1px 2px rgba(0,0,0,.4);
+  --hairline: 1px solid #23282e;
+  --hairline-row: 1px solid #1c2126;
+  --r-sm: 9px; --r-md: 14px; --r-lg: 18px; --r-pill: 99px; --r-ico: 12px; --r-fab: 16px;
+  --tico-size: 36px; --ico-border: 1px solid #23282e;
+
+  --nav-bg: rgba(14,16,19,.86); --nav-border: 1px solid #1c2126;
+  --fab-bg: #5ecf9e; --fab-fg: #07130e; --fab-shadow: 0 8px 22px -6px rgba(94,207,158,.5);
+}
+.d2 .hero { padding: 22px 0 2px; }
+/* splash: mascot on a soft lifted tile, quiet boot log, pill progress */
+.d2 .sp-mascot {
+  width: 104px; height: 104px; padding: 14px; border-radius: 26px;
+  background: #16191d; border: 1px solid #1e2328;
+  box-shadow: 0 20px 50px -20px rgba(94,207,158,.28);
+}
+.d2 .sp-brand { font-size: 24px; font-weight: 650; letter-spacing: -.03em; }
+.d2 .sp-boot { font-variant-numeric: tabular-nums; }
+.d2 .sp-prog { height: 5px; border-radius: 99px; background: #1f2429; overflow: hidden; }
+.d2 .sp-prog > i { display: block; height: 100%; width: 62%; border-radius: 99px; background: var(--accent); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DIRECTION 3 — "GRID"  ·  swiss/neutral, tight type scale, structural lines
+   ══════════════════════════════════════════════════════════════════════════ */
+.d3 {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface2: #f4f5f6;
+  --text: #0a0b0c;
+  --muted: #83898f;
+  --accent: #0a0b0c;
+  --accent-soft: #eef0f1;
+  --up: #16794d; --up-soft: #e7f2ec;
+  --down: #c02a20; --down-soft: #fbeae8;
+  --warn: #9a6b00;
+  --track-bg: #eceef0;
+  --track-h: 2px;
+
+  --font-ui: "Helvetica Neue", Inter, ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+  --font-num: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+  --hero-size: 40px; --hero-weight: 500; --hero-track: -.045em;
+  --num-weight: 500;
+  --label-size: 9.5px; --label-track: .2em; --label-case: uppercase; --label-weight: 600;
+
+  --pad-x: 20px; --pad-y: 0px;
+  --hero-pad: 22px 0 18px;
+  --gap: 1px; --stack: 0px; --row-gap: 12px; --trow-pad: 11px; --dayhead-pad: 12px 0 8px;
+  --cell-pad: 14px 12px; --card-pad: 18px 0;
+  --card-border: 0; --card-shadow: none;
+  --hairline: 1px solid #dfe2e5;
+  --hairline-row: 1px solid #eceef0;
+  --r-sm: 3px; --r-md: 0px; --r-lg: 0px; --r-pill: 3px; --r-ico: 3px; --r-fab: 4px;
+  --tico-size: 32px; --ico-border: 1px solid #e4e7ea;
+
+  --nav-bg: #ffffff; --nav-border: 1px solid #0a0b0c;
+  --fab-bg: #0a0b0c; --fab-fg: #fff; --fab-shadow: none;
+}
+/* structural: full-bleed rules that read as a grid */
+.d3 .body > * { position: relative; }
+.d3 .stats { background: #dfe2e5; border-top: 1px solid #0a0b0c; border-bottom: 1px solid #dfe2e5; }
+.d3 .stat { background: #fff; }
+.d3 .block, .d3 .card { border-top: 1px solid #dfe2e5; }
+.d3 .hero { border-bottom: 0; }
+.d3 .topbar { padding-bottom: 12px; }
+.d3 .topbar-title { text-transform: uppercase; letter-spacing: .14em; font-size: 11px; font-weight: 700; }
+.d3 .pill { border-radius: 3px; font-family: var(--font-num); font-size: 10.5px; letter-spacing: -.02em; }
+.d3 .nav-btn { font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; }
+.d3 .section-more { text-transform: uppercase; letter-spacing: .12em; font-size: 9.5px; font-weight: 600; }
+.d3 .tamt { font-size: 13px; }
+/* splash: keeps the boot-log idea, set as a tight monospace table */
+.d3 .sp { padding: 0 26px; }
+.d3 .sp-mascot { width: 78px; height: 78px; }
+.d3 .sp-brand {
+  font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .22em;
+}
+.d3 .sp-tag { font-size: 11.5px; letter-spacing: .04em; }
+.d3 .sp-boot {
+  font-family: var(--font-num); font-size: 10px; gap: 0;
+  border-top: 1px solid #0a0b0c; border-bottom: 1px solid #dfe2e5;
+}
+.d3 .sp-boot-line { padding: 7px 0; border-bottom: 1px solid #eceef0; }
+.d3 .sp-boot-line:last-child { border-bottom: 0; }
+.d3 .sp-ok { text-transform: uppercase; letter-spacing: .1em; font-weight: 600; }
+.d3 .sp-prog { height: 2px; background: #eceef0; }
+.d3 .sp-prog > i { display: block; height: 100%; width: 62%; background: #0a0b0c; }
+.d3 .sp-hint { text-transform: uppercase; letter-spacing: .18em; font-size: 9px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="switcher">
+    <span class="switcher-lbl">Direction</span>
+    <button class="sw-btn on" data-show="all">Compare all</button>
+    <button class="sw-btn" data-show="1"><span class="sw-swatch" style="background:#fbfaf7"></span>01 · Ledger</button>
+    <button class="sw-btn" data-show="2"><span class="sw-swatch" style="background:#0e1013"></span>02 · Quiet</button>
+    <button class="sw-btn" data-show="3"><span class="sw-swatch" style="background:#fff"></span>03 · Grid</button>
+  </nav>
+
+  <header class="page-head">
+    <div class="page-kicker">Budget app · design exploration</div>
+    <h1>Three clean directions</h1>
+    <p>Same screens, three restrained treatments — an alternative to the Glitch and HUD skins.
+       Each one is a complete token set (color, type, spacing, radius, borders), so whichever you
+       pick drops into <code>style.css</code> as a theme rather than a rewrite.</p>
+  </header>
+
+  <section class="dir" data-dir="1">
+    <div class="dir-head">
+      <span class="dir-num">01</span>
+      <h2>Ledger</h2>
+      <span class="dir-tag">editorial · warm light · serif numerals</span>
+    </div>
+    <p class="dir-desc">Reads like a well-set financial statement. No cards and no shadows —
+      structure comes entirely from hairline rules and whitespace. Serif numerals give the money
+      weight and authority; the UI text stays a neutral sans so nothing competes with the figures.
+      Feels considered and expensive, and it's the most legible of the three in daylight.</p>
+    <ul class="dir-specs">
+      <li>bg #FBFAF7</li><li>ink #14150F</li><li>accent #1F4D3D</li>
+      <li>serif tabular numerals</li><li>0px radius · rules not boxes</li><li>22px gutters</li>
+    </ul>
+    <div class="frames" id="f1"></div>
+  </section>
+
+  <section class="dir" data-dir="2">
+    <div class="dir-head">
+      <span class="dir-num">02</span>
+      <h2>Quiet</h2>
+      <span class="dir-tag">soft dark · elevated cards · single accent</span>
+    </div>
+    <p class="dir-desc">The safest modern default and the closest to your current dark app.
+      Near-black ground, cards lifted a step with a 1px translucent edge, generous 18px radii,
+      and exactly one accent (mint) reserved for positive money and the active nav item. Everything
+      else is grayscale, so a single green number carries real signal.</p>
+    <ul class="dir-specs">
+      <li>bg #0E1013</li><li>card #16191D</li><li>accent #5ECF9E</li>
+      <li>geometric sans · tnum</li><li>18px radius</li><li>one accent, strict</li>
+    </ul>
+    <div class="frames" id="f2"></div>
+  </section>
+
+  <section class="dir" data-dir="3">
+    <div class="dir-head">
+      <span class="dir-num">03</span>
+      <h2>Grid</h2>
+      <span class="dir-tag">swiss · monospace data · structural</span>
+    </div>
+    <p class="dir-desc">The most opinionated. Pure white, black rules, 10px letterspaced caps for
+      labels, and every figure in monospace so columns align perfectly down the screen. Denser than
+      the other two — more data per screen — and color is purely semantic (green in, red out,
+      nothing decorative). Sharpest look, least forgiving of sloppy content.</p>
+    <ul class="dir-specs">
+      <li>bg #FFFFFF</li><li>rule #0A0B0C</li><li>semantic color only</li>
+      <li>monospace figures</li><li>3px radius · full-bleed rules</li><li>dense rhythm</li>
+    </ul>
+    <div class="frames" id="f3"></div>
+  </section>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   Screen builders. One markup skeleton per screen, rendered three times —
+   the direction class on .screen supplies all the styling.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const CATS = [
+  { name: 'Groceries', icon: '🛒', spent: 412.18, budget: 550, color: '#4a8f6d' },
+  { name: 'Dining',    icon: '🍜', spent: 268.40, budget: 250, color: '#c9803f' },
+  { name: 'Gas',       icon: '⛽', spent: 143.02, budget: 200, color: '#4b7ba8' },
+  { name: 'Fun',       icon: '🎬', spent: 96.75,  budget: 180, color: '#8b6bb1' },
+];
+
+const TX = [
+  { d: 'Today',     items: [
+    { n: 'Cash Wise',        c: 'Groceries · card', a: -24.50, i: '🛒' },
+    { n: 'Caribou Coffee',   c: 'Dining · card',    a: -6.85,  i: '☕' },
+  ]},
+  { d: 'Yesterday', items: [
+    { n: 'Paycheck',         c: 'Income · deposit', a: 2710.00, i: '↓' },
+    { n: 'Xcel Energy',      c: 'Bills · auto',     a: -128.40, i: '⚡' },
+    { n: 'Casey’s',     c: 'Gas · card',       a: -41.17,  i: '⛽' },
+  ]},
+  { d: 'Sat, Jul 25', items: [
+    { n: 'Target',           c: 'Groceries · card', a: -86.22, i: '🛒' },
+    { n: 'Netflix',          c: 'Fun · auto',       a: -15.49, i: '🎬' },
+  ]},
+];
+
+const money = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const whole = n => Math.round(n).toLocaleString('en-US');
+
+const ICONS = {
+  home:  '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/>',
+  list:  '<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>',
+  chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  gear:  '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M18.8 5.2l-2.1 2.1M7.3 16.7l-2.1 2.1"/>',
+};
+
+function statusBar() {
+  return `<div class="sbar"><span>9:41</span>
+    <span class="sbar-r"><span>▮▮▮</span><span>✦</span><span>100%</span></span></div>`;
+}
+
+function nav(active) {
+  const btn = (k, l, on) =>
+    `<div class="nav-btn${on ? ' on' : ''}"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg><span>${l}</span></div>`;
+  return `<div class="nav">
+    ${btn('home', 'Home', active === 'home')}
+    ${btn('list', 'Ledger', active === 'ledger')}
+    <div class="nav-fab">+</div>
+    ${btn('chart', 'Budget', active === 'budget')}
+    ${btn('gear', 'More', false)}
+  </div>`;
+}
+
+function topbar(title) {
+  return `<div class="topbar">
+    <span class="topbar-title">${title}</span>
+    <span class="topbar-acct"><span class="avatar">GC</span><span>Checking</span></span>
+  </div>`;
+}
+
+/* ── smooth sparkline through 14 points ──────────────────────────────────── */
+function sparkline() {
+  const pts = [58,54,61,49,55,44,52,40,47,33,41,30,36,22];
+  const W = 300, H = 46;
+  const step = W / (pts.length - 1);
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${(i * step).toFixed(1)} ${p.toFixed(1)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <defs><linearGradient id="sg${Math.random().toString(36).slice(2,7)}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="currentColor" stop-opacity=".16"/>
+      <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${d} L${W} ${H} L0 ${H} Z" fill="currentColor" opacity=".07"/>
+    <path d="${d}" fill="none" stroke="currentColor" stroke-width="1.6"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${W}" cy="22" r="2.6" fill="currentColor"/>
+  </svg>`;
+}
+
+function donut() {
+  const total = CATS.reduce((s, c) => s + c.spent, 0);
+  const C = 2 * Math.PI * 38;
+  let off = 0;
+  const segs = CATS.map(c => {
+    const len = (c.spent / total) * C;
+    const s = `<circle cx="52" cy="52" r="38" fill="none" stroke="${c.color}" stroke-width="11"
+      stroke-dasharray="${(len - 2.5).toFixed(1)} ${(C - len + 2.5).toFixed(1)}"
+      stroke-dashoffset="${(-off).toFixed(1)}" stroke-linecap="butt"/>`;
+    off += len; return s;
+  }).join('');
+  return `<svg class="donut" viewBox="0 0 104 104" style="transform:rotate(-90deg)">${segs}</svg>`;
+}
+
+/* ── SCREEN A · Dashboard ────────────────────────────────────────────────── */
+function screenDash() {
+  return `${statusBar()}${topbar('Overview')}
+  <div class="screen-scroll"><div class="body">
+
+    <div class="hero" style="color:var(--text)">
+      <div class="eyebrow hero-label">Available balance</div>
+      <div class="hero-amt"><span class="cur">$</span>4,182<span class="cents">.65</span></div>
+      <div class="hero-delta">
+        <span class="pill">▲ 12.4%</span>
+        <span class="hero-sub">+$462.10 in July</span>
+      </div>
+      ${sparkline()}
+    </div>
+
+    <div class="stats block">
+      <div class="stat"><span class="eyebrow stat-label">Income</span>
+        <div class="stat-val">$5,420<small>.00</small></div></div>
+      <div class="stat"><span class="eyebrow stat-label">Spent</span>
+        <div class="stat-val">$3,157<small>.40</small></div></div>
+      <div class="stat"><span class="eyebrow stat-label">Bills due</span>
+        <div class="stat-val">$284<small>.00</small></div></div>
+    </div>
+
+    <div class="card block">
+      <div class="meter-top">
+        <div>
+          <div class="eyebrow" style="margin-bottom:8px">Left to spend this week</div>
+          <div class="meter-amt">$125.80</div>
+        </div>
+        <span class="meter-of">of $312.00</span>
+      </div>
+      <div class="track"><i style="width:60%"></i></div>
+      <div class="meter-foot"><span>$24.50 spent today</span><span>4 days left</span></div>
+    </div>
+
+    <div class="card block">
+      <div class="section-head">
+        <span class="eyebrow">Where it went</span>
+        <span class="section-more">Details</span>
+      </div>
+      <div class="donut-wrap">
+        ${donut()}
+        <div class="legend">
+          ${CATS.map(c => `<div class="lrow">
+            <span class="dot" style="background:${c.color}"></span>
+            <span class="lname">${c.name}</span>
+            <span class="lval">$${whole(c.spent)}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="card block">
+      <div class="section-head">
+        <span class="eyebrow">Recent</span>
+        <span class="section-more">All</span>
+      </div>
+      ${TX[0].items.concat(TX[1].items.slice(0, 1)).map(t => txRow(t)).join('')}
+    </div>
+
+  </div></div>
+  ${nav('home')}`;
+}
+
+function txRow(t) {
+  const inflow = t.a > 0;
+  return `<div class="trow">
+    <span class="tico">${t.i}</span>
+    <span class="tmain"><span class="tname">${t.n}</span><div class="tmeta">${t.c}</div></span>
+    <span class="tamt${inflow ? ' in' : ''}">${inflow ? '+' : '−'}$${money(Math.abs(t.a))}</span>
+  </div>`;
+}
+
+/* ── SCREEN B · Ledger ───────────────────────────────────────────────────── */
+function screenLedger() {
+  return `${statusBar()}${topbar('Ledger')}
+  <div class="screen-scroll"><div class="body">
+    <div class="hero" style="padding:18px 0 2px">
+      <div class="eyebrow hero-label">July 2026 · net</div>
+      <div class="hero-amt"><span class="cur">+</span>2,262<span class="cents">.60</span></div>
+      <div class="hero-delta"><span class="hero-sub">42 transactions · 7 categories</span></div>
+    </div>
+    ${TX.map(g => {
+      const sum = g.items.reduce((s, t) => s + t.a, 0);
+      return `<div class="day-head">
+          <span class="eyebrow">${g.d}</span>
+          <span class="brow-num"><b>${sum > 0 ? '+' : '−'}$${money(Math.abs(sum))}</b></span>
+        </div>
+        <div>${g.items.map(txRow).join('')}</div>`;
+    }).join('')}
+  </div></div>
+  ${nav('ledger')}`;
+}
+
+/* ── SCREEN C · Budgets ──────────────────────────────────────────────────── */
+function screenBudget() {
+  return `${statusBar()}${topbar('Budgets')}
+  <div class="screen-scroll"><div class="body">
+    <div class="hero" style="padding:18px 0 2px">
+      <div class="eyebrow hero-label">Spent of $1,180 budgeted</div>
+      <div class="hero-amt"><span class="cur">$</span>920<span class="cents">.35</span></div>
+      <div class="hero-delta">
+        <span class="pill">78% used</span>
+        <span class="hero-sub">$259.65 remaining</span>
+      </div>
+    </div>
+
+    <div class="card block">
+      ${CATS.map(c => {
+        const pct = Math.min(c.spent / c.budget * 100, 100);
+        const over = c.spent > c.budget;
+        return `<div class="brow">
+          <div class="brow-top">
+            <span class="brow-name"><span class="dot" style="background:${c.color}"></span>${c.name}</span>
+            <span class="brow-num"><b>$${money(c.spent)}</b> / ${whole(c.budget)}</span>
+          </div>
+          <div class="track${over ? ' warn' : ''}"><i style="width:${pct}%;${over ? '' : `background:${c.color}`}"></i></div>
+          ${over ? `<div class="meter-foot"><span style="color:var(--down)">$${money(c.spent - c.budget)} over</span><span>4 days left</span></div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="card block">
+      <div class="section-head">
+        <span class="eyebrow">Goals</span>
+        <span class="section-more">Edit</span>
+      </div>
+      <div class="brow">
+        <div class="brow-top">
+          <span class="brow-name">Emergency fund</span>
+          <span class="brow-num"><b>$3,400</b> / 6,000</span>
+        </div>
+        <div class="track"><i style="width:57%"></i></div>
+      </div>
+      <div class="brow">
+        <div class="brow-top">
+          <span class="brow-name">Trip · Colorado</span>
+          <span class="brow-num"><b>$720</b> / 1,500</span>
+        </div>
+        <div class="track"><i style="width:48%"></i></div>
+      </div>
+    </div>
+  </div></div>
+  ${nav('budget')}`;
+}
+
+/* ── SCREEN D · Splash ───────────────────────────────────────────────────── */
+function screenSplash() {
+  const boot = [
+    ['mounting accounts', 'ok'],
+    ['syncing balances',  'ok'],
+    ['loading ledger',    'ok'],
+  ];
+  return `${statusBar()}
+  <div class="sp">
+    <img class="sp-mascot" src="./doberman.png" alt="">
+    <div class="sp-brand">Budget DAWGs</div>
+    <div class="sp-tag">Money on a leash.</div>
+    <div class="sp-boot">
+      ${boot.map(([l, s]) => `<div class="sp-boot-line"><span>${l}</span><span class="sp-ok">${s}</span></div>`).join('')}
+    </div>
+    <div class="sp-alt">Preparing your ledger</div>
+    <div class="sp-prog"><i></i></div>
+    <div class="sp-hint">tap to continue</div>
+  </div>`;
+}
+
+/* ── mount ───────────────────────────────────────────────────────────────── */
+const SCREENS = [
+  ['Splash',    screenSplash],
+  ['Dashboard', screenDash],
+  ['Ledger',    screenLedger],
+  ['Budgets',   screenBudget],
+];
+
+['f1', 'f2', 'f3'].forEach((id, i) => {
+  document.getElementById(id).innerHTML = SCREENS.map(([label, fn]) => `
+    <div class="frame-col">
+      <span class="frame-label">${label}</span>
+      <div class="phone"><div class="screen d${i + 1}">${fn()}</div></div>
+    </div>`).join('');
+});
+
+/* ── direction switcher ──────────────────────────────────────────────────── */
+document.body.dataset.show = 'all';
+document.querySelector('.switcher').addEventListener('click', e => {
+  const btn = e.target.closest('.sw-btn');
+  if (!btn) return;
+  document.querySelectorAll('.sw-btn').forEach(b => b.classList.toggle('on', b === btn));
+  document.body.dataset.show = btn.dataset.show;
+  window.scrollTo({ top: 0 });
+});
+</script>
+</body>
+</html>

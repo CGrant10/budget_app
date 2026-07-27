@@ -21,8 +21,12 @@
 <body>
   <!-- Anti-flash: runs before first paint — stamps the saved theme's bg so the
        splash background matches the app instead of always showing dark.
-       Only 'light' needs special handling; all other themes are dark variants. -->
-  <script>!function(){try{var s=JSON.parse(localStorage.getItem('slawminyaw_settings')||'{}');var lightThemes=['light','lightsky','lightrose','lightsand','lightsilver','customlight'];if(lightThemes.indexOf(s.theme)!==-1){var r=document.documentElement.style;r.setProperty('--bg','#f5f5f7');r.setProperty('--text','#1d1d1f');r.setProperty('--muted','#5b5b60');document.body.classList.add('light');}}catch(e){}}();</script>
+       Only 'light' needs special handling; all other themes are dark variants.
+       A beta skin overrides the theme's palette and wins here too, otherwise a
+       light skin on a dark theme paints a dark splash and then flips once app.js
+       runs applySkin(). The skin table is duplicated from SKINS in app.js because
+       this has to run before app.js loads — keep the two in sync. -->
+  <script>!function(){try{var s=JSON.parse(localStorage.getItem('slawminyaw_settings')||'{}');var r=document.documentElement.style;var SK={ledger:{bg:'#fbfaf7',text:'#14150f',muted:'#8b8a80',light:1},quiet:{bg:'#0e1013',text:'#f0f2f4',muted:'#838d98',light:0},grid:{bg:'#ffffff',text:'#0a0b0c',muted:'#83898f',light:1}};var sk=SK[s.skin];if(sk){r.setProperty('--bg',sk.bg);r.setProperty('--text',sk.text);r.setProperty('--muted',sk.muted);document.body.classList.add('skinned','skin-'+s.skin);if(sk.light)document.body.classList.add('light');return;}var lightThemes=['light','lightsky','lightrose','lightsand','lightsilver','customlight'];if(lightThemes.indexOf(s.theme)!==-1){r.setProperty('--bg','#f5f5f7');r.setProperty('--text','#1d1d1f');r.setProperty('--muted','#5b5b60');document.body.classList.add('light');}}catch(e){}}();</script>
   <!-- Force-reset: add ?reset to the URL to wipe all SW caches and start fresh -->
   <script>
     if (location.search.indexOf('reset') !== -1) {

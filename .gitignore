@@ -1,0 +1,8 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Claude Code local machine config (absolute paths, per-machine permissions).
+# .claude/launch.json IS tracked — the dev-server definitions are shared.
+.claude/settings.local.json
+.claude/worktrees/

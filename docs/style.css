@@ -5824,8 +5824,6 @@ body.amounts-hidden .acct-employer-match-amt,
 body.amounts-hidden .report-cat-amt,
 body.amounts-hidden .wrap-stat-value,
 body.amounts-hidden .budget-suggest-amt,
-body.amounts-hidden .leash-amt,
-body.amounts-hidden .leash-v,
 body.amounts-hidden .ibp-amt {
   /* em is unreliable inside filter: blur() (some engines clamp it to 0), so use
      px. Smaller row amounts get a light blur; big display numbers get more via
@@ -7197,160 +7195,242 @@ body.theme-ubuntu .section-title::before {
 .ledger-list.select-mode { padding-bottom: 72px; }
 
 /* ============================================================
-   BETA: "Leash" tactical-HUD dashboard
+   BETA: clean app-wide skins — Ledger / Quiet / Grid
+   ------------------------------------------------------------
+   Declared on <body> so they resolve ahead of applyTheme()'s
+   inline :root values for everything inside the app; turning a
+   skin off therefore needs no restore step (see applySkin()).
+   --accent / --success / --warn / --danger are deliberately NOT
+   set here — the active theme's accent always shows through.
    ============================================================ */
-.leash-dash{
-  position:relative; padding:14px 16px 24px;
-  display:flex; flex-direction:column; gap:14px;
-  font-family:'JetBrains Mono','SF Mono',ui-monospace,'Cascadia Code',Consolas,monospace;
-}
-.leash-dash .money{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
-.leash-dogwm{
-  position:absolute; top:44px; right:-16px; width:150px; height:auto;
-  color:var(--accent); opacity:.07; z-index:0; pointer-events:none;
-}
-.leash-hudtop{
-  display:flex; align-items:center; gap:8px; position:relative; z-index:2;
-  font-size:.62rem; letter-spacing:.14em; color:color-mix(in srgb,var(--accent) 55%,var(--muted));
-}
-.leash-hudacct{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:9rem}
-.leash-live{
-  margin-left:auto; display:flex; align-items:center; gap:6px;
-  color:var(--accent); font-weight:700;
-}
-.leash-live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
-@media (prefers-reduced-motion:no-preference){
-  body:not(.fx-reduced) .leash-live::before{animation:leashPulse 2.2s ease-in-out infinite}
-  @keyframes leashPulse{0%,100%{opacity:1}50%{opacity:.35}}
-}
 
-.leash-balcard{
-  position:relative; z-index:2; border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);
-  border-radius:8px; padding:16px 16px 14px;
-  background:
-    radial-gradient(130% 80% at 50% 0,color-mix(in srgb,var(--accent) 12%,transparent),transparent 62%),
-    color-mix(in srgb,var(--accent) 4%,var(--card));
+/* ── skin picker (Settings → Beta features) ──────────────────────────────── */
+.skin-list { display: flex; flex-direction: column; gap: 6px; }
+.skin-row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px;
+  background: transparent; cursor: pointer; font-family: var(--font-body);
+  text-align: left; transition: background .15s, border-color .15s;
 }
-.leash-glab{font-size:.6rem;letter-spacing:.24em;color:color-mix(in srgb,var(--accent) 50%,var(--muted))}
-.leash-bal{
-  font-family:var(--font-body,'Plus Jakarta Sans',sans-serif);
-  font-size:2.7rem; font-weight:800; letter-spacing:-.02em; line-height:1; margin:7px 0 6px;
+.skin-row:hover  { background: var(--surface2); }
+.skin-row.active { border-color: var(--accent); background: var(--surface2); }
+.skin-sw {
+  width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+  border: 1px solid var(--border); box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
 }
-.leash-lockin{
-  font-family:var(--font-body,'Plus Jakarta Sans',sans-serif);
-  font-weight:900; font-size:1.05rem; letter-spacing:.02em; color:var(--accent); cursor:pointer;
-  display:inline-block;
+.skin-sw-off {
+  background: linear-gradient(135deg, var(--surface2) 50%, var(--accent) 50%);
 }
-.leash-leashbar{position:relative;z-index:2}
-.leash-lrow{display:flex;justify-content:space-between;align-items:center;font-size:.58rem;letter-spacing:.1em;color:color-mix(in srgb,var(--accent) 50%,var(--muted));margin-bottom:6px}
-.leash-lrow .leash-amt{font-family:var(--font-body,sans-serif);letter-spacing:0;color:var(--text);font-weight:700;font-size:.72rem}
-.leash-track{height:10px;border-radius:3px;background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);overflow:hidden}
-.leash-track i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--accent) 0 7px,transparent 7px 10px)}
-.leash-track.over i{background:repeating-linear-gradient(90deg,var(--danger) 0 7px,transparent 7px 10px)}
+.skin-txt   { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.skin-name  { font-size: .9rem; color: var(--text); font-weight: 600; }
+.skin-blurb { font-size: .72rem; color: var(--muted); }
+.skin-check { font-size: .85rem; color: var(--accent); font-weight: 700; }
 
-.leash-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:relative;z-index:2}
-.leash-cell{border:1px solid color-mix(in srgb,var(--accent) 20%,transparent);border-radius:6px;padding:11px 12px;background:color-mix(in srgb,var(--accent) 4%,transparent)}
-.leash-k{font-size:.54rem;letter-spacing:.14em;color:color-mix(in srgb,var(--accent) 50%,var(--muted))}
-.leash-v{font-family:var(--font-body,sans-serif);font-size:1.2rem;font-weight:800;color:var(--text);margin-top:5px}
-.leash-v span{font-size:.62rem;color:var(--muted);font-weight:600}
-.leash-v.warn{color:var(--warn)}
+/* ── shared: what every skin does regardless of palette ──────────────────── */
+/* Skins are quiet by nature — drop the glitch/scanline/glow identity FX. */
+body.skinned .dawg-hero-glow,
+body.skinned .splash-canvas { display: none; }
+body.skinned [data-glitch]::before,
+body.skinned [data-glitch]::after { content: none !important; }
+body.skinned {
+  --shadow-card: var(--skin-shadow);
+  --glass-bg: var(--surface);
+  --glass-border: var(--border);
+  --glass-shine: none;
+  --radius-card: var(--skin-radius);
+  --radius-btn:  var(--skin-radius-sm);
+  --radius-input: var(--skin-radius-sm);
+}
+/* Money + figures pick up the skin's numeral font */
+body.skinned .money,
+body.skinned .dawg-balance-amt,
+body.skinned .page-title { font-family: var(--skin-num-font, var(--font-body)); }
 
-.leash-readout{position:relative;z-index:2;border:1px solid color-mix(in srgb,var(--accent) 20%,transparent);border-radius:6px;overflow:hidden}
-.leash-rh{font-size:.56rem;letter-spacing:.16em;color:color-mix(in srgb,var(--accent) 50%,var(--muted));padding:9px 12px;border-bottom:1px solid color-mix(in srgb,var(--accent) 15%,transparent)}
-.leash-rl{display:flex;align-items:center;gap:9px;padding:10px 12px;font-size:.72rem;border-top:1px solid color-mix(in srgb,var(--accent) 8%,transparent)}
-.leash-rl:first-of-type{border-top:none}
-.leash-st{width:7px;height:7px;border-radius:50%;flex:none}
-.leash-nm{font-family:var(--font-body,sans-serif);color:var(--text)}
-.leash-due{color:color-mix(in srgb,var(--accent) 50%,var(--muted));font-size:.6rem}
-.leash-amt{margin-left:auto;font-family:var(--font-body,sans-serif);font-weight:700;color:var(--text)}
-.leash-empty{padding:14px 12px;font-size:.72rem;font-family:var(--font-body,sans-serif);color:var(--muted)}
+/* ── shared: splash screen ───────────────────────────────────────────────── */
+/* Drop the Bangers wordmark, the glitch layers and the light-mode white halo —
+   all three read as the standard look, not as a clean skin. */
+body.skinned .splash-brand {
+  font-family: var(--font-body);
+  text-shadow: none;
+  letter-spacing: -.02em;
+  animation: splashFadeUp .4s ease .62s both;
+}
+body.skinned .splash-brand::before,
+body.skinned .splash-brand::after { content: none !important; }
+body.skinned .splash-tagline { letter-spacing: .06em; text-transform: none; font-size: .8rem; }
+body.skinned .splash-anim-toggle { display: none; }
 
-.leash-cta{
-  position:relative;z-index:2;margin-top:2px;width:100%;padding:13px;border-radius:8px;cursor:pointer;
-  border:1px solid var(--accent); background:color-mix(in srgb,var(--accent) 12%,transparent);
-  color:var(--accent); font-family:inherit; font-size:.72rem; letter-spacing:.16em; font-weight:700;
+/* ── 01 · LEDGER — editorial warm light, serif figures, rules not boxes ──── */
+body.skin-ledger {
+  --bg: #fbfaf7;
+  --surface: #f5f2ec;
+  --surface2: #f0ece4;
+  --card: #ffffff;
+  --text: #14150f;
+  --muted: #8b8a80;
+  --border: rgba(20,21,15,.11);
+  --skin-radius: 2px;
+  --skin-radius-sm: 4px;
+  --skin-shadow: none;
+  --skin-num-font: 'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
 }
-.leash-cta:active{background:color-mix(in srgb,var(--accent) 22%,transparent)}
-/* Reuse the shared privacy-eye button position on the leash balance card */
-.leash-balcard .dash-privacy-btn{top:12px;right:12px}
+/* structure from hairlines, not fills. The selector list mirrors the body.light
+   card block above — those rules tie for specificity, so every surface it names
+   has to be named here too or the skin only half-lands on some pages. */
+body.skin-ledger .card,
+body.skin-ledger .form-card,
+body.skin-ledger .dawg-section-card,
+body.skin-ledger .cards-grid .card:first-child,
+body.skin-ledger .bill-card,
+body.skin-ledger .bill-item,
+body.skin-ledger .goal-card,
+body.skin-ledger .health-card,
+body.skin-ledger .debt-summary-card,
+body.skin-ledger .debt-acct-card,
+body.skin-ledger .debt-dash-card,
+body.skin-ledger .acct-row,
+body.skin-ledger .week-tracker,
+body.skin-ledger .ledger-row-inner,
+body.skin-ledger .wkb-row,
+body.skin-ledger .pw-week-row {
+  background: transparent;
+  border: 0; border-top: 1px solid var(--border);
+  border-radius: 0; box-shadow: none;
+}
+body.skin-ledger .card,
+body.skin-ledger .form-card,
+body.skin-ledger .dawg-section-card { padding-left: 0; padding-right: 0; }
+/* Dashboard tiles: body.light .dawg-tile-grid ... is 0,3,1 and outranks the list
+   above, so it has to be matched at the same specificity (this block wins on
+   order). Without this the dashboard tiles keep their light-mode drop shadow. */
+body.skin-ledger .dawg-tile-grid .dawg-section-card,
+body.skin-ledger .dawg-tile-grid .dawg-budget-tile {
+  background: transparent; box-shadow: none;
+  border: 0; border-top: 1px solid var(--border); border-radius: 0;
+}
+body.skin-ledger .page-title { font-weight: 500; letter-spacing: -.01em; }
+body.skin-ledger .section-title,
+body.skin-ledger .dawg-card-title {
+  text-transform: uppercase; letter-spacing: .16em; font-size: .62rem; font-weight: 600;
+  color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 7px;
+}
+body.skin-ledger .dawg-balance-amt { font-weight: 400; letter-spacing: -.02em; }
+/* splash: an editorial title page — serif wordmark over a rule, no boot log */
+body.skin-ledger .splash-brand {
+  font-family: var(--skin-num-font); font-size: 2.1rem; font-weight: 500;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+body.skin-ledger .splash-tagline {
+  font-family: var(--skin-num-font); font-style: italic; font-size: .88rem;
+  text-transform: none; letter-spacing: 0; margin-top: 8px;
+}
+body.skin-ledger .splash-boot { display: none; }
 
-/* Theme mascot (doberman / Gengar trio) atop the leash dashboard */
-.leash-hero{display:flex;justify-content:center;align-items:flex-end;position:relative;z-index:2;margin:-2px 0 -4px;min-height:96px}
-.leash-hero .dawg-hero-dob{width:104px}
-/* Tappable "recent · ledger" header */
-.leash-rh-btn{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:none;border:none;cursor:pointer;font-family:inherit;color:inherit;text-align:left;-webkit-tap-highlight-color:transparent}
-.leash-rh-btn:active{opacity:.65}
-.leash-viewall{color:var(--accent);font-size:.56rem;letter-spacing:.12em;font-weight:700}
+/* ── 02 · QUIET — soft dark, elevated cards, generous radii ──────────────── */
+body.skin-quiet {
+  --bg: #0e1013;
+  --surface: #16191d;
+  --surface2: #1f2429;
+  --card: #16191d;
+  --text: #f0f2f4;
+  --muted: #838d98;
+  --border: rgba(255,255,255,.07);
+  --skin-radius: 18px;
+  --skin-radius-sm: 10px;
+  --skin-shadow: 0 1px 2px rgba(0,0,0,.4);
+  --skin-num-font: var(--font-body);
+}
+body.skin-quiet .card,
+body.skin-quiet .form-card,
+body.skin-quiet .dawg-section-card,
+body.skin-quiet .bill-card,
+body.skin-quiet .goal-card,
+body.skin-quiet .health-card,
+body.skin-quiet .debt-summary-card,
+body.skin-quiet .debt-acct-card,
+body.skin-quiet .debt-dash-card,
+body.skin-quiet .acct-row,
+body.skin-quiet .week-tracker {
+  background: var(--card); border: 1px solid #1e2328;
+  border-radius: var(--skin-radius); box-shadow: var(--skin-shadow);
+}
+body.skin-quiet .section-title,
+body.skin-quiet .dawg-card-title { font-weight: 600; letter-spacing: 0; text-transform: none; }
+body.skin-quiet .dawg-balance-amt { font-weight: 650; letter-spacing: -.035em; }
+/* splash: mascot on a lifted tile, quiet boot log */
+body.skin-quiet .splash-brand { font-size: 1.9rem; font-weight: 650; }
+body.skin-quiet .splash-dog img {
+  border-radius: 26px; background: var(--card); border: 1px solid #1e2328;
+  box-shadow: 0 20px 50px -20px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+body.skin-quiet .splash-boot { font-family: var(--font-body); font-size: .68rem; }
 
-/* ============================================================
-   BETA: "Leash" SKIN — reskins every page's existing markup
-   when the beta is on (body.leash-skin). Adapts to any theme
-   via var(--accent); labels go mono, cards get an accent hairline,
-   section headers become tactical readouts. Numbers/inputs untouched.
-   ============================================================ */
-body.leash-skin{--leash-mono:'JetBrains Mono','SF Mono',ui-monospace,'Cascadia Code',Consolas,monospace}
-/* Ambient: accent glow + scanlines behind content */
-body.leash-skin #main-content::before{
-  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:
-    radial-gradient(130% 40% at 50% 0,color-mix(in srgb,var(--accent) 15%,transparent),transparent 60%),
-    repeating-linear-gradient(0deg,color-mix(in srgb,var(--accent) 6%,transparent) 0 1px,transparent 1px 3px);
-  opacity:.85;
+/* ── 03 · GRID — swiss white, monospace figures, structural rules ────────── */
+body.skin-grid {
+  --bg: #ffffff;
+  --surface: #f4f5f6;
+  --surface2: #eceef0;
+  --card: #ffffff;
+  --text: #0a0b0c;
+  --muted: #83898f;
+  --border: rgba(10,11,12,.14);
+  --skin-radius: 3px;
+  --skin-radius-sm: 3px;
+  --skin-shadow: none;
+  --skin-num-font: ui-monospace,'SF Mono','Cascadia Mono',Menlo,monospace;
 }
-body.leash-skin #main-content>*{position:relative;z-index:1}
-
-/* Page titles → HUD header: mono, uppercase, accent bracket + underline */
-body.leash-skin .page-title{
-  font-family:var(--leash-mono);text-transform:uppercase;letter-spacing:.06em;font-weight:800;
-  font-size:1.3rem;position:relative;padding:0 0 9px;margin-bottom:6px;border-left:none;
+body.skin-grid .card,
+body.skin-grid .form-card,
+body.skin-grid .dawg-section-card,
+body.skin-grid .cards-grid .card:first-child,
+body.skin-grid .bill-card,
+body.skin-grid .bill-item,
+body.skin-grid .goal-card,
+body.skin-grid .health-card,
+body.skin-grid .debt-summary-card,
+body.skin-grid .debt-acct-card,
+body.skin-grid .debt-dash-card,
+body.skin-grid .acct-row,
+body.skin-grid .week-tracker,
+body.skin-grid .ledger-row-inner,
+body.skin-grid .wkb-row,
+body.skin-grid .pw-week-row {
+  background: #fff; border: 0; border-top: 1px solid var(--border);
+  border-radius: 0; box-shadow: none;
 }
-body.leash-skin .page-title::before{content:"▚ ";color:var(--accent)}
-body.leash-skin .page-title::after{content:"";position:absolute;left:0;bottom:0;width:52px;height:2px;background:var(--accent);box-shadow:0 0 8px var(--accent)}
-/* Page sub-headers → mono readout */
-body.leash-skin .page-sub{
-  font-family:var(--leash-mono);text-transform:uppercase;letter-spacing:.12em;font-size:.62rem;
-  color:color-mix(in srgb,var(--accent) 55%,var(--muted));
+/* the top rule of a section reads as the grid's structural line */
+body.skin-grid .card,
+body.skin-grid .form-card,
+body.skin-grid .dawg-section-card { border-top-color: #0a0b0c; }
+/* same 0,3,1 tie-break as Ledger above — kills the light-mode tile shadow */
+body.skin-grid .dawg-tile-grid .dawg-section-card,
+body.skin-grid .dawg-tile-grid .dawg-budget-tile {
+  background: #fff; box-shadow: none;
+  border: 0; border-top: 1px solid var(--border); border-radius: 0;
 }
-/* Section headers across pages → tactical labels */
-body.leash-skin .section-title,
-body.leash-skin .ins-section-hdr,
-body.leash-skin .dawg-card-title{
-  font-family:var(--leash-mono);text-transform:uppercase;letter-spacing:.14em;
-  color:color-mix(in srgb,var(--accent) 62%,var(--text));
-  display:flex;align-items:center;gap:7px;
+body.skin-grid .page-title {
+  text-transform: uppercase; letter-spacing: .16em; font-weight: 700; font-size: 1rem;
 }
-body.leash-skin .section-title::before,
-body.leash-skin .ins-section-hdr::before,
-body.leash-skin .dawg-card-title::before{content:"▸";color:var(--accent);font-size:.85em;line-height:1}
-/* Cards → accent hairline + faint wash + squarer corners */
-body.leash-skin .form-card,
-body.leash-skin .card,
-body.leash-skin .dawg-section-card{
-  border:1px solid color-mix(in srgb,var(--accent) 30%,var(--border));
-  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 7%,transparent),transparent),var(--card);
-  border-radius:8px;
-  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--accent) 22%,transparent);
+body.skin-grid .section-title,
+body.skin-grid .dawg-card-title {
+  text-transform: uppercase; letter-spacing: .2em; font-size: .58rem; font-weight: 700;
+  color: var(--text);
 }
-/* Corner tick — a small HUD bracket on cards */
-body.leash-skin .form-card{position:relative}
-body.leash-skin .form-card::before{
-  content:"";position:absolute;top:6px;right:6px;width:9px;height:9px;
-  border-top:2px solid color-mix(in srgb,var(--accent) 60%,transparent);
-  border-right:2px solid color-mix(in srgb,var(--accent) 60%,transparent);pointer-events:none;
+body.skin-grid .dawg-balance-amt { font-weight: 500; letter-spacing: -.045em; }
+/* monospace figures align down every column */
+body.skin-grid .money,
+body.skin-grid .ledger-amt,
+body.skin-grid .acct-row-bal { font-variant-numeric: tabular-nums; }
+/* splash: keeps the boot log, set as a tight monospace table */
+body.skin-grid .splash-brand {
+  font-size: 1.15rem; font-weight: 700; text-transform: uppercase; letter-spacing: .22em;
 }
-/* Accounts overview → HUD readout */
-body.leash-skin .acct-grp>span:first-child{
-  font-family:var(--leash-mono);text-transform:uppercase;letter-spacing:.14em;
-  color:color-mix(in srgb,var(--accent) 55%,var(--muted));
+body.skin-grid .splash-boot {
+  font-size: .64rem; line-height: 1.6; width: 232px;
+  border-top: 1px solid var(--text); border-bottom: 1px solid var(--border);
 }
-body.leash-skin .acct-nw2{border:1px solid color-mix(in srgb,var(--accent) 32%,var(--border));border-radius:8px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--accent) 22%,transparent)}
-body.leash-skin .acct-nw2-label{font-family:var(--leash-mono);letter-spacing:.18em}
-body.leash-skin .acct-row{
-  border-radius:8px;
-  /* .acct-picker-page already draws an accent box-shadow ring (kept); add a wash */
-  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 6%,transparent),transparent),var(--glass-bg);
-}
-body.leash-skin .acct-row-type{font-family:var(--leash-mono);text-transform:uppercase;letter-spacing:.1em;font-size:.58rem}
+body.skin-grid .splash-boot-line { padding: 5px 0; border-bottom: 1px solid var(--border); }
+body.skin-grid .splash-boot-ready { text-transform: uppercase; letter-spacing: .16em; }
 
 /* Find-duplicates modal */
 .dupe-modal {

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.44.5';
+const VERSION = '5.45.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.0', date: '2026-07-27', changes: [
+    'Three new beta skins — "Ledger" (editorial warm light with serif figures), "Quiet" (soft dark with elevated cards), and "Grid" (Swiss white with monospace figures). Each one re-skins every page and the splash screen, and your theme\'s accent colour still shows through, so a skin layers on top of whichever theme you\'re already using. Pick one in Settings → Beta features → App skin',
+    'The "Leash" tactical-HUD beta has been retired to make room for them — if you had it switched on you\'ll be back to the standard look, and you can try one of the three new skins instead',
+  ]},
   { version: '5.44.5', date: '2026-07-13', changes: [
     'Made the "Leash" beta skin much more visible across the app — HUD-style page titles (mono, bracketed, accent underline), stronger accent card borders with corner ticks, and a bolder ambient glow/scanline — so the accounts overview and every other page clearly match the dashboard, not just the dashboard alone',
   ]},
@@ -2497,8 +2501,45 @@ function _currentAcct() { return state.accounts.find(a => a.id === currentAccoun
 // to track balance + transactions. 'full' is the default for existing users.
 function isSimpleMode() { return loadSettings().appMode === 'simple'; }
 
-// Beta: the "Leash" tactical-HUD dashboard variant (Settings → Beta features).
-function isLeashDash() { return loadSettings().dashStyle === 'leash'; }
+// ── Beta: clean app-wide skins (Settings → Beta features) ───────────────────
+// A skin overrides the neutral palette (bg/surface/text/muted/border) plus the
+// type + geometry tokens, but NEVER --accent: your theme's accent always shows
+// through, so a skin composes with whichever theme you're on rather than
+// replacing it. `light` decides which set of existing component rules applies
+// (body.light), since two of the three skins are light-mode designs.
+// The palettes themselves live in CSS on body.skin-* — a declaration on <body>
+// resolves ahead of applyTheme()'s inline :root values for everything inside the
+// app, so turning a skin off needs no "restore" step. JS only needs the bits CSS
+// can't reach: the body classes, the light/dark component set, and theme-color.
+const SKINS = {
+  ledger: { label: 'Ledger', blurb: 'Editorial · warm light · serif figures',
+            light: true,  bg: '#fbfaf7', swatch: '#fbfaf7' },
+  quiet:  { label: 'Quiet',  blurb: 'Soft dark · elevated cards · calm',
+            light: false, bg: '#0e1013', swatch: '#0e1013' },
+  grid:   { label: 'Grid',   blurb: 'Swiss · monospace figures · structural',
+            light: true,  bg: '#ffffff', swatch: '#ffffff' },
+};
+function activeSkin() { const k = loadSettings().skin; return SKINS[k] ? k : ''; }
+
+// Applies a beta skin. Must run AFTER applyTheme(), which resets body.light and
+// theme-color from the theme — the skin gets the last word on both.
+function applySkin(key) {
+  const skin = SKINS[key];
+  document.body.classList.remove(...Object.keys(SKINS).map(k => 'skin-' + k));
+  document.body.classList.toggle('skinned', !!skin);
+  if (!skin) return;                       // no skin: applyTheme's values stand
+  document.body.classList.add('skin-' + key);
+  document.body.classList.toggle('light', !!skin.light);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', skin.bg);
+  // applyTheme() stamps the theme palette inline on :root, which the body-scoped
+  // skin CSS shadows for everything inside <body> — but <html> itself keeps the
+  // theme's --bg and shows through on overscroll. Mirror the skin's resolved
+  // values back onto :root so the two agree. Read from the computed body style
+  // rather than a second copy of the palette, so CSS stays the single source.
+  const cs = getComputedStyle(document.body);
+  ['--bg', '--surface', '--surface2', '--card', '--text', '--muted', '--border']
+    .forEach(p => document.documentElement.style.setProperty(p, cs.getPropertyValue(p).trim()));
+}
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Dashboard', required: true,
@@ -2558,8 +2599,9 @@ function applySettings() {
   // "Reduce motion & effects" — freezes the infinite idle glitch loops to save
   // battery and calm the UI. CSS handles the rest via body.fx-reduced.
   document.body.classList.toggle('fx-reduced', !!s.reduceFx);
-  // Beta: the "Leash" HUD skin restyles every page's existing markup when on.
-  document.body.classList.toggle('leash-skin', isLeashDash());
+  // Beta skins restyle every page's existing markup. applyTheme() re-applies the
+  // skin's token overrides, so it must run after the theme — see applySkin().
+  applySkin(activeSkin());
   // Privacy: blur all money amounts if the user left "hide balances" on.
   _applyAmountsHidden();
 }
@@ -2754,6 +2796,8 @@ function applyTheme(theme) {
   }
   // All themes use the DAWG layout — always enable dawg-mode
   document.getElementById('app')?.classList.add('dawg-mode');
+  // Beta skin gets the last word: it overrides body.light + theme-color above.
+  applySkin(activeSkin());
 }
 
 function _save() {
@@ -5906,66 +5950,6 @@ function renderDashboardDawg() {
   const multiAcct = state.accounts && state.accounts.length > 1;
   const _curAcct  = state.accounts.find(a => a.id === currentAccountId);
   const _acctName = _curAcct?.name || 'Account';
-
-  // ── Beta: "Leash" tactical-HUD dashboard (checking-style accounts only) ─────
-  if (isLeashDash() && !_isDebt) {
-    const _todayStr = today();
-    let todaySpent = 0;
-    for (const t of state.transactions) if (t.date === _todayStr) todaySpent += (t.type === 'income' ? -t.amount : t.amount);
-    todaySpent = Math.max(0, todaySpent);
-    const perDayLimit = _livePerDay || (_livePerWeek ? _livePerWeek / 7 : 0);
-    const wkPct   = _livePerWeek > 0 ? Math.min(weekSpent / _livePerWeek * 100, 100) : 0;
-    const wkOver  = _livePerWeek > 0 && weekSpent > _livePerWeek;
-    const dayOver = perDayLimit > 0 && todaySpent > perDayLimit;
-    const monLbl  = dashMonthLabel.split(' ')[0].toUpperCase();
-    const upcoming = getUpcomingBills(7);
-    const feed = upcoming.length
-      ? upcoming.map(b => {
-          const dU  = getDaysUntilDue(b.dueDay);
-          const col = dU <= 2 ? 'var(--danger)' : dU <= 5 ? 'var(--warn)' : 'var(--accent)';
-          return `<div class="leash-rl"><span class="leash-st" style="background:${col}"></span><span class="leash-nm">${_escHtml(b.name)}</span><span class="leash-due">${dU === 0 ? 'today' : dU + 'd'}</span><span class="leash-amt money">${fmt(b.amount)}</span></div>`;
-        }).join('')
-      : '<div class="leash-empty">No bills due in the next 7 days.</div>';
-
-    const txnFeed = recentTxns.length
-      ? recentTxns.slice(0, 6).map(t => {
-          const isInc = t.type === 'income';
-          const dlbl  = t.date === todayStr ? 'today' : t.date === yesterdayStr ? '1d' : (t.date || '').slice(5);
-          return `<div class="leash-rl"><span class="leash-st" style="background:${isInc ? 'var(--accent)' : 'var(--muted)'}"></span><span class="leash-nm">${_escHtml(t.description || t.category || '—')}</span><span class="leash-due">${dlbl}</span><span class="leash-amt money" style="${isInc ? 'color:var(--accent)' : ''}">${isInc ? '+' : '−'}${fmt(t.amount)}</span></div>`;
-        }).join('')
-      : '<div class="leash-empty">No transactions yet.</div>';
-
-    return `<div class="dawg-page leash-dash">
-      ${backupBannerHtml()}
-      <div class="leash-hudtop">
-        <span>DAWG&nbsp;OS</span><span class="leash-hudacct">· ${_escHtml(_acctName)}</span>
-        <span class="leash-live">WATCHING</span>
-      </div>
-      <div class="leash-hero">${heroMascotHTML()}</div>
-      <div class="leash-balcard">
-        <button class="dash-privacy-btn${_amountsHidden() ? ' is-hidden' : ''}" id="dash-privacy-btn" title="${_amountsHidden() ? 'Show amounts' : 'Hide amounts'}" aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden() ? 'true' : 'false'}">${_eyeIconSvg(_amountsHidden())}</button>
-        <div class="leash-glab">${isPastDash ? _escHtml(dashMonthLabel) + ' balance' : 'Total balance'}</div>
-        <div class="dawg-balance-amt leash-bal money" style="color:${balColor}">${fmt(balance)}</div>
-        <div class="dawg-lockin leash-lockin" data-glitch="LOCK TF IN.">LOCK&nbsp;TF&nbsp;IN.</div>
-      </div>
-      ${_livePerWeek > 0 ? `<div class="leash-leashbar">
-        <div class="leash-lrow"><span>WEEK BUDGET — ON A LEASH</span><span class="leash-amt money">${fmt(weekSpent)} / ${fmt(_livePerWeek)}</span></div>
-        <div class="leash-track${wkOver ? ' over' : ''}"><i style="width:${wkPct}%"></i></div>
-      </div>` : ''}
-      <div class="leash-grid2">
-        <div class="leash-cell"><div class="leash-k">TODAY</div><div class="leash-v money${dayOver ? ' warn' : ''}">${fmt(todaySpent)} <span>/ ${perDayLimit ? fmt(perDayLimit) : '—'}</span></div></div>
-        <div class="leash-cell"><div class="leash-k">NET · ${monLbl}</div><div class="leash-v money" style="color:${monthDelta >= 0 ? 'var(--accent)' : 'var(--danger)'}">${monthDelta >= 0 ? '+' : '−'}${fmt(Math.abs(monthDelta))}</div></div>
-      </div>
-      <div class="leash-readout">
-        <button class="leash-rh leash-rh-btn" id="dawg-goto-ledger">RECENT · LEDGER<span class="leash-viewall">VIEW ALL ›</span></button>
-        ${txnFeed}
-      </div>
-      <div class="leash-readout">
-        <div class="leash-rh">DUE — NEXT 7 DAYS</div>
-        ${feed}
-      </div>
-    </div>`;
-  }
 
   return `<div class="dawg-page">
     ${backupBannerHtml()}
@@ -9765,11 +9749,21 @@ function renderSettings() {
         <h2 class="section-title" style="margin-bottom:8px">Beta features</h2>
         <p class="code-hint" style="margin-bottom:12px">Experimental looks we're trying out. Toggle freely — nothing here touches your data.</p>
         <div class="form-row">
-          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
-            <input type="checkbox" id="leash-dash-settings" ${isLeashDash() ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
-            "Leash" dashboard (tactical HUD)
-          </label>
-          <p class="code-hint" style="margin-top:6px">A bolder, monospace command-center take on the dashboard — balance, budget "on a leash", and bills due as a status feed. Applies to checking-style accounts.</p>
+          <label class="form-label" style="margin-bottom:8px">App skin</label>
+          <p class="code-hint" style="margin-bottom:10px">A clean, minimal re-skin of every page. Your theme's accent colour still shows through, so a skin layers on top of whichever theme you're using.</p>
+          <div class="skin-list">
+            <button class="skin-row${activeSkin() === '' ? ' active' : ''}" data-skin="">
+              <span class="skin-sw skin-sw-off"></span>
+              <span class="skin-txt"><span class="skin-name">Off</span><span class="skin-blurb">Standard DAWG look</span></span>
+              ${activeSkin() === '' ? '<span class="skin-check">✓</span>' : ''}
+            </button>
+            ${Object.entries(SKINS).map(([key, s]) => `
+              <button class="skin-row${activeSkin() === key ? ' active' : ''}" data-skin="${key}">
+                <span class="skin-sw" style="background:${s.swatch}"></span>
+                <span class="skin-txt"><span class="skin-name">${s.label}</span><span class="skin-blurb">${s.blurb}</span></span>
+                ${activeSkin() === key ? '<span class="skin-check">✓</span>' : ''}
+              </button>`).join('')}
+          </div>
         </div>
       </div>
 
@@ -9975,12 +9969,17 @@ function attachSettings() {
     if (e.target.checked) haptic([10]);   // confirmation buzz when turning it on
   });
 
-  document.getElementById('leash-dash-settings')?.addEventListener('change', e => {
-    const s = loadSettings();
-    s.dashStyle = e.target.checked ? 'leash' : '';
-    saveSettings(s);
-    document.body.classList.toggle('leash-skin', e.target.checked);
-    haptic([10]);
+  document.querySelectorAll('.skin-row').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = loadSettings();
+      s.skin = btn.dataset.skin || '';
+      saveSettings(s);
+      // applyTheme re-runs the theme, then hands off to applySkin — so switching
+      // a skin off cleanly restores the theme's own palette and light/dark mode.
+      applyTheme(s.theme || 'dark');
+      haptic([10]);
+      render();   // repaint Settings so the active row + checkmark update
+    });
   });
 
 
