@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.1';
+const VERSION = '5.45.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,12 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.2', date: '2026-07-27', changes: [
+    'The spending wheel now uses a proper set of distinct colours. Only nine category names had colours assigned, so anything else — Groceries, Dining, or any category you made yourself — fell back to the same green, which is why the wheel came out as one green ring with a red sliver. Every category now gets its own colour from an eight-colour set chosen to stay distinguishable for colour-blind readers, with separate versions for light and dark skins. A category keeps its colour as spending reorders the slices',
+    'The centre nav button no longer looks out of place under a skin — it was a heavy circle with a squashed silhouette in it, and it only went Home while Add already has its own tab. It is now a normal nav item with a home icon, so all five sit evenly',
+    'Skinned pages feel smoother: one shared easing curve across taps, bars and rows, content settling in instead of snapping, the spending wheel drawing itself once, and a press response on buttons. All of it respects "Reduce motion & effects" and your device\'s reduce-motion setting',
+    'The top bar and the backup reminder now follow the skin too, instead of staying as rounded grey pills and a bright yellow box on an otherwise clean page',
+  ]},
   { version: '5.45.1', date: '2026-07-27', changes: [
     'The three beta skins now actually look like the designs they were based on. The first version only recoloured the standard dashboard, which left the mascot hero, the "LOCK TF IN." banner and the time-range pills in place — so a skin looked like the normal app in different colours. Skinned dashboards now use their own clean layout: a large balance with quiet cents, a hairline row of Income / Spent / Bills due, a "left to spend this week" meter, a spending donut with a category legend, and a recent-transactions list. The bottom bar is a flat edge-to-edge bar instead of the floating island. Your month arrows, account switcher and hide-balances button all still work',
   ]},
@@ -2504,6 +2510,43 @@ function _currentAcct() { return state.accounts.find(a => a.id === currentAccoun
 // to track balance + transactions. 'full' is the default for existing users.
 function isSimpleMode() { return loadSettings().appMode === 'simple'; }
 
+// ── Categorical palette for skinned charts ──────────────────────────────────
+// CAT_COLORS only names 9 categories, so anything else (Groceries, Dining, any
+// custom category) fell through to var(--accent) and the spending wheel came out
+// as one flat green. These are the validated 8-slot categorical palette: fixed
+// hue order, light + dark steps selected for their own surface. Verified with the
+// data-viz validator against every skin surface (adjacent pairlist, ok: true).
+// Two light slots sit under 3:1 on white, so the legend's visible category names
+// and amounts are load-bearing — they satisfy the relief rule. Don't cycle past
+// slot 8; extra categories fold to the neutral.
+const SKIN_CAT_LIGHT = ['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300','#4a3aa7','#e34948'];
+const SKIN_CAT_DARK  = ['#3987e5','#d95926','#199e70','#c98500','#d55181','#008300','#9085e9','#e66767'];
+const SKIN_CAT_OTHER = { light: '#8a8f94', dark: '#6f777e' };
+
+// Colour follows the category, never its rank — so the wheel doesn't repaint when
+// spending reorders the slices. Slots are assigned from a stable alphabetical
+// ordering of every category the account has ever used.
+let _skCatMap = null, _skCatMapVer = -1;
+function _skCatSlots() {
+  if (_skCatMap && _skCatMapVer === _calcVer) return _skCatMap;
+  // Only categories actually in use get a slot. Seeding this with every name in
+  // CAT_COLORS burned slots on unused ones and pushed real categories past slot 8
+  // into the neutral — the largest slice came out grey.
+  const names = new Set();
+  for (const t of (state.transactions || [])) if (t.category) names.add(t.category);
+  const sorted = [...names].sort((a, b) => a.localeCompare(b));
+  _skCatMap = {}; sorted.forEach((n, i) => { _skCatMap[n] = i; });
+  _skCatMapVer = _calcVer;
+  return _skCatMap;
+}
+function skinCatColor(cat) {
+  const dark = !document.body.classList.contains('light');
+  const pal  = dark ? SKIN_CAT_DARK : SKIN_CAT_LIGHT;
+  const slot = _skCatSlots()[cat];
+  if (slot === undefined || slot >= pal.length) return SKIN_CAT_OTHER[dark ? 'dark' : 'light'];
+  return pal[slot];
+}
+
 // Splits a formatted amount into the parts the skinned hero styles separately:
 // a superscript currency mark, the whole number, and de-emphasised cents.
 function _skMoneyParts(n) {
@@ -2548,13 +2591,13 @@ function renderDashboardSkinned(sk) {
     const C = 2 * Math.PI * 38; let off = 0;
     const segs = sk.cats.slice(0, 5).map(([cat, amt]) => {
       const len = (amt / total) * C;
-      const s = `<circle cx="52" cy="52" r="38" fill="none" stroke="${CAT_COLORS[cat] || 'var(--accent)'}"
+      const s = `<circle cx="52" cy="52" r="38" fill="none" stroke="${skinCatColor(cat)}"
         stroke-width="11" stroke-dasharray="${Math.max(0, len - 2.5).toFixed(1)} ${(C - len + 2.5).toFixed(1)}"
         stroke-dashoffset="${(-off).toFixed(1)}"/>`;
       off += len; return s;
     }).join('');
     const legend = sk.cats.slice(0, 5).map(([cat, amt]) => `<div class="sk-lrow">
-        <span class="sk-dot" style="background:${CAT_COLORS[cat] || 'var(--accent)'}"></span>
+        <span class="sk-dot" style="background:${skinCatColor(cat)}"></span>
         <span class="sk-lname">${_escHtml(cat)}</span>
         <span class="sk-lval money">${fmt(amt)}</span></div>`).join('');
     return `<div class="sk-card">
@@ -2571,7 +2614,7 @@ function renderDashboardSkinned(sk) {
     const dlbl = t.date === sk.todayStr ? 'Today'
                : t.date === sk.yesterdayStr ? 'Yesterday' : (t.date || '').slice(5);
     return `<div class="sk-trow">
-      <span class="sk-tico" style="background:${CAT_COLORS[t.category] || 'var(--surface2)'}"></span>
+      <span class="sk-tico" style="background:${skinCatColor(t.category)}"></span>
       <span class="sk-tmain">
         <span class="sk-tname">${_escHtml(t.description || t.category || '—')}</span>
         <span class="sk-tmeta">${_escHtml(t.category || '')} · ${dlbl}</span>

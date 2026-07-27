@@ -7353,20 +7353,118 @@ body.skinned #dawg-bottom-nav {
 }
 body.skinned .dawg-nav-btn.dawg-nav-active .dawg-nav-icon { background: none; box-shadow: none; }
 body.skinned .dawg-nav-lbl { font-size: .6rem; font-weight: 500; letter-spacing: .04em; }
-/* FAB: small, square-ish, skin-coloured — replaces the 60px mascot circle */
+/* Centre button — the stock 60px mascot circle reads as a heavy blob dropped into
+   a quiet bar, and it's redundant: it navigates Home while Add already has its own
+   tab. Under a skin it becomes an ordinary nav item with a home glyph, so all five
+   sit on one rhythm. (Filtering the mascot to a silhouette was worse — it crushed
+   to an unreadable dark shape.) */
 body.skinned .dawg-nav-center-btn {
-  flex: 0 0 46px !important; width: 46px !important; height: 46px;
-  border-radius: var(--sk-fab-r) !important;
-  background: var(--sk-fab-bg) !important;
-  border: 0 !important;
-  box-shadow: var(--sk-fab-shadow);
+  flex: 1 !important; width: auto !important; height: 100% !important;
+  background: none !important; border: 0 !important;
+  border-radius: 0 !important; box-shadow: none !important;
+  animation: none !important;
+  color: var(--muted);
+  gap: 3px !important;
+  /* the stock rule zeroes padding for the circular button; match the siblings
+     so all five nav items come out the same width */
+  padding: 0 4px !important;
 }
-body.skinned .dawg-nav-center-btn .dawg-nav-dob { filter: grayscale(1) brightness(0) invert(var(--sk-fab-invert)); opacity: .9; }
+body.skinned .dawg-nav-center-btn .dawg-nav-dob { display: none; }
+body.skinned .dawg-nav-center-btn::before {
+  content: ''; width: 20px; height: 20px; background: currentColor;
+  -webkit-mask: var(--sk-home-ico) center/contain no-repeat;
+          mask: var(--sk-home-ico) center/contain no-repeat;
+}
+body.skinned .dawg-nav-center-btn::after {
+  content: 'Home';
+  font-size: .6rem; font-weight: 500; letter-spacing: .04em;
+}
+body.skinned {
+  --sk-home-ico: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M3 10.5 12 3l9 7.5'/><path d='M5.5 9.5V21h13V9.5'/></svg>");
+}
+body.skin-grid .dawg-nav-lbl,
+body.skin-grid .dawg-nav-center-btn::after {
+  text-transform: uppercase; letter-spacing: .12em; font-size: .52rem; font-weight: 600;
+}
 
-body.skin-ledger { --sk-fab-r: 50%; --sk-fab-bg: #14150f; --sk-fab-invert: 1; --sk-fab-shadow: 0 6px 16px -4px rgba(20,21,15,.4); }
-body.skin-quiet  { --sk-fab-r: 16px; --sk-fab-bg: var(--accent); --sk-fab-invert: 0; --sk-fab-shadow: 0 8px 22px -6px color-mix(in srgb, var(--accent) 50%, transparent); }
-body.skin-grid   { --sk-fab-r: 4px;  --sk-fab-bg: #0a0b0c; --sk-fab-invert: 1; --sk-fab-shadow: none; }
-body.skin-grid .dawg-nav-lbl { text-transform: uppercase; letter-spacing: .12em; font-size: .52rem; font-weight: 600; }
+/* ── Motion: one easing curve, short durations, nothing decorative ─────────── */
+/* "Smooth" comes from consistency — every interactive surface uses the same
+   curve and the same two durations, so the whole app feels like one object.
+   Gated on fx-reduced + prefers-reduced-motion so the app's own toggle wins. */
+body.skinned {
+  --sk-ease: cubic-bezier(.22, 1, .36, 1);   /* gentle overshoot-free settle */
+  --sk-fast: .16s;
+  --sk-slow: .34s;
+}
+body.skinned .dawg-nav-btn,
+body.skinned .sk-more,
+body.skinned .sk-acct,
+body.skinned .skin-row,
+body.skinned .dawg-mnav-btn {
+  transition: color var(--sk-fast) var(--sk-ease),
+              background-color var(--sk-fast) var(--sk-ease),
+              border-color var(--sk-fast) var(--sk-ease),
+              opacity var(--sk-fast) var(--sk-ease);
+}
+body.skinned .sk-track > i { transition: width var(--sk-slow) var(--sk-ease); }
+/* Press feedback: a small, quick scale — reads as responsive, not bouncy */
+body.skinned:not(.fx-reduced) .dawg-nav-btn:active,
+body.skinned:not(.fx-reduced) .sk-more:active,
+body.skinned:not(.fx-reduced) .skin-row:active {
+  transform: scale(.96);
+  transition: transform .1s var(--sk-ease);
+}
+/* Content settles in on page change instead of snapping */
+body.skinned:not(.fx-reduced) .sk-page > * { animation: skFadeUp var(--sk-slow) var(--sk-ease) both; }
+body.skinned:not(.fx-reduced) .sk-page > *:nth-child(2) { animation-delay: .03s; }
+body.skinned:not(.fx-reduced) .sk-page > *:nth-child(3) { animation-delay: .06s; }
+body.skinned:not(.fx-reduced) .sk-page > *:nth-child(4) { animation-delay: .09s; }
+body.skinned:not(.fx-reduced) .sk-page > *:nth-child(5) { animation-delay: .12s; }
+body.skinned:not(.fx-reduced) .sk-page > *:nth-child(n+6) { animation-delay: .15s; }
+@keyframes skFadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+/* The wheel draws itself once, clockwise */
+body.skinned:not(.fx-reduced) .sk-donut circle {
+  animation: skDraw var(--sk-slow) var(--sk-ease) both;
+  transform-origin: 52px 52px;
+}
+@keyframes skDraw { from { opacity: 0; transform: rotate(-14deg) scale(.94); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  body.skinned *, body.skinned *::before, body.skinned *::after {
+    animation: none !important; transition: none !important;
+  }
+}
+
+/* ── Chrome the skins were leaving untouched ──────────────────────────────── */
+/* Top bar: the stock rounded grey pills read as a different app next to a clean
+   page, so flatten it to match the bottom bar. */
+body.skinned .dawg-topbar {
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+body.skinned .dawg-hamburger,
+body.skinned .dawg-bell-btn,
+body.skinned .dawg-acct-pill {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--skin-radius-sm, 6px) !important;
+  box-shadow: none !important;
+  color: var(--text) !important;
+  backdrop-filter: none !important;
+}
+body.skinned .dawg-acct-pill-name {
+  font-size: var(--sk-lbl-size); letter-spacing: var(--sk-lbl-track);
+  text-transform: var(--sk-lbl-case); font-weight: var(--sk-lbl-weight);
+}
+body.skinned .dawg-ham-bar { background: var(--text); }
+/* The warning-yellow backup banner is the loudest thing on a quiet page. Keep it
+   visible — it matters — but state it in the skin's own voice. */
+body.skinned .backup-banner {
+  background: transparent;
+  border: 0; border-left: 2px solid var(--warn);
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--text);
+}
 
 /* ── skin picker (Settings → Beta features) ──────────────────────────────── */
 .skin-list { display: flex; flex-direction: column; gap: 6px; }
