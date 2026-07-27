@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What goes under the balance — options</title>
+<style>
+*,*::before,*::after { box-sizing: border-box; }
+body { margin:0; background:#0d0f11; color:#e8eaed; padding:44px 24px 120px;
+  font:400 15px/1.6 ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif; }
+.wrap { max-width:1180px; margin:0 auto; }
+.kicker { font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:#7a828c; margin-bottom:12px; }
+h1 { font-size:32px; line-height:1.15; margin:0 0 14px; font-weight:600; letter-spacing:-.02em; }
+.lede { color:#9aa2ac; max-width:780px; margin:0 0 8px; }
+.rule { max-width:800px; margin:22px 0 44px; padding:16px 18px; border-left:2px solid #5ecf9e; }
+.rule p { margin:0; color:#b6bec8; font-size:14.5px; }
+.rule b { color:#e8eaed; }
+
+.opt { margin-bottom:52px; }
+.oh { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:6px; }
+.on { font:600 12px/1 ui-monospace,monospace; background:#e8eaed; color:#0d0f11; padding:6px 9px; border-radius:5px; }
+.oh h2 { font-size:20px; margin:0; font-weight:600; }
+.otag { font-size:13px; color:#7a828c; }
+.od { color:#9aa2ac; font-size:14.5px; max-width:840px; margin:0 0 6px; }
+.v { font-size:13.5px; margin:0 0 18px; max-width:840px; }
+.v.good { color:#7fd8ae; } .v.warn { color:#e0b062; } .v.bad { color:#e08a80; }
+.row { display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; }
+.cell { flex:1 1 320px; min-width:300px; }
+.cl { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#6b727b; margin-bottom:8px; }
+
+/* skins */
+.sk { border-radius:14px; padding:20px; border:1px solid #23262b;
+  background:var(--bg); color:var(--text); font-family:var(--fui); }
+.g1 { --bg:#fbfaf7; --text:#14150f; --muted:#8b8a80; --accent:#1f4d3d; --danger:#9c3025;
+  --border:rgba(20,21,15,.12); --fui:ui-sans-serif,-apple-system,sans-serif;
+  --fnum:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --lbl:10px; --tr:.16em; --cs:uppercase; --lw:600; --hero:44px; --hw:400; --pill:99px; }
+.g2 { --bg:#0e1013; --text:#f0f2f4; --muted:#838d98; --accent:#5ecf9e; --danger:#f0836f;
+  --border:rgba(255,255,255,.08); --fui:ui-sans-serif,-apple-system,sans-serif; --fnum:var(--fui);
+  --lbl:11px; --tr:.02em; --cs:none; --lw:500; --hero:40px; --hw:650; --pill:99px; }
+.g3 { --bg:#fff; --text:#0a0b0c; --muted:#83898f; --accent:#0a0b0c; --danger:#c02a20;
+  --border:rgba(10,11,12,.14); --fui:"Helvetica Neue",Inter,sans-serif;
+  --fnum:ui-monospace,"SF Mono",Menlo,monospace;
+  --lbl:9.5px; --tr:.2em; --cs:uppercase; --lw:600; --hero:38px; --hw:500; --pill:3px; }
+
+.eb { display:block; font-size:var(--lbl); letter-spacing:var(--tr); text-transform:var(--cs);
+  font-weight:var(--lw); color:var(--muted); }
+.amt { font-family:var(--fnum); font-size:var(--hero); font-weight:var(--hw); letter-spacing:-.02em;
+  line-height:1; margin-top:9px; display:flex; align-items:baseline; }
+.amt .cur { font-size:.46em; opacity:.5; align-self:flex-start; margin-top:.28em; }
+.amt .c { font-size:.48em; opacity:.45; }
+.sub { margin-top:11px; font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.chip { font-size:11.5px; font-weight:600; padding:3px 8px; border-radius:var(--pill);
+  background:color-mix(in srgb,var(--accent) 14%,transparent); color:var(--accent); }
+.chip.dn { background:color-mix(in srgb,var(--danger) 14%,transparent); color:var(--danger); }
+.g1 .chip { background:transparent; padding:0; }
+.money { font-family:var(--fnum); font-variant-numeric:tabular-nums; }
+
+svg { display:block; width:100%; overflow:visible; }
+.axlbl { font-size:9px; fill:var(--muted); font-family:var(--fui); letter-spacing:.08em; text-transform:uppercase; }
+.vallbl { font-size:10.5px; font-family:var(--fnum); fill:var(--text); font-weight:600; }
+
+/* meter */
+.mt { margin-top:16px; }
+.trk { height:6px; border-radius:var(--pill); background:color-mix(in srgb,var(--text) 9%,transparent); overflow:hidden; }
+.g1 .trk, .g3 .trk { height:3px; }
+.trk i { display:block; height:100%; border-radius:inherit; background:var(--accent); }
+.mfoot { display:flex; justify-content:space-between; margin-top:8px; font-size:11.5px; color:var(--muted); }
+
+.foot { max-width:840px; margin-top:8px; padding:18px 20px; border:1px solid #23262b; border-radius:10px; background:#12151a; }
+.foot h3 { margin:0 0 10px; font-size:15px; }
+.foot ol { margin:0; padding-left:20px; color:#b6bec8; font-size:14.5px; }
+.foot li { margin-bottom:7px; }
+code { font-family:ui-monospace,monospace; font-size:.9em; background:#1b1f24; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Budget DAWGs · dashboard hero</div>
+  <h1>What belongs under the balance</h1>
+  <p class="lede">What's there now is a 16-point sample of end-of-day balances with no axis, no labels
+    and no hover. For most people that's a flat line with a step at payday — the widest element on the
+    screen carrying the least information.</p>
+
+  <div class="rule">
+    <p><b>The test I'd apply:</b> a balance number already answers <em>"how much do I have."</em>
+    Anything under it has to answer a <em>different</em> question — otherwise it's decoration. The two
+    that actually matter here are <b>"am I above my floor?"</b> and <b>"how long does this last?"</b>
+    A bare trend line answers neither.</p>
+  </div>
+
+  <!-- 01 -->
+  <section class="opt">
+    <div class="oh"><span class="on">01</span><h2>Just the number</h2><span class="otag">no chart · baseline for comparison</span></div>
+    <p class="od">Hero figure, delta, and two range chips. Nothing to misread, nothing to maintain, and
+      the number gets the full width. Worth seeing first because everything below has to beat it.</p>
+    <p class="v warn">△ Honest and clean, but throws away the one thing a chart is good at: showing you didn't notice a slide.</p>
+    <div class="row">
+      <div class="cell"><div class="cl">Ledger</div><div class="sk g1">
+        <span class="eb">Available balance</span>
+        <div class="amt"><span class="cur">$</span>3,695<span class="c">.34</span></div>
+        <div class="sub"><span class="chip">▲ 12.4%</span><span>+$462.10 this month</span></div>
+        <div class="sub" style="margin-top:7px"><span>7 days +$284</span><span>·</span><span>30 days +$462</span></div>
+      </div></div>
+      <div class="cell"><div class="cl">Quiet</div><div class="sk g2">
+        <span class="eb">Available balance</span>
+        <div class="amt"><span class="cur">$</span>3,695<span class="c">.34</span></div>
+        <div class="sub"><span class="chip">▲ 12.4%</span><span>+$462.10 this month</span></div>
+        <div class="sub" style="margin-top:7px"><span>7 days +$284</span><span>·</span><span>30 days +$462</span></div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="opt">
+    <div class="oh"><span class="on">02</span><h2>Balance against your floor</h2><span class="otag">line vs baseline · Δ to target</span></div>
+    <p class="od">Same line, but now it means something: your buffer (<code>stop_at</code> + bills still
+      due) is drawn as a floor, the band below it is shaded, and the gap between the line and that floor
+      <em>is</em> your real spendable room. The endpoint carries a label so you can read a value —
+      which the current sparkline can't do.</p>
+    <p class="v good">✓ My recommendation. Keeps the visual you already have and gives it a job. The line dipping toward the floor is a genuine signal.</p>
+    <div class="row" id="r2"></div>
+  </section>
+
+  <!-- 03 -->
+  <section class="opt">
+    <div class="oh"><span class="on">03</span><h2>Daily flow</h2><span class="otag">diverging bars from zero</span></div>
+    <p class="od">One thin bar per day of <em>spending</em> for 30 days, with payday marked as a flag.
+      You read <em>rhythm</em> instead of a cumulative curve — the weekend clusters, the quiet stretches,
+      the one big week. A running balance hides all of that inside its slope. (First pass drew income as
+      a bar too; a $2,710 payday against $20–80 days flattened every expense bar to a hairline, so
+      income became an annotation instead — one scale, one meaning.)</p>
+    <p class="v good">✓ Strong second. Genuinely more informative than the line, and the shape is unmistakable at a glance.</p>
+    <div class="row" id="r3"></div>
+  </section>
+
+  <!-- 04 -->
+  <section class="opt">
+    <div class="oh"><span class="on">04</span><h2>Runway</h2><span class="otag">meter · one ratio against a limit</span></div>
+    <p class="od">Drops the chart entirely and answers the question people actually open the app for:
+      at your current burn rate, how long does this last? One meter, one sentence, no axis to read.</p>
+    <p class="v good">✓ The most useful single thing you could put here — and the cheapest to build.</p>
+    <div class="row" id="r4"></div>
+  </section>
+
+  <!-- 05 -->
+  <section class="opt">
+    <div class="oh"><span class="on">05</span><h2>Pay cycle</h2><span class="otag">progress + per-day allowance</span></div>
+    <p class="od">Where you are between paychecks, and what the remaining balance works out to per day
+      until the next one. Turns the balance into a pace rather than a total.</p>
+    <p class="v warn">△ Good, but overlaps your Weekly Planner. I'd only use it if you want the dashboard to replace that page's headline.</p>
+    <div class="row" id="r5"></div>
+  </section>
+
+  <!-- 06 -->
+  <section class="opt">
+    <div class="oh"><span class="on">06</span><h2>The current line, done properly</h2><span class="otag">labels + hover readout</span></div>
+    <p class="od">If you like the line as-is, this is the minimum to make it legible: min/max/end
+      labelled, a real 30-day span, and a crosshair readout on touch. The reference is explicit that an
+      SVG chart ships a hover layer by default — right now there's nothing to interrogate.</p>
+    <p class="v warn">△ Fixes the legibility, still answers "how much do I have" twice.</p>
+    <div class="row" id="r6"></div>
+  </section>
+
+  <div class="foot">
+    <h3>If it were my call</h3>
+    <ol>
+      <li><b>04 Runway</b> as the default — it answers the question the number can't, in one line of text and a meter.</li>
+      <li><b>02 Balance vs floor</b> if you want to keep a chart there. It's the current line plus a baseline, so it's a small change with a real payoff.</li>
+      <li><b>03 Daily flow</b> if you'd rather see behaviour than totals — best "aha" of the six.</li>
+      <li>Don't stack them. One answer under the hero; the rest belong on Insights.</li>
+    </ol>
+    <p style="margin:12px 0 0;color:#8f97a1;font-size:13.5px">Whichever you pick, the floor value comes
+      from data you already have — <code>weekly_plan.stop_at</code> plus bills still due — so none of
+      these need new inputs from you.</p>
+  </div>
+</div>
+
+<script>
+/* ── shared fake-but-plausible series ─────────────────────────────────────── */
+const BAL = [1500,1476,1462,1420,1398,1350,1330,4040,3980,3902,3860,3814,3790,3742,3700,3695]; // 30d, payday spike
+const FLOOR = 484;                     // stop_at 200 + bills due 284
+const DAILY = [-24,-14,-42,-22,-48,-20,+2710,-60,-78,-42,-46,-24,-48,-42,-5,-31,-18,-52,-27,-12,-64,-36,-9,-41,-22,-58,-14,-33,-25,-31];
+
+const money = n => '$' + Math.round(Math.abs(n)).toLocaleString('en-US');
+
+/* 02 · line vs floor */
+function floorChart() {
+  const W=320,H=92,pad=6;
+  const min=Math.min(FLOOR,...BAL)*0.92, max=Math.max(...BAL)*1.04, span=max-min;
+  const x=i=>pad+i*((W-pad*2)/(BAL.length-1));
+  const y=v=>H-pad-((v-min)/span)*(H-pad*2);
+  const d=BAL.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  const fy=y(FLOOR).toFixed(1);
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Balance against your buffer floor">
+    <rect x="0" y="${fy}" width="${W}" height="${(H-fy).toFixed(1)}" fill="var(--danger)" opacity=".07"/>
+    <line x1="0" y1="${fy}" x2="${W}" y2="${fy}" stroke="var(--danger)" stroke-width="1" stroke-dasharray="3 3" opacity=".55"/>
+    <path d="${d} L${x(BAL.length-1)} ${H-pad} L${x(0)} ${H-pad} Z" fill="var(--accent)" opacity=".07"/>
+    <path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${x(BAL.length-1)}" cy="${y(BAL[BAL.length-1])}" r="3" fill="var(--accent)"/>
+    <text class="axlbl" x="0" y="${(+fy-5).toFixed(1)}">floor ${money(FLOOR)}</text>
+    <text class="vallbl" x="${W}" y="${(y(BAL[BAL.length-1])-8).toFixed(1)}" text-anchor="end">${money(BAL[BAL.length-1])}</text>
+  </svg>`;
+}
+/* 03 · daily flow.
+   Bars are daily SPEND only. Putting a +2,710 payday on the same bar scale as
+   $20-80 of daily spending flattened every expense bar to the 1.5px minimum — the
+   outlier ate the resolution. Income isn't a competing bar any more: it's a
+   labelled annotation, so the bars keep one honest scale. */
+function flowChart() {
+  const W=320,H=92,base=H-16,bw=W/DAILY.length;
+  const spend=DAILY.map(v=>v<0?-v:0);
+  const peak=Math.max(...spend);
+  const bars=spend.map((v,i)=>{
+    if(!v) return '';
+    const h=Math.max(2,(v/peak)*(base-14));
+    return `<rect x="${(i*bw+bw*0.2).toFixed(1)}" y="${(base-h).toFixed(1)}"
+      width="${(bw*0.6).toFixed(1)}" height="${h.toFixed(1)}" rx="1.5"
+      fill="var(--accent)" opacity=".8"/>`;}).join('');
+  // payday markers, drawn as flags rather than magnitude bars
+  const flags=DAILY.map((v,i)=>{
+    if(v<=0) return '';
+    const cx=(i*bw+bw*0.5).toFixed(1);
+    return `<line x1="${cx}" y1="6" x2="${cx}" y2="${base}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 2" opacity=".5"/>
+      <circle cx="${cx}" cy="6" r="2.6" fill="var(--accent)"/>
+      <text class="vallbl" x="${(+cx+6)}" y="10">+${money(v)}</text>`;}).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily spending for 30 days, with payday marked">
+    ${bars}${flags}
+    <line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="var(--border)" stroke-width="1"/>
+    <text class="axlbl" x="0" y="${H-3}">daily spend</text>
+    <text class="axlbl" x="${W}" y="${H-3}" text-anchor="end">peak ${money(peak)}</text>
+  </svg>`;
+}
+/* 06 · labelled sparkline */
+function sparkPlus() {
+  const W=320,H=92,pad=8;
+  const min=Math.min(...BAL), max=Math.max(...BAL), span=max-min;
+  const x=i=>pad+i*((W-pad*2)/(BAL.length-1));
+  const y=v=>H-pad-((v-min)/span)*(H-pad*2);
+  const d=BAL.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  const iMin=BAL.indexOf(min), iMax=BAL.indexOf(max), iEnd=BAL.length-1;
+  const cross=x(9);
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Balance over 30 days with min, max and current labelled">
+    <path d="${d} L${x(iEnd)} ${H-pad} L${x(0)} ${H-pad} Z" fill="var(--accent)" opacity=".06"/>
+    <path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round"/>
+    <line x1="${cross}" y1="0" x2="${cross}" y2="${H}" stroke="var(--muted)" stroke-width="1" opacity=".4" stroke-dasharray="2 2"/>
+    <circle cx="${cross}" cy="${y(BAL[9])}" r="3.5" fill="var(--bg)" stroke="var(--accent)" stroke-width="2"/>
+    <text class="vallbl" x="${cross+7}" y="${(y(BAL[9])-9).toFixed(1)}">${money(BAL[9])}</text>
+    <text class="axlbl" x="${cross+7}" y="${(y(BAL[9])+3).toFixed(1)}">day 20</text>
+    <circle cx="${x(iMin)}" cy="${y(min)}" r="2.5" fill="var(--muted)"/>
+    <text class="axlbl" x="${x(iMin)}" y="${(y(min)+13).toFixed(1)}" text-anchor="middle">low ${money(min)}</text>
+    <text class="axlbl" x="${x(iMax)}" y="${(y(max)-7).toFixed(1)}" text-anchor="middle">high ${money(max)}</text>
+  </svg>`;
+}
+
+const hero = `<span class="eb">Available balance</span>
+  <div class="amt"><span class="cur">$</span>3,695<span class="c">.34</span></div>`;
+
+function cells(id, inner, skins=['g1','g2','g3'], labels=['Ledger','Quiet','Grid']) {
+  document.getElementById(id).innerHTML = skins.map((s,i)=>`
+    <div class="cell"><div class="cl">${labels[i]}</div>
+      <div class="sk ${s}">${hero}${inner}</div></div>`).join('');
+}
+
+cells('r2', `<div style="margin-top:14px">${floorChart()}</div>
+  <div class="sub"><span>${money(3695-FLOOR)} above your floor</span></div>`);
+
+cells('r3', `<div style="margin-top:14px">${flowChart()}</div>
+  <div class="sub"><span class="chip">▲ ${money(462)} net</span><span>this month</span></div>`);
+
+cells('r4', `<div class="mt">
+    <div class="sub" style="margin-top:0"><span style="color:var(--text)">Covers <b class="money">23 days</b> at ${money(138)}/day</span></div>
+    <div class="trk" style="margin-top:10px"><i style="width:74%"></i></div>
+    <div class="mfoot"><span>through Aug 19</span><span>floor ${money(FLOOR)}</span></div>
+  </div>`);
+
+cells('r5', `<div class="mt">
+    <div class="sub" style="margin-top:0"><span style="color:var(--text)"><b class="money">${money(102)}</b>/day until payday</span></div>
+    <div class="trk" style="margin-top:10px"><i style="width:46%"></i></div>
+    <div class="mfoot"><span>day 6 of 14</span><span>next pay Aug 8</span></div>
+  </div>`);
+
+cells('r6', `<div style="margin-top:14px">${sparkPlus()}</div>`);
+</script>
+</body>
+</html>
