@@ -7248,7 +7248,24 @@ body.theme-ubuntu .section-title::before {
 .sk-pill.down {
   background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger);
 }
-.sk-spark { display: block; width: 100%; height: 46px; margin-top: 18px; color: var(--accent); }
+/* Runway — what sits under the balance instead of a trend line. The number above
+   says how much; this says how long, which is the question it can't answer. */
+.sk-rw { margin-top: 18px; }
+.sk-rw-line { font-size: 12.5px; color: var(--muted); margin-bottom: 9px; }
+.sk-rw-line b {
+  color: var(--text); font-weight: var(--sk-num-weight);
+  font-family: var(--sk-num); font-variant-numeric: tabular-nums;
+}
+.sk-rw-foot {
+  display: flex; justify-content: space-between; margin-top: 8px;
+  font-size: 11.5px; color: var(--muted);
+}
+/* Severity: the bar is the only place colour changes, and it only changes when
+   the runway is genuinely short — otherwise it stays the theme accent. */
+.sk-track.mid  > i { background: var(--warn); }
+.sk-track.low  > i,
+.sk-track.over > i { background: var(--danger); }
+.sk-rw-over .sk-rw-line b { color: var(--danger); }
 
 /* month nav sits quietly between hero and stats */
 .sk-mnav { margin: 4px 0 var(--sk-stack); }
@@ -7650,13 +7667,15 @@ body.skinned .acct-row-type {
 /* 1 · Ink watermark — dashboard hero only. One per screen; two reads as a pattern. */
 body.skinned .sk-hero { overflow: hidden; }
 body.skinned .sk-hero::after {
-  content: ''; position: absolute; right: -30px; bottom: -26px;
-  width: 190px; height: 190px; pointer-events: none;
-  background-color: var(--text); opacity: .055;
+  content: ''; position: absolute; right: -46px; bottom: -38px;
+  width: 168px; height: 168px; pointer-events: none;
+  background-color: var(--text); opacity: .035;
   -webkit-mask: var(--mascot-url) center/contain no-repeat;
           mask: var(--mascot-url) center/contain no-repeat;
 }
-body.skin-quiet .sk-hero::after { opacity: .085; }   /* dark ink needs a touch more */
+/* On the dark skin a light silhouette carries much further than the same figure
+   does on paper — 8.5% read as a grey smudge behind the balance, not texture. */
+body.skin-quiet .sk-hero::after { opacity: .05; }
 
 /* 5 · Hidden-balance state — the mascot "ate" your balance. Only exists in this
    state, so it's a reward rather than decoration, and it makes the mode change

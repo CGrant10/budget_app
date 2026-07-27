@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.5';
+const VERSION = '5.45.6';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.6', date: '2026-07-27', changes: [
+    'Replaced the little balance graph in the beta skins with a "runway" readout — it now tells you how long your money lasts at your recent spending rate, e.g. "Covers 23 days at $138/day", with the date it runs to. The old line had no labels and no scale, so it couldn\'t tell you anything the big number above it didn\'t already say',
+    'The bar turns amber under two weeks and red under one, and if you\'re already below your buffer it says how far below instead of pretending there\'s a runway. Your buffer is your weekly-plan "stop at" amount plus any bills still due, so nothing new to set up',
+    'Toned down the mascot watermark behind the balance — on the dark skin it was reading as a grey smudge rather than a faint texture',
+  ]},
   { version: '5.45.5', date: '2026-07-27', changes: [
     'Your mascot is back in the beta skins, done four ways. The bottom-bar Home button now shows the mascot as a clean flat silhouette in the bar\'s own colour instead of the heavy circle, the dashboard balance sits on a faint mascot watermark, and empty screens show the mascot full-size again',
     'New: tap the eye to hide your balances and the mascot appears beside the blurred figure — it ate your money. It only shows up in that state, so you can tell at a glance that amounts are hidden',
@@ -2593,24 +2598,66 @@ function _skMoneyParts(n) {
   return { cur: (neg ? '−' : '') + (m?.[1] || '$'), whole: m?.[2] || '0', cents: m?.[3] || '00' };
 }
 
-// Sparkline for the skinned hero — a light polyline over end-of-day balances.
-// Sampled to ~16 points so it stays cheap on long histories.
-function _skSparkline(days = 16) {
-  const pts = [];
-  const now = new Date(); now.setHours(0, 0, 0, 0);
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now); d.setDate(now.getDate() - i * 2);
-    pts.push(balanceAsOf(d.toISOString().split('T')[0]));
+// ── Runway ───────────────────────────────────────────────────────────────────
+// Replaces the sparkline under the skinned balance. The balance figure already
+// answers "how much do I have", so this answers the different question: how long
+// does it last. Nothing here needs new input — the floor comes from the weekly
+// plan's stop_at plus bills still due, and the burn rate from logged spending.
+//
+// Bills are deliberately excluded from the burn rate (via isExcludedFromSpend,
+// the same test the Weekly Planner uses): they're already subtracted once as part
+// of the floor, so counting them again would understate the runway twice over.
+const SK_RUNWAY_WINDOW = 30;   // trailing days used to average the burn rate
+const SK_RUNWAY_FULL   = 30;   // days of runway that read as a "full" meter
+
+function _skRunway(sk) {
+  const floor     = Math.max(0, (sk.stopAt || 0) + (sk.billsLeft || 0));
+  const spendable = sk.balance - floor;
+
+  // Trailing discretionary spend → average daily burn
+  const since = new Date(); since.setHours(0, 0, 0, 0);
+  since.setDate(since.getDate() - (SK_RUNWAY_WINDOW - 1));
+  const sinceStr = since.toISOString().split('T')[0];
+  let spent = 0;
+  for (const t of state.transactions) {
+    if (t.type === 'expense' && t.date >= sinceStr && !isExcludedFromSpend(t)) spent += t.amount;
   }
-  const min = Math.min(...pts), max = Math.max(...pts), span = (max - min) || 1;
-  const W = 300, H = 46, step = W / Math.max(1, pts.length - 1);
-  const y  = v => (H - 4) - ((v - min) / span) * (H - 10);
-  const d  = pts.map((p, i) => `${i ? 'L' : 'M'}${(i * step).toFixed(1)} ${y(p).toFixed(1)}`).join(' ');
-  return `<svg class="sk-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-    <path d="${d} L${W} ${H} L0 ${H} Z" fill="currentColor" opacity=".07"/>
-    <path d="${d}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="${W - 1}" cy="${y(pts[pts.length - 1]).toFixed(1)}" r="2.6" fill="currentColor"/>
-  </svg>`;
+  const burn = spent / SK_RUNWAY_WINDOW;
+
+  const foot = `<div class="sk-rw-foot"><span>${floor > 0 ? 'floor ' + fmt(floor) : 'no buffer set'}</span></div>`;
+
+  // Below the floor: a runway is meaningless, so say the actually-useful thing.
+  if (spendable <= 0) {
+    return `<div class="sk-rw sk-rw-over">
+      <div class="sk-rw-line">Below your floor by <b class="money">${fmt(Math.abs(spendable))}</b></div>
+      <div class="sk-track over"><i style="width:100%"></i></div>
+      ${foot}</div>`;
+  }
+  // No spending history yet — don't invent a burn rate.
+  if (burn <= 0) {
+    return `<div class="sk-rw">
+      <div class="sk-rw-line"><b class="money">${fmt(spendable)}</b> free to spend</div>
+      <div class="sk-rw-foot"><span>no spending in the last ${SK_RUNWAY_WINDOW} days yet</span></div>
+    </div>`;
+  }
+
+  const days = Math.floor(spendable / burn);
+  const end  = new Date(); end.setHours(0, 0, 0, 0);
+  end.setDate(end.getDate() + days);
+  const endLbl = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const pct   = Math.min(days / SK_RUNWAY_FULL, 1) * 100;
+  const level = days < 7 ? ' low' : days < 14 ? ' mid' : '';
+  // Past a couple of months "157 days" stops meaning anything — say months.
+  const span = days >= 60
+    ? `${(days / 30.44).toFixed(1)} months`
+    : `${days} day${days === 1 ? '' : 's'}`;
+
+  return `<div class="sk-rw">
+    <div class="sk-rw-line">Covers <b class="money">${span}</b>
+      at ${fmt(burn)}/day</div>
+    <div class="sk-track${level}"><i style="width:${pct.toFixed(1)}%"></i></div>
+    <div class="sk-rw-foot"><span>through ${endLbl}</span>${floor > 0 ? `<span>floor ${fmt(floor)}</span>` : ''}</div>
+  </div>`;
 }
 
 // The skinned dashboard — mirrors the clean-mockups.html layout using real data.
@@ -2682,7 +2729,7 @@ function renderDashboardSkinned(sk) {
         <span class="sk-pill${up ? '' : ' down'}">${up ? '▲' : '▼'} ${sk.deltaPct.toFixed(1)}%</span>
         <span class="sk-sub">${up ? '+' : '−'}${fmt(Math.abs(sk.monthDelta))} in ${_escHtml((sk.dashMonthLabel || '').split(' ')[0])}</span>
       </div>
-      ${_skSparkline()}
+      ${_skRunway(sk)}
     </div>
 
     <div class="dawg-month-nav sk-mnav">
@@ -6183,7 +6230,7 @@ function renderDashboardDawg() {
       balance, balColor, mInc, mExp, monthDelta, deltaPct, isPastDash,
       dashMonthLabel, acctName: _acctName,
       weekSpent, perWeek: _livePerWeek, daySpent: _dayExp,
-      billsLeft: _dashBills, daysLeft: _dashDays,
+      billsLeft: _dashBills, daysLeft: _dashDays, stopAt: _dashStopAt,
       cats: catEntries, catTotal: totalMExp,
       txns: recentTxns, todayStr, yesterdayStr,
     };
