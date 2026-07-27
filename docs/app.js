@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.6';
+const VERSION = '5.45.7';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.7', date: '2026-07-27', changes: [
+    'Removed the dark vignette from the Pokémon themes — it dimmed the corners of every screen and muddied each theme\'s colours. Charizard\'s embers and Squirtle\'s bubbles are untouched',
+    'Mascots in the beta skins are recognisable again. They were being drawn as flat cut-out shapes, which turned Gengar into a featureless blob and made the Celtics and Bears logos impossible to read. They now use the real artwork, so Gengar\'s eyes and mouth show and every team logo is legible — team logos also get a little more room since they carry finer detail',
+    'The nav mascot no longer has a drop shadow or idle wiggle while a skin is on, and it brightens instead of changing colour when Home is the active tab',
+  ]},
   { version: '5.45.6', date: '2026-07-27', changes: [
     'Replaced the little balance graph in the beta skins with a "runway" readout — it now tells you how long your money lasts at your recent spending rate, e.g. "Covers 23 days at $138/day", with the date it runs to. The old line had no labels and no scale, so it couldn\'t tell you anything the big number above it didn\'t already say',
     'The bar turns amber under two weeks and red under one, and if you\'re already below your buffer it says how far below instead of pretending there\'s a runway. Your buffer is your weekly-plan "stop at" amount plus any bills still due, so nothing new to set up',
@@ -2973,7 +2978,9 @@ function heroMascotHTML() {
         </div>`;
 }
 
-// Eerie ambient overlay for Pokémon themes (vignette + per-mon particles). Removed for all other themes.
+// Ambient particle overlay for Pokémon themes. Removed for all other themes.
+// The darkened corner vignette that used to sit under these particles is gone —
+// it dimmed the whole page and fought the palette on every Pokémon theme.
 function _applyThemeFx(theme) {
   document.getElementById('poke-fx')?.remove();
   const t = THEMES[theme] || {};
@@ -2981,7 +2988,7 @@ function _applyThemeFx(theme) {
   const fx = document.createElement('div');
   fx.id = 'poke-fx';
   fx.setAttribute('aria-hidden', 'true');
-  let inner = '<div class="pf-vig"></div>';
+  let inner = '';
   const rnd = (a, b) => a + Math.random() * (b - a);
   if (theme === 'charizard' || theme === 'squirtle') {
     const cls = theme === 'charizard' ? 'pf-ember' : 'pf-bubble';

@@ -4878,11 +4878,9 @@ body.theme-gengar .gtrio-r { margin-left: -8px; animation: gtrioBob 3.4s ease-in
 
 /* ── Eerie ambient FX overlay (Pokémon themes) — sits BEHIND the app content (z:0 < #app z:1) ── */
 #poke-fx { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-#poke-fx .pf-vig { position: absolute; inset: 0; }
-/* Toned-down vignettes */
-body.theme-gengar    #poke-fx .pf-vig { box-shadow: inset 0 0 110px 14px rgba(18,8,38,.40); }
-body.theme-charizard #poke-fx .pf-vig { box-shadow: inset 0 -70px 110px -36px rgba(180,60,10,.15), inset 0 0 110px 16px rgba(0,0,0,.28); }
-body.theme-squirtle  #poke-fx .pf-vig { box-shadow: inset 0 70px 110px -36px rgba(20,80,130,.15), inset 0 0 120px 18px rgba(0,0,0,.28); }
+/* The corner vignette these themes used to draw (an inset box-shadow over the whole
+   viewport) has been removed — it dimmed the page and muddied each theme's palette.
+   The particle layer stays. */
 /* Page background goes transparent under Pokémon themes so the FX shows through behind the cards */
 body.theme-pokemon .dawg-page { background: transparent; }
 .pf-ember { position: absolute; bottom: -12px; width: 5px; height: 5px; border-radius: 50%;
@@ -7388,14 +7386,31 @@ body.skinned .dawg-nav-center-btn {
      so all five nav items come out the same width */
   padding: 0 4px !important;
 }
-body.skinned .dawg-nav-center-btn .dawg-nav-dob { display: none; }
-body.skinned .dawg-nav-center-btn::before {
-  content: ''; width: 22px; height: 22px; background: currentColor;
-  /* mascot silhouette, falling back to a home glyph if no mascot var is set */
-  -webkit-mask: var(--mascot-url, var(--sk-home-ico)) center/contain no-repeat;
-          mask: var(--mascot-url, var(--sk-home-ico)) center/contain no-repeat;
+/* Show the real artwork rather than a masked silhouette. A mask keys off alpha
+   only, so every opaque pixel collapses to one flat colour — Gengar's eyes and
+   mouth, and the detail that makes the Celtics and Bears logos recognisable, can
+   never survive it. Anything whose job is to be *identified* needs the artwork;
+   only the watermark (pure texture) can afford a flat shape. Inactive/active is
+   carried by opacity + the label colour instead of a tint. */
+body.skinned .dawg-nav-center-btn .dawg-nav-dob {
+  display: block;
+  width: 26px !important; height: 26px !important;
+  object-fit: contain;
+  image-rendering: var(--mascot-pixelated, auto);
+  opacity: .6;
+  transition: opacity var(--sk-fast, .12s) var(--sk-ease, ease);
+  /* The stock nav mascot runs a `nav-dob-idle` animation whose keyframes set
+     `filter: drop-shadow(...)`. Animated values beat normal declarations, so
+     `filter: none` alone can't clear it — the animation itself has to go, which
+     also drops the idle wiggle that doesn't belong in a quiet bar. */
+  animation: none !important;
+  filter: none;
 }
+body.skinned .dawg-nav-center-btn::before { content: none; }
 body.skinned .dawg-nav-center-btn.dawg-nav-active { color: var(--accent); }
+body.skinned .dawg-nav-center-btn.dawg-nav-active .dawg-nav-dob { opacity: 1; }
+/* team logos carry more fine detail than a 74px sprite — give them the room */
+body.skinned.theme-team .dawg-nav-center-btn .dawg-nav-dob { width: 30px !important; height: 30px !important; }
 body.skinned .dawg-nav-center-btn::after {
   content: 'Home';
   font-size: .6rem; font-weight: 500; letter-spacing: .04em;
@@ -7666,27 +7681,32 @@ body.skinned .acct-row-type {
 
 /* 1 · Ink watermark — dashboard hero only. One per screen; two reads as a pattern. */
 body.skinned .sk-hero { overflow: hidden; }
+/* The one place a flat shape is still right — this is texture, not identification,
+   and at 3.5% no interior detail would be visible anyway. It uses the artwork
+   (desaturated) rather than a mask so the internal contours still read faintly
+   instead of it being one solid blob. */
 body.skinned .sk-hero::after {
   content: ''; position: absolute; right: -46px; bottom: -38px;
   width: 168px; height: 168px; pointer-events: none;
-  background-color: var(--text); opacity: .035;
-  -webkit-mask: var(--mascot-url) center/contain no-repeat;
-          mask: var(--mascot-url) center/contain no-repeat;
+  background: var(--mascot-url) center/contain no-repeat;
+  image-rendering: var(--mascot-pixelated, auto);
+  filter: grayscale(1);
+  opacity: .07;
 }
-/* On the dark skin a light silhouette carries much further than the same figure
-   does on paper — 8.5% read as a grey smudge behind the balance, not texture. */
-body.skin-quiet .sk-hero::after { opacity: .05; }
+/* A light figure on the dark skin carries further than the same one does on paper. */
+body.skin-quiet .sk-hero::after { opacity: .09; }
 
 /* 5 · Hidden-balance state — the mascot "ate" your balance. Only exists in this
    state, so it's a reward rather than decoration, and it makes the mode change
    unmistakable. Driven purely by body.amounts-hidden, so no re-render is needed. */
 .sk-ghost { display: none; }
+/* Full artwork, not a mask: the whole point is that you recognise who ate your
+   balance, which a flat shape can't convey. */
 body.skinned.amounts-hidden .sk-ghost {
-  display: block; width: 38px; height: 38px; flex: none;
+  display: block; width: 40px; height: 40px; flex: none;
   margin-right: 12px; align-self: center;
-  background-color: var(--muted); opacity: .6;
-  -webkit-mask: var(--mascot-url) center/contain no-repeat;
-          mask: var(--mascot-url) center/contain no-repeat;
+  background: var(--mascot-url) center/contain no-repeat;
+  image-rendering: var(--mascot-pixelated, auto);
 }
 /* the figure beside it is already blurred by the privacy rules; keep them aligned */
 body.skinned.amounts-hidden .sk-amt { align-items: center; }
