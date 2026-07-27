@@ -7354,10 +7354,12 @@ body.skinned #dawg-bottom-nav {
 body.skinned .dawg-nav-btn.dawg-nav-active .dawg-nav-icon { background: none; box-shadow: none; }
 body.skinned .dawg-nav-lbl { font-size: .6rem; font-weight: 500; letter-spacing: .04em; }
 /* Centre button — the stock 60px mascot circle reads as a heavy blob dropped into
-   a quiet bar, and it's redundant: it navigates Home while Add already has its own
-   tab. Under a skin it becomes an ordinary nav item with a home glyph, so all five
-   sit on one rhythm. (Filtering the mascot to a silhouette was worse — it crushed
-   to an unreadable dark shape.) */
+   a quiet bar. Under a skin it becomes an ordinary nav item so all five sit on one
+   rhythm, but it keeps the mascot: painted as a flat silhouette via CSS mask, in
+   the nav's own colour. (An earlier attempt used `filter` to knock it back, which
+   crushed it to an unreadable dark shape — masking uses the asset's alpha instead,
+   so the result is a clean mark. The theme picks the character: Gengar on the
+   Gengar theme, the Doberman by default.) */
 body.skinned .dawg-nav-center-btn {
   flex: 1 !important; width: auto !important; height: 100% !important;
   background: none !important; border: 0 !important;
@@ -7371,10 +7373,12 @@ body.skinned .dawg-nav-center-btn {
 }
 body.skinned .dawg-nav-center-btn .dawg-nav-dob { display: none; }
 body.skinned .dawg-nav-center-btn::before {
-  content: ''; width: 20px; height: 20px; background: currentColor;
-  -webkit-mask: var(--sk-home-ico) center/contain no-repeat;
-          mask: var(--sk-home-ico) center/contain no-repeat;
+  content: ''; width: 22px; height: 22px; background: currentColor;
+  /* mascot silhouette, falling back to a home glyph if no mascot var is set */
+  -webkit-mask: var(--mascot-url, var(--sk-home-ico)) center/contain no-repeat;
+          mask: var(--mascot-url, var(--sk-home-ico)) center/contain no-repeat;
 }
+body.skinned .dawg-nav-center-btn.dawg-nav-active { color: var(--accent); }
 body.skinned .dawg-nav-center-btn::after {
   content: 'Home';
   font-size: .6rem; font-weight: 500; letter-spacing: .04em;
@@ -7635,8 +7639,48 @@ body.skinned .acct-row-type {
   color: var(--muted);
 }
 
-/* Empty states: the mascot illustration fights a restrained page */
-body.skinned .empty-dob { display: none; }
+/* ══ Mascot placements ══════════════════════════════════════════════════════
+   Two registers, never mixed: a SILHOUETTE (flat skin colour via CSS mask, so it
+   behaves like an icon and may go large) or an ARTIFACT (full colour, small, whole-
+   number scaled so pixel sprites stay sharp). Full colour *and* large is the
+   combination that fights these skins. --mascot-url / --mascot-pixelated come from
+   applyTheme(), so the theme supplies the character and the skin the treatment.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1 · Ink watermark — dashboard hero only. One per screen; two reads as a pattern. */
+body.skinned .sk-hero { overflow: hidden; }
+body.skinned .sk-hero::after {
+  content: ''; position: absolute; right: -30px; bottom: -26px;
+  width: 190px; height: 190px; pointer-events: none;
+  background-color: var(--text); opacity: .055;
+  -webkit-mask: var(--mascot-url) center/contain no-repeat;
+          mask: var(--mascot-url) center/contain no-repeat;
+}
+body.skin-quiet .sk-hero::after { opacity: .085; }   /* dark ink needs a touch more */
+
+/* 5 · Hidden-balance state — the mascot "ate" your balance. Only exists in this
+   state, so it's a reward rather than decoration, and it makes the mode change
+   unmistakable. Driven purely by body.amounts-hidden, so no re-render is needed. */
+.sk-ghost { display: none; }
+body.skinned.amounts-hidden .sk-ghost {
+  display: block; width: 38px; height: 38px; flex: none;
+  margin-right: 12px; align-self: center;
+  background-color: var(--muted); opacity: .6;
+  -webkit-mask: var(--mascot-url) center/contain no-repeat;
+          mask: var(--mascot-url) center/contain no-repeat;
+}
+/* the figure beside it is already blurred by the privacy rules; keep them aligned */
+body.skinned.amounts-hidden .sk-amt { align-items: center; }
+
+/* 4 · Empty states — the one screen with nothing to compete with, so the mascot
+   gets to be full colour. Pixel sprites at exact 2x; photos left unscaled. */
+body.skinned .empty-dob {
+  display: block; margin: 0 0 14px;
+  image-rendering: var(--mascot-pixelated, auto);
+  opacity: .95;
+}
+body.skinned.theme-pokemon .empty-dob { width: 148px; height: 126px; }  /* 74x63 x2 */
+body.skinned:not(.theme-pokemon) .empty-dob { width: 96px; height: auto; }
 body.skinned .empty-state { padding: 40px 0; text-align: left; }
 body.skinned .empty-title {
   font-size: 14px; font-weight: 500; color: var(--text);
@@ -7748,6 +7792,12 @@ body.skinned .splash-dog {
   filter: none;
 }
 body.skinned .splash-dob-idle { height: auto; max-height: 190px; }
+/* 6 · Splash — pixel sprites at exact 3x (74x63 -> 222x189) so they stay sharp
+   instead of being smoothly upscaled into mush. */
+body.skinned.theme-pokemon .splash-dog { width: 222px; }
+body.skinned.theme-pokemon .splash-dob-idle {
+  width: 222px; height: 189px; max-height: none; image-rendering: pixelated;
+}
 body.skinned .splash-dob-bark { display: none; }
 body.skinned .splash-texts { margin-top: 30px; }
 body.skinned .splash-brand::before,

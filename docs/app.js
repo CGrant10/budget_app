@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.4';
+const VERSION = '5.45.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.5', date: '2026-07-27', changes: [
+    'Your mascot is back in the beta skins, done four ways. The bottom-bar Home button now shows the mascot as a clean flat silhouette in the bar\'s own colour instead of the heavy circle, the dashboard balance sits on a faint mascot watermark, and empty screens show the mascot full-size again',
+    'New: tap the eye to hide your balances and the mascot appears beside the blurred figure — it ate your money. It only shows up in that state, so you can tell at a glance that amounts are hidden',
+    'Whichever mascot your theme uses is the one that appears — Gengar on the Gengar theme, Haunter on Haunter, the Doberman by default. Pokémon sprites are drawn at exact whole-number sizes so they stay sharp instead of looking smudged',
+  ]},
   { version: '5.45.4', date: '2026-07-27', changes: [
     'The Weekly Planner now follows the skin too — stat cards use the same label-and-figure pairing as the dashboard, the week tracker and every progress bar sit on the skin\'s own bar height and corner style, and the history toggles match the other pills',
     'The Accounts page follows the skin as well: account cards, type chips, the net-worth block, badges and buttons all lose the glassy look and pick up the skin\'s hairlines and figures',
@@ -2667,6 +2672,10 @@ function renderDashboardSkinned(sk) {
         aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden() ? 'true' : 'false'}">${_eyeIconSvg(_amountsHidden())}</button>
       <div class="sk-eyebrow">${sk.isPastDash ? _escHtml(sk.dashMonthLabel) + ' balance' : 'Available balance'}</div>
       <div class="sk-amt money" style="color:${sk.balColor}">
+        <!-- Shown by CSS only while body.amounts-hidden: the mascot "ate" the
+             balance. Always in the markup so the privacy toggle stays a pure class
+             flip on <body> and needs no re-render. -->
+        <span class="sk-ghost" aria-hidden="true"></span>
         <span class="sk-cur">${bal.cur}</span>${bal.whole}<span class="sk-cents">.${bal.cents}</span>
       </div>
       <div class="sk-delta">
@@ -2979,6 +2988,12 @@ function applyTheme(theme) {
   _applyThemeFx(theme);
   // Swap mascot + splash tagline on the persistent (non-re-rendered) elements
   const _mascot = t.mascot || './doberman.png';
+  // Exposed as a CSS var so the skins can paint the active mascot as a silhouette
+  // (CSS mask + currentColor). The theme supplies the character — Gengar on the
+  // Gengar theme, the Doberman by default — and the skin supplies the treatment.
+  root.style.setProperty('--mascot-url', `url("${_mascot}")`);
+  // Pixel sprites only look right at whole-number scale; photos must not be.
+  root.style.setProperty('--mascot-pixelated', t.pokemon ? 'pixelated' : 'auto');
   document.querySelectorAll('.splash-dob-idle, .brand-dob, .dawg-nav-dob, .nav-side-dob').forEach(img => { img.src = _mascot; });
   const _splashTag = document.querySelector('.splash-tagline');
   if (_splashTag) _splashTag.textContent = t.splashTagline || 'Money on a leash.';
