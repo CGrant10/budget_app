@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.8';
+const VERSION = '5.45.9';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.9', date: '2026-07-27', changes: [
+    'Added a daily line at the foot of the dashboard — one thought about money, picked for the day so it stays the same until tomorrow. Tap the refresh button beside it if you want a different one. Works on the standard dashboard and all three beta skins, and works offline like everything else',
+  ]},
   { version: '5.45.8', date: '2026-07-27', changes: [
     'Dropped the Income / Spent / Bills due row from the skinned dashboard. Income and spending were already covered by the figure at the top, the spending wheel and the week meter, so bills was the only one telling you something new',
     'In its place, bills got room to be useful: the total coming up, then your next three by name with how long until each is due — the closest ones in amber and red. Tap "All" for the full list',
@@ -2669,6 +2672,75 @@ function _skRunway(sk) {
   </div>`;
 }
 
+// ── Daily inspiration ────────────────────────────────────────────────────────
+// Deliberately original lines rather than famous quotations. Attributed quotes
+// circulate misattributed constantly, and shipping a wrong attribution into the
+// app is a factual error I'd rather not risk — these also sit closer to the app's
+// own voice. Everything is local, so it works offline like the rest of the PWA.
+const INSPO = [
+  'Every dollar you name is a dollar that stops wandering off.',
+  'A budget is just you deciding before the shop does.',
+  'Small leaks sink big boats. Check the small leaks.',
+  'You cannot out-earn a hole you refuse to look at.',
+  'Boring money is the point. Boring money buys quiet.',
+  'Spending is a habit. Habits answer to attention.',
+  'The cheapest month is the one you planned in advance.',
+  'Money you track behaves better than money you hope about.',
+  'Progress is unglamorous and it counts anyway.',
+  'You are allowed to want things. Plan for them instead of ambushing yourself.',
+  'A balance is a fact. A budget is a decision.',
+  'Future you is a real person. Leave them something.',
+  'One good week does not fix a bad system. Fix the system.',
+  'Saving is not deprivation. It is paying yourself first in line.',
+  'The best time to look at your money is when you do not want to.',
+  'Debt is just a bill from a decision you already made. Pay it and move on.',
+  'You do not need more income to need a plan.',
+  'Nobody drifts into being good with money.',
+  'What gets measured stops being mysterious.',
+  'Cheap and frugal are different. Pick the second one.',
+  'An emergency fund turns a crisis into an inconvenience.',
+  'Comparison is expensive. Buy less of it.',
+  'The goal is not to spend nothing. The goal is to spend on purpose.',
+  'A plan you actually follow beats a perfect plan you abandon.',
+  'Every no is quietly a yes to something you wanted more.',
+  'Interest works while you sleep, for you or against you. Choose.',
+  'You can start over on a Tuesday. Nothing about this needs a Monday.',
+  'Rich is a number. Comfortable is a habit.',
+  'Track the ordinary weeks. That is where the money actually lives.',
+  'Automate the good decisions so willpower gets a day off.',
+  'A missed budget is data, not a verdict.',
+  'The point of money is the life it buys. Do not forget the life part.',
+  'Pay attention now or pay interest later.',
+  'You are not behind. You are just started.',
+  'Consistency is the whole trick. There is no other trick.',
+  'Look at the number. The number is not scarier than not knowing.',
+];
+
+// Stable for the whole day, so it reads as "today's" line rather than noise that
+// changes on every re-render. Tapping the shuffle button overrides it for the
+// session (_inspoIdx), and midnight returns you to the day's line.
+let _inspoIdx = null;
+function _inspoDailyIdx() {
+  const key = today();                       // YYYY-MM-DD
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) | 0;
+  return Math.abs(h) % INSPO.length;
+}
+function inspoLine() { return INSPO[_inspoIdx ?? _inspoDailyIdx()]; }
+
+function _inspoHtml() {
+  return `<div class="inspo" id="inspo">
+    <span class="inspo-text" id="inspo-text">${_escHtml(inspoLine())}</span>
+    <button class="inspo-btn" id="inspo-btn" type="button" aria-label="Show another line">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+        <path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+      </svg>
+    </button>
+  </div>`;
+}
+
 // ── Bills block ──────────────────────────────────────────────────────────────
 // Replaces the old Income | Spent | Bills due row. Income and Spent were already
 // on screen twice over — the hero delta gives the month's net, the donut breaks
@@ -2810,6 +2882,8 @@ function renderDashboardSkinned(sk) {
         <span class="sk-more" data-sk-go="ledger">All</span></div>
       ${txns}
     </div>
+
+    ${_inspoHtml()}
   </div>`;
 }
 
@@ -6637,7 +6711,8 @@ function renderDashboardDawg() {
         <button class="dash-layout-btn" id="dash-layout-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Customize Layout
         </button>
-        ${insHtml}`;
+        ${insHtml}
+        ${_inspoHtml()}`;
     })()}
   </div>`;
 }
@@ -11747,6 +11822,22 @@ function attachDashboardDawg() {
   // Skinned dashboard: "Details" / "All" / account chip jump to the real pages.
   document.querySelectorAll('[data-sk-go]').forEach(el => {
     el.addEventListener('click', () => showTab(el.dataset.skGo));
+  });
+
+  // Daily inspiration — shuffle to a different line. Swaps the text in place
+  // rather than re-rendering, so the page doesn't jump under your thumb.
+  document.getElementById('inspo-btn')?.addEventListener('click', () => {
+    const el = document.getElementById('inspo-text');
+    if (!el || INSPO.length < 2) return;
+    const cur = _inspoIdx ?? _inspoDailyIdx();
+    let next = cur;
+    while (next === cur) next = Math.floor(Math.random() * INSPO.length);
+    _inspoIdx = next;
+    el.classList.remove('inspo-in');
+    void el.offsetWidth;                    // restart the fade
+    el.textContent = INSPO[next];
+    el.classList.add('inspo-in');
+    haptic([8]);
   });
 
   // LOCK TF IN tap glitch

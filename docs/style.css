@@ -7269,6 +7269,40 @@ body.theme-ubuntu .section-title::before {
 .sk-mnav { margin: 4px 0 var(--sk-stack); }
 
 /* 3-up stat row */
+/* ── Daily inspiration ────────────────────────────────────────────────────────
+   A closing note at the foot of the dashboard, not a headline — muted, italic, and
+   quiet enough that it never competes with the balance. Styled for both the stock
+   dashboard and the skins. */
+.inspo {
+  display: flex; align-items: flex-start; gap: 12px;
+  margin: 22px 0 4px; padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.inspo-text {
+  flex: 1; min-width: 0;
+  font-size: 12.5px; line-height: 1.55; font-style: italic; color: var(--muted);
+}
+.inspo-btn {
+  flex: none; width: 30px; height: 30px; padding: 0;
+  display: grid; place-items: center; cursor: pointer;
+  background: transparent; border: 1px solid var(--border); border-radius: 8px;
+  color: var(--muted);
+  transition: color .14s ease, border-color .14s ease, transform .14s ease;
+}
+.inspo-btn svg { width: 14px; height: 14px; }
+.inspo-btn:hover  { color: var(--accent); border-color: var(--accent); }
+.inspo-btn:active { transform: scale(.92); }
+/* the fade is re-triggered by the handler toggling this class */
+.inspo-in { animation: inspoIn .28s ease both; }
+@keyframes inspoIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+body.fx-reduced .inspo-in { animation: none; }
+@media (prefers-reduced-motion: reduce) { .inspo-in { animation: none; } }
+
+/* skins: match the page rhythm and the skin's own corner style */
+body.skinned .inspo { margin-top: var(--sk-stack); }
+body.skinned .inspo-btn { border-radius: var(--skin-radius-sm); }
+body.skin-grid .inspo-text { font-style: normal; }   /* Grid has no italic register */
+
 /* Bills block — replaced the Income | Spent | Bills due row. The total leads, then
    the next few bills by name so the number is answerable ("due to what, when?"). */
 .sk-btot {
