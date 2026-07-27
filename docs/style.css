@@ -7434,6 +7434,116 @@ body.skinned:not(.fx-reduced) .sk-donut circle {
   }
 }
 
+/* ══ Every other page ═══════════════════════════════════════════════════════
+   The dashboard needed its own renderer because its structure genuinely differed
+   from the design (mascot hero vs. stat row). These pages already have the right
+   bones — a title, grouped rows, category rows with bars — so they're restyled in
+   place. That keeps the ledger's filters, select mode and inline edit working.
+   ═══════════════════════════════════════════════════════════════════════════ */
+body.skinned .page { padding: 0 var(--sk-pad) calc(var(--nav-h) + 28px); }
+body.skinned .page-title {
+  font-size: var(--sk-h1-size); font-weight: var(--sk-h1-weight);
+  letter-spacing: var(--sk-h1-track); text-transform: var(--sk-h1-case);
+  margin-bottom: 4px;
+}
+body.skinned .page-sub {
+  font-size: var(--sk-lbl-size); letter-spacing: var(--sk-lbl-track);
+  text-transform: var(--sk-lbl-case); font-weight: var(--sk-lbl-weight);
+  color: var(--muted); margin-bottom: 20px;
+}
+body.skin-ledger { --sk-h1-size: 30px; --sk-h1-weight: 500; --sk-h1-track: -.02em; --sk-h1-case: none; }
+body.skin-quiet  { --sk-h1-size: 26px; --sk-h1-weight: 650; --sk-h1-track: -.03em; --sk-h1-case: none; }
+body.skin-grid   { --sk-h1-size: 15px; --sk-h1-weight: 700; --sk-h1-track: .18em; --sk-h1-case: uppercase; }
+
+/* Inputs, buttons and pills — flat, hairline, no glass or glow */
+body.skinned .form-input,
+body.skinned .btn-xs,
+body.skinned .btn-secondary,
+body.skinned .lf-density-btn {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--skin-radius-sm) !important;
+  box-shadow: none !important;
+  color: var(--text);
+  backdrop-filter: none !important;
+}
+body.skinned .btn-primary {
+  background: var(--accent) !important;
+  border: 0 !important;
+  border-radius: var(--skin-radius-sm) !important;
+  box-shadow: none !important;
+  color: var(--bg) !important;
+}
+body.skinned .type-pills > *,
+body.skinned .lv-tab,
+body.skinned .budget-suggest-chip {
+  border-radius: var(--sk-pill-r) !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+}
+body.skinned .lv-tab.active,
+body.skinned .type-pills > .active {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+/* Ledger rows — hairline separated, tabular figures, quiet meta */
+body.skinned .ledger-list { display: flex; flex-direction: column; }
+body.skinned .ledger-row-inner {
+  background: transparent !important;
+  border: 0 !important; border-top: 1px solid var(--border) !important;
+  border-radius: 0 !important; box-shadow: none !important;
+  padding: var(--sk-row-pad) 0 !important;
+}
+body.skinned .ledger-desc { font-size: 13.5px; font-weight: 500; }
+body.skinned .ledger-meta { font-size: 11.5px; color: var(--muted); }
+body.skinned .ledger-amt {
+  font-family: var(--sk-num); font-variant-numeric: tabular-nums;
+  font-size: 14px; font-weight: var(--sk-num-weight);
+}
+body.skinned .ledger-amt.expense { color: var(--text); }
+body.skinned .ledger-amt.income  { color: var(--accent); }
+body.skinned .ledger-running-bal { font-family: var(--sk-num); font-size: 11px; color: var(--muted); }
+body.skinned .cat-dot { width: 7px; height: 7px; }
+
+/* Budgets is an input form, and it already draws a spend bar per category once a
+   limit is set — so no new markup, just bring those bars onto the skin's spec
+   (track height, radius, no glow) and set the label in tabular figures. */
+body.skinned .breakdown-bar-bg,
+body.skinned .budget-progress-wrap .breakdown-bar-bg.small {
+  height: var(--sk-track-h) !important;
+  border-radius: var(--sk-pill-r) !important;
+  background: color-mix(in srgb, var(--text) 8%, transparent) !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+body.skinned .breakdown-bar-fill {
+  border-radius: inherit !important;
+  box-shadow: none !important;
+  transition: width var(--sk-slow) var(--sk-ease);
+}
+body.skinned .budget-spent-lbl {
+  font-family: var(--sk-num); font-variant-numeric: tabular-nums;
+  font-size: 11px; font-weight: var(--sk-num-weight);
+}
+
+/* Empty states: the mascot illustration fights a restrained page */
+body.skinned .empty-dob { display: none; }
+body.skinned .empty-state { padding: 40px 0; text-align: left; }
+body.skinned .empty-title {
+  font-size: 14px; font-weight: 500; color: var(--text);
+}
+body.skinned .empty-hint { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+
+/* Tab transitions — the app computes slide/fade in _pageTransition; skins opted
+   out of the glitchy variants, so give them a calm equivalent on the same curve */
+body.skinned:not(.fx-reduced) #main-content.sk-swap > .page,
+body.skinned:not(.fx-reduced) #main-content.sk-swap > .dawg-page {
+  animation: skPageIn var(--sk-slow) var(--sk-ease) both;
+}
+@keyframes skPageIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
 /* ── Chrome the skins were leaving untouched ──────────────────────────────── */
 /* Top bar: the stock rounded grey pills read as a different app next to a clean
    page, so flatten it to match the bottom bar. */
@@ -7513,10 +7623,26 @@ body.skinned .page-title { font-family: var(--skin-num-font, var(--font-body)); 
    all three read as the standard look, not as a clean skin. */
 body.skinned .splash-brand {
   font-family: var(--font-body);
-  text-shadow: none;
   letter-spacing: -.02em;
   animation: splashFadeUp .4s ease .62s both;
+  /* Insurance, not decoration: a halo in the skin's own background colour. The
+     mascot <img> overflows its 210x250 box by ~60px and the wordmark sits inside
+     that overflow — stock light mode masked it with a white outline. Dropping the
+     outline without fixing the overlap put near-black text on the dog's black fur.
+     The overlap is fixed below; this keeps it legible if layout shifts again. */
+  text-shadow: 0 0 10px var(--bg), 0 0 4px var(--bg);
 }
+/* Size the mascot to its own box and push the wordmark clear of it. */
+body.skinned .splash-dog {
+  width: 180px; height: auto;
+  /* keep the entry, drop the infinite bark + RGB-split glitch — a barking,
+     colour-fringing mascot is the opposite of these skins */
+  animation: splashDogIn .55s cubic-bezier(.22,1,.36,1) .08s both;
+  filter: none;
+}
+body.skinned .splash-dob-idle { height: auto; max-height: 190px; }
+body.skinned .splash-dob-bark { display: none; }
+body.skinned .splash-texts { margin-top: 30px; }
 body.skinned .splash-brand::before,
 body.skinned .splash-brand::after { content: none !important; }
 body.skinned .splash-tagline { letter-spacing: .06em; text-transform: none; font-size: .8rem; }

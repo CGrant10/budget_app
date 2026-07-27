@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.2';
+const VERSION = '5.45.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.3', date: '2026-07-27', changes: [
+    'Fixed unreadable text on the splash screen — the wordmark sat on top of the Doberman, and with a light skin both were near-black so "Budget DAWGs" disappeared into the dog\'s fur. The mascot and the wordmark no longer overlap, and the text keeps a soft halo as a safeguard. The mascot also stops barking and colour-fringing while a skin is on',
+    'The rest of the app now follows the skin, not just the dashboard: page titles, the ledger list, filters, inputs, buttons, pills, budget bars and empty states all pick up the skin\'s type, spacing and hairlines. Pages also fade in on the same easing curve as everything else',
+    'Category colours are consistent everywhere now — the budget page, breakdown, insights, bills and ledger dots all draw from the same palette as the spending wheel instead of falling back to one green',
+  ]},
   { version: '5.45.2', date: '2026-07-27', changes: [
     'The spending wheel now uses a proper set of distinct colours. Only nine category names had colours assigned, so anything else — Groceries, Dining, or any category you made yourself — fell back to the same green, which is why the wheel came out as one green ring with a red sliver. Every category now gets its own colour from an eight-colour set chosen to stay distinguishable for colour-blind readers, with separate versions for light and dark skins. A category keeps its colour as spending reorders the slices',
     'The centre nav button no longer looks out of place under a skin — it was a heavy circle with a squashed silhouette in it, and it only went Home while Add already has its own tab. It is now a normal nav item with a home icon, so all five sit evenly',
@@ -2529,12 +2534,17 @@ const SKIN_CAT_OTHER = { light: '#8a8f94', dark: '#6f777e' };
 let _skCatMap = null, _skCatMapVer = -1;
 function _skCatSlots() {
   if (_skCatMap && _skCatMapVer === _calcVer) return _skCatMap;
-  // Only categories actually in use get a slot. Seeding this with every name in
-  // CAT_COLORS burned slots on unused ones and pushed real categories past slot 8
-  // into the neutral — the largest slice came out grey.
-  const names = new Set();
-  for (const t of (state.transactions || [])) if (t.category) names.add(t.category);
-  const sorted = [...names].sort((a, b) => a.localeCompare(b));
+  // Categories actually in use take the first slots, so charts — which only ever
+  // show used categories — stay inside the 8-slot palette. (Seeding the map with
+  // every CAT_COLORS name burned slots on unused ones and greyed out the largest
+  // slice.) Configured-but-unused categories follow, so list dots still get a
+  // colour instead of all collapsing to the neutral.
+  const used = new Set();
+  for (const t of (state.transactions || [])) if (t.category) used.add(t.category);
+  const rest = new Set([...Object.keys(CAT_COLORS), ...Object.keys(state.budgets || {})]
+                        .filter(n => !used.has(n)));
+  const sorted = [...[...used].sort((a, b) => a.localeCompare(b)),
+                  ...[...rest].sort((a, b) => a.localeCompare(b))];
   _skCatMap = {}; sorted.forEach((n, i) => { _skCatMap[n] = i; });
   _skCatMapVer = _calcVer;
   return _skCatMap;
@@ -2545,6 +2555,24 @@ function skinCatColor(cat) {
   const slot = _skCatSlots()[cat];
   if (slot === undefined || slot >= pal.length) return SKIN_CAT_OTHER[dark ? 'dark' : 'light'];
   return pal[slot];
+}
+
+// Single place every category swatch resolves through, so the whole app (budgets,
+// breakdown, insights, ledger dots) picks up the categorical palette under a skin
+// and keeps the theme's own colours otherwise.
+//
+// Charts go through skinCatColor and obey the palette rules strictly — 8 slots,
+// then the neutral, never a cycled 9th hue. Plain list dots (budget form rows,
+// ledger rows, bills) cycle the palette instead: a category list can run well past
+// eight, and a wall of identical grey dots is worse than a repeated hue in a place
+// where the colour is decorative rather than load-bearing.
+function catColor(cat, fallback = 'var(--accent)') {
+  if (!activeSkin()) return CAT_COLORS[cat] || fallback;
+  const dark = !document.body.classList.contains('light');
+  const pal  = dark ? SKIN_CAT_DARK : SKIN_CAT_LIGHT;
+  const slot = _skCatSlots()[cat];
+  if (slot === undefined) return SKIN_CAT_OTHER[dark ? 'dark' : 'light'];
+  return pal[slot % pal.length];
 }
 
 // Splits a formatted amount into the parts the skinned hero styles separately:
@@ -3222,7 +3250,7 @@ function _avgExclusionChipsHTML() {
   for (const t of state.transactions) {
     if (t.type === 'income' || !t.date) continue;
     const c = t.category || 'Other';
-    if (!set.has(c)) set.set(c, CAT_COLORS[c] || '#9896a4');
+    if (!set.has(c)) set.set(c, catColor(c, '#9896a4'));
   }
   const cats = [...set.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   const billsOff = getAvgExcludeBills();
@@ -3973,7 +4001,7 @@ function showCatModal(cat) {
     .filter(t => t.type === 'expense' && t.category === cat && t.date.startsWith(m))
     .sort((a, b) => b.date.localeCompare(a.date));
   const total = txns.reduce((s, t) => s + t.amount, 0);
-  const catColor = CAT_COLORS[cat] || 'var(--accent)';
+  const _catCol = catColor(cat);
   const rowsHtml = txns.length
     ? txns.map(t => `<div class="cat-modal-row"><span class="cat-modal-date">${t.date.slice(5)}</span><span class="cat-modal-desc">${_escHtml(t.description)}</span><span class="cat-modal-amt">-${fmt(t.amount)}</span></div>`).join('')
     : '<p style="color:var(--muted);font-size:.85rem;text-align:center;padding:12px">No transactions</p>';
@@ -3986,7 +4014,7 @@ function showCatModal(cat) {
   overlay.innerHTML = `
     <div class="cat-modal-card">
       <div class="cat-modal-header">
-        <span class="cat-dot" style="background:${catColor}"></span>
+        <span class="cat-dot" style="background:${_catCol}"></span>
         <span class="cat-modal-title">${cat}</span>
         <span class="cat-modal-total" style="color:var(--danger)">-${fmt(total)}</span>
         <button class="cat-modal-close" id="cat-modal-close">✕</button>
@@ -4006,7 +4034,7 @@ function getMonthCatData(monthStr) {
   return {
     labels: entries.map(([c]) => c),
     data:   entries.map(([, v]) => v),
-    colors: entries.map(([c]) => CAT_COLORS[c] || '#9896a4'),
+    colors: entries.map(([c]) => catColor(c, '#9896a4')),
   };
 }
 
@@ -4035,7 +4063,7 @@ function rangeCategoryTotals(start, end) {
   }
   const cats = Object.entries(bycat)
     .filter(([, v]) => v > 0)
-    .map(([name, amt]) => ({ name, amt, count: bycatN[name] || 0, color: CAT_COLORS[name] || '#9896a4' }))
+    .map(([name, amt]) => ({ name, amt, count: bycatN[name] || 0, color: catColor(name, '#9896a4') }))
     .sort((a, b) => b.amt - a.amt);
   return { cats, total, income, count, start, end };
 }
@@ -6074,11 +6102,11 @@ function renderDashboardDawg() {
     const pct      = totalMExp > 0 ? (amt/totalMExp*100).toFixed(0) : 0;
     const rawPct   = totalMExp > 0 ? amt/totalMExp*100 : 0;
     const barW     = _boostBar(rawPct);
-    const catColor = CAT_COLORS[cat] || 'var(--accent)';
+    const _catCol = catColor(cat);
     return `<div class="dawg-cat-row">
       <span class="dawg-cat-icon">${catIcons[cat]||_iconFallback}</span>
       <span class="dawg-cat-name">${cat}</span>
-      <div class="dawg-cat-bar-wrap"><div class="dawg-cat-bar" style="--cat-c:${catColor};width:${barW}%;background:${catColor}"></div></div>
+      <div class="dawg-cat-bar-wrap"><div class="dawg-cat-bar" style="--cat-c:${_catCol};width:${barW}%;background:${_catCol}"></div></div>
       <span class="dawg-cat-amt">${fmt(amt)}</span>
       <span class="dawg-cat-pct">${pct}%</span>
     </div>`;
@@ -6599,11 +6627,11 @@ function renderBudgets() {
   const planHtml = plan ? (() => {
     const rows = Object.entries(plan.suggestions).map(([cat, amt]) => {
       const pct      = plan.disposable > 0 ? Math.round(amt / plan.disposable * 100) : 0;
-      const catColor = CAT_COLORS[cat] || '#9896a4';
+      const _catCol = catColor(cat, '#9896a4');
       return `<div class="ibp-row">
-        <span class="cat-dot" style="background:${catColor}"></span>
+        <span class="cat-dot" style="background:${_catCol}"></span>
         <span class="ibp-cat">${cat}</span>
-        <div class="ibp-bar-wrap"><div class="ibp-bar" style="width:${_boostBar(pct)}%;background:${catColor}"></div></div>
+        <div class="ibp-bar-wrap"><div class="ibp-bar" style="width:${_boostBar(pct)}%;background:${_catCol}"></div></div>
         <span class="ibp-pct">${pct}%</span>
         <span class="ibp-amt">${fmt(amt)}</span>
         <button class="budget-suggest-apply ibp-apply" data-cat="${cat}" data-amt="${amt}" style="padding:3px 8px;font-size:.68rem">Apply</button>
@@ -6661,9 +6689,9 @@ function renderBudgets() {
       ${isPreset ? `<p style="font-size:.75rem;color:var(--muted);margin-bottom:10px;line-height:1.4">No spending history yet. Here are reasonable defaults to get you started — apply any and edit the numbers to fit your situation.</p>` : ''}
       <div class="budget-suggest-chips">
         ${Object.entries(suggestions).map(([cat, amt]) => {
-          const catColor = CAT_COLORS[cat] || '#9896a4';
+          const _catCol = catColor(cat, '#9896a4');
           return `<div class="budget-suggest-chip">
-            <span class="cat-dot" style="background:${catColor}"></span>
+            <span class="cat-dot" style="background:${_catCol}"></span>
             <span class="budget-suggest-cat">${cat}</span>
             <span class="budget-suggest-amt">${fmt(amt)}</span>
             <button class="budget-suggest-apply" data-cat="${cat}" data-amt="${amt}">Apply</button>
@@ -6676,8 +6704,8 @@ function renderBudgets() {
     const spent    = bycat[cat] || 0;
     const limit    = parseFloat(state.budgets[cat] || 0);
     const pct      = limit > 0 ? Math.min(spent / limit * 100, 100) : 0;
-    const catColor = CAT_COLORS[cat] || '#9896a4';
-    const barColor = pct >= 90 ? 'var(--danger)' : pct >= 75 ? 'var(--warn)' : catColor;
+    const _catCol = catColor(cat, '#9896a4');
+    const barColor = pct >= 90 ? 'var(--danger)' : pct >= 75 ? 'var(--warn)' : _catCol;
     const progressHtml = limit > 0 ? `
       <div class="budget-progress-wrap">
         <div class="breakdown-bar-bg small"><div class="breakdown-bar-fill" style="width:${_boostBar(pct)}%;background:${barColor}"></div></div>
@@ -6685,7 +6713,7 @@ function renderBudgets() {
       </div>` : '';
     return `
       <div class="form-row budget-row">
-        <label class="form-label"><span class="cat-dot" style="background:${catColor}"></span>${cat}</label>
+        <label class="form-label"><span class="cat-dot" style="background:${_catCol}"></span>${cat}</label>
         <input type="number" class="form-input" id="budget-${cat}" placeholder="no limit" value="${state.budgets[cat] || ''}" inputmode="decimal">
         ${progressHtml}
       </div>`;
@@ -7144,7 +7172,7 @@ function renderAdd() {
           <label class="form-label">Frequent</label>
           <div class="tmpl-chips" id="add-tmpl-chips">
             ${tmpls.map((t, i) => `<button type="button" class="tmpl-chip" data-tmpl="${i}" title="Tap to fill — logged ~daily">
-              <span class="cat-dot" style="background:${CAT_COLORS[t.category] || '#9896a4'}"></span>
+              <span class="cat-dot" style="background:${catColor(t.category, '#9896a4')}"></span>
               <span class="tmpl-chip-lbl">${_escHtml(t.description || t.category)}</span>
               <span class="tmpl-chip-amt">${fmt(t.amount)}</span>
             </button>`).join('')}
@@ -7277,7 +7305,7 @@ function renderLedger() {
     const cls       = t.type === 'income' ? 'income' : 'expense';
     const prefix    = t.recurring ? '↻ ' : '';
     const exTag     = (t.excludeFromBudget && !isBillTxn(t)) ? ' <span class="ledger-extag">not in weekly</span>' : '';
-    const catColor  = CAT_COLORS[t.category] || '#9896a4';
+    const _catCol = catColor(t.category, '#9896a4');
     const acct      = acctById.get(t.account || 'main');
     const acctBadge = acct && acct.id !== 'main' ? `<span class="acct-badge">${_escHtml(acct.name)}</span>` : '';
     const allCats   = catSet.has(t.category) ? cats : [...cats, t.category];
@@ -7289,7 +7317,7 @@ function renderLedger() {
       <div class="ledger-row ledger-row-ro">
         <div class="ledger-row-inner">
           <div class="ledger-main">
-            <div class="ledger-desc"><span class="cat-dot" style="background:${catColor}"></span>${prefix}${_escHtml(t.description)}</div>
+            <div class="ledger-desc"><span class="cat-dot" style="background:${_catCol}"></span>${prefix}${_escHtml(t.description)}</div>
             <div class="ledger-meta">${t.date} · ${_escHtml(t.category)} <span class="acct-badge">${_escHtml(t._acctName)}</span>${exTag}</div>
           </div>
           <div class="ledger-right">
@@ -7302,7 +7330,7 @@ function renderLedger() {
       <div class="ledger-row${_ledgerSelectMode && _ledgerSelected.has(t._i) ? ' row-selected' : ''}" data-idx="${t._i}">
         <div class="ledger-row-inner">
           <div class="ledger-main">
-            <div class="ledger-desc"><span class="cat-dot" style="background:${catColor}"></span>${prefix}${_escHtml(t.description)}</div>
+            <div class="ledger-desc"><span class="cat-dot" style="background:${_catCol}"></span>${prefix}${_escHtml(t.description)}</div>
             <div class="ledger-meta">${t.date} · ${_escHtml(t.category)}${acctBadge}${exTag}</div>
           </div>
           <div class="ledger-right">
@@ -8208,7 +8236,7 @@ function renderBills() {
     return `
       <div class="bill-card${paid ? ' bill-card-paid' : ''}">
         <div class="bill-card-main">
-          <span class="cat-dot" style="background:${CAT_COLORS[b.category]||'#9896a4'}"></span>
+          <span class="cat-dot" style="background:${catColor(b.category, '#9896a4')}"></span>
           <div class="bill-card-info">
             <div class="bill-card-name">${_escHtml(b.name)}</div>
             <div class="bill-card-meta">${_escHtml(b.category)} · due day ${b.dueDay}${linkName ? ` · ${ICONS.link} ${_escHtml(linkName)}` : ''}</div>
@@ -8620,7 +8648,7 @@ function attachBills() {
       const mo   = monthKeyLabel(curM2).split(' ')[0];
       const rows = bills.map((b, idx) => {
         const paid    = isBillPaidFor(b, curM2);
-        const color   = CAT_COLORS[b.category] || '#9896a4';
+        const color   = catColor(b.category, '#9896a4');
         const billIdx = state.bills.indexOf(b);
         return `
           <div class="bcal-detail-row">
@@ -8911,7 +8939,7 @@ function renderBreakdown() {
   const mk = localMonthKey();
   const { bycat } = monthTotals(mk);
   const all = Object.entries(bycat).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
-    .map(([name, amt]) => ({ name, amt, color: CAT_COLORS[name] || '#9896a4' }));
+    .map(([name, amt]) => ({ name, amt, color: catColor(name, '#9896a4') }));
   const total = all.reduce((s, c) => s + c.amt, 0);
   const max   = Math.max(...all.map(c => c.amt), 1);
   const hiddenCount = all.filter(c => isCatHidden(c.name)).length;
@@ -9654,7 +9682,7 @@ function renderWrapped() {
   const topCat      = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0];
   const topMonth    = Object.entries(byMonth).sort((a, b) => b[1] - a[1])[0];
   const monthName   = topMonth ? new Date(topMonth[0] + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long' }) : '—';
-  const catColor    = topCat ? (CAT_COLORS[topCat[0]] || 'var(--accent)') : 'var(--accent)';
+  const _topCatCol  = topCat ? catColor(topCat[0]) : 'var(--accent)';
 
   const stat = (label, value, sub, color) => `
     <div class="wrap-stat">
@@ -9673,7 +9701,7 @@ function renderWrapped() {
       ${stat('You spent', fmt(expense), `across ${expenseCount} transaction${expenseCount !== 1 ? 's' : ''}`, 'var(--danger)')}
       ${stat('You brought in', fmt(income), 'total income', 'var(--success)')}
       ${stat(net >= 0 ? 'You saved' : 'You overspent', fmt(Math.abs(net)), net >= 0 ? `${savingsRate}% savings rate` : 'spent more than you earned', net >= 0 ? 'var(--success)' : 'var(--danger)')}
-      ${topCat ? stat('Top category', topCat[0], `${fmt(topCat[1])} — your biggest habit`, catColor) : ''}
+      ${topCat ? stat('Top category', topCat[0], `${fmt(topCat[1])} — your biggest habit`, _topCatCol) : ''}
       ${biggest ? stat('Biggest splurge', fmt(biggest.amount), `${_escHtml(biggest.description || biggest.category)} · ${biggest.date}`, 'var(--warn)') : ''}
       ${topMonth ? stat('Spendiest month', monthName, `${fmt(topMonth[1])} flew out the door`, 'var(--accent)') : ''}
     </div>
@@ -11880,7 +11908,7 @@ function _showFastAdd() {
         <label class="fas-label">Frequent</label>
         <div class="fas-cats" id="fas-tmpls">
           ${tmpls.map((t, i) => `<button class="tmpl-chip" data-tmpl="${i}">
-            <span class="cat-dot" style="background:${CAT_COLORS[t.category] || '#9896a4'}"></span>
+            <span class="cat-dot" style="background:${catColor(t.category, '#9896a4')}"></span>
             <span class="tmpl-chip-lbl">${_escHtml(t.description || t.category)}</span>
             <span class="tmpl-chip-amt">${fmt(t.amount)}</span>
           </button>`).join('')}
