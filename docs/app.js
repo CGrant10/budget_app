@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.0';
+const VERSION = '5.45.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.1', date: '2026-07-27', changes: [
+    'The three beta skins now actually look like the designs they were based on. The first version only recoloured the standard dashboard, which left the mascot hero, the "LOCK TF IN." banner and the time-range pills in place — so a skin looked like the normal app in different colours. Skinned dashboards now use their own clean layout: a large balance with quiet cents, a hairline row of Income / Spent / Bills due, a "left to spend this week" meter, a spending donut with a category legend, and a recent-transactions list. The bottom bar is a flat edge-to-edge bar instead of the floating island. Your month arrows, account switcher and hide-balances button all still work',
+  ]},
   { version: '5.45.0', date: '2026-07-27', changes: [
     'Three new beta skins — "Ledger" (editorial warm light with serif figures), "Quiet" (soft dark with elevated cards), and "Grid" (Swiss white with monospace figures). Each one re-skins every page and the splash screen, and your theme\'s accent colour still shows through, so a skin layers on top of whichever theme you\'re already using. Pick one in Settings → Beta features → App skin',
     'The "Leash" tactical-HUD beta has been retired to make room for them — if you had it switched on you\'ll be back to the standard look, and you can try one of the three new skins instead',
@@ -2500,6 +2503,135 @@ function _currentAcct() { return state.accounts.find(a => a.id === currentAccoun
 // Simple (Tracker) mode hides the budgeting features for users who only want
 // to track balance + transactions. 'full' is the default for existing users.
 function isSimpleMode() { return loadSettings().appMode === 'simple'; }
+
+// Splits a formatted amount into the parts the skinned hero styles separately:
+// a superscript currency mark, the whole number, and de-emphasised cents.
+function _skMoneyParts(n) {
+  const neg = n < 0;
+  const s   = fmt(Math.abs(n));                 // e.g. "$4,182.65"
+  const m   = s.match(/^([^\d-]*)([\d,]+)(?:\.(\d+))?/);
+  return { cur: (neg ? '−' : '') + (m?.[1] || '$'), whole: m?.[2] || '0', cents: m?.[3] || '00' };
+}
+
+// Sparkline for the skinned hero — a light polyline over end-of-day balances.
+// Sampled to ~16 points so it stays cheap on long histories.
+function _skSparkline(days = 16) {
+  const pts = [];
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now); d.setDate(now.getDate() - i * 2);
+    pts.push(balanceAsOf(d.toISOString().split('T')[0]));
+  }
+  const min = Math.min(...pts), max = Math.max(...pts), span = (max - min) || 1;
+  const W = 300, H = 46, step = W / Math.max(1, pts.length - 1);
+  const y  = v => (H - 4) - ((v - min) / span) * (H - 10);
+  const d  = pts.map((p, i) => `${i ? 'L' : 'M'}${(i * step).toFixed(1)} ${y(p).toFixed(1)}`).join(' ');
+  return `<svg class="sk-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <path d="${d} L${W} ${H} L0 ${H} Z" fill="currentColor" opacity=".07"/>
+    <path d="${d}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${W - 1}" cy="${y(pts[pts.length - 1]).toFixed(1)}" r="2.6" fill="currentColor"/>
+  </svg>`;
+}
+
+// The skinned dashboard — mirrors the clean-mockups.html layout using real data.
+// Month nav + privacy button reuse the stock ids so their handlers still bind.
+function renderDashboardSkinned(sk) {
+  const bal   = _skMoneyParts(sk.balance);
+  const up    = sk.monthDelta >= 0;
+  const left  = Math.max(0, sk.perWeek - sk.weekSpent);
+  const wkPct = sk.perWeek > 0 ? Math.min(sk.weekSpent / sk.perWeek * 100, 100) : 0;
+  const over  = sk.perWeek > 0 && sk.weekSpent > sk.perWeek;
+
+  const donut = (() => {
+    const total = sk.catTotal;
+    if (!total || !sk.cats.length) return '';
+    const C = 2 * Math.PI * 38; let off = 0;
+    const segs = sk.cats.slice(0, 5).map(([cat, amt]) => {
+      const len = (amt / total) * C;
+      const s = `<circle cx="52" cy="52" r="38" fill="none" stroke="${CAT_COLORS[cat] || 'var(--accent)'}"
+        stroke-width="11" stroke-dasharray="${Math.max(0, len - 2.5).toFixed(1)} ${(C - len + 2.5).toFixed(1)}"
+        stroke-dashoffset="${(-off).toFixed(1)}"/>`;
+      off += len; return s;
+    }).join('');
+    const legend = sk.cats.slice(0, 5).map(([cat, amt]) => `<div class="sk-lrow">
+        <span class="sk-dot" style="background:${CAT_COLORS[cat] || 'var(--accent)'}"></span>
+        <span class="sk-lname">${_escHtml(cat)}</span>
+        <span class="sk-lval money">${fmt(amt)}</span></div>`).join('');
+    return `<div class="sk-card">
+      <div class="sk-shead"><span class="sk-eyebrow">Where it went</span>
+        <span class="sk-more" data-sk-go="breakdown">Details</span></div>
+      <div class="sk-donutwrap">
+        <svg class="sk-donut" viewBox="0 0 104 104">${segs}</svg>
+        <div class="sk-legend">${legend}</div>
+      </div></div>`;
+  })();
+
+  const txns = sk.txns.length ? sk.txns.slice(0, 5).map(t => {
+    const inc  = t.type === 'income';
+    const dlbl = t.date === sk.todayStr ? 'Today'
+               : t.date === sk.yesterdayStr ? 'Yesterday' : (t.date || '').slice(5);
+    return `<div class="sk-trow">
+      <span class="sk-tico" style="background:${CAT_COLORS[t.category] || 'var(--surface2)'}"></span>
+      <span class="sk-tmain">
+        <span class="sk-tname">${_escHtml(t.description || t.category || '—')}</span>
+        <span class="sk-tmeta">${_escHtml(t.category || '')} · ${dlbl}</span>
+      </span>
+      <span class="sk-tamt money${inc ? ' in' : ''}">${inc ? '+' : '−'}${fmt(t.amount)}</span>
+    </div>`;
+  }).join('') : '<div class="sk-empty">No transactions yet.</div>';
+
+  return `<div class="dawg-page sk-page">
+    ${backupBannerHtml()}
+    <div class="sk-topbar">
+      <span class="sk-title">Overview</span>
+      <span class="sk-acct" data-sk-go="accounts">${_escHtml(sk.acctName)}</span>
+    </div>
+
+    <div class="sk-hero">
+      <button class="dash-privacy-btn sk-eye${_amountsHidden() ? ' is-hidden' : ''}" id="dash-privacy-btn"
+        aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden() ? 'true' : 'false'}">${_eyeIconSvg(_amountsHidden())}</button>
+      <div class="sk-eyebrow">${sk.isPastDash ? _escHtml(sk.dashMonthLabel) + ' balance' : 'Available balance'}</div>
+      <div class="sk-amt money" style="color:${sk.balColor}">
+        <span class="sk-cur">${bal.cur}</span>${bal.whole}<span class="sk-cents">.${bal.cents}</span>
+      </div>
+      <div class="sk-delta">
+        <span class="sk-pill${up ? '' : ' down'}">${up ? '▲' : '▼'} ${sk.deltaPct.toFixed(1)}%</span>
+        <span class="sk-sub">${up ? '+' : '−'}${fmt(Math.abs(sk.monthDelta))} in ${_escHtml((sk.dashMonthLabel || '').split(' ')[0])}</span>
+      </div>
+      ${_skSparkline()}
+    </div>
+
+    <div class="dawg-month-nav sk-mnav">
+      <button class="dawg-mnav-btn" id="dash-month-prev">‹</button>
+      <span class="dawg-mnav-label">${sk.dashMonthLabel}${sk.isPastDash ? '' : ' · Now'}</span>
+      <button class="dawg-mnav-btn dawg-mnav-next${!sk.isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
+    </div>
+
+    <div class="sk-stats">
+      <div class="sk-stat"><span class="sk-eyebrow">Income</span><span class="sk-sval money">${fmt(sk.mInc)}</span></div>
+      <div class="sk-stat"><span class="sk-eyebrow">Spent</span><span class="sk-sval money">${fmt(sk.mExp)}</span></div>
+      <div class="sk-stat"><span class="sk-eyebrow">Bills due</span><span class="sk-sval money">${fmt(sk.billsLeft)}</span></div>
+    </div>
+
+    ${sk.perWeek > 0 ? `<div class="sk-card">
+      <div class="sk-mtop">
+        <div><div class="sk-eyebrow">Left to spend this week</div>
+          <div class="sk-mamt money">${fmt(left)}</div></div>
+        <span class="sk-mof">of ${fmt(sk.perWeek)}</span>
+      </div>
+      <div class="sk-track${over ? ' over' : ''}"><i style="width:${wkPct}%"></i></div>
+      <div class="sk-mfoot"><span>${fmt(sk.daySpent)} spent today</span><span>${sk.daysLeft} days left</span></div>
+    </div>` : ''}
+
+    ${donut}
+
+    <div class="sk-card">
+      <div class="sk-shead"><span class="sk-eyebrow">Recent</span>
+        <span class="sk-more" data-sk-go="ledger">All</span></div>
+      ${txns}
+    </div>
+  </div>`;
+}
 
 // ── Beta: clean app-wide skins (Settings → Beta features) ───────────────────
 // A skin overrides the neutral palette (bg/surface/text/muted/border) plus the
@@ -5950,6 +6082,23 @@ function renderDashboardDawg() {
   const multiAcct = state.accounts && state.accounts.length > 1;
   const _curAcct  = state.accounts.find(a => a.id === currentAccountId);
   const _acctName = _curAcct?.name || 'Account';
+
+  // ── Beta skins: the clean directions use their own dashboard layout ─────────
+  // The skins are defined by a layout the stock dashboard doesn't have (serif/mono
+  // hero with superscript $, hairline 3-up stat row, allowance meter, donut +
+  // legend, recent list). Re-colouring the stock markup can't produce it, so the
+  // skinned dashboard is built here from the same numbers computed above.
+  if (activeSkin() && !_isDebt) {
+    const _sk = {
+      balance, balColor, mInc, mExp, monthDelta, deltaPct, isPastDash,
+      dashMonthLabel, acctName: _acctName,
+      weekSpent, perWeek: _livePerWeek, daySpent: _dayExp,
+      billsLeft: _dashBills, daysLeft: _dashDays,
+      cats: catEntries, catTotal: totalMExp,
+      txns: recentTxns, todayStr, yesterdayStr,
+    };
+    return renderDashboardSkinned(_sk);
+  }
 
   return `<div class="dawg-page">
     ${backupBannerHtml()}
@@ -11406,6 +11555,11 @@ function attachDashboardDawg() {
   });
   document.getElementById('dash-reconcile')?.addEventListener('click', showReconcileModal);
   document.getElementById('dash-privacy-btn')?.addEventListener('click', toggleAmountsHidden);
+
+  // Skinned dashboard: "Details" / "All" / account chip jump to the real pages.
+  document.querySelectorAll('[data-sk-go]').forEach(el => {
+    el.addEventListener('click', () => showTab(el.dataset.skGo));
+  });
 
   // LOCK TF IN tap glitch
   const _lockinEl = document.querySelector('.dawg-lockin');

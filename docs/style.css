@@ -7204,6 +7204,170 @@ body.theme-ubuntu .section-title::before {
    set here — the active theme's accent always shows through.
    ============================================================ */
 
+/* ────────────────────────────────────────────────────────────────────────────
+   SKINNED DASHBOARD (.sk-*) — ported from docs/clean-mockups.html so the app
+   matches the mockups rather than approximating them. Each skin re-points the
+   sk tokens below; the skeleton itself is shared.
+   ──────────────────────────────────────────────────────────────────────────── */
+.sk-page { padding: 0 var(--sk-pad) calc(var(--nav-h) + 28px); }
+.sk-page .money { font-family: var(--sk-num); font-variant-numeric: tabular-nums; }
+
+.sk-topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 0 0; }
+.sk-title { font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
+.sk-acct {
+  font-size: 13px; color: var(--muted); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.sk-acct::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+}
+
+.sk-eyebrow {
+  display: block; color: var(--muted);
+  font-size: var(--sk-lbl-size); letter-spacing: var(--sk-lbl-track);
+  text-transform: var(--sk-lbl-case); font-weight: var(--sk-lbl-weight);
+}
+
+/* hero */
+.sk-hero { position: relative; padding: var(--sk-hero-pad); }
+.sk-eye { position: absolute; top: 22px; right: 0; }
+.sk-amt {
+  margin-top: 10px; display: flex; align-items: baseline; line-height: 1;
+  font-size: var(--sk-hero-size); font-weight: var(--sk-hero-weight);
+  letter-spacing: var(--sk-hero-track); color: var(--text);
+}
+.sk-cur   { font-size: .46em; font-weight: 500; opacity: .5; align-self: flex-start; margin-top: .28em; }
+.sk-cents { font-size: .48em; opacity: .45; margin-left: 2px; }
+.sk-delta { margin-top: 12px; display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.sk-sub   { color: var(--muted); }
+.sk-pill {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600;
+  padding: 3px 8px; border-radius: var(--sk-pill-r);
+  background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent);
+}
+.sk-pill.down {
+  background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger);
+}
+.sk-spark { display: block; width: 100%; height: 46px; margin-top: 18px; color: var(--accent); }
+
+/* month nav sits quietly between hero and stats */
+.sk-mnav { margin: 4px 0 var(--sk-stack); }
+
+/* 3-up stat row */
+.sk-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--sk-gap); }
+.sk-stat { padding: var(--sk-cell-pad); }
+.sk-sval {
+  display: block; margin-top: 7px; color: var(--text);
+  font-size: 17px; font-weight: var(--sk-num-weight); letter-spacing: -.01em;
+}
+
+/* card */
+.sk-card { margin-top: var(--sk-stack); padding: var(--sk-card-pad); }
+.sk-shead { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.sk-more { font-size: 12px; color: var(--accent); font-weight: 500; cursor: pointer; }
+
+/* allowance meter */
+.sk-mtop { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.sk-mamt { margin-top: 6px; font-size: 26px; font-weight: var(--sk-hero-weight); letter-spacing: -.02em; color: var(--text); }
+.sk-mof  { font-size: 12.5px; color: var(--muted); }
+.sk-track {
+  height: var(--sk-track-h); border-radius: var(--sk-pill-r);
+  background: color-mix(in srgb, var(--text) 8%, transparent); overflow: hidden;
+}
+.sk-track > i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.sk-track.over > i { background: var(--danger); }
+.sk-mfoot { display: flex; justify-content: space-between; margin-top: 9px; font-size: 11.5px; color: var(--muted); }
+
+/* donut + legend */
+.sk-donutwrap { display: flex; align-items: center; gap: 20px; }
+.sk-donut { width: 104px; height: 104px; flex: none; transform: rotate(-90deg); }
+.sk-legend { flex: 1; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.sk-lrow  { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.sk-dot   { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.sk-lname { flex: 1; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sk-lval  { font-weight: var(--sk-num-weight); color: var(--text); }
+
+/* recent rows */
+.sk-trow { display: flex; align-items: center; gap: 12px; padding: var(--sk-row-pad) 0; }
+.sk-trow + .sk-trow { border-top: 1px solid var(--border); }
+.sk-tico { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.sk-tmain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sk-tname { font-size: 13.5px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sk-tmeta { font-size: 11.5px; color: var(--muted); }
+.sk-tamt  { font-size: 14px; font-weight: var(--sk-num-weight); color: var(--text); white-space: nowrap; }
+.sk-tamt.in { color: var(--accent); }
+.sk-empty { padding: 14px 0; font-size: 12.5px; color: var(--muted); }
+
+/* ── per-skin tokens + structure for the skinned dashboard ───────────────── */
+body.skin-ledger {
+  --sk-pad: 22px; --sk-num: var(--skin-num-font);
+  --sk-hero-pad: 26px 0 4px; --sk-hero-size: 46px; --sk-hero-weight: 400; --sk-hero-track: -.02em;
+  --sk-num-weight: 500; --sk-pill-r: 99px; --sk-track-h: 3px;
+  --sk-lbl-size: 10px; --sk-lbl-track: .16em; --sk-lbl-case: uppercase; --sk-lbl-weight: 600;
+  --sk-gap: 0px; --sk-stack: 26px; --sk-cell-pad: 0 14px 0 0; --sk-card-pad: 0; --sk-row-pad: 12px;
+}
+body.skin-ledger .sk-stats { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 15px 0; }
+body.skin-ledger .sk-stat + .sk-stat { border-left: 1px solid var(--border); padding-left: 14px; }
+body.skin-ledger .sk-card { border-top: 1px solid var(--border); padding-top: 18px; }
+body.skin-ledger .sk-shead { border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+body.skin-ledger .sk-pill { background: transparent; padding: 0; }
+body.skin-ledger .sk-title { font-family: var(--skin-num-font); font-size: 17px; font-weight: 500; }
+
+body.skin-quiet {
+  --sk-pad: 18px; --sk-num: var(--font-body);
+  --sk-hero-pad: 22px 0 2px; --sk-hero-size: 42px; --sk-hero-weight: 650; --sk-hero-track: -.035em;
+  --sk-num-weight: 600; --sk-pill-r: 99px; --sk-track-h: 6px;
+  --sk-lbl-size: 11px; --sk-lbl-track: .02em; --sk-lbl-case: none; --sk-lbl-weight: 500;
+  --sk-gap: 9px; --sk-stack: 14px; --sk-cell-pad: 13px 12px; --sk-card-pad: 17px; --sk-row-pad: 11px;
+}
+body.skin-quiet .sk-stat,
+body.skin-quiet .sk-card {
+  background: var(--card); border: 1px solid #1e2328; border-radius: 18px;
+}
+body.skin-quiet .sk-stat { border-radius: 14px; }
+
+body.skin-grid {
+  --sk-pad: 20px; --sk-num: var(--skin-num-font);
+  --sk-hero-pad: 22px 0 18px; --sk-hero-size: 40px; --sk-hero-weight: 500; --sk-hero-track: -.045em;
+  --sk-num-weight: 500; --sk-pill-r: 3px; --sk-track-h: 2px;
+  --sk-lbl-size: 9.5px; --sk-lbl-track: .2em; --sk-lbl-case: uppercase; --sk-lbl-weight: 600;
+  --sk-gap: 1px; --sk-stack: 0px; --sk-cell-pad: 14px 12px; --sk-card-pad: 18px 0; --sk-row-pad: 11px;
+}
+body.skin-grid .sk-stats { background: var(--border); border-top: 1px solid var(--text); }
+body.skin-grid .sk-stat  { background: #fff; }
+body.skin-grid .sk-card  { border-top: 1px solid var(--border); }
+body.skin-grid .sk-title { text-transform: uppercase; letter-spacing: .14em; font-size: 11px; font-weight: 700; }
+body.skin-grid .sk-more  { text-transform: uppercase; letter-spacing: .12em; font-size: 9.5px; font-weight: 600; }
+
+/* ── bottom nav: flat bar instead of the floating glass island ────────────── */
+/* The mockups all use a bar attached to the bottom edge with a hairline top rule
+   and a small FAB — not a rounded frosted island with a 60px mascot button. */
+body.skinned #dawg-bottom-nav {
+  left: 0; right: 0; bottom: 0;
+  height: calc(var(--nav-h) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  border-radius: 0;
+  border: 0; border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  box-shadow: none;
+}
+body.skinned .dawg-nav-btn.dawg-nav-active .dawg-nav-icon { background: none; box-shadow: none; }
+body.skinned .dawg-nav-lbl { font-size: .6rem; font-weight: 500; letter-spacing: .04em; }
+/* FAB: small, square-ish, skin-coloured — replaces the 60px mascot circle */
+body.skinned .dawg-nav-center-btn {
+  flex: 0 0 46px !important; width: 46px !important; height: 46px;
+  border-radius: var(--sk-fab-r) !important;
+  background: var(--sk-fab-bg) !important;
+  border: 0 !important;
+  box-shadow: var(--sk-fab-shadow);
+}
+body.skinned .dawg-nav-center-btn .dawg-nav-dob { filter: grayscale(1) brightness(0) invert(var(--sk-fab-invert)); opacity: .9; }
+
+body.skin-ledger { --sk-fab-r: 50%; --sk-fab-bg: #14150f; --sk-fab-invert: 1; --sk-fab-shadow: 0 6px 16px -4px rgba(20,21,15,.4); }
+body.skin-quiet  { --sk-fab-r: 16px; --sk-fab-bg: var(--accent); --sk-fab-invert: 0; --sk-fab-shadow: 0 8px 22px -6px color-mix(in srgb, var(--accent) 50%, transparent); }
+body.skin-grid   { --sk-fab-r: 4px;  --sk-fab-bg: #0a0b0c; --sk-fab-invert: 1; --sk-fab-shadow: none; }
+body.skin-grid .dawg-nav-lbl { text-transform: uppercase; letter-spacing: .12em; font-size: .52rem; font-weight: 600; }
+
 /* ── skin picker (Settings → Beta features) ──────────────────────────────── */
 .skin-list { display: flex; flex-direction: column; gap: 6px; }
 .skin-row {
