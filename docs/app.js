@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.7';
+const VERSION = '5.45.8';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.8', date: '2026-07-27', changes: [
+    'Dropped the Income / Spent / Bills due row from the skinned dashboard. Income and spending were already covered by the figure at the top, the spending wheel and the week meter, so bills was the only one telling you something new',
+    'In its place, bills got room to be useful: the total coming up, then your next three by name with how long until each is due — the closest ones in amber and red. Tap "All" for the full list',
+  ]},
   { version: '5.45.7', date: '2026-07-27', changes: [
     'Removed the dark vignette from the Pokémon themes — it dimmed the corners of every screen and muddied each theme\'s colours. Charizard\'s embers and Squirtle\'s bubbles are untouched',
     'Mascots in the beta skins are recognisable again. They were being drawn as flat cut-out shapes, which turned Gengar into a featureless blob and made the Celtics and Bears logos impossible to read. They now use the real artwork, so Gengar\'s eyes and mouth show and every team logo is legible — team logos also get a little more room since they carry finer detail',
@@ -2665,6 +2669,50 @@ function _skRunway(sk) {
   </div>`;
 }
 
+// ── Bills block ──────────────────────────────────────────────────────────────
+// Replaces the old Income | Spent | Bills due row. Income and Spent were already
+// on screen twice over — the hero delta gives the month's net, the donut breaks
+// spending down by category, and the runway/weekly meter cover the pace — so the
+// only one of the three carrying unique information was bills. A bare total is
+// thinner than it needs to be, though, so this shows what's actually coming.
+const SK_BILLS_WINDOW = 45;   // days ahead to look; wide enough to catch next month
+const SK_BILLS_SHOWN  = 3;
+
+function _skBills(sk) {
+  const upcoming = (typeof getUpcomingBills === 'function' ? getUpcomingBills(SK_BILLS_WINDOW) : []);
+  const head = `<div class="sk-shead">
+      <span class="sk-eyebrow">Bills due</span>
+      <span class="sk-more" data-sk-go="bills">All</span>
+    </div>`;
+
+  if (!upcoming.length) {
+    return `<div class="sk-card sk-bills">${head}
+      <div class="sk-empty">Nothing due in the next ${SK_BILLS_WINDOW} days.</div></div>`;
+  }
+
+  const total = upcoming.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
+  const rows = upcoming.slice(0, SK_BILLS_SHOWN).map(b => {
+    const d    = getDaysUntilDue(b.dueDay);
+    const when = d === 0 ? 'today' : d === 1 ? 'tomorrow' : `in ${d} days`;
+    // Only the genuinely imminent ones get colour; everything else stays neutral
+    // so the row doesn't read as a wall of warnings.
+    const urgent = d <= 2 ? ' urgent' : d <= 5 ? ' soon' : '';
+    return `<div class="sk-brow">
+      <span class="sk-bname">${_escHtml(b.name)}</span>
+      <span class="sk-bwhen${urgent}">${when}</span>
+      <span class="sk-bamt money">${fmt(b.amount)}</span>
+    </div>`;
+  }).join('');
+
+  const more = upcoming.length > SK_BILLS_SHOWN
+    ? `<div class="sk-bmore">+${upcoming.length - SK_BILLS_SHOWN} more</div>` : '';
+
+  return `<div class="sk-card sk-bills">${head}
+    <div class="sk-btot"><span class="money">${fmt(total)}</span>
+      <span class="sk-bcount">across ${upcoming.length} bill${upcoming.length === 1 ? '' : 's'}</span></div>
+    ${rows}${more}</div>`;
+}
+
 // The skinned dashboard — mirrors the clean-mockups.html layout using real data.
 // Month nav + privacy button reuse the stock ids so their handlers still bind.
 function renderDashboardSkinned(sk) {
@@ -2743,11 +2791,7 @@ function renderDashboardSkinned(sk) {
       <button class="dawg-mnav-btn dawg-mnav-next${!sk.isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
     </div>
 
-    <div class="sk-stats">
-      <div class="sk-stat"><span class="sk-eyebrow">Income</span><span class="sk-sval money">${fmt(sk.mInc)}</span></div>
-      <div class="sk-stat"><span class="sk-eyebrow">Spent</span><span class="sk-sval money">${fmt(sk.mExp)}</span></div>
-      <div class="sk-stat"><span class="sk-eyebrow">Bills due</span><span class="sk-sval money">${fmt(sk.billsLeft)}</span></div>
-    </div>
+    ${_skBills(sk)}
 
     ${sk.perWeek > 0 ? `<div class="sk-card">
       <div class="sk-mtop">
