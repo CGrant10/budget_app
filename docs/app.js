@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.14';
+const VERSION = '5.45.15';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.15', date: '2026-07-28', changes: [
+    'The Home mascot in the bottom bar is drawn clear under the skins — that faint film over it is gone. It was being held at 60% opacity permanently. The intention had been to dim it only while you were on another tab, but the rule meant to bring it back to full strength on the dashboard could never actually fire, so it stayed dimmed everywhere. It\'s full strength now, wherever you are',
+  ]},
   { version: '5.45.14', date: '2026-07-28', changes: [
     'The bottom bar is solid now, in every theme and every skin. It was see-through with a frosted blur behind it, and the blur also pushed the colour of whatever scrolled underneath 80% further — so your theme washed up over the bar and left it looking like it had a film across it. The bar keeps its shape: still the floating rounded island on the standard themes, still the flat edge-to-edge bar under a skin. Only the glass is gone',
     'A side effect worth having: that frosted panel was the most expensive thing on screen to redraw while scrolling, and it was being redrawn constantly. Scrolling should feel a little cleaner, especially on an older phone',

@@ -7474,15 +7474,23 @@ body.skinned .dawg-nav-center-btn {
    only, so every opaque pixel collapses to one flat colour — Gengar's eyes and
    mouth, and the detail that makes the Celtics and Bears logos recognisable, can
    never survive it. Anything whose job is to be *identified* needs the artwork;
-   only the watermark (pure texture) can afford a flat shape. Inactive/active is
-   carried by opacity + the label colour instead of a tint. */
+   only the watermark (pure texture) can afford a flat shape.
+
+   This used to sit at opacity .6 with a `.dawg-nav-active` rule lifting it to 1.
+   That override was dead: the active class is assigned by
+   `b.dataset.tab === currentTab`, and the centre button carries no data-tab
+   attribute (it wires straight to showTab('dashboard') instead), so it never
+   matches. The mascot was therefore dimmed 40% permanently rather than only when
+   Home was inactive — which read as a film over the icon. Drawn clear now.
+
+   Consequence worth knowing: the centre button still never shows an active
+   state, on any theme. Giving it data-tab="dashboard" would fix that separately. */
 body.skinned .dawg-nav-center-btn .dawg-nav-dob {
   display: block;
   width: 26px !important; height: 26px !important;
   object-fit: contain;
   image-rendering: var(--mascot-pixelated, auto);
-  opacity: .6;
-  transition: opacity var(--sk-fast, .12s) var(--sk-ease, ease);
+  opacity: 1;
   /* The stock nav mascot runs a `nav-dob-idle` animation whose keyframes set
      `filter: drop-shadow(...)`. Animated values beat normal declarations, so
      `filter: none` alone can't clear it — the animation itself has to go, which
@@ -7492,7 +7500,6 @@ body.skinned .dawg-nav-center-btn .dawg-nav-dob {
 }
 body.skinned .dawg-nav-center-btn::before { content: none; }
 body.skinned .dawg-nav-center-btn.dawg-nav-active { color: var(--accent); }
-body.skinned .dawg-nav-center-btn.dawg-nav-active .dawg-nav-dob { opacity: 1; }
 /* team logos carry more fine detail than a 74px sprite — give them the room */
 body.skinned.theme-team .dawg-nav-center-btn .dawg-nav-dob { width: 30px !important; height: 30px !important; }
 body.skinned .dawg-nav-center-btn::after {
