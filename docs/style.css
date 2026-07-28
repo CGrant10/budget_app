@@ -4847,6 +4847,20 @@ body.theme-pokemon .acct-hero-dob .dawg-dob-idle { height: 64px !important; widt
 /* No Doberman "bark" frame; keep the mascot steady */
 body.theme-pokemon .dawg-dob-bark, body.theme-team .dawg-dob-bark,
 body.theme-pokemon .splash-dob-bark, body.theme-team .splash-dob-bark { display: none !important; opacity: 0 !important; animation: none !important; }
+/* Your own photo has no bark frame either — same gate as the Pokémon/team mascots. */
+body.mascot-photo .dawg-dob-bark,
+body.mascot-photo .splash-dob-bark { display: none !important; opacity: 0 !important; animation: none !important; }
+/* A photo is square where every built-in mascot is a cut-out, so a raw rectangle
+   reads as unfinished. Round it wherever it's drawn as a figure. */
+body.mascot-photo .dawg-dob-idle,
+body.mascot-photo .splash-dob-idle,
+body.mascot-photo .dawg-nav-dob,
+body.mascot-photo .nav-side-dob,
+body.mascot-photo .brand-dob,
+body.mascot-photo .empty-dob {
+  border-radius: 50%;
+  object-fit: cover;
+}
 body.theme-pokemon .dawg-dob-idle, body.theme-team .dawg-dob-idle,
 body.theme-pokemon .splash-dob-idle, body.theme-team .splash-dob-idle { animation: none !important; opacity: 1 !important; }
 body.theme-pokemon .dawg-hero-dob, body.theme-team .dawg-hero-dob { animation: none !important; }
@@ -7798,37 +7812,13 @@ body.skinned .acct-row-type {
    applyTheme(), so the theme supplies the character and the skin the treatment.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* 1 · Ink watermark — dashboard hero only. One per screen; two reads as a pattern. */
+/* 1 · Ink watermark and 5 · hidden-balance figure — both REMOVED from the skinned
+   dashboard. The mascot now appears under a skin only on the accounts overview,
+   the bottom bar, the splash and empty states; the dashboard is the one screen
+   that stays purely financial, in every state including hidden balances. The
+   .sk-hero overflow clip stays because the runway readout relies on it. */
 body.skinned .sk-hero { overflow: hidden; }
-/* The one place a flat shape is still right — this is texture, not identification,
-   and at 3.5% no interior detail would be visible anyway. It uses the artwork
-   (desaturated) rather than a mask so the internal contours still read faintly
-   instead of it being one solid blob. */
-body.skinned .sk-hero::after {
-  content: ''; position: absolute; right: -46px; bottom: -38px;
-  width: 168px; height: 168px; pointer-events: none;
-  background: var(--mascot-url) center/contain no-repeat;
-  image-rendering: var(--mascot-pixelated, auto);
-  filter: grayscale(1);
-  opacity: .07;
-}
-/* A light figure on the dark skin carries further than the same one does on paper. */
-body.skin-quiet .sk-hero::after { opacity: .09; }
-
-/* 5 · Hidden-balance state — the mascot "ate" your balance. Only exists in this
-   state, so it's a reward rather than decoration, and it makes the mode change
-   unmistakable. Driven purely by body.amounts-hidden, so no re-render is needed. */
 .sk-ghost { display: none; }
-/* Full artwork, not a mask: the whole point is that you recognise who ate your
-   balance, which a flat shape can't convey. */
-body.skinned.amounts-hidden .sk-ghost {
-  display: block; width: 40px; height: 40px; flex: none;
-  margin-right: 12px; align-self: center;
-  background: var(--mascot-url) center/contain no-repeat;
-  image-rendering: var(--mascot-pixelated, auto);
-}
-/* the figure beside it is already blurred by the privacy rules; keep them aligned */
-body.skinned.amounts-hidden .sk-amt { align-items: center; }
 
 /* 4 · Empty states — the one screen with nothing to compete with, so the mascot
    gets to be full colour. Pixel sprites at exact 2x; photos left unscaled. */
@@ -7885,7 +7875,19 @@ body.skinned .backup-banner {
   color: var(--text);
 }
 
-/* ── skin picker (Settings → Beta features) ──────────────────────────────── */
+/* ── mascot photo picker (Settings → Appearance) ─────────────────────────── */
+.mascot-pick { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.mascot-prev {
+  width: 64px; height: 64px; flex: none; border-radius: 50%;
+  background: var(--surface) center/cover no-repeat;
+  border: 1px solid var(--border, rgba(255,255,255,.14));
+}
+/* The stock Doberman is a cut-out with plenty of margin — contain it so the
+   preview shows the whole dog rather than a crop of its chest. */
+.mascot-prev.is-default { background-size: contain; }
+.mascot-pick-btns { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ── skin picker (Settings → Appearance) ─────────────────────────────────── */
 .skin-list { display: flex; flex-direction: column; gap: 6px; }
 .skin-row {
   display: flex; align-items: center; gap: 12px; width: 100%;

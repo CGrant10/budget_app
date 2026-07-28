@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.10';
+const VERSION = '5.45.11';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,12 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.11', date: '2026-07-28', changes: [
+    'You can use your own photo as the mascot. Settings → Appearance → Your mascot, pick a photo, and it takes the Doberman\'s place in the bottom bar, on the accounts overview, the splash screen and empty screens — in the standard themes and the skins alike. It keeps whatever theme you\'re on; only the character changes. "Use the Doberman" puts him back',
+    'Photos are squared off from the middle and shrunk to 320px before being saved, so a 5MB camera photo is stored as about 30KB and sits well clear of the space your transactions need. It\'s kept separately from your settings, so even if there were no room for it, nothing else could be affected',
+    'The Doberman is gone from the dashboard while a skin is on — both the faint watermark behind the balance and the figure that used to appear when balances were hidden. He\'s still on the accounts overview, in the bottom bar, on the splash and on empty screens. The dashboard is the one screen that stays purely financial now',
+    'Settings: "Beta features" is now "Appearance". The skins have been in daily use for a while and aren\'t an experiment any more — the old name suggested they might disappear',
+  ]},
   { version: '5.45.10', date: '2026-07-28', changes: [
     'The app now opens straight from your phone instead of waiting on the network first. Every launch used to check in with the server for the app itself before it could draw anything — on a weak signal that check was the pause you felt between tapping the icon and seeing your balance. It now draws immediately from what\'s already on the device and quietly refreshes in the background. The update button works exactly as before: it still checks for a new version every launch and still tells you when one is ready',
     'Charts and the PowerShell theme font are also kept on the device now, so the Insights page no longer re-downloads its chart library each session',
@@ -2849,9 +2855,11 @@ function renderDashboardSkinned(sk) {
         aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden() ? 'true' : 'false'}">${_eyeIconSvg(_amountsHidden())}</button>
       <div class="sk-eyebrow">${sk.isPastDash ? _escHtml(sk.dashMonthLabel) + ' balance' : 'Available balance'}</div>
       <div class="sk-amt money" style="color:${sk.balColor}">
-        <!-- Shown by CSS only while body.amounts-hidden: the mascot "ate" the
-             balance. Always in the markup so the privacy toggle stays a pure class
-             flip on <body> and needs no re-render. -->
+        <!-- Kept in the markup but never shown under a skin (see .sk-ghost in the
+             stylesheet). It used to hold the mascot that appeared while balances
+             were hidden; the skinned dashboard is mascot-free in every state now.
+             Left in place so the privacy toggle stays a pure class flip on <body>
+             with no re-render, and so restoring the figure is a CSS-only change. -->
         <span class="sk-ghost" aria-hidden="true"></span>
         <span class="sk-cur">${bal.cur}</span>${bal.whole}<span class="sk-cents">.${bal.cents}</span>
       </div>
@@ -2892,7 +2900,7 @@ function renderDashboardSkinned(sk) {
   </div>`;
 }
 
-// ── Beta: clean app-wide skins (Settings → Beta features) ───────────────────
+// ── Clean app-wide skins (Settings → Appearance → App skin) ─────────────────
 // A skin overrides the neutral palette (bg/surface/text/muted/border) plus the
 // type + geometry tokens, but NEVER --accent: your theme's accent always shows
 // through, so a skin composes with whichever theme you're on rather than
@@ -3073,8 +3081,65 @@ function applyNavItems(hiddenTabs) {
   });
 }
 
-// Current mascot image — Pokémon sprite for Pokémon themes, else the Doberman
+// ── Your own mascot photo ────────────────────────────────────────────────────
+// Stored under its own localStorage key, NOT inside settings. Two reasons: the
+// settings blob is written on nearly every interaction and saveSettings()
+// swallows failures, so a photo big enough to hit the quota there would silently
+// stop settings from saving at all. Keeping it separate means a quota failure is
+// isolated to the photo and can be reported honestly.
+const MASCOT_KEY = 'slawminyaw_mascot';
+let _customMascotCache;   // undefined = not read yet; '' = none set
+
+function customMascot() {
+  if (_customMascotCache === undefined) {
+    try { _customMascotCache = localStorage.getItem(MASCOT_KEY) || ''; }
+    catch { _customMascotCache = ''; }
+  }
+  return _customMascotCache;
+}
+// Returns true on success, false if storage rejected it (quota).
+function setCustomMascot(dataUrl) {
+  try {
+    if (dataUrl) localStorage.setItem(MASCOT_KEY, dataUrl);
+    else         localStorage.removeItem(MASCOT_KEY);
+    _customMascotCache = dataUrl || '';
+    return true;
+  } catch { return false; }
+}
+
+// A phone photo is several megabytes — far too big to sit in localStorage beside
+// your financial data. Square-crop from the centre and rescale to 320px, which is
+// larger than the biggest place it's drawn (the 222px splash), then encode as JPEG.
+// Typical result is 20–50 KB. Calls back with a data URL, or null if it couldn't
+// be read as an image.
+function photoToMascot(file, cb) {
+  const MAX = 320;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const side = Math.min(img.naturalWidth, img.naturalHeight);
+    const c = document.createElement('canvas');
+    c.width = c.height = MAX;
+    const ctx = c.getContext('2d');
+    // White underlay: a transparent PNG would otherwise flatten to black in JPEG.
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, MAX, MAX);
+    ctx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2,
+                  side, side, 0, 0, MAX, MAX);
+    URL.revokeObjectURL(url);
+    let out = null;
+    try { out = c.toDataURL('image/jpeg', 0.85); } catch { out = null; }
+    cb(out);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); cb(null); };
+  img.src = url;
+}
+
+// Current mascot image — your own photo if you've set one, else the Pokémon/team
+// sprite for those themes, else the Doberman.
 function mascotSrc() {
+  const custom = customMascot();
+  if (custom) return custom;
   const t = THEMES[loadSettings().theme];
   return (t && t.mascot) ? t.mascot : './doberman.png';
 }
@@ -3088,7 +3153,9 @@ function heroTaglineHTML() {
 // Gastly). Gengar (center) is the vibrant Gen-4 sprite; the animated Gen-5 flankers keep
 // the group in motion. Every other theme keeps the single mascot + bark pair untouched.
 function heroMascotHTML() {
-  if (loadSettings().theme === 'gengar') {
+  // Your own photo replaces the whole arrangement, including the Gengar trio —
+  // one photo flanked by two Pokémon would read as an accident.
+  if (loadSettings().theme === 'gengar' && !customMascot()) {
     return `<div class="dawg-hero-dob gengar-trio">
         <img src="./poke-haunter.gif" class="gtrio-side gtrio-l" alt="">
         <img src="./poke-gengar.gif"  class="gtrio-mid" alt="">
@@ -3164,13 +3231,18 @@ function applyTheme(theme) {
   if (t.team)    document.body.classList.add('theme-team', 'theme-' + theme);
   _applyThemeFx(theme);
   // Swap mascot + splash tagline on the persistent (non-re-rendered) elements
-  const _mascot = t.mascot || './doberman.png';
+  const _photo  = customMascot();
+  const _mascot = _photo || t.mascot || './doberman.png';
+  // Gates off the two-frame Doberman bark (there is no bark frame for a photo) —
+  // the same thing body.theme-pokemon / body.theme-team already do for their
+  // mascots, and it rounds the photo wherever it's drawn small.
+  document.body.classList.toggle('mascot-photo', !!_photo);
   // Exposed as a CSS var so the skins can paint the active mascot as a silhouette
   // (CSS mask + currentColor). The theme supplies the character — Gengar on the
   // Gengar theme, the Doberman by default — and the skin supplies the treatment.
   root.style.setProperty('--mascot-url', `url("${_mascot}")`);
   // Pixel sprites only look right at whole-number scale; photos must not be.
-  root.style.setProperty('--mascot-pixelated', t.pokemon ? 'pixelated' : 'auto');
+  root.style.setProperty('--mascot-pixelated', (t.pokemon && !_photo) ? 'pixelated' : 'auto');
   document.querySelectorAll('.splash-dob-idle, .brand-dob, .dawg-nav-dob, .nav-side-dob').forEach(img => { img.src = _mascot; });
   const _splashTag = document.querySelector('.splash-tagline');
   if (_splashTag) _splashTag.textContent = t.splashTagline || 'Money on a leash.';
@@ -10163,8 +10235,24 @@ function renderSettings() {
       </div>
 
       <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Beta features</h2>
-        <p class="code-hint" style="margin-bottom:12px">Experimental looks we're trying out. Toggle freely — nothing here touches your data.</p>
+        <h2 class="section-title" style="margin-bottom:8px">Appearance</h2>
+        <p class="code-hint" style="margin-bottom:12px">Change the look and the mascot. Switch freely — nothing here touches your data.</p>
+
+        <div class="form-row">
+          <label class="form-label" style="margin-bottom:8px">Your mascot</label>
+          <p class="code-hint" style="margin-bottom:10px">Use your own photo instead of the Doberman. It shows in the bottom bar, on the accounts overview, the splash screen and empty screens. Squared off from the middle and shrunk to 320px, so it takes about as much room as a single receipt.</p>
+          <div class="mascot-pick">
+            <span class="mascot-prev${customMascot() ? '' : ' is-default'}"
+                  style="background-image:url('${customMascot() || './doberman.png'}')"></span>
+            <div class="mascot-pick-btns">
+              <button class="btn-sm" id="mascot-choose" type="button">${customMascot() ? 'Change photo' : 'Choose photo'}</button>
+              ${customMascot() ? '<button class="btn-secondary" id="mascot-clear" type="button">Use the Doberman</button>' : ''}
+            </div>
+            <input type="file" id="mascot-file" accept="image/*" hidden>
+          </div>
+          <p class="code-hint" id="mascot-msg" style="margin-top:8px;display:none"></p>
+        </div>
+
         <div class="form-row">
           <label class="form-label" style="margin-bottom:8px">App skin</label>
           <p class="code-hint" style="margin-bottom:10px">A clean, minimal re-skin of every page. Your theme's accent colour still shows through, so a skin layers on top of whichever theme you're using.</p>
@@ -10399,7 +10487,38 @@ function attachSettings() {
     });
   });
 
-
+  // ── Your mascot photo ──────────────────────────────────────────────────────
+  const _mascotMsg = (text, bad) => {
+    const el = document.getElementById('mascot-msg');
+    if (!el) return;
+    el.textContent = text;
+    el.style.display = text ? '' : 'none';
+    el.style.color = bad ? 'var(--danger)' : 'var(--muted)';
+  };
+  document.getElementById('mascot-choose')?.addEventListener('click', () => {
+    document.getElementById('mascot-file')?.click();
+  });
+  document.getElementById('mascot-file')?.addEventListener('change', e => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    _mascotMsg('Working on it…');
+    photoToMascot(file, dataUrl => {
+      if (!dataUrl) { _mascotMsg('That file couldn\'t be read as an image. Try a JPG or PNG.', true); return; }
+      if (!setCustomMascot(dataUrl)) {
+        _mascotMsg('There wasn\'t room to save it. Free up some space and try again — your data is untouched.', true);
+        return;
+      }
+      applyTheme(loadSettings().theme || 'dark');   // repaints the persistent images + CSS var
+      haptic([10]);
+      render();
+    });
+  });
+  document.getElementById('mascot-clear')?.addEventListener('click', () => {
+    setCustomMascot('');
+    applyTheme(loadSettings().theme || 'dark');
+    haptic([10]);
+    render();
+  });
 }
 
 // ── accounts management page ──────────────────────────────────────────────
