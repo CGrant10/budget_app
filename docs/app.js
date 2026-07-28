@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.46.0';
+const VERSION = '5.46.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.46.1', date: '2026-07-28', changes: [
+    'The spending wheel on the skinned dashboard shows every category you\'ve spent on. It was only ever drawing the top five, so anything smaller was missing from both the wheel and the list beside it — and because a new category usually starts small, adding one looked like the wheel had failed to update',
+    'The wheel also wasn\'t a full circle. Slices were sized against your whole month\'s spending while only five were being drawn, so the rest of the month sat as an unexplained gap in the ring — with nine categories, nearly a fifth of it. The slices now add up to the whole ring',
+  ]},
   { version: '5.46.0', date: '2026-07-28', changes: [
     'You can frame your mascot photo now instead of taking whatever the middle of it happened to be. Picking a photo opens a round window: drag to move it, pinch or use the slider to zoom in up to 4×, then "Use photo" to keep it. The window is round because that\'s how the photo is drawn everywhere in the app, so what you line up is exactly what you get. Cancel leaves your current mascot alone',
     'Zooming holds whatever is in the middle of the frame steady rather than sliding it away, and you can\'t drag the photo far enough to leave a gap at the edge',
@@ -2844,17 +2848,24 @@ function renderDashboardSkinned(sk) {
   const over  = sk.perWeek > 0 && sk.weekSpent > sk.perWeek;
 
   const donut = (() => {
-    const total = sk.catTotal;
-    if (!total || !sk.cats.length) return '';
+    // Every category with spending is drawn — this used to slice(0, 5), which
+    // silently dropped the rest AND left the ring short, because the slices were
+    // sized against the full month total while only five of them were rendered.
+    // The denominator is now the sum of what's actually shown, so the ring closes.
+    const cats  = sk.cats;
+    const total = cats.reduce((s, [, amt]) => s + amt, 0);
+    if (!total || !cats.length) return '';
     const C = 2 * Math.PI * 38; let off = 0;
-    const segs = sk.cats.slice(0, 5).map(([cat, amt]) => {
+    // With many categories a 2.5-unit gap eats the smallest slices outright.
+    const gap = cats.length > 6 ? 1.2 : 2.5;
+    const segs = cats.map(([cat, amt]) => {
       const len = (amt / total) * C;
       const s = `<circle cx="52" cy="52" r="38" fill="none" stroke="${skinCatColor(cat)}"
-        stroke-width="11" stroke-dasharray="${Math.max(0, len - 2.5).toFixed(1)} ${(C - len + 2.5).toFixed(1)}"
+        stroke-width="11" stroke-dasharray="${Math.max(0, len - gap).toFixed(1)} ${(C - len + gap).toFixed(1)}"
         stroke-dashoffset="${(-off).toFixed(1)}"/>`;
       off += len; return s;
     }).join('');
-    const legend = sk.cats.slice(0, 5).map(([cat, amt]) => `<div class="sk-lrow">
+    const legend = cats.map(([cat, amt]) => `<div class="sk-lrow">
         <span class="sk-dot" style="background:${skinCatColor(cat)}"></span>
         <span class="sk-lname">${_escHtml(cat)}</span>
         <span class="sk-lval money">${fmt(amt)}</span></div>`).join('');
@@ -6609,7 +6620,10 @@ function renderDashboardDawg() {
       dashMonthLabel, acctName: _acctName,
       weekSpent, perWeek: _livePerWeek, daySpent: _dayExp,
       billsLeft: _dashBills, daysLeft: _dashDays, stopAt: _dashStopAt,
-      cats: catEntries, catTotal: totalMExp,
+      // Uncapped on purpose: catEntries is the top-8 *preview* for the stock
+      // dashboard's category list, which has a "Details" link to see the rest.
+      // The skinned donut has no such link, so a cap there just loses data.
+      cats: allCatEntries.filter(([cat]) => !isCatHidden(cat)), catTotal: totalMExp,
       txns: recentTxns, todayStr, yesterdayStr,
     };
     return renderDashboardSkinned(_sk);
