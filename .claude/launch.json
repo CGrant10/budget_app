@@ -1,0 +1,41 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "budget-pwa",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8787", "--directory", "docs"],
+      "port": 8787
+    },
+    {
+      "name": "slot-machine",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8788", "--directory", "."],
+      "port": 8788
+    },
+    {
+      "name": "timer-test",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8789", "--directory", "C:/Users/coleg/Documents/timer_files/test"],
+      "port": 8789
+    },
+    {
+      "name": "supreme-court-testing",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8790", "--directory", "C:/Users/coleg/Documents/timer_files/supreme-court-testing"],
+      "port": 8790
+    },
+    {
+      "name": "court-timer-site",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8791", "--directory", "C:/Users/coleg/Documents/court-timer"],
+      "port": 8791
+    },
+    {
+      "name": "supreme-court-prod",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8792", "--directory", "C:/Users/coleg/Documents/timer_files/supreme-court-timer"],
+      "port": 8792
+    }
+  ]
+}
