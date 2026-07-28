@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.13';
+const VERSION = '5.45.14';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.14', date: '2026-07-28', changes: [
+    'The bottom bar is solid now, in every theme and every skin. It was see-through with a frosted blur behind it, and the blur also pushed the colour of whatever scrolled underneath 80% further — so your theme washed up over the bar and left it looking like it had a film across it. The bar keeps its shape: still the floating rounded island on the standard themes, still the flat edge-to-edge bar under a skin. Only the glass is gone',
+    'A side effect worth having: that frosted panel was the most expensive thing on screen to redraw while scrolling, and it was being redrawn constantly. Scrolling should feel a little cleaner, especially on an older phone',
+  ]},
   { version: '5.45.13', date: '2026-07-28', changes: [
     'Fixed the date on the runway line — it was always a day too far ahead. "Covers 5 days" already counts today as the first of them, so the money stretches through the fifth day, but the date was worked out by adding all five days on top of today, landing on the sixth. A 5-day runway starting today now correctly reads "through Aug 1" rather than "through Aug 2". Only the date was wrong; the number of days and the daily figure were always right',
     'If there isn\'t even one day\'s worth left above your floor, the line now says so plainly instead of showing "0 days" with a date in the past',

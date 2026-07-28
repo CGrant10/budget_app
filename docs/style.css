@@ -3718,12 +3718,16 @@ details.dh-week[open] > summary .dh-week-caret { transform: rotate(90deg); }
   position:fixed;
   bottom:calc(12px + var(--safe-bottom)); left:12px; right:12px;
   height:var(--nav-h);
-  /* Liquid Glass — floating frosted island */
-  background:color-mix(in srgb, var(--surface) 66%, transparent);
+  /* Floating island — solid, not frosted. It used to be 66% opaque over a
+     blur(22px) saturate(180%) backdrop-filter, which meant whatever scrolled
+     behind showed through with its colour pushed 80% more saturated. That read
+     as a film of theme colour lying over the bar. The island identity is the
+     floating shape, the rounding and the shadow — none of which need the glass.
+     Dropping the filter also removes the single most expensive thing the app
+     asked the compositor to do on every scroll frame. */
+  background:var(--surface);
   align-items:center; justify-content:space-around;
   z-index:200;
-  backdrop-filter:blur(22px) saturate(180%);
-  -webkit-backdrop-filter:blur(22px) saturate(180%);
   overflow:visible;
   border:1px solid var(--border);
   border-radius:28px;
@@ -3856,7 +3860,7 @@ details.dh-week[open] > summary .dh-week-caret { transform: rotate(90deg); }
 .dawg-nav-center-btn:active { background:rgba(57,255,20,.12) !important; }
 body.light .dawg-nav-center-btn:active { background:rgba(34,170,34,.12) !important; }
 body.light #dawg-bottom-nav {
-  background:color-mix(in srgb, var(--surface) 70%, transparent);
+  background:var(--surface);
   box-shadow:
     0 12px 30px rgba(0,0,0,.12),
     0 2px 6px rgba(0,0,0,.06),
@@ -7440,7 +7444,10 @@ body.skinned #dawg-bottom-nav {
   padding-bottom: var(--safe-bottom);
   border-radius: 0;
   border: 0; border-top: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  /* Flat and solid. This rule already squared the corners and dropped the shadow,
+     but left the base rule's frosted backdrop-filter running underneath — a
+     flat-by-design bar with glass still on it. */
+  background: var(--bg);
   box-shadow: none;
 }
 body.skinned .dawg-nav-btn.dawg-nav-active .dawg-nav-icon { background: none; box-shadow: none; }
