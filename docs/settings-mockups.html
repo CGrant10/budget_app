@@ -138,48 +138,63 @@ h1 { font-size:1.45rem; font-weight:800; letter-spacing:-.02em; }
         <b>Fastest if you know the name</b>, but the page is still long when you don't. Try typing in it.</p>
       <div class="phone" id="ph-c"></div>
     </div>
+
+    <!-- ═══ D ═══ -->
+    <div class="col">
+      <div class="chead"><span class="cname">D · Collapsed + search</span><span class="ctag">Recommended</span></div>
+      <p class="cnote">A and C combined. Shut and one screen when you arrive; start typing and the
+        groups holding matches <b>open themselves</b> while the rest disappear. Clear the box and it
+        shuts again. Search covers keywords too — try <b>blur</b>, <b>dark</b>, <b>fingerprint</b> or
+        <b>fake</b>, none of which appear in any label.</p>
+      <div class="phone" id="ph-d"></div>
+    </div>
   </div>
 </div>
 
 <script>
 // One regrouping, shared by all three mockups. 5 groups instead of 9 flat cards.
+// 4th field = extra search keywords. Searching should find a setting by what you
+// call it, not only by its label — "dark", "blur", "photo", "fingerprint".
 const GROUPS = [
   { key:'look', icon:'◐', title:'Look', count:'Theme, skin, mascot, font, motion', items:[
-    ['Theme', 'Gengar', 'nav'],
-    ['App skin', 'Quiet', 'nav'],
-    ['Your mascot', 'Photo', 'nav'],
-    ['Font', 'Default', 'nav'],
-    ['Splash animation', true, 'sw'],
-    ['Reduce motion & effects', false, 'sw'],
-    ['Tap feedback', true, 'sw'],
-    ['Screenshot mode', false, 'sw'],
+    ['Theme', 'Gengar', 'nav', 'dark light colour color gengar pokemon terminal team accent'],
+    ['App skin', 'Quiet', 'nav', 'skins ledger quiet grid beta clean minimal'],
+    ['Your mascot', 'Photo', 'nav', 'photo picture doberman dog avatar image'],
+    ['Font', 'Default', 'nav', 'typeface text size cascadia mono'],
+    ['Splash animation', true, 'sw', 'startup boot logo intro'],
+    ['Reduce motion & effects', false, 'sw', 'animation glitch battery accessibility still'],
+    ['Tap feedback', true, 'sw', 'haptics vibrate buzz'],
+    ['Screenshot mode', false, 'sw', 'demo fake numbers share invented'],
   ]},
   { key:'money', icon:'▤', title:'Money', count:'Mode, categories, accounts', items:[
-    ['App mode', 'Full', 'nav'],
-    ['Custom categories', '3 added', 'nav'],
-    ['Manage accounts', 'Checking, Savings', 'nav'],
+    ['App mode', 'Full', 'nav', 'simple tracker full features'],
+    ['Custom categories', '3 added', 'nav', 'category tags spending groups'],
+    ['Manage accounts', 'Checking, Savings', 'nav', 'account bank savings checking debt add'],
   ]},
   { key:'lock', icon:'▲', title:'Privacy & lock', count:'PIN, unlock, hidden amounts', items:[
-    ['PIN lock', 'On', 'nav'],
-    ['Biometric unlock', true, 'sw'],
-    ['Hide amounts by default', false, 'sw'],
+    ['PIN lock', 'On', 'nav', 'passcode password security code'],
+    ['Biometric unlock', true, 'sw', 'fingerprint face id touch'],
+    ['Hide amounts by default', false, 'sw', 'blur privacy hidden balances eye'],
   ]},
   { key:'alerts', icon:'◔', title:'Alerts', count:'Bill and notes reminders', items:[
-    ['Notifications', false, 'sw'],
-    ['Bill reminders', 'Off', 'nav'],
+    ['Notifications', false, 'sw', 'push alerts permission'],
+    ['Bill reminders', 'Off', 'nav', 'due date reminder notify'],
   ]},
   { key:'data', icon:'▣', title:'Data', count:'Import, export, restore points', items:[
-    ['Import / Export', '', 'nav'],
-    ['Restore points', '4 saved', 'nav'],
-    ['About', 'v5.49.0', 'nav'],
+    ['Import / Export', '', 'nav', 'csv backup download upload spreadsheet'],
+    ['Restore points', '4 saved', 'nav', 'backup snapshot undo recover'],
+    ['About', 'v5.49.0', 'nav', 'version update changelog whats new'],
   ]},
 ];
 
-const rowHtml = ([label, val, kind]) => kind === 'sw'
-  ? `<div class="row" data-name="${label.toLowerCase()}"><span>${label}</span>
-       <span class="sw${val ? ' on' : ''}"></span></div>`
-  : `<div class="row" data-name="${label.toLowerCase()}"><span>${label}</span>
-       <span class="val">${val}<span class="chev">›</span></span></div>`;
+const rowHtml = ([label, val, kind, keys]) => {
+  const hay = (label + ' ' + (keys || '')).toLowerCase();
+  return kind === 'sw'
+    ? `<div class="row" data-name="${hay}"><span>${label}</span>
+         <span class="sw${val ? ' on' : ''}"></span></div>`
+    : `<div class="row" data-name="${hay}"><span>${label}</span>
+         <span class="val">${val}<span class="chev">›</span></span></div>`;
+};
 
 // ── Today: 9 flat cards, everything expanded ─────────────────────────────────
 const TODAY = [
@@ -263,6 +278,47 @@ document.getElementById('c-search').addEventListener('input', e => {
     hits += shown;
   });
   document.getElementById('c-nores').classList.toggle('hidden', hits > 0);
+});
+
+// ── D · collapsed groups + search ────────────────────────────────────────────
+document.getElementById('ph-d').innerHTML = `
+  <div class="ptitle">Settings</div>
+  <input class="search" placeholder="Search settings…" id="d-search">
+  <div id="d-body">${GROUPS.map(g => `
+    <div class="acc" data-k="${g.key}">
+      <div class="acc-head">
+        <span class="acc-ico">${g.icon}</span>
+        <span class="acc-t">${g.title}<span class="idx-sub">${g.count}</span></span>
+        <span class="acc-caret">›</span>
+      </div>
+      <div class="acc-body">${g.items.map(rowHtml).join('')}</div>
+    </div>`).join('')}
+    <div class="nores hidden" id="d-nores">Nothing matches that.</div>`;
+
+// Tapping a header still works exactly as in A — search is additive, not a mode.
+document.getElementById('ph-d').addEventListener('click', e => {
+  const h = e.target.closest('.acc-head');
+  if (h) h.parentElement.classList.toggle('open');
+});
+
+document.getElementById('d-search').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  let hits = 0;
+  document.querySelectorAll('#d-body .acc').forEach(acc => {
+    let shown = 0;
+    acc.querySelectorAll('.row').forEach(r => {
+      const match = !q || r.dataset.name.includes(q);
+      r.classList.toggle('hidden', !match);
+      if (match) shown++;
+    });
+    acc.classList.toggle('hidden', !!q && shown === 0);
+    // While searching, a group holding a match opens itself; clearing the box
+    // returns everything to shut rather than leaving the page sprawled open.
+    if (q) acc.classList.toggle('open', shown > 0);
+    else   acc.classList.remove('open');
+    hits += shown;
+  });
+  document.getElementById('d-nores').classList.toggle('hidden', hits > 0);
 });
 
 document.getElementById('theme').addEventListener('click', () => document.body.classList.toggle('light'));
