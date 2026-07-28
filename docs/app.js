@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.47.1';
+const VERSION = '5.48.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.48.0', date: '2026-07-28', changes: [
+    'New: Screenshot mode, in Settings → Appearance. Turn it on and every figure in the app becomes an invented one — a Checking and a Savings account, two paychecks, twenty-odd purchases across nine categories, four bills and a savings goal. They all add up, so the balance, the spending wheel, the runway, the week meter and the ledger agree with each other exactly as they would with your own money. Screenshot anything, then turn it off and your own numbers come straight back',
+    'Your real data is copied aside before anything is replaced, and it is put back the moment you switch the mode off. It also restores itself automatically the next time you open the app, so you can never be left looking at invented numbers and wondering where your money went — and if the app is closed or crashes while the mode is on, opening it again brings your data back',
+    'Restore points are left alone while the mode is on, so an invented month can never end up in your backup history',
+  ]},
   { version: '5.47.1', date: '2026-07-28', changes: [
     'Fixed the eye button doing nothing on the skinned dashboard. Hiding your balances blurred nothing there — the skinned dashboard is built from its own markup, and none of it was on the list of things the privacy toggle blurs. It now blurs the balance, the change figure, the runway amounts, the spending legend, the bills and the recent transactions, same as everywhere else',
     'The new balance on the transaction card blurs too, so adding something while balances are hidden doesn\'t flash the figure back on screen',
@@ -3556,6 +3561,165 @@ function _saveAccounts() {
     localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
   } catch(e) { _showSaveError(); }
 }
+// ── Screenshot mode ──────────────────────────────────────────────────────────
+// Swaps every figure in the app for a coherent invented dataset so a screenshot
+// can be shared without exposing real finances. "Coherent" is the point: the
+// balance, the spending wheel, the runway, the week meter and the ledger are all
+// derived from one set of transactions, so they agree with each other the way a
+// real account does.
+//
+// It works by writing the demo dataset over the real storage keys, having first
+// copied the real ones into a single backup entry. That means none of the ~20
+// places that read account data need to know demo mode exists. Three safety
+// properties hold this together:
+//   1. The backup is written BEFORE anything is overwritten, so the real data
+//      always exists in two places or one — never zero.
+//   2. The flag is in memory only, so a fresh launch is never in demo mode.
+//   3. If a backup is still present at boot, the last session ended without
+//      restoring (a crash, a force-quit) — so boot restores it automatically.
+const DEMO_BACKUP_KEY = 'slawminyaw_demo_backup';
+let _demoMode = false;
+
+function isDemoMode() { return _demoMode; }
+
+// Fixed, not random: screenshots should be reproducible, and a random dataset
+// would look different in every shot of the same screen.
+function _demoDataset() {
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  const day = n => { const x = new Date(d); x.setDate(x.getDate() - n);
+                     return x.toISOString().split('T')[0]; };
+  const T = [];
+  let i = 0;
+  const add = (type, amount, date, category, description) =>
+    T.push({ id: 'demo' + (++i), type, amount, date, category, description, ts: Date.now() - i * 1000 });
+
+  // Two paychecks and a side payment — enough for the income figures to look real.
+  add('income', 2480.00, day(24), 'Income', 'Direct deposit');
+  add('income', 2480.00, day(10), 'Income', 'Direct deposit');
+  add('income',  180.00, day(17), 'Income', 'Refund');
+
+  // Spread across nine categories so the wheel has something to show.
+  const spend = [
+    ['Food', 'Corner deli',      42.80,  1], ['Food', 'Groceries',       96.15,  3],
+    ['Food', 'Coffee',            5.40,  0], ['Food', 'Pizza night',     28.00,  6],
+    ['Gas',  'Fuel stop',        58.20,  2], ['Gas',  'Fuel stop',       61.05,  9],
+    ['Car',  'Oil change',       74.00,  5], ['Car',  'Parking',         12.00, 12],
+    ['Home', 'Hardware store',   38.60,  4], ['Home', 'Light bulbs',     16.25, 11],
+    ['Health', 'Pharmacy',       23.10,  7], ['Health', 'Gym',           35.00, 15],
+    ['Entertainment', 'Cinema',  31.00,  8], ['Entertainment', 'Records', 22.50, 19],
+    ['Tools', 'Drill bits',      27.40, 13], ['Boat', 'Mooring fee',     45.00, 21],
+    ['Other', 'Post office',      9.80, 16], ['Food', 'Takeaway',        34.70, 18],
+    ['Gas',  'Fuel stop',        55.90, 22], ['Home', 'Cleaning',        18.40, 25],
+  ];
+  spend.forEach(([cat, desc, amt, ago]) => add('expense', amt, day(ago), cat, desc));
+
+  return {
+    accounts: [
+      { id: 'main',    name: 'Checking', type: 'checking' },
+      { id: 'savings', name: 'Savings',  type: 'savings'  },
+    ],
+    data: {
+      main: {
+        transactions: T,
+        startingBalance: 1850,
+        weekly_plan: { stop_at: '500', bills: '340' },
+        bills: [
+          { id: 'db1', name: 'Rent',      amount: 1250, dueDay: 1,  category: 'Home' },
+          { id: 'db2', name: 'Phone',     amount:   45, dueDay: 12, category: 'Other' },
+          { id: 'db3', name: 'Internet',  amount:   62, dueDay: 18, category: 'Home' },
+          { id: 'db4', name: 'Insurance', amount:  118, dueDay: 24, category: 'Car' },
+        ],
+        budgets: { Food: 400, Gas: 200, Entertainment: 120 },
+        goals: [{ id: 'dg1', name: 'New outboard', target: 4000, saved: 1450 }],
+        challenges: [],
+      },
+      savings: {
+        transactions: [{ id: 'ds1', type: 'income', amount: 300,
+                         date: day(10), category: 'Income', description: 'Transfer in' }],
+        startingBalance: 5200,
+        weekly_plan: {}, bills: [], budgets: {}, goals: [], challenges: [],
+      },
+    },
+  };
+}
+
+// The financial keys demo mode swaps. Snapshots are deliberately NOT included:
+// they are the user's safety net and overwriting them would put the demo set
+// inside their restore points.
+function _demoSwappableKeys() {
+  const keys = [ACCOUNTS_KEY];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('slawminyaw_data_')) keys.push(k);
+  }
+  return keys;
+}
+
+function enterDemoMode() {
+  if (_demoMode) return true;
+  try {
+    // 1 · back up first, so the real data is never the only copy of itself
+    const backup = {};
+    _demoSwappableKeys().forEach(k => { backup[k] = localStorage.getItem(k); });
+    localStorage.setItem(DEMO_BACKUP_KEY, JSON.stringify(backup));
+
+    // 2 · overwrite with the demo set
+    const demo = _demoDataset();
+    _demoSwappableKeys().forEach(k => {
+      if (k !== ACCOUNTS_KEY) localStorage.removeItem(k);
+    });
+    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(demo.accounts));
+    Object.entries(demo.data).forEach(([id, d]) =>
+      localStorage.setItem(accountDataKey(id), JSON.stringify(d)));
+
+    _demoMode = true;
+    state.accounts   = demo.accounts;
+    currentAccountId = 'main';
+    _loadAccountData('main');
+    _calcVer++;
+    return true;
+  } catch (e) {
+    // Storage refused us partway: put back whatever we managed to save.
+    exitDemoMode();
+    return false;
+  }
+}
+
+function exitDemoMode() {
+  let raw = null;
+  try { raw = localStorage.getItem(DEMO_BACKUP_KEY); } catch {}
+  if (!raw) { _demoMode = false; return false; }
+  try {
+    const backup = JSON.parse(raw);
+    // Clear anything demo mode created that wasn't in the backup.
+    _demoSwappableKeys().forEach(k => {
+      if (!(k in backup)) localStorage.removeItem(k);
+    });
+    Object.entries(backup).forEach(([k, v]) => {
+      if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v);
+    });
+    localStorage.removeItem(DEMO_BACKUP_KEY);
+    _demoMode = false;
+    try { state.accounts = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '[]'); } catch {}
+    if (!state.accounts.some(a => a.id === currentAccountId)) {
+      currentAccountId = state.accounts[0]?.id || 'main';
+    }
+    _loadAccountData(currentAccountId);
+    _calcVer++;
+    return true;
+  } catch (e) { return false; }
+}
+
+// Called during boot: a leftover backup means the previous session ended while
+// demo mode was on, so the real data is still sitting in the backup entry.
+function recoverFromDemoMode() {
+  let has = null;
+  try { has = localStorage.getItem(DEMO_BACKUP_KEY); } catch {}
+  if (!has) return false;
+  _demoMode = true;          // so exitDemoMode treats this as an active swap
+  return exitDemoMode();
+}
+
 function _loadAccountData(id) {
   let d = {};
   try { d = JSON.parse(localStorage.getItem(accountDataKey(id)) || '{}'); } catch(e) { d = {}; }
@@ -4128,6 +4292,9 @@ function _writeSnapshots(list) {
   return false;
 }
 function takeSnapshot(reason) {
+  // Never let the demo dataset become a restore point — it would then be
+  // restorable as though it were real history.
+  if (_demoMode) return;
   try {
     const payload = _buildBackupPayload();
     const list = loadSnapshots();
@@ -10523,6 +10690,16 @@ function renderSettings() {
         </div>
 
         <div class="form-row">
+          <label class="form-label" style="margin-bottom:8px">Screenshot mode</label>
+          <p class="code-hint" style="margin-bottom:10px">Replaces every figure in the app with invented ones that add up, so you can screenshot the look without showing your own finances. Your real data is set aside untouched and comes straight back when you turn this off — and it always comes back by itself next time you open the app.</p>
+          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="demo-mode-toggle"${isDemoMode() ? ' checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
+            <span>Show invented numbers</span>
+          </label>
+          <p class="code-hint" id="demo-mode-msg" style="margin-top:8px;display:none"></p>
+        </div>
+
+        <div class="form-row">
           <label class="form-label" style="margin-bottom:8px">App skin</label>
           <p class="code-hint" style="margin-bottom:10px">A clean, minimal re-skin of every page. Your theme's accent colour still shows through, so a skin layers on top of whichever theme you're using.</p>
           <div class="skin-list">
@@ -10754,6 +10931,30 @@ function attachSettings() {
       haptic([10]);
       render();   // repaint Settings so the active row + checkmark update
     });
+  });
+
+  // ── Screenshot mode ────────────────────────────────────────────────────────
+  document.getElementById('demo-mode-toggle')?.addEventListener('change', e => {
+    const msg = document.getElementById('demo-mode-msg');
+    const say = (text, bad) => {
+      if (!msg) return;
+      msg.textContent = text;
+      msg.style.display = text ? '' : 'none';
+      msg.style.color = bad ? 'var(--danger)' : 'var(--muted)';
+    };
+    if (e.target.checked) {
+      if (!enterDemoMode()) {
+        e.target.checked = false;
+        say('Couldn\'t switch over — there wasn\'t room to set your data aside, so nothing was changed.', true);
+        return;
+      }
+    } else if (!exitDemoMode()) {
+      e.target.checked = true;
+      say('Couldn\'t restore your data just now. Leave this on and try again — your data is still saved.', true);
+      return;
+    }
+    haptic([10]);
+    showTab('dashboard');   // land on the screen most worth photographing
   });
 
   // ── Your mascot photo ──────────────────────────────────────────────────────
@@ -14392,6 +14593,9 @@ window.addEventListener('popstate', () => {
   showPinLock(async () => {
     _earlyBlocker?.remove();
     try {
+    // Before anything reads storage: if the last session ended while screenshot
+    // mode was on, the real data is still in the backup entry. Put it back.
+    recoverFromDemoMode();
     await api.load();
     await processRecurring();
     initSoundsToggle();
