@@ -8,16 +8,22 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600;700&family=Saira+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Oswald',sans-serif;background:#05070b;color:#e8f1fa;min-height:100vh;
-  display:flex;align-items:flex-start;justify-content:center;padding:16px 8px 40px;overflow-x:hidden;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;-moz-user-select:none;user-select:none;-webkit-touch-callout:none;}
+html,body{height:100%;}
+body{font-family:'Oswald',sans-serif;background:#05070b;color:#e8f1fa;min-height:100dvh;
+  display:flex;align-items:center;justify-content:center;padding:6px;overflow:hidden;
+  touch-action:manipulation;overscroll-behavior:none;}
+/* responsive fit shell — the whole machine is scaled to fit any screen (iPhone, Samsung, Z Fold, desktop) */
+.fit-wrap{position:relative;}
+.fit-wrap>.app{transform-origin:0 0;}
 .money{font-family:'Saira Condensed';font-weight:800;font-variant-numeric:tabular-nums;}
 @keyframes holo{0%{background-position:0% 50%;}100%{background-position:200% 50%;}}
 .holo{background:linear-gradient(110deg,#a6e9ff,#c9a6ff 25%,#ffd6f0 45%,#a6f0d6 65%,#a6e9ff 90%);
   background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:holo 6s linear infinite;}
 
 /* ===== shell ===== */
-.app{width:600px;max-width:100%;}
+.app{width:600px;}
 
 /* ===== top bar ===== */
 .topbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
@@ -82,6 +88,9 @@ body{font-family:'Oswald',sans-serif;background:#05070b;color:#e8f1fa;min-height
 .gem .shine{position:absolute;top:0;left:-40%;width:40%;height:100%;transform:skewX(-18deg);
   background:linear-gradient(105deg,transparent,rgba(255,255,255,.4),transparent);}
 .gem.grand .shine{animation:sweep 3.4s ease-in-out infinite;}
+.jp-bar.live{animation:jpLive 1s ease-in-out infinite;}
+.jp-bar.live .gem{border-color:rgba(255,210,60,.7);}
+@keyframes jpLive{0%,100%{filter:drop-shadow(0 0 3px rgba(255,210,60,.4));}50%{filter:drop-shadow(0 0 12px rgba(255,210,60,.95));}}
 @keyframes sweep{0%{left:-50%}55%{left:130%}100%{left:130%}}
 @keyframes jpHit{0%{transform:scale(1)}25%{transform:scale(1.12)}60%{transform:scale(.96)}100%{transform:scale(1)}}
 
@@ -98,7 +107,12 @@ body{font-family:'Oswald',sans-serif;background:#05070b;color:#e8f1fa;min-height
 .reel-wrapper::after{bottom:0;background:linear-gradient(to top,#0a0e14 18%,transparent);}
 .reel-wrapper.antic{box-shadow:inset 0 0 0 2px rgba(120,200,255,.8),0 0 22px rgba(120,200,255,.6);animation:anticPulse .5s ease-in-out infinite;}
 @keyframes anticPulse{0%,100%{box-shadow:inset 0 0 0 2px rgba(120,200,255,.5),0 0 14px rgba(120,200,255,.4);}50%{box-shadow:inset 0 0 0 2px rgba(120,200,255,1),0 0 28px rgba(120,200,255,.8);}}
+.reel-wrapper.antic-hot{animation:anticHot .3s ease-in-out infinite;z-index:4;}
+@keyframes anticHot{0%,100%{box-shadow:inset 0 0 0 2px rgba(255,210,60,.75),0 0 18px rgba(255,140,40,.6);}50%{box-shadow:inset 0 0 0 3px rgba(255,90,80,1),0 0 42px rgba(255,120,40,1);}}
 .reel{display:flex;flex-direction:column;will-change:transform;}
+.reel-wrapper.blur{filter:url(#reelblur);}
+@keyframes shake{0%,100%{transform:translate(0,0)}15%{transform:translate(-4px,2px)}30%{transform:translate(4px,-2px)}45%{transform:translate(-3px,-3px)}60%{transform:translate(3px,3px)}75%{transform:translate(-2px,2px)}}
+.machine.shake{animation:shake .5s ease-in-out;}
 .reels-frame::before{content:'';position:absolute;left:8px;right:8px;top:calc(8px + 78px);height:78px;z-index:2;pointer-events:none;
   border-top:2px solid rgba(160,200,255,.3);border-bottom:2px solid rgba(160,200,255,.3);border-radius:3px;}
 #win-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10;overflow:visible;}
@@ -134,9 +148,10 @@ body{font-family:'Oswald',sans-serif;background:#05070b;color:#e8f1fa;min-height
 .win-detail{font-size:10px;color:#6f7c8c;font-weight:600;margin-top:2px;letter-spacing:.3px;}
 
 /* free spins bar */
-.fs-bar{display:none;text-align:center;border-radius:10px;padding:6px 12px;margin-bottom:8px;font-weight:700;letter-spacing:1px;font-size:12px;color:#9af0c8;
+.fs-bar{display:none;text-align:center;border-radius:10px;padding:7px 12px;margin-bottom:8px;font-weight:700;letter-spacing:1px;font-size:12px;color:#9af0c8;
   background:rgba(10,30,24,.7);border:1px solid rgba(54,224,160,.4);box-shadow:0 0 14px rgba(54,224,160,.2);}
-.fs-bar.on{display:block;}
+.fs-bar.on{display:block;animation:fsPulse 1.1s ease-in-out infinite;}
+@keyframes fsPulse{0%,100%{box-shadow:0 0 12px rgba(54,224,160,.25);border-color:rgba(54,224,160,.4);}50%{box-shadow:0 0 22px rgba(54,224,160,.7);border-color:rgba(54,224,160,.9);}}
 
 /* controls */
 .controls{display:flex;align-items:center;gap:7px;margin-bottom:6px;}
@@ -168,6 +183,7 @@ body{font-family:'Oswald',sans-serif;background:#05070b;color:#e8f1fa;min-height
 .pt-row.top{background:rgba(120,200,255,.06);border-radius:9px;}
 .pt-ic{width:32px;height:32px;border-radius:50%;flex:none;background:linear-gradient(160deg,#cdddec,#5d6b7a);border:2px solid #141b24;display:flex;align-items:center;justify-content:center;padding:3px;}
 .pt-ic img{width:100%;height:100%;object-fit:contain;}
+.pt-ic svg{width:100%;height:100%;overflow:visible;}
 .pt-ic.fav{border:2px solid transparent;background:linear-gradient(160deg,#cdddec,#5d6b7a) padding-box,linear-gradient(110deg,#36e0ff,#a06bff,#ff6bd0) border-box;box-shadow:0 0 10px rgba(160,120,255,.6);}
 .pt-nm{flex:1;font-weight:600;font-size:12.5px;}
 .pt-nm small{display:block;font-size:9.5px;color:#7e8c9c;letter-spacing:.5px;}
@@ -278,16 +294,31 @@ body{font-family:'Oswald',sans-serif;background:#05070b;color:#e8f1fa;min-height
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:150;background:rgba(12,18,26,.95);border:1px solid rgba(180,220,255,.3);
   border-radius:12px;padding:10px 18px;font-weight:600;font-size:13px;color:#cfe3f5;box-shadow:0 6px 20px rgba(0,0,0,.6);opacity:0;transition:opacity .3s;}
 .toast.on{opacity:1;}
+/* ===== game picker lobby ===== */
+.lobby-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;}
+.lobby-card{border-radius:16px;padding:14px 12px;text-align:center;cursor:pointer;
+  background:linear-gradient(160deg,#1a222d,#0c1119);border:1px solid rgba(180,220,255,.18);transition:transform .12s,border-color .15s;}
+.lobby-card:hover{transform:translateY(-3px);border-color:rgba(160,200,255,.55);}
+.lobby-card .lc-art{height:84px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:40px;position:relative;margin-bottom:10px;border:1px solid rgba(180,220,255,.14);}
+.lobby-card .lc-art span{font-size:26px;margin-left:-6px;margin-top:14px;}
+.lobby-card .lc-nm{font-family:'Anton';font-size:17px;letter-spacing:.5px;color:#eaf3fb;}
+.lobby-card .lc-tag{font-size:10px;color:#8aa0b4;font-weight:600;margin:3px 0 12px;line-height:1.35;min-height:26px;}
+.lobby-card .pbtn{width:100%;padding:9px;font-size:14px;}
+@media(max-width:430px){.lobby-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
 
+<svg width="0" height="0" style="position:absolute;pointer-events:none" aria-hidden="true"><filter id="reelblur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0 3.6"/></filter></svg>
+
 <div id="splash"><div class="sl">DFL<small>FANTASY SLOTS</small></div><div class="sbar"><i></i></div></div>
 
-<div class="app">
+<div class="fit-wrap" id="fit-wrap">
+<div class="app" id="app-root">
   <div class="topbar">
     <div class="cur gc" id="cur-gc"><div class="ico">🪙</div><div><div class="k">Gold coins</div><div class="v money" id="ui-gc">0</div></div><button class="add" id="btn-store-gc">+</button></div>
     <div class="cur sc" id="cur-sc"><div class="ico">🎟️</div><div><div class="k">Sweeps</div><div class="v money" id="ui-sc">$0.00</div></div><button class="add" id="btn-store-sc">+</button></div>
+    <button class="iconbtn" id="btn-games" title="Game menu">🎮</button>
     <button class="iconbtn" id="btn-wheel">🎡</button>
     <button class="iconbtn" id="btn-lead">🏆</button>
     <button class="iconbtn" id="btn-settings">⚙</button>
@@ -349,12 +380,13 @@ body{font-family:'Oswald',sans-serif;background:#05070b;color:#e8f1fa;min-height
     <div class="paytable" id="paytable"><h4>Payline win × bet — 20 lines</h4><div id="pt-body"></div></div>
   </div>
 </div>
+</div>
 
 <!-- TEAM SELECT -->
 <div class="overlay" id="team-overlay">
   <div class="panel">
     <h2 class="holo">PICK YOUR TEAM</h2>
-    <div class="ph-sub">Your favorite becomes the highest-paying symbol behind the wilds.</div>
+    <div class="ph-sub">Your favorite is the top team symbol — the playoff symbols and Super Bowl pay even more.</div>
     <div class="team-grid" id="team-grid"></div>
     <div style="text-align:center;margin-top:18px;"><button class="pbtn" id="team-confirm">START ▸</button></div>
   </div>
@@ -438,6 +470,28 @@ body{font-family:'Oswald',sans-serif;background:#05070b;color:#e8f1fa;min-height
   </div>
 </div>
 
+<!-- GAME PICKER LOBBY -->
+<div class="overlay" id="lobby-overlay" style="z-index:160">
+  <div class="panel" style="width:580px">
+    <h2 class="holo">DFL CASINO</h2>
+    <div class="ph-sub">Choose your slot game</div>
+    <div class="lobby-grid">
+      <div class="lobby-card" id="lc-dfl">
+        <div class="lc-art" style="background:radial-gradient(120% 120% at 50% 0%,#243043,#0c1119)">🏈<span>🎰</span></div>
+        <div class="lc-nm">DFL Fantasy Slots</div>
+        <div class="lc-tag">Playoff symbols · free kicks · live jackpots</div>
+        <button class="pbtn">PLAY ▸</button>
+      </div>
+      <div class="lobby-card" id="lc-gold">
+        <div class="lc-art" style="background:radial-gradient(120% 120% at 50% 0%,#3a2e10,#0c1119)">💰<span>🏆</span></div>
+        <div class="lc-nm">DFL Gold Rush</div>
+        <div class="lc-tag">Hold &amp; Win · lock coins · pop the pots · GRAND</div>
+        <button class="pbtn" style="background:linear-gradient(180deg,#ffe27a,#e0a020)">PLAY ▸</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -455,7 +509,7 @@ const ESPN=a=>`https://a.espncdn.com/i/teamlogos/nfl/500/${a}.png`;
 const TEAMS=[['nyg','Giants'],['dal','Cowboys'],['min','Vikings'],['chi','Bears'],['ne','Patriots'],['phi','Eagles']];
 const TEAMNAME=Object.fromEntries(TEAMS);
 
-const SVG_WILD=`<svg viewBox="0 0 70 70"><defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a6e9ff"/><stop offset=".5" stop-color="#c9a6ff"/><stop offset="1" stop-color="#ff6bd0"/></linearGradient></defs>
+const SVG_WILD=`<svg viewBox="0 0 70 70"><defs><linearGradient id="wg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a6e9ff"/><stop offset=".38" stop-color="#c9a6ff"/><stop offset=".68" stop-color="#ff6bd0"/><stop offset="1" stop-color="#a6f0d6"/></linearGradient></defs>
 <polygon points="35,3 44,25 68,25 49,40 57,64 35,49 13,64 21,40 2,25 26,25" fill="url(#wg)" stroke="#11212e" stroke-width="3" stroke-linejoin="round"/>
 <polygon points="35,12 41,28 58,28 45,38 50,55 35,45 20,55 25,38 12,28 29,28" fill="rgba(255,255,255,.4)"/>
 <text x="35" y="40" text-anchor="middle" font-size="11" fill="#11212e" font-weight="900" font-family="Anton,Arial">WILD</text></svg>`;
@@ -472,30 +526,48 @@ const SVG_TROPHY=`<svg viewBox="0 0 70 70"><defs><linearGradient id="tg" x1="0" 
 <path d="M13,13 C8,13 5,17 5,23 C5,30 11,34 18,35" fill="none" stroke="#3a2400" stroke-width="3"/><path d="M57,13 C62,13 65,17 65,23 C65,30 59,34 52,35" fill="none" stroke="#3a2400" stroke-width="3"/>
 <text x="35" y="36" text-anchor="middle" font-size="13" fill="#3a2400" font-weight="900" font-family="Anton,Arial">DFL</text></svg>`;
 
+/* Playoff-round medals — premium paying symbols, ranked Wild Card < Divisional < Conference < (Super Bowl trophy). */
+const medalSVG=(id,c1,c2,c3,stars,label)=>`<svg viewBox="0 0 70 70"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset=".5" stop-color="${c2}"/><stop offset="1" stop-color="${c3}"/></linearGradient></defs>
+<path d="M14,10 L56,10 L56,34 C56,50 46,59 35,65 C24,59 14,50 14,34 Z" fill="url(#${id})" stroke="#11212e" stroke-width="3" stroke-linejoin="round"/>
+<path d="M19,15 L51,15 L51,33 C51,46 43,54 35,59 C27,54 19,46 19,33 Z" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.3"/>
+<text x="35" y="30" text-anchor="middle" font-size="11" fill="#fff7df" font-family="Arial" font-weight="700">${'★'.repeat(stars)}</text>
+<text x="35" y="51" text-anchor="middle" font-size="${label.length>3?10:13}" fill="#11212e" font-family="Anton,Arial" font-weight="900">${label}</text></svg>`;
+const SVG_WC=medalSVG('mwc','#f6c896','#dd8f44','#9a5a1e',1,'WC');
+const SVG_DIV=medalSVG('mdv','#f6fafe','#c2cedb','#7e8c9c',2,'DIV');
+const SVG_CONF=medalSVG('mcf','#ffeaa8','#ffce4d','#c9920f',3,'CONF');
+
 function teamTileHTML(abbr,isFav){
   return `<div class="tile${isFav?' fav':''}"><img src="${ESPN(abbr)}" alt="${TEAMNAME[abbr]}" draggable="false"></div>`;
 }
 
-/* SYMS built after favorite is known. Favorite = MAJOR (highest team), others = MINOR (flat equal).
-   FULL BOARD: no blanks — every cell shows an icon. PAY_SCALE tunes overall RTP (~97%, sim-verified). */
-let SYMS={},POOL=[],favorite=store.get('favorite',null);
-const PAY_SCALE=0.26; // global pay multiplier tuned for ~97% RTP (verified via Monte-Carlo simulation, ~97.2%)
+/* SYMS built after favorite is known. Pay ladder (3-of-a-kind, ×PS): other team < favorite < Wild Card
+   < Divisional < Conference < Super Bowl (DFL Trophy) < WILD. Playoff symbols pay above the team logos
+   and climb with the round. FULL BOARD: no blanks. PAY_SCALE tunes overall RTP. */
+let SYMS={},POOL=[],FS_POOL=[],favorite=store.get('favorite',null);
+const PAY_SCALE=0.26; // global pay multiplier tuning overall RTP
 const PS=PAY_SCALE;
 const JP={mini:{mult:20*PS,label:'MINI'},minor:{mult:30*PS,label:'MINOR'},major:{mult:60*PS,label:'MAJOR'},grand:{mult:500*PS,label:'GRAND'}};
 function buildSyms(fav){
   SYMS={
-    wild:{type:'svg',html:SVG_WILD,name:'WILD',isWild:true,rarity:2,pay:{3:10*PS,4:50*PS,5:500*PS},jackpot:'grand'},
+    wild:{type:'svg',html:SVG_WILD,name:'WILD',isWild:true,rarity:2,pay:{3:15*PS,4:60*PS,5:500*PS},jackpot:'grand'},
     scatter:{type:'svg',html:SVG_SCATTER,name:'FOOTBALL',isScatter:true,rarity:3,pay:null},
-    trophy:{type:'svg',html:SVG_TROPHY,name:'TROPHY',rarity:6,pay:{2:0.3*PS,3:1*PS,4:5*PS,5:20*PS},jackpot:'mini'},
+    trophy:{type:'svg',html:SVG_TROPHY,name:'SUPER BOWL',rarity:9,pay:{2:2.5*PS,3:14*PS,4:48*PS,5:220*PS},jackpot:'major'},
+    conference:{type:'svg',html:SVG_CONF,name:'CONFERENCE',rarity:7,pay:{2:2*PS,3:9*PS,4:30*PS,5:150*PS}},
+    divisional:{type:'svg',html:SVG_DIV,name:'DIVISIONAL',rarity:9,pay:{3:6*PS,4:20*PS,5:100*PS}},
+    wildcard:{type:'svg',html:SVG_WC,name:'WILD CARD',rarity:11,pay:{3:4*PS,4:14*PS,5:70*PS}},
   };
   TEAMS.forEach(([abbr,nm])=>{
     const isFav=abbr===fav;
-    SYMS[abbr]={type:'team',abbr,name:nm.toUpperCase(),rarity:13,
-      pay:isFav?{2:1*PS,3:3*PS,4:12*PS,5:60*PS}:{3:1.5*PS,4:6*PS,5:30*PS},jackpot:isFav?'major':'minor',isFav};
+    SYMS[abbr]={type:'team',abbr,name:nm.toUpperCase(),rarity:11,
+      pay:isFav?{2:1*PS,3:3*PS,4:12*PS,5:60*PS}:{3:1.5*PS,4:6*PS,5:30*PS},jackpot:isFav?'minor':'mini',isFav};
   });
   POOL=[];Object.entries(SYMS).forEach(([id,s])=>{for(let i=0;i<s.rarity;i++)POOL.push(id);});
+  // Free-kick "hot" pool: extra Wild Cards on the reels → more big wins during free spins.
+  FS_POOL=POOL.slice();for(let i=0;i<FS_BONUS_WILDS;i++)FS_POOL.push('wild');
 }
+const FS_BONUS_WILDS=3; // extra wild entries added to the reel pool during free kicks
 const rndSym=()=>POOL[Math.floor(Math.random()*POOL.length)];
+const rndFrom=pool=>pool[Math.floor(Math.random()*pool.length)];
 function symHTML(id){const s=SYMS[id];return s.type==='team'?teamTileHTML(s.abbr,s.isFav):s.html;}
 
 const PAYLINES=[[0,0,0,0,0],[1,1,1,1,1],[2,2,2,2,2],[3,3,3,3,3],[0,1,2,3,2],[3,2,1,0,1],[1,0,1,2,1],[2,3,2,1,2],
@@ -517,6 +589,7 @@ let autoCount=0;
 let spinning=false,freeSpins=0,fsMult=1;
 const AUTO_STEPS=[0,10,25,50,100];
 let autoStepIdx=0;
+let appScale=1; // current responsive scale of .app (set by fitScreen) — used to map screen px → svg units
 
 const ROWS=4,RCOLS=5,CELL=78,STRIP=30;
 const reelEls=Array.from({length:RCOLS},(_,i)=>document.getElementById('r'+i));
@@ -545,6 +618,9 @@ function beep(freq,dur,type,vol){
 const sndStop=()=>beep(220+Math.random()*60,0.06,'square',0.05);
 const sndWin=()=>{[523,659,784].forEach((f,i)=>setTimeout(()=>beep(f,0.18,'triangle',0.09),i*70));};
 function sndFanfare(){[392,523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.3,'triangle',0.1),i*110));}
+function sndRiser(){if(!soundOn)return;const c=ac();if(!c)return;const o=c.createOscillator(),g=c.createGain();o.type='sawtooth';o.frequency.setValueAtTime(160,c.currentTime);o.frequency.exponentialRampToValueAtTime(960,c.currentTime+1.0);g.gain.setValueAtTime(0.045,c.currentTime);g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+1.15);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+1.2);}
+function sndHeart(){beep(72,0.12,'sine',0.13);setTimeout(()=>beep(58,0.15,'sine',0.11),190);}
+function shake(ms){const m=document.querySelector('.machine');if(!m)return;m.classList.remove('shake');void m.offsetWidth;m.classList.add('shake');setTimeout(()=>m.classList.remove('shake'),ms||500);}
 
 /* ════════════ UI ════════════ */
 function updateJP(){
@@ -570,7 +646,8 @@ function ui(){
   $('s-mult').textContent='×'+fsMult;
   if(favorite){$('ui-mt-img').src=ESPN(favorite);$('ui-mt-nm').textContent=TEAMNAME[favorite];}
   const fb=$('fs-bar');
-  if(freeSpins>0){fb.textContent=`🏈 FREE KICKS: ${freeSpins} left · ×${fsMult}`;fb.classList.add('on');}else fb.classList.remove('on');
+  if(freeSpins>0){fb.textContent=`🏈 FREE KICKS: ${freeSpins} left · ×${fsMult} · extra WILDS · JACKPOTS LIVE`;fb.classList.add('on');}else fb.classList.remove('on');
+  const jpb=document.querySelector('.jp-bar');if(jpb)jpb.classList.toggle('live',freeSpins>0);
   updateJP();
 }
 function persist(){store.set('gc',gc);store.set('sc',sc);store.set('xp',xp);store.set('level',level);store.set('betIdx',betIdx);store.set('currency',currency);}
@@ -591,20 +668,99 @@ function addXP(n){
 const DELAYS=[0,.12,.24,.36,.48,.6,.72,.84,.96,1.08,1.2,1.32,1.44,1.56,1.68,.06,.18,.3,.42,.54];
 function animTarget(c){return c.querySelector('svg')||c.querySelector('.tile');}
 function applyIdle(){
-  reelEls.forEach(el=>Array.from(el.querySelectorAll('.reel-cell')).slice(-ROWS).forEach(c=>{
+  reelEls.forEach(el=>Array.from(el.querySelectorAll('.reel-cell')).slice(0,ROWS).forEach(c=>{
     const t=animTarget(c);if(!t)return;t.style.animationDelay=DELAYS[Math.floor(Math.random()*DELAYS.length)]+'s';t.classList.add('idle-bounce');}));
 }
 function clearIdle(){document.querySelectorAll('.reel-cell svg,.reel-cell .tile').forEach(el=>{el.classList.remove('idle-bounce');el.style.animationDelay='';});}
 function cellHTML(id){return `<div class="reel-cell" data-s="${id}">${symHTML(id)}</div>`;}
-function animateReel(el,result4,dur){
-  const strip=[];for(let i=0;i<STRIP-ROWS;i++)strip.push(rndSym());result4.forEach(s=>strip.push(s));
-  el.innerHTML=strip.map(cellHTML).join('');
-  const startY=-(6*CELL),endY=-((STRIP-ROWS)*CELL);
-  el.style.transition='none';el.style.transform=`translateY(${startY}px)`;el.getBoundingClientRect();
-  el.style.transition=`transform ${dur}ms cubic-bezier(0.12,0,0.08,1)`;el.style.transform=`translateY(${endY}px)`;
-  return new Promise(r=>setTimeout(()=>{sndStop();r();},dur));
+/* ── continuous reel engine ──
+   Every reel scrolls top-to-bottom at a constant fast speed via one shared rAF loop.
+   Reels stop left-to-right: each keeps whipping past at full speed until its turn, then
+   decelerates onto its result. Cells recycle (one in at the top, one off the bottom) so the
+   DOM stays tiny no matter how long a reel spins. */
+const REEL_BUF=ROWS+2;            // cells held while a reel is looping
+function initSpinReel(r){
+  const cells=Array.from({length:REEL_BUF},()=>rndSym());
+  r.el.innerHTML=cells.map(cellHTML).join('');
+  r.el.style.transition='none';r.el.style.transform=`translateY(${-CELL}px)`;r.ty=0;
 }
-function makeGrid(){return Array.from({length:RCOLS},()=>Array.from({length:ROWS},()=>rndSym()));}
+function tickReel(r,dt,v){
+  r.ty+=v*dt;
+  while(r.ty>=CELL){
+    r.ty-=CELL;
+    r.el.insertAdjacentHTML('afterbegin',cellHTML(rndSym()));   // new symbol falls in at top
+    if(r.el.lastElementChild)r.el.removeChild(r.el.lastElementChild);
+  }
+  r.el.style.transform=`translateY(${-CELL+r.ty}px)`;
+}
+function settleReel(r){
+  return new Promise(res=>{
+    const K=REEL_BUF+4;                                          // settle run-out distance
+    const block=r.result.concat(Array.from({length:K-ROWS},()=>rndSym())); // result on TOP
+    r.el.insertAdjacentHTML('afterbegin',block.map(cellHTML).join(''));
+    const startY=-CELL+r.ty-K*CELL;                              // keep the frame visually continuous
+    r.el.style.transition='none';r.el.style.transform=`translateY(${startY}px)`;r.el.getBoundingClientRect();
+    const ms=turbo?240:430;
+    r.el.style.transition=`transform ${ms}ms cubic-bezier(0.17,0.72,0.13,1)`;r.el.style.transform='translateY(0px)';
+    setTimeout(()=>{
+      r.el.style.transition='none';r.el.innerHTML=r.result.map(cellHTML).join('');r.el.style.transform='translateY(0px)';
+      sndStop();res();
+    },ms);
+  });
+}
+async function runReels(grid){
+  const R=reelEls.map((el,i)=>({el,result:grid[i],ty:0,active:true}));
+  R.forEach(initSpinReel);
+  wrappers.forEach(w=>w.classList.add('blur'));
+  const v=turbo?6.4:4.8;          // px per ms — fast, constant
+  let running=true,lastTs=null;
+  (function frame(ts){
+    if(!running)return;
+    if(lastTs===null)lastTs=ts;
+    const dt=Math.min(48,ts-lastTs);lastTs=ts;
+    for(const r of R)if(r.active)tickReel(r,dt,v);
+    requestAnimationFrame(frame);
+  })(performance.now());
+
+  // feature anticipation, evaluated left-to-right from the predetermined grid
+  const scBefore=[],trBefore=[];let sc=0,tr=0;
+  for(let i=0;i<RCOLS;i++){scBefore[i]=sc;trBefore[i]=tr;sc+=grid[i].includes('scatter')?1:0;tr+=grid[i].filter(s=>s==='trophy').length;}
+
+  const settleProms=[];
+  for(let i=0;i<RCOLS;i++){
+    const scLive=scBefore[i]>=2;                  // 2 footballs already down → 1 more = free kicks
+    const trLive=trBefore[i]>=3&&trBefore[i]<6;   // chasing the 6-trophy bonus
+    const live=scLive||trLive, oneAway=scLive||trBefore[i]>=5;
+    if(live){
+      wrappers[i].classList.add('antic');
+      if(oneAway){wrappers[i].classList.add('antic-hot');shake();sndRiser();}else sndHeart();
+    }
+    const step=(i===0?(turbo?240:500):(turbo?150:300))+(live?(oneAway?(turbo?900:1700):(turbo?440:920)):0);
+    await delay(step);
+    R[i].active=false;wrappers[i].classList.remove('blur');
+    // this reel resolves — drop its drama after the "attempt", then the next reel re-evaluates
+    settleProms.push(settleReel(R[i]).then(()=>wrappers[i].classList.remove('antic','antic-hot')));
+  }
+  await Promise.all(settleProms);
+  running=false;
+  wrappers.forEach(w=>w.classList.remove('antic','antic-hot','blur'));
+}
+function makeGrid(pool){
+  pool=pool||POOL;
+  return Array.from({length:RCOLS},()=>{
+    const col=Array.from({length:ROWS},()=>rndFrom(pool));
+    // Footballs (scatters) land at most ONE per reel — free-kick triggers must spread across reels.
+    // Super Bowl trophies are allowed to stack, so the bonus can build on a single reel.
+    let hasScatter=false;
+    for(let r=0;r<ROWS;r++){
+      if(col[r]==='scatter'){
+        if(hasScatter){do{col[r]=rndFrom(pool);}while(col[r]==='scatter');}
+        else hasScatter=true;
+      }
+    }
+    return col;
+  });
+}
 
 function calcWins(grid,b){
   let total=0;const wins=[];
@@ -634,7 +790,7 @@ function drawWinLines(wins){
   const fr=$('reels-frame').getBoundingClientRect();
   wins.forEach(w=>{
     const color=LINE_COLORS[w.lineIdx%LINE_COLORS.length];
-    const pts=w.line.map((row,reel)=>{const cells=Array.from(reelEls[reel].querySelectorAll('.reel-cell')).slice(-ROWS);const r=cells[row].getBoundingClientRect();return[(r.left-fr.left+r.width/2),(r.top-fr.top+r.height/2)];});
+    const pts=w.line.map((row,reel)=>{const cells=Array.from(reelEls[reel].querySelectorAll('.reel-cell')).slice(0,ROWS);const r=cells[row].getBoundingClientRect();return[(r.left-fr.left+r.width/2)/appScale,(r.top-fr.top+r.height/2)/appScale];});
     const str=pts.map(p=>p.join(',')).join(' ');
     [['14','0.2'],['3','0.9']].forEach(([w2,op])=>{const p=document.createElementNS('http://www.w3.org/2000/svg','polyline');p.setAttribute('points',str);p.setAttribute('stroke',color);p.setAttribute('stroke-width',w2);p.setAttribute('stroke-linecap','round');p.setAttribute('stroke-linejoin','round');p.setAttribute('fill','none');p.setAttribute('opacity',op);svg.appendChild(p);});
   });
@@ -642,7 +798,7 @@ function drawWinLines(wins){
 const clearWinLines=()=>{$('win-svg').innerHTML='';};
 function highlight(wins,scatters){
   document.querySelectorAll('.reel-cell').forEach(c=>c.classList.remove('win-hl','scat-hl'));
-  const vis=reelEls.map(el=>Array.from(el.querySelectorAll('.reel-cell')).slice(-ROWS));
+  const vis=reelEls.map(el=>Array.from(el.querySelectorAll('.reel-cell')).slice(0,ROWS));
   wins.forEach(w=>w.line.forEach((row,reel)=>{if(reel<w.consec)vis[reel][row].classList.add('win-hl');}));
   if(scatters>=3)vis.forEach(col=>col.forEach(c=>{if(c.dataset.s==='scatter')c.classList.add('scat-hl');}));
 }
@@ -675,21 +831,10 @@ async function spin(){
   if(!free){setBal(curBal()-bet());}else{freeSpins--;}
   spinning=true;$('spin-btn').disabled=autoCount===0;
   msg('');setWin(0);ui();clearIdle();clearWinLines();
-  wrappers.forEach(w=>w.classList.remove('antic'));
+  wrappers.forEach(w=>w.classList.remove('antic','antic-hot','blur'));
 
-  const grid=makeGrid();
-  /* scatter anticipation: 2+ scatters in first 3 reels -> slow + glow reels 4,5 */
-  const earlyScat=grid.slice(0,3).flat().filter(s=>s==='scatter').length;
-  const base=turbo?220:680,stepd=turbo?70:230;
-  const durs=reelEls.map((el,i)=>base+i*stepd);
-  if(earlyScat>=2){durs[3]+=turbo?500:1100;durs[4]+=turbo?900:2000;}
-  const spins=reelEls.map((el,i)=>{
-    const p=animateReel(el,grid[i],durs[i]);
-    if(earlyScat>=2&&i>=3){setTimeout(()=>wrappers[i].classList.add('antic'),durs[i-1]||0);}
-    return p;
-  });
-  await Promise.all(spins);
-  wrappers.forEach(w=>w.classList.remove('antic'));
+  const grid=makeGrid(free?FS_POOL:POOL);
+  await runReels(grid);
 
   const{wins,total,scatters,trophies}=calcWins(grid,bet());
   const eff=total*fsMult;
@@ -704,8 +849,12 @@ async function spin(){
     const detail=wins.slice(0,4).map(w=>`L${w.lineIdx+1}·${SYMS[w.target].name}×${w.consec}`).join('  ');
     if(topJP){
       const lbl=JP[topJP].label;celebrateJP(topJP);
-      msg(`🏆 ${lbl} JACKPOT!  +${fmtCur(eff)}`,'jackpot big');
-      await showBigWin(eff,topJP==='grand'?'EPIC WIN':topJP==='major'?'MEGA WIN':'BIG WIN',lbl+' JACKPOT · '+detail);
+      // During free kicks every jackpot is LIVE — a 5-of-a-kind pays the progressive prize on top.
+      let jpBonus=0;
+      if(free){jpBonus=roundAmt(JP[topJP].mult*bet());setBal(curBal()+jpBonus);}
+      const won=eff+jpBonus;setWin(won);
+      msg(`🏆 ${lbl} JACKPOT!  +${fmtCur(won)}`,'jackpot big');
+      await showBigWin(won,topJP==='grand'?'EPIC WIN':topJP==='major'?'MEGA WIN':'BIG WIN',lbl+' JACKPOT'+(free?' · FREE KICKS':'')+' · '+detail);
     }else{
       let tier=null;
       if(ratio>=50)tier='EPIC WIN';else if(ratio>=25)tier='MEGA WIN';else if(ratio>=15)tier='BIG WIN';
@@ -726,6 +875,9 @@ async function spin(){
   }
 
   spinning=false;$('spin-btn').disabled=false;ui();
+
+  // free kicks roll automatically so the bonus round is unmistakable
+  if(freeSpins>0){await delay(turbo?320:820);spin();return;}
 
   if(autoCount>0&&freeSpins===0){
     autoCount--;updateAutoLbl();
@@ -760,10 +912,11 @@ const FS_MULT=2;
 function startFreeSpins(count,sc2){
   freeSpins=count;fsMult=FS_MULT;
   $('fs-num').textContent=count;
-  $('fs-msg').textContent=`${sc2} footballs landed! All wins pay ×${FS_MULT} during free spins.`;
-  $('fs-overlay').classList.add('on');
+  $('fs-msg').textContent=`${sc2} footballs landed! Every win pays ×${FS_MULT}, the reels are loaded with extra WILDS, AND all four jackpots are LIVE — land 5 of a kind to win the Mini, Minor, Major or GRAND!`;
+  $('fs-overlay').classList.add('on');sndFanfare();
 }
-$('fs-go').addEventListener('click',()=>{$('fs-overlay').classList.remove('on');spinning=false;$('spin-btn').disabled=false;ui();});
+// "KICK OFF" closes the overlay and immediately starts the free kicks rolling
+$('fs-go').addEventListener('click',()=>{$('fs-overlay').classList.remove('on');spinning=false;$('spin-btn').disabled=false;ui();spin();});
 
 /* ════════════ bonus ════════════ */
 let bYards=50,bDown=1,bWin=0,bFD=10;const dnN=['1st','2nd','3rd','4th'];
@@ -852,7 +1005,7 @@ $('set-reset').addEventListener('click',()=>{if(confirm('Reset all progress and 
 /* close handlers */
 function closeAll(){document.querySelectorAll('.overlay').forEach(o=>{if(o.id!=='team-overlay'||favorite)o.classList.remove('on');});}
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>$(b.dataset.close).classList.remove('on')));
-document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o&&o.id!=='team-overlay'&&o.id!=='bigwin-overlay')o.classList.remove('on');}));
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o&&o.id!=='team-overlay'&&o.id!=='bigwin-overlay'&&o.id!=='lobby-overlay')o.classList.remove('on');}));
 
 /* ════════════ paytable ════════════ */
 function buildPaytable(){
@@ -861,24 +1014,45 @@ function buildPaytable(){
   const fm=x=>{const v=Math.round(x*100)/100;return Number.isInteger(v)?v:v.toFixed(2);};
   const pv=id=>{const s=SYMS[id];if(!s||!s.pay)return '';const p=s.pay;return (p[2]?`2:${fm(p[2])}×  `:'')+`3:${fm(p[3])}×  4:${fm(p[4])}×  5:${fm(p[5])}×`;};
   const rows=[
-    {ic:'wild',nm:'Wild',sub:'Substitutes all · 5 = GRAND',val:pv('wild'),wild:1},
-    {ic:fav,nm:favNm,sub:'YOUR TEAM · highest team pay',val:pv(fav),top:1,fav:1},
+    {ic:'wild',nm:'Wild',sub:'Subs for all · 5 = GRAND · extra in free kicks',val:pv('wild'),wild:1},
+    {ic:'trophy',nm:'Super Bowl',sub:'DFL Trophy · TOP PAY · HOLD 6 = BONUS',val:pv('trophy'),top:1},
+    {ic:'conference',nm:'Conference',sub:'Playoff symbol',val:pv('conference')},
+    {ic:'divisional',nm:'Divisional',sub:'Playoff symbol',val:pv('divisional')},
+    {ic:'wildcard',nm:'Wild Card',sub:'Playoff symbol · pays above the teams',val:pv('wildcard')},
+    {ic:fav,nm:favNm,sub:'YOUR TEAM · best team pay',val:pv(fav),fav:1},
     {ic:'other',nm:'Every other team',sub:'All teams pay the same',val:pv(otherTeam)},
-    {ic:'trophy',nm:'DFL Trophy',sub:'5 = mini jackpot · HOLD 6 = BONUS',val:pv('trophy')},
     {ic:'foot',nm:'Football (scatter)',sub:'HIT 3 = FREE SPINS',val:'SCATTER'},
   ];
   $('pt-body').innerHTML=rows.map(r=>{
     let inner,cls='pt-ic'+(r.fav?' fav':'');
-    if(r.ic==='wild')inner='<span style="font-size:16px">⭐</span>';
-    else if(r.ic==='trophy')inner='<span style="font-size:16px">🏆</span>';
-    else if(r.ic==='foot')inner='<span style="font-size:16px">🏈</span>';
+    if(r.ic==='foot')inner=SYMS.scatter.html;
     else if(r.ic==='other')inner=`<img src="${ESPN(otherTeam)}" alt="">`;
+    else if(SYMS[r.ic]&&SYMS[r.ic].type==='svg')inner=SYMS[r.ic].html;        // wild / trophy / playoff medals
     else inner=`<img src="${ESPN(r.ic)}" alt="">`;
     const badge=r.top?'<span class="badge-top">TOP PAY</span>':'';
     return `<div class="pt-row${r.top?' top':''}"><div class="${cls}">${inner}</div><div class="pt-nm">${r.nm}${badge}<small>${r.sub}</small></div><div class="pt-val">${r.val}</div></div>`;
   }).join('');
 }
 $('pt-toggle').addEventListener('click',()=>{const pt=$('paytable');const open=pt.classList.toggle('open');$('pt-toggle').textContent=open?'▲ PAY TABLE':'▼ PAY TABLE';});
+
+/* ════════════ responsive fit — scale the whole machine to fit any screen ════════════ */
+function fitScreen(){
+  const app=$('app-root'),wrap=$('fit-wrap');if(!app||!wrap)return;
+  const w=app.offsetWidth||600,h=app.offsetHeight||820;            // natural size (transform-independent)
+  const vv=window.visualViewport;
+  const availW=(vv?vv.width:window.innerWidth)-6,availH=(vv?vv.height:window.innerHeight)-6;
+  const s=Math.max(0.35,Math.min(availW/w,availH/h,1.35));
+  appScale=s;
+  app.style.transform='scale('+s+')';
+  wrap.style.width=(w*s)+'px';wrap.style.height=(h*s)+'px';
+}
+let _fitRaf=0;
+function scheduleFit(){if(_fitRaf)return;_fitRaf=requestAnimationFrame(()=>{_fitRaf=0;fitScreen();});}
+window.addEventListener('resize',scheduleFit);
+window.addEventListener('orientationchange',scheduleFit);
+if(window.visualViewport)window.visualViewport.addEventListener('resize',scheduleFit);
+if(window.ResizeObserver){try{new ResizeObserver(scheduleFit).observe($('app-root'));}catch(e){}}
+document.addEventListener('contextmenu',e=>e.preventDefault());   // no long-press copy/callout
 
 /* ════════════ init ════════════ */
 function initReels(){
@@ -905,16 +1079,24 @@ function boot(){
     dailyCheck();
     setSound(soundOn);setTurbo(turbo);
     buildSyms(favorite||'chi');
-    initReels();buildPaytable();ui();updateAutoLbl();
+    initReels();buildPaytable();ui();updateAutoLbl();fitScreen();
   }catch(e){bootError(e);return;}
   setTimeout(()=>{
     try{
-      hideSplash();
-      if(!favorite){openTeamSelect();}
-      else if(wheelAvailable()){setTimeout(()=>{toast('🎡 Your daily wheel spin is ready!');},800);}
+      hideSplash();fitScreen();
+      $('lobby-overlay').classList.add('on');   // always open with the game picker
     }catch(e){bootError(e);}
   },1500);
 }
+// game picker: play this game in-place, or jump to Gold Rush
+function playDFL(){
+  $('lobby-overlay').classList.remove('on');fitScreen();
+  if(!favorite){openTeamSelect();}
+  else if(wheelAvailable()){setTimeout(()=>{toast('🎡 Your daily wheel spin is ready!');},600);}
+}
+$('lc-dfl').addEventListener('click',playDFL);
+$('lc-gold').addEventListener('click',()=>{location.href='slots2.html';});
+$('btn-games').addEventListener('click',()=>{$('lobby-overlay').classList.add('on');});
 // hard safety net: never let the splash trap the user, whatever happens
 setTimeout(hideSplash,2600);
 window.addEventListener('error',ev=>bootError(ev.error||ev.message));
