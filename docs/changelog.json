@@ -1,5 +1,14 @@
 [
  {
+  "version": "5.51.0",
+  "date": "2026-07-28",
+  "changes": [
+   "The app opens in about a second instead of nearly five. Almost all of that wait was a timer, not work: the splash screen was held for 4.2 seconds before the app was allowed to start reading your data, and because a second piece of code was hiding the splash at 2.6 seconds, you were left looking at a blank screen for roughly two seconds while nothing happened at all.",
+   "Your data is now read while the splash is still on screen rather than afterwards, and the splash stays up for a set minimum of about nine tenths of a second. So the launch takes as long as the slower of the two, instead of adding them together.",
+   "For comparison: the code-size work in the last release saved about 20 milliseconds of this. The timer was costing 4,600."
+  ]
+ },
+ {
   "version": "5.50.0",
   "date": "2026-07-28",
   "changes": [

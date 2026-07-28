@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.50.0';
+const VERSION = '5.51.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -80,10 +80,10 @@ const ICONS = {
 // ON RELEASE: replace the entry below, and prepend the outgoing one to
 // changelog.json so the archive stays complete.
 const CHANGELOG = [
-  { version: '5.50.0', date: '2026-07-28', changes: [
-    "Settings is reorganised. It was nine cards in one long scroll, and anything to do with how the app looks was spread across four of them — Theme, Font, Animations and Appearance. Now it's five groups (Look, Money, Privacy & lock, Alerts, Data), all closed when you arrive, so the whole page fits on one screen instead of nearly three. Tap a group to open it.",
-    "There's a search box at the top. It matches what you'd call a setting rather than only what it's named — type \"blur\" and you get Hide balances, \"fingerprint\" gets phone unlock, \"fake\" gets Screenshot mode, \"dark\" gets Theme. Groups holding a match open themselves; clear the box and everything shuts again.",
-    "Nothing was removed or renamed away. Every control is still there and works the same — the mascot, screenshot mode and the skins are all under Look now, alongside the theme, instead of being in a separate card that competed with it. Import / Export and About are reachable from Settings directly too.",
+  { version: '5.51.0', date: '2026-07-28', changes: [
+    "The app opens in about a second instead of nearly five. Almost all of that wait was a timer, not work: the splash screen was held for 4.2 seconds before the app was allowed to start reading your data, and because a second piece of code was hiding the splash at 2.6 seconds, you were left looking at a blank screen for roughly two seconds while nothing happened at all.",
+    "Your data is now read while the splash is still on screen rather than afterwards, and the splash stays up for a set minimum of about nine tenths of a second. So the launch takes as long as the slower of the two, instead of adding them together.",
+    "For comparison: the code-size work in the last release saved about 20 milliseconds of this. The timer was costing 4,600.",
   ]},
 ];
 
@@ -4268,6 +4268,10 @@ function _openColorPicker(currentHex, onApply) {
 }
 
 // ── splash screen ──────────────────────────────────────────────────────────
+// How long the splash is guaranteed to stay up. Data loading now runs alongside
+// it, so this is the floor on launch time rather than something added to it.
+const SPLASH_MIN_MS = 900;
+
 function runSplash() {
   return new Promise(resolve => {
     const el        = document.getElementById('splash-screen');
@@ -4306,11 +4310,20 @@ function runSplash() {
       done = true;
       stopAnim();
       el.classList.add('dismiss');
-      setTimeout(() => { el.remove(); resolve(); }, 450);
+      // Resolve as the fade STARTS, not after it. Boot awaits this promise, so
+      // waiting out the 450ms fade put it on the critical path for no reason —
+      // the fade can finish while the app is already loading behind it.
+      resolve();
+      setTimeout(() => { if (el.parentNode) el.remove(); }, 450);
     };
-    setTimeout(finish, 4200);
+    // Minimum display time, not a fixed wait. This used to be 4200ms while the
+    // inline escape hatch in index.html independently hid the splash at 2600ms —
+    // each with its own `done` flag, so the inline dismissal never released this
+    // promise. The result was ~2s of blank screen after the splash had gone,
+    // before any data loading started, and a ~4.9s launch.
+    setTimeout(finish, SPLASH_MIN_MS);
     el.addEventListener('click', finish, { once: true });
-    setTimeout(() => { if (!done) { done = true; el.remove(); resolve(); } }, 6000);
+    setTimeout(() => { if (!done) { done = true; if (el.parentNode) el.remove(); resolve(); } }, 6000);
   });
 }
 
@@ -12831,14 +12844,22 @@ window.addEventListener('popstate', () => {
     _earlyBlocker.style.cssText = 'position:fixed;inset:0;z-index:9997;background:var(--bg,#0f0f14)';
     document.body.appendChild(_earlyBlocker);
   }
+  // Start reading data WHILE the splash is up rather than after it. Both only
+  // touch localStorage and memory — nothing is rendered until the callback below —
+  // so the splash minimum and the load overlap instead of stacking.
+  // Before anything reads storage: if the last session ended while screenshot
+  // mode was on, the real data is still in the backup entry. Put it back.
+  recoverFromDemoMode();
+  const _loadStarted = api.load();
+  // Don't let a load failure surface as an unhandled rejection while we wait on
+  // the splash; the await below re-throws it into the existing try/catch.
+  _loadStarted.catch(() => {});
+
   await runSplash();
   showPinLock(async () => {
     _earlyBlocker?.remove();
     try {
-    // Before anything reads storage: if the last session ended while screenshot
-    // mode was on, the real data is still in the backup entry. Put it back.
-    recoverFromDemoMode();
-    await api.load();
+    await _loadStarted;
     await processRecurring();
     initSoundsToggle();
     initTapHaptics();
