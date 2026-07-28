@@ -1,0 +1,275 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings reorganisation mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0e1013; --surface:#171a1f; --surface2:#1e222a; --text:#f0f2f4; --muted:#838d98;
+  --border:rgba(255,255,255,.12); --accent:#4ea8ff; --danger:#ff453a;
+}
+body.light {
+  --bg:#f4f5f7; --surface:#ffffff; --surface2:#f2f3f5; --text:#14150f; --muted:#6d7278;
+  --border:rgba(0,0,0,.14); --accent:#2b7fd4; --danger:#c8352b;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  font-family:'Plus Jakarta Sans', system-ui, sans-serif;
+  background:var(--bg); color:var(--text); padding:26px 16px 70px; line-height:1.5;
+}
+.wrap { max-width:1220px; margin:0 auto; }
+h1 { font-size:1.45rem; font-weight:800; letter-spacing:-.02em; }
+.sub { color:var(--muted); font-size:.88rem; margin-top:6px; max-width:74ch; }
+.sub b { color:var(--text); font-weight:600; }
+.toolbar { display:flex; gap:10px; margin:16px 0 8px; flex-wrap:wrap; }
+.tbtn { font:inherit; font-size:.8rem; font-weight:600; cursor:pointer; background:var(--surface);
+  color:var(--text); border:1px solid var(--border); border-radius:999px; padding:6px 13px; }
+.tbtn:hover { border-color:var(--muted); }
+
+.cols { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:22px; margin-top:26px; }
+.col { min-width:0; }
+.chead { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:4px; }
+.cname { font-size:1.02rem; font-weight:700; }
+.ctag { font-size:.64rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); border:1px solid var(--border); border-radius:999px; padding:2px 8px; }
+.cnote { color:var(--muted); font-size:.8rem; margin-bottom:12px; }
+.cnote b { color:var(--text); font-weight:600; }
+
+/* phone frame so scroll length is comparable */
+.phone { background:var(--bg); border:1px solid var(--border); border-radius:20px;
+  height:520px; overflow-y:auto; padding:14px; position:relative; }
+.phone::-webkit-scrollbar { width:5px; }
+.phone::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+.ptitle { font-size:1.3rem; font-weight:800; margin-bottom:14px; letter-spacing:-.02em; }
+
+/* generic rows */
+.card { background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  padding:14px; margin-bottom:11px; }
+.card h3 { font-size:.66rem; font-weight:700; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:10px; }
+.row { display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:9px 0; border-bottom:1px solid var(--border); font-size:.85rem; }
+.row:last-child { border-bottom:0; }
+.row .val { color:var(--muted); font-size:.78rem; display:flex; align-items:center; gap:6px; }
+.chev { color:var(--muted); font-size:.9rem; }
+.sw { width:34px; height:20px; border-radius:999px; background:var(--border); position:relative; flex:none; }
+.sw.on { background:var(--accent); }
+.sw::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px;
+  border-radius:50%; background:#fff; transition:left .15s; }
+.sw.on::after { left:16px; }
+
+/* A · accordion */
+.acc { background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  margin-bottom:10px; overflow:hidden; }
+.acc-head { display:flex; align-items:center; gap:11px; padding:14px; cursor:pointer; }
+.acc-ico { width:26px; height:26px; border-radius:7px; background:var(--surface2);
+  display:grid; place-items:center; font-size:.9rem; flex:none; }
+.acc-t { flex:1; font-size:.9rem; font-weight:600; }
+.acc-c { font-size:.72rem; color:var(--muted); }
+.acc-body { padding:0 14px 12px; display:none; }
+.acc.open .acc-body { display:block; }
+.acc.open .acc-head { border-bottom:1px solid var(--border); }
+.acc-caret { color:var(--muted); transition:transform .15s; }
+.acc.open .acc-caret { transform:rotate(90deg); }
+
+/* B · index → subpage */
+.idx { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.idx-row { display:flex; align-items:center; gap:11px; padding:14px; cursor:pointer;
+  border-bottom:1px solid var(--border); }
+.idx-row:last-child { border-bottom:0; }
+.idx-row:hover { background:var(--surface2); }
+.idx-t { flex:1; font-size:.9rem; font-weight:600; }
+.idx-sub { font-size:.72rem; color:var(--muted); font-weight:400; display:block; margin-top:1px; }
+.subpage { display:none; }
+.subpage.active { display:block; }
+.back { display:inline-flex; align-items:center; gap:6px; font-size:.82rem; color:var(--accent);
+  cursor:pointer; margin-bottom:12px; font-weight:600; }
+
+/* C · search */
+.search { width:100%; font:inherit; font-size:.85rem; padding:10px 12px; margin-bottom:12px;
+  background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:10px; }
+.search::placeholder { color:var(--muted); }
+.hidden { display:none !important; }
+.nores { color:var(--muted); font-size:.82rem; padding:14px 2px; }
+</style>
+
+<div class="wrap">
+  <h1>Settings reorganisation</h1>
+  <p class="sub">
+    Today it's <b>9 flat cards</b> in one scroll, and anything to do with how the app looks is
+    spread across <b>four</b> of them — Theme, Font, Animations and Appearance. All three
+    mockups use the same regrouping; they differ only in how you get to it. Same phone-sized
+    frame in each, so the scroll length is directly comparable.
+  </p>
+  <div class="toolbar">
+    <button class="tbtn" id="theme">Toggle light / dark</button>
+    <button class="tbtn" id="today">Show today's layout</button>
+  </div>
+
+  <div class="cols">
+    <!-- ═══ TODAY ═══ -->
+    <div class="col" id="col-today" style="display:none">
+      <div class="chead"><span class="cname">Today</span><span class="ctag">9 cards, flat</span></div>
+      <p class="cnote">For comparison. Every card expanded, no grouping — <b>the whole page is one scroll</b>.</p>
+      <div class="phone" id="ph-today"></div>
+    </div>
+
+    <!-- ═══ A ═══ -->
+    <div class="col">
+      <div class="chead"><span class="cname">A · Collapsed groups</span><span class="ctag">Least work</span></div>
+      <p class="cnote">Five groups, all shut by default — the whole page fits without scrolling.
+        Tap one to open it in place. <b>No navigation to build</b>, and you never lose your place.</p>
+      <div class="phone" id="ph-a"></div>
+    </div>
+
+    <!-- ═══ B ═══ -->
+    <div class="col">
+      <div class="chead"><span class="cname">B · Index and subpages</span><span class="ctag">Easiest to scan</span></div>
+      <p class="cnote">A short menu; each group is its own page with a back link. <b>Closest to how
+        phone settings work</b>, so it needs no explaining — but it adds a real navigation layer.</p>
+      <div class="phone" id="ph-b"></div>
+    </div>
+
+    <!-- ═══ C ═══ -->
+    <div class="col">
+      <div class="chead"><span class="cname">C · Search first</span><span class="ctag">Fastest when you know</span></div>
+      <p class="cnote">Groups stay open, with a filter at the top — type "pin", "skin", "mascot".
+        <b>Fastest if you know the name</b>, but the page is still long when you don't. Try typing in it.</p>
+      <div class="phone" id="ph-c"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// One regrouping, shared by all three mockups. 5 groups instead of 9 flat cards.
+const GROUPS = [
+  { key:'look', icon:'◐', title:'Look', count:'Theme, skin, mascot, font, motion', items:[
+    ['Theme', 'Gengar', 'nav'],
+    ['App skin', 'Quiet', 'nav'],
+    ['Your mascot', 'Photo', 'nav'],
+    ['Font', 'Default', 'nav'],
+    ['Splash animation', true, 'sw'],
+    ['Reduce motion & effects', false, 'sw'],
+    ['Tap feedback', true, 'sw'],
+    ['Screenshot mode', false, 'sw'],
+  ]},
+  { key:'money', icon:'▤', title:'Money', count:'Mode, categories, accounts', items:[
+    ['App mode', 'Full', 'nav'],
+    ['Custom categories', '3 added', 'nav'],
+    ['Manage accounts', 'Checking, Savings', 'nav'],
+  ]},
+  { key:'lock', icon:'▲', title:'Privacy & lock', count:'PIN, unlock, hidden amounts', items:[
+    ['PIN lock', 'On', 'nav'],
+    ['Biometric unlock', true, 'sw'],
+    ['Hide amounts by default', false, 'sw'],
+  ]},
+  { key:'alerts', icon:'◔', title:'Alerts', count:'Bill and notes reminders', items:[
+    ['Notifications', false, 'sw'],
+    ['Bill reminders', 'Off', 'nav'],
+  ]},
+  { key:'data', icon:'▣', title:'Data', count:'Import, export, restore points', items:[
+    ['Import / Export', '', 'nav'],
+    ['Restore points', '4 saved', 'nav'],
+    ['About', 'v5.49.0', 'nav'],
+  ]},
+];
+
+const rowHtml = ([label, val, kind]) => kind === 'sw'
+  ? `<div class="row" data-name="${label.toLowerCase()}"><span>${label}</span>
+       <span class="sw${val ? ' on' : ''}"></span></div>`
+  : `<div class="row" data-name="${label.toLowerCase()}"><span>${label}</span>
+       <span class="val">${val}<span class="chev">›</span></span></div>`;
+
+// ── Today: 9 flat cards, everything expanded ─────────────────────────────────
+const TODAY = [
+  ['App Mode', [['App mode','Full','nav']]],
+  ['Accounts', [['Manage accounts','','nav']]],
+  ['Theme', [['Dark / Light','','nav'],['Terminal themes','','nav'],['Pokémon themes','Gengar','nav'],['Sports teams','','nav'],['Custom accent','','nav']]],
+  ['Font', [['Font style','Default','nav']]],
+  ['Custom Categories', [['Add a category','','nav'],['Your categories','3 added','nav']]],
+  ['Notifications', [['Enable notifications',false,'sw']]],
+  ['Privacy', [['PIN lock','On','nav'],['Biometric unlock',true,'sw'],['Hide amounts',false,'sw']]],
+  ['Animations', [['Splash animation',true,'sw'],['Reduce motion',false,'sw'],['Tap feedback',true,'sw']]],
+  ['Appearance', [['Your mascot','Photo','nav'],['Screenshot mode',false,'sw'],['App skin','Quiet','nav']]],
+];
+document.getElementById('ph-today').innerHTML =
+  `<div class="ptitle">Settings</div>` + TODAY.map(([t, rows]) =>
+    `<div class="card"><h3>${t}</h3>${rows.map(rowHtml).join('')}</div>`).join('');
+
+// ── A · accordion ────────────────────────────────────────────────────────────
+document.getElementById('ph-a').innerHTML =
+  `<div class="ptitle">Settings</div>` + GROUPS.map(g => `
+    <div class="acc" data-k="${g.key}">
+      <div class="acc-head">
+        <span class="acc-ico">${g.icon}</span>
+        <span class="acc-t">${g.title}<span class="idx-sub">${g.count}</span></span>
+        <span class="acc-caret">›</span>
+      </div>
+      <div class="acc-body">${g.items.map(rowHtml).join('')}</div>
+    </div>`).join('');
+document.getElementById('ph-a').addEventListener('click', e => {
+  const h = e.target.closest('.acc-head');
+  if (h) h.parentElement.classList.toggle('open');
+});
+
+// ── B · index → subpage ──────────────────────────────────────────────────────
+document.getElementById('ph-b').innerHTML = `
+  <div class="subpage active" data-p="root">
+    <div class="ptitle">Settings</div>
+    <div class="idx">${GROUPS.map(g => `
+      <div class="idx-row" data-go="${g.key}">
+        <span class="acc-ico">${g.icon}</span>
+        <span class="idx-t">${g.title}<span class="idx-sub">${g.count}</span></span>
+        <span class="chev">›</span>
+      </div>`).join('')}</div>
+  </div>
+  ${GROUPS.map(g => `
+    <div class="subpage" data-p="${g.key}">
+      <span class="back" data-back>‹ Settings</span>
+      <div class="ptitle">${g.title}</div>
+      <div class="card">${g.items.map(rowHtml).join('')}</div>
+    </div>`).join('')}`;
+document.getElementById('ph-b').addEventListener('click', e => {
+  const ph = document.getElementById('ph-b');
+  const go = e.target.closest('[data-go]');
+  const back = e.target.closest('[data-back]');
+  if (!go && !back) return;
+  const target = back ? 'root' : go.dataset.go;
+  ph.querySelectorAll('.subpage').forEach(p =>
+    p.classList.toggle('active', p.dataset.p === target));
+  ph.scrollTop = 0;
+});
+
+// ── C · search first ─────────────────────────────────────────────────────────
+document.getElementById('ph-c').innerHTML = `
+  <div class="ptitle">Settings</div>
+  <input class="search" placeholder="Search settings…" id="c-search">
+  <div id="c-body">${GROUPS.map(g => `
+    <div class="card" data-g="${g.key}"><h3>${g.title}</h3>${g.items.map(rowHtml).join('')}</div>`).join('')}
+    <div class="nores hidden" id="c-nores">Nothing matches that.</div>
+  </div>`;
+document.getElementById('c-search').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  let hits = 0;
+  document.querySelectorAll('#c-body .card').forEach(card => {
+    let shown = 0;
+    card.querySelectorAll('.row').forEach(r => {
+      const match = !q || r.dataset.name.includes(q);
+      r.classList.toggle('hidden', !match);
+      if (match) shown++;
+    });
+    card.classList.toggle('hidden', shown === 0);
+    hits += shown;
+  });
+  document.getElementById('c-nores').classList.toggle('hidden', hits > 0);
+});
+
+document.getElementById('theme').addEventListener('click', () => document.body.classList.toggle('light'));
+document.getElementById('today').addEventListener('click', e => {
+  const col = document.getElementById('col-today');
+  const on = col.style.display === 'none';
+  col.style.display = on ? '' : 'none';
+  e.target.textContent = on ? "Hide today's layout" : "Show today's layout";
+});
+</script>
