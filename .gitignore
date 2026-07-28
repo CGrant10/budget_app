@@ -6,3 +6,22 @@ __pycache__/
 # .claude/launch.json IS tracked — the dev-server definitions are shared.
 .claude/settings.local.json
 .claude/worktrees/
+
+# Image masters and icon-export scratch kept at the repo root. The app loads the
+# committed docs/ copies (docs/doberman.png, docs/gengar.png, docs/maddawg.png,
+# docs/newicon.png); these are the larger originals plus the icon-maker page.
+/doberman.png
+/gengar.png
+/maddawg.png
+/newicon.png
+/whitebgicon.png
+/icons.png
+/icon_test_preview.png
+/make_icon.html
+/slot_machine.html
+
+# Unused icon exports. manifest.json uses icon-192.png, icon-512.png, and the
+# maskable pair; these per-platform variants are not referenced.
+docs/icon-android-*.png
+docs/icon-ios-*.png
+docs/icon-web-*.png
