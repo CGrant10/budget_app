@@ -1,4 +1,4 @@
-const CACHE      = "slawminyaw-v456";
+const CACHE      = "slawminyaw-v457";
 const FONT_CACHE = "slawminyaw-fonts-v1";
 const CDN_CACHE  = "slawminyaw-cdn-v1";
 const ASSETS = [

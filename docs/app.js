@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.47.0';
+const VERSION = '5.47.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.47.1', date: '2026-07-28', changes: [
+    'Fixed the eye button doing nothing on the skinned dashboard. Hiding your balances blurred nothing there — the skinned dashboard is built from its own markup, and none of it was on the list of things the privacy toggle blurs. It now blurs the balance, the change figure, the runway amounts, the spending legend, the bills and the recent transactions, same as everywhere else',
+    'The new balance on the transaction card blurs too, so adding something while balances are hidden doesn\'t flash the figure back on screen',
+    'The runway\'s "covers 20 days" is left readable on purpose — it\'s a length of time, not an amount, and blurring it would just hide a number in the middle of a sentence',
+  ]},
   { version: '5.47.0', date: '2026-07-28', changes: [
     'New transaction animation under the three skins: instead of the terminal window, your balance counts from what it was to what it is now, with the amount and the category underneath. The change is the movement, so you see the size of it rather than reading it. Quicker than the old card too — about two seconds instead of nearly three',
     'The standard themes are untouched. The terminal card, its flavour lines and the per-theme shell syntax (PowerShell, CMD, bash) all stay exactly as they were — this is a skins-only change',
@@ -2743,7 +2748,7 @@ function _skRunway(sk) {
   }
   const burn = spent / SK_RUNWAY_WINDOW;
 
-  const foot = `<div class="sk-rw-foot"><span>${floor > 0 ? 'floor ' + fmt(floor) : 'no buffer set'}</span></div>`;
+  const foot = `<div class="sk-rw-foot"><span>${floor > 0 ? 'floor <b class="sk-rw-floor">' + fmt(floor) + '</b>' : 'no buffer set'}</span></div>`;
 
   // Below the floor: a runway is meaningless, so say the actually-useful thing.
   if (spendable <= 0) {
@@ -2792,10 +2797,10 @@ function _skRunway(sk) {
          read as a contradiction. Don't swap in the allowance — runway is
          available ÷ per-day, so with the allowance it would always resolve to
          "days left in the month" and tell you nothing. -->
-    <div class="sk-rw-line">Covers <b class="money">${span}</b>
+    <div class="sk-rw-line">Covers <b class="money sk-rw-span">${span}</b>
       at your recent pace, ${fmt(burn)}/day</div>
     <div class="sk-track${level}"><i style="width:${pct.toFixed(1)}%"></i></div>
-    <div class="sk-rw-foot"><span>through ${endLbl}</span>${floor > 0 ? `<span>floor ${fmt(floor)}</span>` : ''}</div>
+    <div class="sk-rw-foot"><span>through ${endLbl}</span>${floor > 0 ? `<span>floor <b class="sk-rw-floor">${fmt(floor)}</b></span>` : ''}</div>
   </div>`;
 }
 

@@ -5853,6 +5853,41 @@ body.amounts-hidden .ibp-amt {
   -webkit-user-select: none;
   cursor: default;
 }
+/* ── Privacy blur under the skins ──────────────────────────────────────────
+   The skinned dashboard is built from its own markup (.sk-*), none of which
+   appeared in the list above — so the eye toggled body.amounts-hidden and blurred
+   nothing at all on that screen. Every other skinned page restyles the stock
+   markup in place, so those were already covered; this is the dashboard, the
+   runway, and the skinned transaction card.
+   The runway's <b class="money"> holds a DURATION ("20 days"), not currency, so
+   it is excluded via .sk-rw-span — blurring it would hide a number that isn't an
+   amount while leaving the words around it legible. */
+body.amounts-hidden .sk-delta,
+body.amounts-hidden .sk-lval,
+body.amounts-hidden .sk-tamt,
+body.amounts-hidden .sk-bamt,
+body.amounts-hidden .sk-btot,
+body.amounts-hidden .sk-mamt,
+body.amounts-hidden .sk-rw-floor,
+body.amounts-hidden .sk-rw-line .money:not(.sk-rw-span),
+body.amounts-hidden .txn-a-delta {
+  filter: blur(6px);
+  -webkit-filter: blur(6px);
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+/* The two big display figures: the hero balance and the balance the transaction
+   card counts to. Both need the heavier blur to stay unreadable at that size. */
+body.amounts-hidden .sk-amt,
+body.amounts-hidden .txn-a-bal {
+  filter: blur(15px);
+  -webkit-filter: blur(15px);
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
 /* Large display numbers need a heavier blur to stay unreadable. */
 body.amounts-hidden .dawg-balance-amt { filter: blur(15px); -webkit-filter: blur(15px); }
 body.amounts-hidden .debt-owed-value,
