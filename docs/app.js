@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.11';
+const VERSION = '5.45.12';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.12', date: '2026-07-28', changes: [
+    'The runway line on the skinned dashboard now says "at your recent pace" before its daily figure. That number is what you have actually been spending per day over the last 30 days, which is a different thing from the Weekly Planner\'s "PER DAY" — that one is what you\'re cleared to spend for the rest of the month. Both just said "/day", so seeing them side by side looked like the app contradicting itself. The maths never changed; only one of them was ever badly labelled',
+  ]},
   { version: '5.45.11', date: '2026-07-28', changes: [
     'You can use your own photo as the mascot. Settings → Appearance → Your mascot, pick a photo, and it takes the Doberman\'s place in the bottom bar, on the accounts overview, the splash screen and empty screens — in the standard themes and the skins alike. It keeps whatever theme you\'re on; only the character changes. "Use the Doberman" puts him back',
     'Photos are squared off from the middle and shrunk to 320px before being saved, so a 5MB camera photo is stored as about 30KB and sits well clear of the space your transactions need. It\'s kept separately from your settings, so even if there were no room for it, nothing else could be affected',
@@ -2676,8 +2679,14 @@ function _skRunway(sk) {
     : `${days} day${days === 1 ? '' : 's'}`;
 
   return `<div class="sk-rw">
+    <!-- "at your recent pace" is load-bearing: this figure is the trailing burn
+         rate (actual spend ÷ 30 days), NOT the Weekly Planner's per-day allowance
+         (available ÷ days left in the month). Both were labelled "/day", which
+         read as a contradiction. Don't swap in the allowance — runway is
+         available ÷ per-day, so with the allowance it would always resolve to
+         "days left in the month" and tell you nothing. -->
     <div class="sk-rw-line">Covers <b class="money">${span}</b>
-      at ${fmt(burn)}/day</div>
+      at your recent pace, ${fmt(burn)}/day</div>
     <div class="sk-track${level}"><i style="width:${pct.toFixed(1)}%"></i></div>
     <div class="sk-rw-foot"><span>through ${endLbl}</span>${floor > 0 ? `<span>floor ${fmt(floor)}</span>` : ''}</div>
   </div>`;
