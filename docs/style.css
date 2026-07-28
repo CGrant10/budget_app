@@ -7889,6 +7889,44 @@ body.skinned .backup-banner {
   color: var(--text);
 }
 
+/* ── skinned transaction animation: count to the new balance ──────────────── */
+/* Reuses the .txn-anim overlay, its progress bar and its dismiss behaviour —
+   only the card inside is different. Standard themes keep the terminal card. */
+.txn-a-card {
+  text-align: center;
+  padding: 26px 22px 0;
+  min-width: 246px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--sk-card-r, 12px);
+  overflow: hidden;
+}
+.txn-a-lbl {
+  font-size: .62rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted);
+  animation: txnAFade .3s ease both;
+}
+.txn-a-bal {
+  display: block; margin-top: 7px;
+  font-size: 2.15rem; letter-spacing: -.02em; color: var(--text);
+  animation: txnAFade .34s ease .04s both;
+}
+.txn-a-delta {
+  display: inline-block; margin-top: 9px; font-size: 1.02rem;
+  animation: txnAFade .3s ease .5s both;
+}
+.txn-a-chip {
+  display: inline-block; margin-top: 11px; margin-bottom: 20px;
+  font-size: .68rem; font-weight: 600; color: var(--muted);
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 999px; padding: 4px 11px;
+  animation: txnAFade .3s ease .62s both;
+}
+@keyframes txnAFade { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+/* The skins' own reduce-motion rule already zeroes these; the balance figure is
+   written at its destination in markup, so it stays correct with no animation. */
+.txn-a-card .txn-anim-progress { margin-top: 0; }
+
 /* ── mascot photo framing dialog ──────────────────────────────────────────── */
 .mcrop {
   position: fixed; inset: 0; z-index: 400;

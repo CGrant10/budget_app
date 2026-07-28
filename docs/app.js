@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.46.1';
+const VERSION = '5.47.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.47.0', date: '2026-07-28', changes: [
+    'New transaction animation under the three skins: instead of the terminal window, your balance counts from what it was to what it is now, with the amount and the category underneath. The change is the movement, so you see the size of it rather than reading it. Quicker than the old card too — about two seconds instead of nearly three',
+    'The standard themes are untouched. The terminal card, its flavour lines and the per-theme shell syntax (PowerShell, CMD, bash) all stay exactly as they were — this is a skins-only change',
+    'If you post a transaction to an account you\'re not currently viewing, the card shows the amount rather than a balance, since your current balance hasn\'t moved',
+  ]},
   { version: '5.46.1', date: '2026-07-28', changes: [
     'The spending wheel on the skinned dashboard shows every category you\'ve spent on. It was only ever drawing the top five, so anything smaller was missing from both the wheel and the list beside it — and because a new category usually starts small, adding one looked like the wheel had failed to update',
     'The wheel also wasn\'t a full circle. Slices were sized against your whole month\'s spending while only five were being drawn, so the rest of the month sat as an unexplained gap in the ring — with nine categories, nearly a fifth of it. The slices now add up to the whole ring',
@@ -2070,9 +2075,71 @@ function _escHtml(s) {
     ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 
-function showRobbery(amount, desc) { _showTxnAnim('expense', amount, desc); }
-function showPayday(amount, desc)   { _showTxnAnim('income',  amount, desc); }
-function showTransfer(amount, desc) { _showTxnAnim('transfer', amount, desc); }
+// acctId — the account the transaction was posted to. Defaults to the current one.
+// It matters because the skinned animation leads with the balance, and
+// _postTxnToAccount() leaves the current account's balance untouched when the
+// transaction belongs to a different account: counting a balance that didn't move
+// would be a lie.
+function showRobbery(amount, desc, acctId, cat) { _showTxnAnim('expense', amount, desc, acctId, cat); }
+function showPayday(amount, desc, acctId, cat)  { _showTxnAnim('income',  amount, desc, acctId, cat); }
+function showTransfer(amount, desc, acctId, cat) { _showTxnAnim('transfer', amount, desc, acctId, cat); }
+
+// ── Skinned transaction animation ────────────────────────────────────────────
+// Leads with the balance and counts to it, rather than the terminal card the
+// standard themes use. Skins only — the themed flavour text and the per-terminal
+// shell syntax are part of the standard themes' identity and stay untouched.
+function _txnAnimSkinnedCard(type, amount, desc, sameAcct, accent, cat) {
+  const isExpense  = type === 'expense';
+  const isTransfer = type === 'transfer';
+  const { income, expense } = totals();
+  const after  = (state.startingBalance || 0) + income - expense;
+  // The transaction is already saved by the time this runs, so `after` is the
+  // truth and the starting figure is derived by reversing the delta.
+  const before = isExpense || isTransfer ? after + amount : after - amount;
+  const signed = `${isExpense || isTransfer ? '−' : '+'}${fmt(amount)}`;
+  // Category is passed in explicitly. It was briefly read off the last row in
+  // state.transactions, which only holds while the animation fires immediately
+  // after a push — any other caller would have shown the previous entry's
+  // category, which is worse than showing none.
+  const shownCat = cat && cat !== 'Transfer' && cat !== 'Payment' ? _escHtml(cat) : '';
+  const memo     = (desc && desc !== '—') ? _escHtml(desc) : '';
+  const chip     = [shownCat, memo].filter(Boolean).join(' · ');
+
+  const label = !sameAcct ? 'Saved' : isTransfer ? 'Balance after transfer' : 'New balance';
+
+  return `
+    <div class="txn-anim-card txn-a-card">
+      <div class="txn-a-lbl">${label}</div>
+      ${sameAcct
+        ? `<div class="txn-a-bal money" data-txn-count
+                data-from="${before}" data-to="${after}">${fmt(after)}</div>`
+        : `<div class="txn-a-bal money">${signed}</div>`}
+      ${sameAcct ? `<div class="txn-a-delta money" style="color:${accent}">${signed}</div>` : ''}
+      ${chip ? `<div class="txn-a-chip">${chip}</div>` : ''}
+      <div class="txn-anim-progress"><div class="txn-anim-progress-bar"></div></div>
+    </div>`;
+}
+
+// Count the balance figure from its old value to its new one.
+// The destination is already in the DOM before this runs, so if frames never
+// arrive (backgrounded tab, reduced-motion renderer) the figure still reads
+// correctly instead of freezing on the previous balance.
+function _runTxnCount(el) {
+  const node = el.querySelector('[data-txn-count]');
+  if (!node) return;
+  const from = parseFloat(node.dataset.from), to = parseFloat(node.dataset.to);
+  if (!isFinite(from) || !isFinite(to)) return;
+  if (document.body.classList.contains('fx-reduced') ||
+      matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const DUR = 760, start = performance.now() + 90;
+  const ease = x => 1 - Math.pow(1 - x, 3);
+  const step = now => {
+    const p = Math.min(1, Math.max(0, (now - start) / DUR));
+    node.textContent = fmt(from + (to - from) * ease(p));
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 
 function _showPaycheckToast(amount) {
   // Auto-paycheck fires from _checkPaychecks — reuse the full anim
@@ -2129,7 +2196,7 @@ function _txnFlavor(isExpense, isTransfer, isPaycheck) {
     l1:'auth session…', l2:`posting ${verb}…`, headline:null, calm:false, cmtMemo:false, sprite:'' };
 }
 
-function _showTxnAnim(type, amount, desc) {
+function _showTxnAnim(type, amount, desc, acctId, cat) {
   document.getElementById('txn-anim')?.remove();
 
   const isExpense  = type === 'expense';
@@ -2157,11 +2224,16 @@ function _showTxnAnim(type, amount, desc) {
         : `<div class="txn-tline" style="--d:${dMemo}">&gt; memo: ${memo}</div>`)
     : '';
 
+  const skinned = !!activeSkin();
+
   const el = document.createElement('div');
   el.id        = 'txn-anim';
-  el.className = `txn-anim txn-anim--${variant}`;
+  el.className = `txn-anim txn-anim--${variant}${skinned ? ' txn-anim--a' : ''}`;
   el.style.setProperty('--txn-accent', accent);
-  el.innerHTML = `
+  el.innerHTML = skinned
+    ? _txnAnimSkinnedCard(type, amount, desc,
+        acctId === undefined || acctId === currentAccountId, accent, cat)
+    : `
     <div class="txn-anim-card txn-term">
       <div class="txn-term-bar">
         <span class="txn-term-dot"></span><span class="txn-term-dot"></span><span class="txn-term-dot"></span>
@@ -2178,8 +2250,10 @@ function _showTxnAnim(type, amount, desc) {
     </div>`;
 
   document.body.appendChild(el);
+  if (skinned) _runTxnCount(el);
 
-  const dur = isPaycheck ? 3600 : 2700;
+  // The counting card says what it needs to in well under the terminal's runtime.
+  const dur = skinned ? (isPaycheck ? 2600 : 2100) : (isPaycheck ? 3600 : 2700);
   requestAnimationFrame(() => {
     const bar = el.querySelector('.txn-anim-progress-bar');
     if (bar) { bar.style.transition = `width ${dur}ms linear`; bar.style.width = '0%'; }
@@ -12613,8 +12687,8 @@ function _showFastAdd() {
     _postTxnToAccount(fromAcct, t);
     if (fromAcct === currentAccountId) await autoUpdateWeeklyPlan();
     haptic([10]);
-    if (selType === 'expense') { showRobbery(amount, finalDesc); checkRoast(selCat); checkSpendingAlert(selCat); }
-    else showPayday(amount, finalDesc);
+    if (selType === 'expense') { showRobbery(amount, finalDesc, fromAcct, selCat); checkRoast(selCat); checkSpendingAlert(selCat); }
+    else showPayday(amount, finalDesc, fromAcct, 'Income');
     close();
     render();
   });
@@ -12949,8 +13023,8 @@ function attachAdd() {
     if (document.getElementById('add-exclude-budget')) document.getElementById('add-exclude-budget').checked = false;
     playSound(t.type);
     haptic(t.type === 'income' ? [20, 50, 20] : [30]);
-    if (t.type === 'expense') showRobbery(t.amount, t.description);
-    else if (t.type === 'income') showPayday(t.amount, t.description);
+    if (t.type === 'expense') showRobbery(t.amount, t.description, undefined, t.category);
+    else if (t.type === 'income') showPayday(t.amount, t.description, undefined, t.category);
     else if (t.type === 'transfer') showTransfer(t.amount, t.description);
     if (t.type === 'expense') { checkRoast(t.category); checkSpendingAlert(t.category); }
     checkMilestones(prevBal, newBal);
