@@ -7962,6 +7962,17 @@ body.skinned .backup-banner {
    written at its destination in markup, so it stays correct with no animation. */
 .txn-a-card .txn-anim-progress { margin-top: 0; }
 
+/* ── boot timing readout (diagnostic) ─────────────────────────────────────── */
+.boot-rows { display: flex; flex-direction: column; gap: 7px; }
+.boot-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  font-size: .8rem; color: var(--muted);
+}
+.boot-row b {
+  font-family: var(--font-num, inherit); font-variant-numeric: tabular-nums;
+  font-weight: 700; color: var(--text); white-space: nowrap;
+}
+
 /* ── mascot photo framing dialog ──────────────────────────────────────────── */
 .mcrop {
   position: fixed; inset: 0; z-index: 400;

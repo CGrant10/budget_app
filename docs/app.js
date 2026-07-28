@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.48.0';
+const VERSION = '5.48.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,9 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.48.1', date: '2026-07-28', changes: [
+    'Added a Startup panel at the bottom of Settings showing how long this launch actually took. It\'s there to answer one question honestly: the app\'s code is now a single 850KB file, and reading and preparing it happens on every launch no matter what\'s already saved on the device. If that number turns out to be small on a real phone, the file can be left alone; if it\'s large, it\'s worth breaking up so the screens you rarely open aren\'t loaded before the ones you do. Diagnostic only — nothing about the app changed',
+  ]},
   { version: '5.48.0', date: '2026-07-28', changes: [
     'New: Screenshot mode, in Settings → Appearance. Turn it on and every figure in the app becomes an invented one — a Checking and a Savings account, two paychecks, twenty-odd purchases across nine categories, four bills and a savings goal. They all add up, so the balance, the spending wheel, the runway, the week meter and the ledger agree with each other exactly as they would with your own money. Screenshot anything, then turn it off and your own numbers come straight back',
     'Your real data is copied aside before anything is replaced, and it is put back the moment you switch the mode off. It also restores itself automatically the next time you open the app, so you can never be left looking at invented numbers and wondering where your money went — and if the app is closed or crashes while the mode is on, opening it again brings your data back',
@@ -3561,6 +3564,62 @@ function _saveAccounts() {
     localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
   } catch(e) { _showSaveError(); }
 }
+// ── Boot timing readout ──────────────────────────────────────────────────────
+// Diagnostic, and deliberately blunt about what it can and can't tell us.
+// app.js is one blocking <script>, so the gap between the marks either side of it
+// covers fetch + parse + compile + top-level execution. Resource timing gives us
+// the fetch portion, so the remainder is the parse/compile/execute cost — the
+// number that decides whether splitting the file would buy anything, because
+// that cost is paid on every launch no matter how good the caching is.
+function bootTimings() {
+  const b = window.__boot;
+  if (!b || !b.afterApp) return null;
+  const total = b.afterApp - b.beforeApp;
+  let fetchMs = null, fromCache = null, bytes = null, fetchInsideWindow = 0;
+  try {
+    const e = performance.getEntriesByType('resource')
+      .find(r => r.name.endsWith('/app.js') || r.name.endsWith('app.js'));
+    if (e) {
+      fetchMs   = e.duration;
+      fromCache = e.transferSize === 0;
+      bytes     = e.decodedBodySize || null;
+      // The preload scanner usually starts app.js downloading long before the
+      // inline mark ahead of it runs, so most or all of the fetch happens OUTSIDE
+      // the measured window. Subtracting the whole fetch would then wrongly
+      // cancel out the parse cost — only the overlapping part belongs to us.
+      fetchInsideWindow = Math.max(0, Math.min(e.responseEnd, b.afterApp) - b.beforeApp);
+    }
+  } catch {}
+  return {
+    scriptTotal: total,
+    fetchMs,
+    fromCache,
+    bytes,
+    parseExec: Math.max(0, total - fetchInsideWindow),
+    fetchOverlapMs: fetchInsideWindow,
+    firstRender: b.firstRender || null,
+  };
+}
+
+function bootTimingHtml() {
+  const t = bootTimings();
+  if (!t) return '';
+  const ms = n => (n == null ? '—' : (n < 10 ? n.toFixed(1) : Math.round(n)) + 'ms');
+  const kb = n => (n == null ? '—' : Math.round(n / 1024) + 'KB');
+  return `
+    <div class="form-card">
+      <h2 class="section-title" style="margin-bottom:8px">Startup</h2>
+      <p class="code-hint" style="margin-bottom:12px">How long this launch took. Here to answer one question: is the size of the app's code actually slowing down opening it? Reading and preparing the code happens every single launch, no matter what's cached.</p>
+      <div class="boot-rows">
+        <div class="boot-row"><span>Reading + preparing the code</span><b>${ms(t.parseExec)}</b></div>
+        <div class="boot-row"><span>Fetching the file${t.fromCache ? ' (from this device)' : ' (over the network)'}</span><b>${ms(t.fetchMs)}</b></div>
+        <div class="boot-row"><span>Code size</span><b>${kb(t.bytes)}</b></div>
+        <div class="boot-row"><span>Until the first screen appeared</span><b>${ms(t.firstRender)}</b></div>
+      </div>
+      <p class="code-hint" style="margin-top:10px">"Until the first screen appeared" includes the splash screen and unlock, so it's always the biggest number — the one that matters here is the first row.</p>
+    </div>`;
+}
+
 // ── Screenshot mode ──────────────────────────────────────────────────────────
 // Swaps every figure in the app for a coherent invented dataset so a screenshot
 // can be shared without exposing real finances. "Coherent" is the point: the
@@ -10718,6 +10777,8 @@ function renderSettings() {
         </div>
       </div>
 
+      ${bootTimingHtml()}
+
     </div>`;
 }
 
@@ -14612,6 +14673,7 @@ window.addEventListener('popstate', () => {
     // Seed base history entry — back button will hit popstate with an empty stack and exit cleanly
     history.replaceState({ dawgBase: true }, '');
     render();
+    if (window.__boot) window.__boot.firstRender = performance.now();
     // Reveal the app now that the first frame is painted — eliminates the raw-HTML flash
     requestAnimationFrame(() => {
       const appEl = document.getElementById('app');

@@ -243,6 +243,13 @@
       setTimeout(function() { if (!done) { done = true; if (el.parentNode) el.remove(); } }, 6000);
     })();
   </script>
+  <!-- Boot timing probe. app.js is a single blocking script, so parse and compile
+       both happen between these two marks — they cannot be measured from inside
+       app.js itself, because the first line only runs after compiling finishes.
+       Diagnostic only: this is here to decide whether splitting app.js would
+       actually buy anything on a real phone. Settings shows the readout. -->
+  <script>window.__boot = { beforeApp: performance.now() };</script>
   <script src="app.js"></script>
+  <script>window.__boot.afterApp = performance.now();</script>
 </body>
 </html>
