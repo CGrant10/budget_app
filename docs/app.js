@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.49.0';
+const VERSION = '5.50.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -80,9 +80,10 @@ const ICONS = {
 // ON RELEASE: replace the entry below, and prepend the outgoing one to
 // changelog.json so the archive stays complete.
 const CHANGELOG = [
-  { version: '5.49.0', date: '2026-07-28', changes: [
-    "Trimmed a fifth of the app's code out of the launch path. Two things were being read and prepared every single time you opened the app for no benefit: 350 releases' worth of notes, of which only the current one is ever shown, and the old guided tour, which was switched off ages ago but never actually removed. Together they were about 165KB — roughly a fifth of everything the app has to load before it can draw. The full release history is kept in a separate file that isn't loaded at startup",
-    "Nothing was removed that you can see or use. Every theme, skin and feature is untouched — this is only about how much has to be read before the app opens",
+  { version: '5.50.0', date: '2026-07-28', changes: [
+    "Settings is reorganised. It was nine cards in one long scroll, and anything to do with how the app looks was spread across four of them — Theme, Font, Animations and Appearance. Now it's five groups (Look, Money, Privacy & lock, Alerts, Data), all closed when you arrive, so the whole page fits on one screen instead of nearly three. Tap a group to open it.",
+    "There's a search box at the top. It matches what you'd call a setting rather than only what it's named — type \"blur\" and you get Hide balances, \"fingerprint\" gets phone unlock, \"fake\" gets Screenshot mode, \"dark\" gets Theme. Groups holding a match open themselves; clear the box and everything shuts again.",
+    "Nothing was removed or renamed away. Every control is still there and works the same — the mascot, screenshot mode and the skins are all under Look now, alongside the theme, instead of being in a separate card that competed with it. Import / Export and About are reachable from Settings directly too.",
   ]},
 ];
 
@@ -8992,38 +8993,19 @@ function renderSettings() {
   return `
     <div class="page">
       <h1 class="page-title">Settings</h1>
+      <input type="search" id="set-search" class="set-search" placeholder="Search settings…"
+             autocomplete="off" aria-label="Search settings">
 
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:6px">App Mode</h2>
-        <p class="code-hint" style="margin-bottom:10px">Simple mode hides budgeting features for a clean balance + transactions tracker. Nothing is deleted — switch back anytime.</p>
-        <div class="mode-toggle">
-          <button class="mode-opt${_mode === 'full' ? ' active' : ''}" data-mode="full">
-            <span class="mode-opt-title">Full Budgeting</span>
-            <span class="mode-opt-sub">Planner, bills, goals, debt, breakdowns</span>
-          </button>
-          <button class="mode-opt${_mode === 'simple' ? ' active' : ''}" data-mode="simple">
-            <span class="mode-opt-title">Simple Tracking</span>
-            <span class="mode-opt-sub">Just balance &amp; transactions</span>
-          </button>
-        </div>
-      </div>
-
-
-
-      <div class="form-card" style="cursor:pointer" id="goto-accounts-card">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <h2 class="section-title" style="margin-bottom:2px">Accounts</h2>
-            <p class="code-hint" style="margin:0">${state.accounts.length} account${state.accounts.length !== 1 ? 's' : ''} · tap to manage</p>
-          </div>
-          <span style="font-size:1.4rem;color:var(--muted)">›</span>
-        </div>
-      </div>
-
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:12px">Theme</h2>
-
-        <div class="theme-mode-row">
+      <section class="set-g" data-g="look">
+        <button class="set-g-head" type="button" aria-expanded="false">
+          <span class="set-g-ico" aria-hidden="true">◐</span>
+          <span class="set-g-t">Look<span class="set-g-sub">Theme, skin, mascot, font, motion</span></span>
+          <span class="set-g-caret" aria-hidden="true">›</span>
+        </button>
+        <div class="set-g-body">
+        <div class="set-row" data-keys="theme dark light colour color accent gengar pokemon terminal team vscode powershell cmd kali ubuntu mint lux oled denim ember jurassic">
+          <label class="form-label" style="margin-bottom:8px">Theme</label>
+          <div class="theme-mode-row">
           <button class="theme-mode-btn${activeMode === 'dark'     ? ' active' : ''}" data-mode="dark">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             Dark
@@ -9080,70 +9062,50 @@ function renderSettings() {
             ${TEAM_KEYS.map(teamChip).join('')}
           </div>
         </div>
-      </div>
-
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Font</h2>
-        <p class="code-hint" style="margin-bottom:12px">Changes text style throughout the entire app.</p>
-        <div class="nav-pos-grid">${fontBtns}</div>
-      </div>
-
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Custom Categories</h2>
-        <p class="code-hint" style="margin-bottom:12px">Add categories beyond the built-in ones.</p>
-        <div class="custom-cat-list">${customCatRows}</div>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="new-cat-input" class="form-input" placeholder="Category name" style="flex:1">
-          <button id="add-cat-btn" class="btn-sm">Add</button>
         </div>
-        <span id="cat-status" class="form-status" style="font-size:11px"></span>
-      </div>
 
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Notifications</h2>
-        <div class="form-row">
-          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
-            <input type="checkbox" id="notif-toggle" ${s.notifications ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
-            Bill reminders
-          </label>
-          <p class="code-hint" style="margin-top:6px">You'll be notified about bills due within 3 days each time you open the app. Requires notification permission.</p>
+        <div class="set-row" data-keys="skin skins ledger quiet grid beta clean minimal flat">
+          <label class="form-label" style="margin-bottom:8px">App skin</label>
+          <p class="code-hint" style="margin-bottom:10px">A clean, minimal re-skin of every page. Your theme's accent colour still shows through, so a skin layers on top of whichever theme you're using.</p>
+          <div class="skin-list">
+            <button class="skin-row${activeSkin() === '' ? ' active' : ''}" data-skin="">
+              <span class="skin-sw skin-sw-off"></span>
+              <span class="skin-txt"><span class="skin-name">Off</span><span class="skin-blurb">Standard DAWG look</span></span>
+              ${activeSkin() === '' ? '<span class="skin-check">✓</span>' : ''}
+            </button>
+            ${Object.entries(SKINS).map(([key, s]) => `
+              <button class="skin-row${activeSkin() === key ? ' active' : ''}" data-skin="${key}">
+                <span class="skin-sw" style="background:${s.swatch}"></span>
+                <span class="skin-txt"><span class="skin-name">${s.label}</span><span class="skin-blurb">${s.blurb}</span></span>
+                ${activeSkin() === key ? '<span class="skin-check">✓</span>' : ''}
+              </button>`).join('')}
+          </div>
         </div>
-        ${typeof Notification !== 'undefined' && Notification.permission !== 'granted' ? `<button id="notif-enable-btn" class="btn-sm" style="margin-top:4px">Enable Notifications</button>` : ''}
-      </div>
 
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Privacy</h2>
-        <p class="code-hint" style="margin-bottom:12px">Require a 4-digit PIN to open the app.</p>
-        ${localStorage.getItem('slawminyaw_pin') ? `
-        <div style="display:flex;align-items:center;gap:12px">
-          <span style="font-size:.9rem;color:var(--success)">PIN Enabled ✓</span>
-          <button id="pin-remove-btn" class="btn-xs" style="background:var(--danger);color:#fff;border-color:var(--danger)">Remove PIN</button>
-        </div>` : `
-        <button id="pin-set-btn" class="btn-sm">Set PIN</button>`}
-        <span id="pin-status" class="form-status" style="font-size:11px;margin-top:8px"></span>
-        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-          <p class="code-hint" style="margin-bottom:10px">Use your phone's built-in lock (Face ID, fingerprint, or pattern) to unlock the app.</p>
-          ${bioEnabled ? `
-          <div style="display:flex;align-items:center;gap:12px">
-            <span style="font-size:.9rem;color:var(--success)">Phone Lock Enabled ✓</span>
-            <button id="bio-remove-btn" class="btn-xs" style="background:var(--danger);color:#fff;border-color:var(--danger)">Remove</button>
-          </div>` : `
-          <button id="bio-set-btn" class="btn-sm"${!window.PublicKeyCredential ? ' disabled title="Not supported on this device/browser"' : ''}>Enable Phone Lock</button>`}
-          <span id="bio-status" class="form-status" style="font-size:11px;margin-top:8px"></span>
+        <div class="set-row" data-keys="mascot photo picture doberman dog avatar image crop">
+          <label class="form-label" style="margin-bottom:8px">Your mascot</label>
+          <p class="code-hint" style="margin-bottom:10px">Use your own photo instead of the Doberman. It shows in the bottom bar, on the accounts overview, the splash screen and empty screens. You'll get to move and zoom it before it's saved, then it's shrunk to 320px — about as much room as a single receipt.</p>
+          <div class="mascot-pick">
+            <span class="mascot-prev${customMascot() ? '' : ' is-default'}"
+                  style="background-image:url('${customMascot() || './doberman.png'}')"></span>
+            <div class="mascot-pick-btns">
+              <button class="btn-sm" id="mascot-choose" type="button">${customMascot() ? 'Change photo' : 'Choose photo'}</button>
+              ${customMascot() ? '<button class="btn-secondary" id="mascot-clear" type="button">Use the Doberman</button>' : ''}
+            </div>
+            <input type="file" id="mascot-file" accept="image/*" hidden>
+          </div>
+          <p class="code-hint" id="mascot-msg" style="margin-top:8px;display:none"></p>
         </div>
-        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
-            <input type="checkbox" id="hide-amounts-settings" ${s.hideAmounts ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
-            Hide balances (blur amounts)
-          </label>
-          <p class="code-hint" style="margin-top:6px">Blurs every dollar amount across the app so you can open it in public. Tap the eye icon on the balance card to toggle it any time.</p>
-        </div>
-      </div>
 
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Animations</h2>
-        <p class="code-hint" style="margin-bottom:12px">Control visual effects throughout the app.</p>
-        <div class="form-row">
+        <div class="set-row" data-keys="font typeface text style cascadia mono system terminal">
+          <label class="form-label" style="margin-bottom:8px">Font</label>
+          <p class="code-hint" style="margin-bottom:10px">Changes text style throughout the entire app.</p>
+          <div class="nav-pos-grid">${fontBtns}</div>
+        </div>
+
+        <div class="set-row" data-keys="animation animations motion glitch splash haptics vibrate battery reduce effects still">
+          <label class="form-label" style="margin-bottom:8px">Motion &amp; effects</label>
+          <div class="form-row">
           <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
             <input type="checkbox" id="splash-anim-settings" ${localStorage.getItem('splashAnim') !== 'false' ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
             Splash screen glitch effects
@@ -9163,28 +9125,9 @@ function renderSettings() {
           </label>
           <p class="code-hint" style="margin-top:6px">A subtle vibration tick when you tap buttons and controls. Turn off if you'd rather the app stay silent. (Phones only.)</p>
         </div>
-      </div>
-
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:8px">Appearance</h2>
-        <p class="code-hint" style="margin-bottom:12px">Change the look and the mascot. Switch freely — nothing here touches your data.</p>
-
-        <div class="form-row">
-          <label class="form-label" style="margin-bottom:8px">Your mascot</label>
-          <p class="code-hint" style="margin-bottom:10px">Use your own photo instead of the Doberman. It shows in the bottom bar, on the accounts overview, the splash screen and empty screens. You'll get to move and zoom it before it's saved, then it's shrunk to 320px — about as much room as a single receipt.</p>
-          <div class="mascot-pick">
-            <span class="mascot-prev${customMascot() ? '' : ' is-default'}"
-                  style="background-image:url('${customMascot() || './doberman.png'}')"></span>
-            <div class="mascot-pick-btns">
-              <button class="btn-sm" id="mascot-choose" type="button">${customMascot() ? 'Change photo' : 'Choose photo'}</button>
-              ${customMascot() ? '<button class="btn-secondary" id="mascot-clear" type="button">Use the Doberman</button>' : ''}
-            </div>
-            <input type="file" id="mascot-file" accept="image/*" hidden>
-          </div>
-          <p class="code-hint" id="mascot-msg" style="margin-top:8px;display:none"></p>
         </div>
 
-        <div class="form-row">
+        <div class="set-row" data-keys="screenshot demo fake invented numbers share zero privacy">
           <label class="form-label" style="margin-bottom:8px">Screenshot mode</label>
           <p class="code-hint" style="margin-bottom:10px">Replaces every figure in the app with invented ones that add up, so you can screenshot the look without showing your own finances. Your real data is set aside untouched and comes straight back when you turn this off — and it always comes back by itself next time you open the app.</p>
           <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
@@ -9193,32 +9136,184 @@ function renderSettings() {
           </label>
           <p class="code-hint" id="demo-mode-msg" style="margin-top:8px;display:none"></p>
         </div>
+</div>
+      </section>
 
-        <div class="form-row">
-          <label class="form-label" style="margin-bottom:8px">App skin</label>
-          <p class="code-hint" style="margin-bottom:10px">A clean, minimal re-skin of every page. Your theme's accent colour still shows through, so a skin layers on top of whichever theme you're using.</p>
-          <div class="skin-list">
-            <button class="skin-row${activeSkin() === '' ? ' active' : ''}" data-skin="">
-              <span class="skin-sw skin-sw-off"></span>
-              <span class="skin-txt"><span class="skin-name">Off</span><span class="skin-blurb">Standard DAWG look</span></span>
-              ${activeSkin() === '' ? '<span class="skin-check">✓</span>' : ''}
-            </button>
-            ${Object.entries(SKINS).map(([key, s]) => `
-              <button class="skin-row${activeSkin() === key ? ' active' : ''}" data-skin="${key}">
-                <span class="skin-sw" style="background:${s.swatch}"></span>
-                <span class="skin-txt"><span class="skin-name">${s.label}</span><span class="skin-blurb">${s.blurb}</span></span>
-                ${activeSkin() === key ? '<span class="skin-check">✓</span>' : ''}
-              </button>`).join('')}
-          </div>
+      <section class="set-g" data-g="money">
+        <button class="set-g-head" type="button" aria-expanded="false">
+          <span class="set-g-ico" aria-hidden="true">▤</span>
+          <span class="set-g-t">Money<span class="set-g-sub">Mode, categories, accounts</span></span>
+          <span class="set-g-caret" aria-hidden="true">›</span>
+        </button>
+        <div class="set-g-body">
+        <div class="set-row" data-keys="mode simple tracker full budgeting features">
+          <label class="form-label" style="margin-bottom:8px">App mode</label>
+          <p class="code-hint" style="margin-bottom:10px">Simple mode hides budgeting features for a clean balance + transactions tracker. Nothing is deleted — switch back anytime.</p>
+          <div class="mode-toggle">
+          <button class="mode-opt${_mode === 'full' ? ' active' : ''}" data-mode="full">
+            <span class="mode-opt-title">Full Budgeting</span>
+            <span class="mode-opt-sub">Planner, bills, goals, debt, breakdowns</span>
+          </button>
+          <button class="mode-opt${_mode === 'simple' ? ' active' : ''}" data-mode="simple">
+            <span class="mode-opt-title">Simple Tracking</span>
+            <span class="mode-opt-sub">Just balance &amp; transactions</span>
+          </button>
         </div>
-      </div>
+        </div>
+
+        <div class="set-row" data-keys="category categories tags spending custom add">
+          <label class="form-label" style="margin-bottom:8px">Custom categories</label>
+          <p class="code-hint" style="margin-bottom:10px">Add categories beyond the built-in ones.</p>
+          <div class="custom-cat-list">${customCatRows}</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="new-cat-input" class="form-input" placeholder="Category name" style="flex:1">
+          <button id="add-cat-btn" class="btn-sm">Add</button>
+        </div>
+        <span id="cat-status" class="form-status" style="font-size:11px"></span>
+        </div>
+
+        <div class="set-row" data-keys="account accounts bank checking savings debt manage switch">
+          <button class="set-link" id="goto-accounts-card" type="button">
+            <span class="set-link-t">Manage accounts<span class="set-g-sub">${state.accounts.length} account${state.accounts.length !== 1 ? 's' : ''}</span></span>
+            <span class="set-g-caret">›</span>
+          </button>
+        </div>
+</div>
+      </section>
+
+      <section class="set-g" data-g="lock">
+        <button class="set-g-head" type="button" aria-expanded="false">
+          <span class="set-g-ico" aria-hidden="true">▲</span>
+          <span class="set-g-t">Privacy &amp; lock<span class="set-g-sub">PIN, phone unlock, hidden amounts</span></span>
+          <span class="set-g-caret" aria-hidden="true">›</span>
+        </button>
+        <div class="set-g-body">
+        <div class="set-row" data-keys="pin passcode password security lock biometric fingerprint face id unlock">
+          <label class="form-label" style="margin-bottom:8px">PIN &amp; phone lock</label>
+          <p class="code-hint" style="margin-bottom:10px">Require a 4-digit PIN to open the app.</p>
+          ${localStorage.getItem('slawminyaw_pin') ? `
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:.9rem;color:var(--success)">PIN Enabled ✓</span>
+          <button id="pin-remove-btn" class="btn-xs" style="background:var(--danger);color:#fff;border-color:var(--danger)">Remove PIN</button>
+        </div>` : `
+        <button id="pin-set-btn" class="btn-sm">Set PIN</button>`}
+        <span id="pin-status" class="form-status" style="font-size:11px;margin-top:8px"></span>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <p class="code-hint" style="margin-bottom:10px">Use your phone's built-in lock (Face ID, fingerprint, or pattern) to unlock the app.</p>
+          ${bioEnabled ? `
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:.9rem;color:var(--success)">Phone Lock Enabled ✓</span>
+            <button id="bio-remove-btn" class="btn-xs" style="background:var(--danger);color:#fff;border-color:var(--danger)">Remove</button>
+          </div>` : `
+          <button id="bio-set-btn" class="btn-sm"${!window.PublicKeyCredential ? ' disabled title="Not supported on this device/browser"' : ''}>Enable Phone Lock</button>`}
+          <span id="bio-status" class="form-status" style="font-size:11px;margin-top:8px"></span>
+        </div>
+        </div>
+        <div class="set-row" data-keys="hide balances blur amounts privacy eye public hidden secret">
+          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="hide-amounts-settings" ${s.hideAmounts ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
+            Hide balances (blur amounts)
+          </label>
+          <p class="code-hint" style="margin-top:6px">Blurs every dollar amount across the app so you can open it in public. Tap the eye icon on the balance card to toggle it any time.</p>
+        </div>
+</div>
+      </section>
+
+      <section class="set-g" data-g="alerts">
+        <button class="set-g-head" type="button" aria-expanded="false">
+          <span class="set-g-ico" aria-hidden="true">◔</span>
+          <span class="set-g-t">Alerts<span class="set-g-sub">Bill reminders</span></span>
+          <span class="set-g-caret" aria-hidden="true">›</span>
+        </button>
+        <div class="set-g-body">
+        <div class="set-row" data-keys="notification notifications push alerts reminder bills due permission">
+          <label class="form-label" style="margin-bottom:8px">Bill reminders</label>
+          <div class="form-row">
+          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="notif-toggle" ${s.notifications ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
+            Bill reminders
+          </label>
+          <p class="code-hint" style="margin-top:6px">You'll be notified about bills due within 3 days each time you open the app. Requires notification permission.</p>
+        </div>
+        ${typeof Notification !== 'undefined' && Notification.permission !== 'granted' ? `<button id="notif-enable-btn" class="btn-sm" style="margin-top:4px">Enable Notifications</button>` : ''}
+        </div>
+</div>
+      </section>
+
+      <section class="set-g" data-g="data">
+        <button class="set-g-head" type="button" aria-expanded="false">
+          <span class="set-g-ico" aria-hidden="true">▣</span>
+          <span class="set-g-t">Data<span class="set-g-sub">Import, export, about</span></span>
+          <span class="set-g-caret" aria-hidden="true">›</span>
+        </button>
+        <div class="set-g-body">
+        <div class="set-row" data-keys="import export csv backup download upload spreadsheet restore">
+          <button class="set-link" type="button" onclick="showTab('import')">
+            <span class="set-link-t">Import / Export<span class="set-g-sub">CSV, backups and restore points</span></span>
+            <span class="set-g-caret">›</span>
+          </button>
+        </div>
+        <div class="set-row" data-keys="about version update changelog whats new">
+          <button class="set-link" type="button" onclick="showTab('about')">
+            <span class="set-link-t">About<span class="set-g-sub">v${VERSION}</span></span>
+            <span class="set-g-caret">›</span>
+          </button>
+        </div>
+</div>
+      </section>
+      <p class="set-nores" id="set-nores" hidden>Nothing matches that.</p>
 
       ${bootTimingHtml()}
-
     </div>`;
 }
 
+// Which settings groups are open, and the current search text. Held outside the
+// render so they survive it: changing a skin, theme or mascot re-renders this page,
+// and collapsing everything underneath the user mid-task would be worse than the
+// scrolling this replaced.
+let _setOpenGroups = new Set();
+let _setQuery = '';
+
+function _setApplyFilter() {
+  const q = _setQuery.trim().toLowerCase();
+  let hits = 0;
+  document.querySelectorAll('.set-g').forEach(g => {
+    let shown = 0;
+    g.querySelectorAll('.set-row').forEach(r => {
+      const match = !q || (r.dataset.keys || '').includes(q);
+      r.hidden = !match;
+      if (match) shown++;
+    });
+    g.hidden = !!q && shown === 0;
+    // Searching opens the groups holding matches; clearing the box returns to
+    // whatever the user had open, rather than leaving the page sprawled open.
+    const open = q ? shown > 0 : _setOpenGroups.has(g.dataset.g);
+    g.classList.toggle('open', open);
+    g.querySelector('.set-g-head')?.setAttribute('aria-expanded', open ? 'true' : 'false');
+    hits += shown;
+  });
+  const nores = document.getElementById('set-nores');
+  if (nores) nores.hidden = hits > 0;
+}
+
 function attachSettings() {
+  // ── group headers + search ─────────────────────────────────────────────────
+  document.querySelectorAll('.set-g-head').forEach(head => {
+    head.addEventListener('click', () => {
+      const g = head.closest('.set-g');
+      const key = g.dataset.g;
+      if (_setOpenGroups.has(key)) _setOpenGroups.delete(key); else _setOpenGroups.add(key);
+      _setApplyFilter();
+      haptic([8]);
+    });
+  });
+  const _search = document.getElementById('set-search');
+  if (_search) {
+    _search.value = _setQuery;                 // survives a re-render
+    _search.addEventListener('input', e => { _setQuery = e.target.value; _setApplyFilter(); });
+  }
+  _setApplyFilter();                           // restore open groups / active search
+
   // App mode (Full vs Simple/Tracker)
   document.querySelectorAll('.mode-opt').forEach(btn => {
     btn.addEventListener('click', () => {

@@ -7798,6 +7798,62 @@ body.skinned .backup-banner {
    written at its destination in markup, so it stays correct with no animation. */
 .txn-a-card .txn-anim-progress { margin-top: 0; }
 
+/* ── settings: grouped + searchable ───────────────────────────────────────────
+   Replaced 9 flat cards in one long scroll. Everything shut on arrival so the page
+   fits a phone screen; the search box opens whichever groups hold matches. */
+.set-search {
+  width: 100%; font: inherit; font-size: .88rem;
+  padding: 11px 13px; margin-bottom: 14px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 11px;
+  -webkit-appearance: none; appearance: none;
+}
+.set-search::placeholder { color: var(--muted); }
+.set-search:focus { outline: none; border-color: var(--accent); }
+
+.set-g {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; margin-bottom: 11px; overflow: hidden;
+}
+.set-g-head {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  padding: 15px 14px; background: none; border: 0; cursor: pointer;
+  font: inherit; color: var(--text); text-align: left;
+}
+.set-g-head:active { background: var(--surface2); }
+.set-g-ico {
+  width: 28px; height: 28px; flex: none; border-radius: 8px;
+  background: var(--surface2); color: var(--accent);
+  display: grid; place-items: center; font-size: .95rem;
+}
+.set-g-t { flex: 1; min-width: 0; font-size: .95rem; font-weight: 700; }
+.set-g-sub {
+  display: block; font-size: .72rem; font-weight: 400; color: var(--muted);
+  margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.set-g-caret { color: var(--muted); font-size: 1.15rem; transition: transform .16s ease; }
+.set-g.open .set-g-caret { transform: rotate(90deg); }
+.set-g-body { display: none; padding: 0 14px 4px; }
+.set-g.open .set-g-body { display: block; }
+.set-g.open .set-g-head { border-bottom: 1px solid var(--border); }
+
+.set-row { padding: 14px 0; border-bottom: 1px solid var(--border); }
+.set-row:last-child { border-bottom: 0; }
+.set-row[hidden] { display: none; }
+
+/* Rows that just navigate somewhere else */
+.set-link {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; color: var(--text); text-align: left;
+}
+.set-link-t { flex: 1; font-size: .9rem; font-weight: 600; }
+.set-nores { color: var(--muted); font-size: .84rem; padding: 6px 2px 2px; }
+
+/* Skins keep their own flat corner language. */
+body.skinned .set-g,
+body.skinned .set-search { border-radius: var(--sk-card-r, 10px); }
+
 /* ── boot timing readout (diagnostic) ─────────────────────────────────────── */
 .boot-rows { display: flex; flex-direction: column; gap: 7px; }
 .boot-row {

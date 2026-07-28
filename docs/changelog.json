@@ -1,5 +1,14 @@
 [
  {
+  "version": "5.50.0",
+  "date": "2026-07-28",
+  "changes": [
+   "Settings is reorganised. It was nine cards in one long scroll, and anything to do with how the app looks was spread across four of them — Theme, Font, Animations and Appearance. Now it's five groups (Look, Money, Privacy & lock, Alerts, Data), all closed when you arrive, so the whole page fits on one screen instead of nearly three. Tap a group to open it.",
+   "There's a search box at the top. It matches what you'd call a setting rather than only what it's named — type \"blur\" and you get Hide balances, \"fingerprint\" gets phone unlock, \"fake\" gets Screenshot mode, \"dark\" gets Theme. Groups holding a match open themselves; clear the box and everything shuts again.",
+   "Nothing was removed or renamed away. Every control is still there and works the same — the mascot, screenshot mode and the skins are all under Look now, alongside the theme, instead of being in a separate card that competed with it. Import / Export and About are reachable from Settings directly too."
+  ]
+ },
+ {
   "version": "5.49.0",
   "date": "2026-07-28",
   "changes": [
