@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.15';
+const VERSION = '5.46.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.46.0', date: '2026-07-28', changes: [
+    'You can frame your mascot photo now instead of taking whatever the middle of it happened to be. Picking a photo opens a round window: drag to move it, pinch or use the slider to zoom in up to 4×, then "Use photo" to keep it. The window is round because that\'s how the photo is drawn everywhere in the app, so what you line up is exactly what you get. Cancel leaves your current mascot alone',
+    'Zooming holds whatever is in the middle of the frame steady rather than sliding it away, and you can\'t drag the photo far enough to leave a gap at the edge',
+  ]},
   { version: '5.45.15', date: '2026-07-28', changes: [
     'The Home mascot in the bottom bar is drawn clear under the skins — that faint film over it is gone. It was being held at 60% opacity permanently. The intention had been to dim it only while you were on another tab, but the rule meant to bring it back to full strength on the dashboard could never actually fire, so it stayed dimmed everywhere. It\'s full strength now, wherever you are',
   ]},
@@ -3142,30 +3146,168 @@ function setCustomMascot(dataUrl) {
 }
 
 // A phone photo is several megabytes — far too big to sit in localStorage beside
-// your financial data. Square-crop from the centre and rescale to 320px, which is
-// larger than the biggest place it's drawn (the 222px splash), then encode as JPEG.
-// Typical result is 20–50 KB. Calls back with a data URL, or null if it couldn't
-// be read as an image.
-function photoToMascot(file, cb) {
-  const MAX = 320;
+// your financial data. Whatever square the user framed is rescaled to 320px, which
+// is larger than the biggest place it's drawn (the 222px splash), then encoded as
+// JPEG. Typical result is 20–50 KB.
+const MASCOT_MAX = 320;
+
+// Cut `size`x`size` source pixels starting at (sx, sy) down to a 320px square.
+function _encodeMascot(img, sx, sy, size) {
+  const c = document.createElement('canvas');
+  c.width = c.height = MASCOT_MAX;
+  const ctx = c.getContext('2d');
+  // White underlay: a transparent PNG would otherwise flatten to black in JPEG.
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, MASCOT_MAX, MASCOT_MAX);
+  ctx.drawImage(img, sx, sy, size, size, 0, 0, MASCOT_MAX, MASCOT_MAX);
+  try { return c.toDataURL('image/jpeg', 0.85); } catch { return null; }
+}
+
+// Framing step — drag to move, pinch/slider/wheel to zoom, then confirm.
+// Geometry: the <img> is sized to dispW x dispH and centred in a square stage of
+// side S, then nudged by (tx, ty). At zoom 1 it is scaled to *cover* the stage, so
+// there is never a gap. Panning is clamped to |tx| <= (dispW - S) / 2 (and the same
+// for ty), which is exactly the slack between the image and the frame.
+// onDone(dataUrl) on confirm; onDone(null) if the file wasn't a readable image.
+// Cancelling closes without calling back at all.
+function openMascotCropper(file, onDone) {
   const url = URL.createObjectURL(file);
   const img = new Image();
+
+  img.onerror = () => { URL.revokeObjectURL(url); onDone(null); };
   img.onload = () => {
-    const side = Math.min(img.naturalWidth, img.naturalHeight);
-    const c = document.createElement('canvas');
-    c.width = c.height = MAX;
-    const ctx = c.getContext('2d');
-    // White underlay: a transparent PNG would otherwise flatten to black in JPEG.
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, MAX, MAX);
-    ctx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2,
-                  side, side, 0, 0, MAX, MAX);
-    URL.revokeObjectURL(url);
-    let out = null;
-    try { out = c.toDataURL('image/jpeg', 0.85); } catch { out = null; }
-    cb(out);
+    const nw = img.naturalWidth, nh = img.naturalHeight;
+
+    const el = document.createElement('div');
+    el.id = 'mascot-crop';
+    el.className = 'mcrop';
+    el.innerHTML = `
+      <div class="mcrop-card" role="dialog" aria-modal="true" aria-label="Position your photo">
+        <div class="mcrop-title">Position your photo</div>
+        <div class="mcrop-stage"><img class="mcrop-img" alt=""></div>
+        <div class="mcrop-zoom">
+          <span aria-hidden="true">−</span>
+          <input type="range" class="mcrop-range" min="1" max="4" step="0.01" value="1"
+                 aria-label="Zoom">
+          <span aria-hidden="true">+</span>
+        </div>
+        <p class="mcrop-hint">Drag to move · pinch or use the slider to zoom</p>
+        <div class="mcrop-btns">
+          <button class="btn-secondary mcrop-cancel" type="button">Cancel</button>
+          <button class="btn-primary mcrop-save" type="button">Use photo</button>
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+
+    const stage  = el.querySelector('.mcrop-stage');
+    const imgEl  = el.querySelector('.mcrop-img');
+    const range  = el.querySelector('.mcrop-range');
+    imgEl.src = url;
+
+    let S = stage.getBoundingClientRect().width || 240;
+    let zoom = 1, tx = 0, ty = 0;
+
+    // Derived from the live S, not captured once — the stage can be remeasured
+    // after layout settles, and a stale cover scale would let a gap open up.
+    const baseScale = () => Math.max(S / nw, S / nh);
+    const total = () => baseScale() * zoom;
+    const dispW = () => nw * total();
+    const dispH = () => nh * total();
+    const clamp = () => {
+      const mx = Math.max(0, (dispW() - S) / 2);
+      const my = Math.max(0, (dispH() - S) / 2);
+      tx = Math.min(mx, Math.max(-mx, tx));
+      ty = Math.min(my, Math.max(-my, ty));
+    };
+    const draw = () => {
+      clamp();
+      imgEl.style.width  = dispW() + 'px';
+      imgEl.style.height = dispH() + 'px';
+      imgEl.style.transform = `translate(-50%, -50%) translate(${tx}px, ${ty}px)`;
+    };
+    draw();
+
+    // Zoom about the centre of the frame, keeping the same point under it.
+    const setZoom = z => {
+      const prev = total();
+      zoom = Math.min(4, Math.max(1, z));
+      const ratio = total() / prev;
+      tx *= ratio; ty *= ratio;
+      if (range.value !== String(zoom)) range.value = zoom;
+      draw();
+    };
+
+    // ── pan + pinch ─────────────────────────────────────────────────────────
+    const pts = new Map();
+    let startDist = 0, startZoom = 1;
+    stage.addEventListener('pointerdown', e => {
+      stage.setPointerCapture(e.pointerId);
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) {
+        const [a, b] = [...pts.values()];
+        startDist = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+        startZoom = zoom;
+      }
+    });
+    stage.addEventListener('pointermove', e => {
+      const p = pts.get(e.pointerId);
+      if (!p) return;
+      if (pts.size === 1) {
+        tx += e.clientX - p.x;
+        ty += e.clientY - p.y;
+        p.x = e.clientX; p.y = e.clientY;
+        draw();
+      } else if (pts.size === 2) {
+        p.x = e.clientX; p.y = e.clientY;
+        const [a, b] = [...pts.values()];
+        setZoom(startZoom * (Math.hypot(a.x - b.x, a.y - b.y) / startDist));
+      }
+    });
+    const release = e => { pts.delete(e.pointerId); };
+    stage.addEventListener('pointerup', release);
+    stage.addEventListener('pointercancel', release);
+    // Desktop convenience; the slider is the primary control on touch.
+    stage.addEventListener('wheel', e => {
+      e.preventDefault();
+      setZoom(zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08));
+    }, { passive: false });
+    range.addEventListener('input', () => setZoom(parseFloat(range.value)));
+
+    // ── close / confirm ─────────────────────────────────────────────────────
+    const close = () => {
+      document.removeEventListener('keydown', onKey);
+      URL.revokeObjectURL(url);
+      el.remove();
+    };
+    const onKey = e => {
+      if (e.key === 'Escape') { close(); }
+      else if (e.key === 'Enter') { save(); }
+    };
+    const save = () => {
+      // Map the visible frame back to source pixels.
+      const t = total();
+      const size = S / t;
+      const sx = (dispW() / 2 - S / 2 - tx) / t;
+      const sy = (dispH() / 2 - S / 2 - ty) / t;
+      // Guard against sub-pixel drift pushing the rect outside the bitmap.
+      const cx = Math.max(0, Math.min(nw - size, sx));
+      const cy = Math.max(0, Math.min(nh - size, sy));
+      const out = _encodeMascot(img, cx, cy, size);
+      close();
+      onDone(out);
+    };
+    el.querySelector('.mcrop-cancel').addEventListener('click', close);
+    el.querySelector('.mcrop-save').addEventListener('click', save);
+    el.addEventListener('click', e => { if (e.target === el) close(); });
+    document.addEventListener('keydown', onKey);
+
+    // The stage width isn't final until layout settles on some phones.
+    requestAnimationFrame(() => {
+      const w = stage.getBoundingClientRect().width;
+      if (w && Math.abs(w - S) > 0.5) { S = w; draw(); }
+    });
   };
-  img.onerror = () => { URL.revokeObjectURL(url); cb(null); };
+
   img.src = url;
 }
 
@@ -10274,7 +10416,7 @@ function renderSettings() {
 
         <div class="form-row">
           <label class="form-label" style="margin-bottom:8px">Your mascot</label>
-          <p class="code-hint" style="margin-bottom:10px">Use your own photo instead of the Doberman. It shows in the bottom bar, on the accounts overview, the splash screen and empty screens. Squared off from the middle and shrunk to 320px, so it takes about as much room as a single receipt.</p>
+          <p class="code-hint" style="margin-bottom:10px">Use your own photo instead of the Doberman. It shows in the bottom bar, on the accounts overview, the splash screen and empty screens. You'll get to move and zoom it before it's saved, then it's shrunk to 320px — about as much room as a single receipt.</p>
           <div class="mascot-pick">
             <span class="mascot-prev${customMascot() ? '' : ' is-default'}"
                   style="background-image:url('${customMascot() || './doberman.png'}')"></span>
@@ -10534,10 +10676,15 @@ function attachSettings() {
   });
   document.getElementById('mascot-file')?.addEventListener('change', e => {
     const file = e.target.files && e.target.files[0];
+    // Clear the input so picking the same file twice still fires a change event.
+    e.target.value = '';
     if (!file) return;
-    _mascotMsg('Working on it…');
-    photoToMascot(file, dataUrl => {
-      if (!dataUrl) { _mascotMsg('That file couldn\'t be read as an image. Try a JPG or PNG.', true); return; }
+    _mascotMsg('');
+    openMascotCropper(file, dataUrl => {
+      if (dataUrl === null) {
+        _mascotMsg('That file couldn\'t be read as an image. Try a JPG or PNG.', true);
+        return;
+      }
       if (!setCustomMascot(dataUrl)) {
         _mascotMsg('There wasn\'t room to save it. Free up some space and try again — your data is untouched.', true);
         return;
