@@ -7533,6 +7533,62 @@ body.skinned:not(.fx-reduced) .sk-donut circle {
   }
 }
 
+/* ── Idle decorative loops are off under a skin ─────────────────────────────
+   The section above says "nothing decorative", but the skins still inherited
+   the default UI's idle loops — the nav glitch, the hero bark, the sparkline
+   spark, the tile pulse, the theme particles. Each one keeps the compositor
+   awake for the whole time the page is open, which is what made the skins look
+   calm without feeling calm.
+
+   Only endlessly-repeating decoration is switched off here. Everything that
+   communicates something is left alone on purpose: the pull-to-refresh spinner,
+   the loading skeleton shimmers, and the skins' own entrance/press transitions
+   defined above. The default themed UI keeps all of it — this is skins only. */
+body.skinned #wt-hl,
+body.skinned .dawg-lockin,
+body.skinned .dawg-lockin::after,
+body.skinned .dawg-hero-dob,
+body.skinned .dawg-dob-bark,
+body.skinned .dawg-nav-btn.dawg-nav-active .dawg-nav-icon,
+body.skinned .dash-glitch-failed,
+body.skinned #dawg-sparkline,
+body.skinned .dawg-nav-dob,
+body.skinned .dawg-tile-failed,
+body.skinned .page-title::after,
+body.skinned .txn-anim-header,
+body.skinned .txn-anim-amount,
+body.skinned .txn-anim-icon-wrap svg,
+body.skinned .txn-tcur {
+  animation: none !important;
+}
+/* These carry !important in their own rules, so they need it back to be undone. */
+body.skinned .dawg-nav-center-btn,
+body.skinned .gtrio-mid,
+body.skinned .gtrio-l,
+body.skinned .gtrio-r,
+body.skinned .pf-ember,
+body.skinned .pf-bubble {
+  animation: none !important;
+}
+/* The ember/bubble layers are pure decoration and cost a paint per frame —
+   under a skin they don't need to exist at all. */
+body.skinned .pf-ember,
+body.skinned .pf-bubble { display: none !important; }
+
+/* The transaction confirmation still animates in; it just doesn't glitch or
+   blink forever while it's on screen. Its expanding rings stay — they're the
+   part that reads as confirmation. Pin the text that the glitch keyframes
+   would otherwise have been responsible for revealing. */
+body.skinned .txn-anim-header,
+body.skinned .txn-anim-amount { opacity: 1 !important; transform: none !important; }
+
+/* Drop-shadow on a moving element is the expensive pairing — the shadow is
+   re-rasterised every frame. The skins are flat by design, so the inherited
+   mascot shadows go. */
+body.skinned .dawg-hero-dob,
+body.skinned .dawg-nav-dob,
+body.skinned .dawg-tile-failed { filter: none !important; }
+
 /* ══ Every other page ═══════════════════════════════════════════════════════
    The dashboard needed its own renderer because its structure genuinely differed
    from the design (mascot hero vs. stat row). These pages already have the right

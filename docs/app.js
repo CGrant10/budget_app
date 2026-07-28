@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.9';
+const VERSION = '5.45.10';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,11 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.10', date: '2026-07-28', changes: [
+    'The app now opens straight from your phone instead of waiting on the network first. Every launch used to check in with the server for the app itself before it could draw anything — on a weak signal that check was the pause you felt between tapping the icon and seeing your balance. It now draws immediately from what\'s already on the device and quietly refreshes in the background. The update button works exactly as before: it still checks for a new version every launch and still tells you when one is ready',
+    'Charts and the PowerShell theme font are also kept on the device now, so the Insights page no longer re-downloads its chart library each session',
+    'The three beta skins are calm all the way through. They were still running the standard app\'s idle effects underneath — the flickering nav icon, the barking mascot, the sparkline glitch, the pulsing day tiles, the ember and bubble particles — which never stop while a page is open and keep the screen busy and the battery working. Those are off under a skin now. The taps, page changes and the spending wheel still animate; nothing that tells you something was removed, and the standard themed app is completely untouched',
+  ]},
   { version: '5.45.9', date: '2026-07-27', changes: [
     'Added a daily line at the foot of the dashboard — one thought about money, picked for the day so it stays the same until tomorrow. Tap the refresh button beside it if you want a different one. Works on the standard dashboard and all three beta skins, and works offline like everything else',
   ]},
