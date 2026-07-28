@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.45.12';
+const VERSION = '5.45.13';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -71,6 +71,10 @@ const ICONS = {
 };
 
 const CHANGELOG = [
+  { version: '5.45.13', date: '2026-07-28', changes: [
+    'Fixed the date on the runway line — it was always a day too far ahead. "Covers 5 days" already counts today as the first of them, so the money stretches through the fifth day, but the date was worked out by adding all five days on top of today, landing on the sixth. A 5-day runway starting today now correctly reads "through Aug 1" rather than "through Aug 2". Only the date was wrong; the number of days and the daily figure were always right',
+    'If there isn\'t even one day\'s worth left above your floor, the line now says so plainly instead of showing "0 days" with a date in the past',
+  ]},
   { version: '5.45.12', date: '2026-07-28', changes: [
     'The runway line on the skinned dashboard now says "at your recent pace" before its daily figure. That number is what you have actually been spending per day over the last 30 days, which is a different thing from the Weekly Planner\'s "PER DAY" — that one is what you\'re cleared to spend for the rest of the month. Both just said "/day", so seeing them side by side looked like the app contradicting itself. The maths never changed; only one of them was ever badly labelled',
   ]},
@@ -2668,8 +2672,22 @@ function _skRunway(sk) {
   }
 
   const days = Math.floor(spendable / burn);
+
+  // Not even one day's worth at the current pace — "through <yesterday>" would be
+  // nonsense, so say the plain thing instead.
+  if (days < 1) {
+    return `<div class="sk-rw sk-rw-over">
+      <div class="sk-rw-line"><b class="money">${fmt(spendable)}</b> left above your floor —
+        under a day at your recent pace of ${fmt(burn)}/day</div>
+      <div class="sk-track low"><i style="width:2%"></i></div>
+      ${foot}</div>`;
+  }
+
+  // "Covers N days" counts today as the first of those days, so the last day the
+  // money still stretches to is today + (N-1). Adding the full N double-counted
+  // today and dated a 5-day runway to the 6th day.
   const end  = new Date(); end.setHours(0, 0, 0, 0);
-  end.setDate(end.getDate() + days);
+  end.setDate(end.getDate() + days - 1);
   const endLbl = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const pct   = Math.min(days / SK_RUNWAY_FULL, 1) * 100;
   const level = days < 7 ? ' low' : days < 14 ? ' mid' : '';
