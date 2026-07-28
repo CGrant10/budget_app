@@ -1,0 +1,406 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transaction animation mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Saira+Condensed:wght@600;700;800&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0e1013; --surface:#171a1f; --surface2:#1e222a; --text:#f0f2f4; --muted:#838d98;
+  --border:rgba(255,255,255,.12); --accent:#4ea8ff; --danger:#ff453a; --success:#32d74b;
+  --paycheck:#ffd60a;
+  --num:'Saira Condensed', system-ui, sans-serif;
+}
+body.light {
+  --bg:#f4f5f7; --surface:#ffffff; --surface2:#fbfaf7; --text:#14150f; --muted:#6d7278;
+  --border:rgba(0,0,0,.14); --accent:#2b7fd4; --danger:#c8352b; --success:#1e8e3e;
+  --paycheck:#b8860b;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  font-family:'Plus Jakarta Sans', system-ui, sans-serif;
+  background:var(--bg); color:var(--text);
+  padding:28px 18px 80px; line-height:1.5;
+  /* No transition on background/color here: both resolve through custom
+     properties that the .light class swaps wholesale, and the resulting
+     transition never settled — body kept painting the old colour while its
+     descendants had already picked up the new variables. */
+}
+.wrap { max-width:1180px; margin:0 auto; }
+h1 { font-size:1.5rem; font-weight:800; letter-spacing:-.02em; }
+.sub { color:var(--muted); font-size:.9rem; margin-top:6px; max-width:70ch; }
+.toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:18px 0 30px; }
+.tbtn {
+  font:inherit; font-size:.82rem; font-weight:600; cursor:pointer;
+  background:var(--surface); color:var(--text);
+  border:1px solid var(--border); border-radius:999px; padding:7px 14px;
+}
+.tbtn:hover { border-color:var(--muted); }
+
+.concept { border-top:1px solid var(--border); padding:26px 0 8px; }
+.chead { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+.cnum {
+  font-family:var(--num); font-weight:800; font-size:1.5rem;
+  color:var(--muted); line-height:1;
+}
+.cname { font-size:1.12rem; font-weight:700; }
+.ctag {
+  font-size:.68rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); border:1px solid var(--border); border-radius:999px; padding:3px 9px;
+}
+.cnote { color:var(--muted); font-size:.86rem; margin-top:8px; max-width:78ch; }
+.cnote b { color:var(--text); font-weight:600; }
+
+.row { display:grid; grid-template-columns:repeat(auto-fit, minmax(272px, 1fr)); gap:16px; margin-top:18px; }
+.cell { }
+.celllbl {
+  font-size:.68rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;
+}
+.replay {
+  font:inherit; font-size:.66rem; font-weight:600; letter-spacing:.04em;
+  background:none; border:1px solid var(--border); color:var(--muted);
+  border-radius:999px; padding:2px 9px; cursor:pointer; text-transform:none;
+}
+.replay:hover { color:var(--text); border-color:var(--muted); }
+/* Every demo runs inside a fixed-size stage so the page never jumps. */
+.stage {
+  position:relative; height:186px; border-radius:14px;
+  background:var(--surface); border:1px solid var(--border);
+  overflow:hidden; display:flex; align-items:center; justify-content:center;
+}
+.money { font-family:var(--num); font-weight:800; font-variant-numeric:tabular-nums; }
+
+/* ══ 1 · RECEIPT ═════════════════════════════════════════════════════════ */
+.rc {
+  width:172px; background:var(--surface2); color:var(--text);
+  border-radius:3px 3px 0 0; padding:14px 14px 18px;
+  box-shadow:0 10px 26px rgba(0,0,0,.28);
+  transform-origin:top center;
+  animation:rcDrop .46s cubic-bezier(.22,1,.36,1) both;
+  position:relative;
+}
+@keyframes rcDrop { from { transform:translateY(-108%) } to { transform:translateY(-6%) } }
+.rc::after {
+  content:''; position:absolute; left:0; right:0; bottom:-7px; height:8px;
+  background:
+    radial-gradient(circle at 5px -2px, transparent 5px, var(--surface2) 5px) 0 0/10px 8px repeat-x;
+}
+.rc-top {
+  font-size:.6rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); text-align:center; padding-bottom:8px;
+  border-bottom:1px dashed var(--border);
+  animation:rcFade .3s ease .34s both;
+}
+.rc-line {
+  display:flex; justify-content:space-between; gap:8px;
+  font-size:.7rem; color:var(--muted); margin-top:7px;
+  animation:rcFade .26s ease both;
+}
+.rc-amt {
+  font-size:1.72rem; margin-top:10px; text-align:right; letter-spacing:-.01em;
+  animation:rcFade .3s ease .62s both;
+}
+.rc-stamp {
+  position:absolute; right:10px; bottom:14px;
+  font-size:.6rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
+  border:2px solid currentColor; border-radius:4px; padding:2px 6px;
+  transform:rotate(-11deg) scale(2.4); opacity:0;
+  animation:rcStamp .34s cubic-bezier(.3,1.5,.5,1) .82s both;
+}
+@keyframes rcFade { from { opacity:0; transform:translateY(4px) } to { opacity:1; transform:none } }
+@keyframes rcStamp {
+  from { opacity:0; transform:rotate(-11deg) scale(2.4) }
+  60%  { opacity:.95; transform:rotate(-11deg) scale(.94) }
+  to   { opacity:.9;  transform:rotate(-11deg) scale(1) }
+}
+
+/* ══ 2 · LEDGER LINE ════════════════════════════════════════════════════ */
+.ll { width:100%; padding:0 20px; }
+.ll-row {
+  display:flex; align-items:center; gap:12px;
+  background:var(--surface2); border-radius:10px; padding:13px 14px;
+  border-left:3px solid currentColor;
+  animation:llIn .42s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes llIn { from { opacity:0; transform:translateX(-16px) } to { opacity:1; transform:none } }
+.ll-ico {
+  width:30px; height:30px; flex:none; border-radius:50%;
+  display:grid; place-items:center; font-size:.9rem; font-weight:800;
+  background:color-mix(in srgb, currentColor 16%, transparent);
+}
+.ll-txt { flex:1; min-width:0; }
+.ll-cat { font-size:.82rem; font-weight:600; color:var(--text); }
+.ll-desc {
+  font-size:.7rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.ll-amt { font-size:1.1rem; animation:llAmt .34s ease .16s both; }
+@keyframes llAmt { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:none } }
+.ll-bal {
+  margin-top:12px; padding:0 3px; display:flex; justify-content:space-between;
+  font-size:.72rem; color:var(--muted);
+  animation:llFade .3s ease .34s both;
+}
+.ll-bal b { font-family:var(--num); font-weight:700; color:var(--text); font-size:.92rem; }
+@keyframes llFade { from { opacity:0 } to { opacity:1 } }
+.ll-track { height:3px; border-radius:2px; background:var(--border); margin-top:9px; overflow:hidden; }
+.ll-track > i { display:block; height:100%; background:currentColor; width:0;
+  animation:llTrack .7s cubic-bezier(.22,1,.36,1) .3s both; }
+@keyframes llTrack { to { width:var(--w,62%) } }
+
+/* ══ 3 · STAMP ══════════════════════════════════════════════════════════ */
+.st { text-align:center; position:relative; }
+.st-amt {
+  font-size:2.5rem; letter-spacing:-.02em; position:relative; z-index:2;
+  animation:stHit .5s cubic-bezier(.2,1.7,.4,1) both;
+}
+@keyframes stHit {
+  from { opacity:0; transform:scale(2.1) rotate(-7deg); filter:blur(6px) }
+  55%  { opacity:1; transform:scale(.93) rotate(1.5deg); filter:blur(0) }
+  to   { opacity:1; transform:scale(1) rotate(0) }
+}
+.st-ring {
+  position:absolute; top:50%; left:50%; width:110px; height:110px; margin:-55px 0 0 -55px;
+  border:2px solid currentColor; border-radius:50%; opacity:0;
+  animation:stRing .72s cubic-bezier(.22,1,.36,1) .18s both;
+}
+.st-ring.b { animation-delay:.3s; }
+@keyframes stRing {
+  from { opacity:.5; transform:scale(.4) } to { opacity:0; transform:scale(2.1) }
+}
+.st-lbl {
+  font-size:.66rem; font-weight:700; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:10px;
+  animation:stFade .3s ease .3s both;
+}
+.st-msg { font-size:.78rem; color:var(--muted); margin-top:12px;
+  animation:stFade .34s ease .48s both; }
+@keyframes stFade { from { opacity:0; transform:translateY(5px) } to { opacity:1; transform:none } }
+
+/* ══ 4 · FLOW ═══════════════════════════════════════════════════════════ */
+.fl { width:100%; padding:0 22px; }
+.fl-rail { display:flex; align-items:center; gap:10px; }
+.fl-node {
+  flex:none; min-width:66px; text-align:center; font-size:.66rem; font-weight:700;
+  letter-spacing:.05em; text-transform:uppercase; color:var(--muted);
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:9px; padding:9px 8px;
+  animation:flFade .3s ease both;
+}
+.fl-node.live { color:var(--text); border-color:currentColor; }
+.fl-line { flex:1; height:2px; background:var(--border); position:relative; border-radius:2px; }
+.fl-line::after {
+  content:''; position:absolute; inset:0; width:0; border-radius:2px;
+  background:currentColor; animation:flFill .62s cubic-bezier(.4,0,.3,1) .22s both;
+}
+@keyframes flFill { to { width:100% } }
+.fl-dot {
+  position:absolute; top:50%; left:0; width:11px; height:11px; margin:-5.5px 0 0 -5.5px;
+  border-radius:50%; background:currentColor;
+  box-shadow:0 0 0 4px color-mix(in srgb, currentColor 24%, transparent);
+  animation:flDot .62s cubic-bezier(.4,0,.3,1) .22s both;
+}
+@keyframes flDot { from { left:0; opacity:0 } 12% { opacity:1 } to { left:100%; opacity:1 } }
+.fl-amt { text-align:center; font-size:1.9rem; margin-top:20px;
+  animation:flAmt .38s cubic-bezier(.22,1,.36,1) .5s both; }
+@keyframes flAmt { from { opacity:0; transform:translateY(9px) scale(.96) } to { opacity:1; transform:none } }
+.fl-sub { text-align:center; font-size:.72rem; color:var(--muted); margin-top:4px;
+  animation:flFade .3s ease .68s both; }
+@keyframes flFade { from { opacity:0 } to { opacity:1 } }
+
+/* ══ 5 · BALANCE TICK ═══════════════════════════════════════════════════ */
+.bt { text-align:center; width:100%; }
+.bt-lbl { font-size:.64rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:8px; }
+.bt-bal { font-size:2.3rem; letter-spacing:-.02em; display:block;
+  animation:btNudge .5s cubic-bezier(.3,1.4,.5,1) .34s both; }
+@keyframes btNudge { 0% { transform:scale(1) } 40% { transform:scale(1.055) } 100% { transform:scale(1) } }
+.bt-delta {
+  display:inline-block; margin-top:12px; font-family:var(--num); font-weight:800;
+  font-size:1.15rem;
+  animation:btRise 1.5s cubic-bezier(.3,.8,.4,1) both;
+}
+@keyframes btRise {
+  0%   { opacity:0; transform:translateY(16px) scale(.9) }
+  18%  { opacity:1; transform:translateY(0) scale(1) }
+  70%  { opacity:1; transform:translateY(-4px) }
+  100% { opacity:0; transform:translateY(-26px) }
+}
+.bt-chip {
+  display:inline-flex; align-items:center; gap:6px; margin-top:6px;
+  font-size:.68rem; font-weight:600; color:var(--muted);
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:999px; padding:4px 11px;
+  animation:btFade .32s ease .7s both;
+}
+@keyframes btFade { from { opacity:0; transform:translateY(5px) } to { opacity:1; transform:none } }
+</style>
+
+<div class="wrap">
+  <h1>Transaction animation mockups</h1>
+  <p class="sub">
+    Five directions to replace the current terminal-boot card, shown for expense, income
+    and transfer. Nothing here is wired into the app — this page is for picking.
+    Each stage is the same size so timing and weight are comparable.
+  </p>
+
+  <div class="toolbar">
+    <button class="tbtn" id="theme">Toggle light / dark</button>
+    <button class="tbtn" id="all">Replay everything</button>
+    <button class="tbtn" id="slow">Slow motion: off</button>
+  </div>
+
+  <div id="concepts"></div>
+</div>
+
+<script>
+const TYPES = [
+  { key:'expense',  label:'Expense',  colorVar:'--danger',  sign:'−', amt:'42.80',
+    cat:'Food',      desc:'Corner deli',        verb:'Paid',     stamp:'Paid',
+    from:'Checking', to:'Corner deli',  msg:'Logged against Food' },
+  { key:'income',   label:'Income',   colorVar:'--success', sign:'+', amt:'1,240.00',
+    cat:'Paycheck',  desc:'Direct deposit',     verb:'Received', stamp:'Cleared',
+    from:'Employer', to:'Checking',     msg:'Added to Checking' },
+  { key:'transfer', label:'Transfer', colorVar:'--accent',  sign:'',  amt:'300.00',
+    cat:'Transfer',  desc:'Checking → Savings', verb:'Moved',    stamp:'Moved',
+    from:'Checking', to:'Savings',      msg:'Balance unchanged overall' },
+];
+
+const CONCEPTS = [
+  {
+    n:1, name:'Receipt', tag:'Ledger / Grid skins',
+    note:`A slip prints down from the top, the rows fade in, then a rubber stamp lands. Leans
+          on the one metaphor everyone already has for a transaction. <b>Strongest fit for the
+          Ledger skin</b>; the stamp gives it a beat without any glitch. Longest of the five
+          at roughly 1.2s.`,
+    html:t => `
+      <div class="rc" style="color:var(--${t.colorVar.slice(2)})">
+        <div class="rc-top">Budget DAWGs</div>
+        <div class="rc-line" style="animation-delay:.4s"><span>${t.cat}</span><span>today</span></div>
+        <div class="rc-line" style="animation-delay:.5s"><span>${t.desc}</span><span></span></div>
+        <div class="rc-amt money" style="color:var(--${t.colorVar.slice(2)})">${t.sign}$${t.amt}</div>
+        <div class="rc-stamp">${t.stamp}</div>
+      </div>`
+  },
+  {
+    n:2, name:'Ledger line', tag:'Calmest',
+    note:`The row you just created slides in exactly as it will look in the ledger, then the
+          new balance and the week meter settle beneath it. <b>No metaphor and no theatre</b> —
+          it shows you the actual record. Cheapest to render and the easiest to live with
+          twenty times a day. Least celebratory, which may be the point for an expense.`,
+    html:t => `
+      <div class="ll" style="color:var(--${t.colorVar.slice(2)})">
+        <div class="ll-row">
+          <span class="ll-ico">${t.key==='expense'?'↓':t.key==='income'?'↑':'⇄'}</span>
+          <span class="ll-txt">
+            <span class="ll-cat">${t.cat}</span>
+            <span class="ll-desc">${t.desc}</span>
+          </span>
+          <span class="ll-amt money" style="color:var(--${t.colorVar.slice(2)})">${t.sign}$${t.amt}</span>
+        </div>
+        <div class="ll-bal"><span>New balance</span><b>$3,168.40</b></div>
+        <div class="ll-track"><i style="--w:${t.key==='income'?'38%':'71%'}"></i></div>
+      </div>`
+  },
+  {
+    n:3, name:'Stamp', tag:'Bold themes',
+    note:`The amount slams in oversized and blurred, overshoots, settles, and two rings ripple
+          out. <b>Closest in energy to the current terminal card</b> without borrowing a
+          terminal. Reads well at a glance because the amount is the whole composition —
+          but it is the one that would get tiring fastest.`,
+    html:t => `
+      <div class="st" style="color:var(--${t.colorVar.slice(2)})">
+        <div class="st-lbl">${t.verb}</div>
+        <div class="st-ring"></div><div class="st-ring b"></div>
+        <div class="st-amt money" style="color:var(--${t.colorVar.slice(2)})">${t.sign}$${t.amt}</div>
+        <div class="st-msg">${t.msg}</div>
+      </div>`
+  },
+  {
+    n:4, name:'Flow', tag:'Best for transfers',
+    note:`Money visibly travels between two labelled ends. <b>This is the only one that makes a
+          transfer legible</b> — you see it leave one account and arrive at the other, which
+          the current card can only state in words. Expense and income use the same rail with
+          the outside world as the far end.`,
+    html:t => `
+      <div class="fl" style="color:var(--${t.colorVar.slice(2)})">
+        <div class="fl-rail">
+          <div class="fl-node${t.key==='expense'?' live':''}">${t.from}</div>
+          <div class="fl-line"><span class="fl-dot"></span></div>
+          <div class="fl-node${t.key!=='expense'?' live':''}">${t.to}</div>
+        </div>
+        <div class="fl-amt money" style="color:var(--${t.colorVar.slice(2)})">${t.sign}$${t.amt}</div>
+        <div class="fl-sub">${t.msg}</div>
+      </div>`
+  },
+  {
+    n:5, name:'Balance tick', tag:'Most informative',
+    note:`Skips the transaction and shows the consequence: the balance nudges as the delta
+          floats up past it and fades. <b>Answers the question you actually opened the app
+          with</b> — what am I at now. The trade-off is that it confirms the amount only in
+          passing, so a mis-typed entry is easier to miss.`,
+    html:t => `
+      <div class="bt" style="color:var(--${t.colorVar.slice(2)})">
+        <div class="bt-lbl">${t.verb} · new balance</div>
+        <span class="bt-bal money">$3,168.40</span>
+        <div class="bt-delta" style="color:var(--${t.colorVar.slice(2)})">${t.sign||'±'}$${t.amt}</div>
+        <div class="bt-chip">${t.cat} · ${t.desc}</div>
+      </div>`
+  },
+];
+
+const host = document.getElementById('concepts');
+host.innerHTML = CONCEPTS.map(c => `
+  <section class="concept">
+    <div class="chead">
+      <span class="cnum">${String(c.n).padStart(2,'0')}</span>
+      <span class="cname">${c.name}</span>
+      <span class="ctag">${c.tag}</span>
+    </div>
+    <p class="cnote">${c.note}</p>
+    <div class="row">
+      ${TYPES.map(t => `
+        <div class="cell">
+          <div class="celllbl"><span>${t.label}</span>
+            <button class="replay" data-c="${c.n}" data-t="${t.key}">replay</button></div>
+          <div class="stage" id="s-${c.n}-${t.key}"></div>
+        </div>`).join('')}
+    </div>
+  </section>`).join('');
+
+let slow = false;
+
+// Slow motion via playbackRate rather than by rewriting durations — this scales
+// each animation's delay along with its duration, so the sequencing you see is
+// the real sequencing, just stretched.
+function applyRate(stage) {
+  if (!stage.getAnimations) return;
+  stage.getAnimations({ subtree:true }).forEach(a => { a.playbackRate = slow ? 0.3 : 1; });
+}
+function play(n, typeKey) {
+  const c = CONCEPTS.find(x => x.n === n);
+  const t = TYPES.find(x => x.key === typeKey);
+  const stage = document.getElementById(`s-${n}-${typeKey}`);
+  if (!c || !t || !stage) return;
+  stage.innerHTML = '';                       // re-inserting restarts the animations
+  stage.insertAdjacentHTML('beforeend', c.html(t));
+  applyRate(stage);
+}
+function playAll() { CONCEPTS.forEach(c => TYPES.forEach(t => play(c.n, t.key))); }
+
+host.addEventListener('click', e => {
+  const b = e.target.closest('.replay');
+  if (b) play(+b.dataset.c, b.dataset.t);
+});
+document.getElementById('all').addEventListener('click', playAll);
+document.getElementById('theme').addEventListener('click', () => {
+  document.body.classList.toggle('light');
+});
+document.getElementById('slow').addEventListener('click', e => {
+  slow = !slow;
+  e.target.textContent = 'Slow motion: ' + (slow ? 'on' : 'off');
+  playAll();
+});
+
+playAll();
+</script>
