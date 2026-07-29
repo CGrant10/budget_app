@@ -1,0 +1,286 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accounts overview revamp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Saira+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0e1013; --surface:#171a1f; --surface2:#1e222a; --text:#f0f2f4; --muted:#838d98;
+  --border:rgba(255,255,255,.12); --accent:#4ea8ff; --danger:#ff453a; --success:#32d74b;
+  --num:'Saira Condensed',system-ui,sans-serif;
+}
+body.light { --bg:#f4f5f7; --surface:#fff; --surface2:#f2f3f5; --text:#14150f; --muted:#6d7278;
+  --border:rgba(0,0,0,.14); --accent:#2b7fd4; --danger:#c8352b; --success:#1e8e3e; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Plus Jakarta Sans',system-ui,sans-serif; background:var(--bg); color:var(--text);
+  padding:26px 16px 70px; line-height:1.5; }
+.wrap { max-width:1300px; margin:0 auto; }
+h1 { font-size:1.45rem; font-weight:800; letter-spacing:-.02em; }
+.sub { color:var(--muted); font-size:.88rem; margin-top:6px; max-width:80ch; }
+.sub b { color:var(--text); font-weight:600; }
+.toolbar { display:flex; gap:10px; margin:16px 0 4px; flex-wrap:wrap; }
+.tbtn { font:inherit; font-size:.8rem; font-weight:600; cursor:pointer; background:var(--surface);
+  color:var(--text); border:1px solid var(--border); border-radius:999px; padding:6px 13px; }
+.cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(288px,1fr)); gap:20px; margin-top:24px; }
+.chead { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+.cname { font-size:1.02rem; font-weight:700; }
+.ctag { font-size:.63rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); border:1px solid var(--border); border-radius:999px; padding:2px 8px; }
+.ctag.rec { color:var(--accent); border-color:currentColor; }
+.cnote { color:var(--muted); font-size:.8rem; margin:7px 0 11px; }
+.cnote b { color:var(--text); font-weight:600; }
+.phone { height:560px; overflow-y:auto; border:1px solid var(--border); border-radius:18px;
+  background:var(--bg); padding:13px; }
+.phone::-webkit-scrollbar { width:5px; }
+.phone::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+.scrollnote { font-size:.72rem; color:var(--muted); margin-top:8px; font-variant-numeric:tabular-nums; }
+
+.money { font-family:var(--num); font-weight:800; font-variant-numeric:tabular-nums; }
+.lbl { font-size:.6rem; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); }
+
+/* hero (today) */
+.hero { background:linear-gradient(180deg,var(--surface2),var(--bg)); border:1px solid var(--border);
+  border-radius:14px; padding:13px; margin-bottom:11px; }
+.hero-row { display:flex; align-items:center; gap:11px; }
+.hero-dog { width:56px; height:56px; flex:none;
+  background:url('./doberman.png') center/contain no-repeat; }
+.hero-t { font-size:1.05rem; font-weight:800; }
+.hero-s { font-size:.72rem; color:var(--muted); }
+.hero-foot { display:flex; align-items:center; justify-content:space-between; gap:8px;
+  margin-top:11px; padding-top:10px; border-top:1px solid var(--border); }
+.ver { font-size:.68rem; color:var(--muted); display:flex; align-items:center; gap:5px; }
+.ver i { width:6px; height:6px; border-radius:50%; background:var(--success); display:block; }
+.pill { font:inherit; font-size:.66rem; font-weight:600; padding:4px 9px; border-radius:999px;
+  background:var(--surface); border:1px solid var(--border); color:var(--muted); }
+
+/* net worth */
+.nw { background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:13px; margin-bottom:11px; }
+.nw-head { display:flex; align-items:baseline; justify-content:space-between; }
+.nw-val { font-size:1.5rem; }
+.nw-big { font-size:2.3rem; letter-spacing:-.02em; display:block; margin-top:2px; }
+.nw-delta { font-size:.78rem; font-family:var(--num); font-weight:700; margin-top:3px; }
+.meter { height:8px; border-radius:5px; overflow:hidden; display:flex; background:var(--surface2);
+  margin-top:11px; border:1px solid var(--border); }
+.meter i { display:block; height:100%; }
+.seg-a { background:var(--success); } .seg-d { background:var(--danger); }
+.nw-leg { display:flex; justify-content:space-between; font-size:.7rem; margin-top:7px; }
+.spark { display:block; width:100%; height:34px; margin-top:10px; overflow:visible; }
+.spark path { fill:none; stroke:var(--accent); stroke-width:2; stroke-linecap:round; }
+.spark .fillp { fill:color-mix(in srgb, var(--accent) 16%, transparent); stroke:none; }
+
+/* rows */
+.grp { display:flex; justify-content:space-between; font-size:.62rem; font-weight:700;
+  letter-spacing:.13em; text-transform:uppercase; color:var(--muted); margin:13px 2px 6px; }
+.row { display:flex; align-items:center; gap:10px; background:var(--surface);
+  border:1px solid var(--border); border-radius:12px; padding:11px 12px; margin-bottom:7px;
+  position:relative; overflow:hidden; }
+.row-stripe { position:absolute; left:0; top:0; bottom:0; width:3px; }
+.row-ico { width:30px; height:30px; flex:none; border-radius:8px; display:grid; place-items:center;
+  font-size:.78rem; font-weight:800; }
+.row-info { flex:1; min-width:0; }
+.row-name { font-size:.88rem; font-weight:600; }
+.row-sub { font-size:.68rem; color:var(--muted); }
+.row-right { text-align:right; }
+.row-bal { font-size:1rem; }
+.row-mv { font-size:.66rem; font-family:var(--num); font-weight:700; }
+.row-spark { width:44px; height:20px; flex:none; }
+.row-spark path { fill:none; stroke:currentColor; stroke-width:1.8; opacity:.75; }
+.chev { color:var(--muted); font-size:1.05rem; }
+
+/* wallet cards */
+.wcard { border-radius:14px; padding:13px; margin-bottom:9px; color:#fff; position:relative;
+  overflow:hidden; }
+.wcard-top { display:flex; align-items:center; justify-content:space-between; }
+.wcard-name { font-size:.82rem; font-weight:700; opacity:.92; }
+.wcard-type { font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; opacity:.7; }
+.wcard-bal { font-size:1.6rem; margin-top:7px; }
+.wcard-foot { display:flex; justify-content:space-between; font-size:.66rem; opacity:.8; margin-top:5px; }
+
+.qa { position:sticky; bottom:0; padding-top:9px; background:linear-gradient(transparent,var(--bg) 40%); }
+.qa button { width:100%; font:inherit; font-size:.84rem; font-weight:700; padding:11px;
+  border-radius:12px; background:var(--accent); color:#08131f; border:0; }
+</style>
+
+<div class="wrap">
+  <h1>Accounts overview revamp</h1>
+  <p class="sub">
+    Today the page leads with the mascot and carries <b>the app version and an update button inside
+    the accounts hero</b> — which has nothing to do with accounts, and is now also in Settings →
+    Data → About. Net worth is a flat figure with no sense of direction, and each row shows a
+    balance with no context. All three revamps use the same real-ish data so the numbers are
+    comparable; identical phone-height frames, so scroll length is too.
+  </p>
+  <div class="toolbar">
+    <button class="tbtn" id="theme">Toggle light / dark</button>
+  </div>
+  <div class="cols" id="cols"></div>
+</div>
+
+<script>
+const ACCTS = [
+  { name:'Checking',  type:'Checking', grp:'Cash', bal:3468.40, mv:+312.20, col:'#4a82d6', ico:'C', last:'today',      hist:[3100,3260,3180,3390,3300,3468] },
+  { name:'Savings',   type:'Savings',  grp:'Cash', bal:5200.00, mv:+300.00, col:'#28a048', ico:'S', last:'3 days ago', hist:[4400,4600,4600,4900,4900,5200] },
+  { name:'Cash tin',  type:'Cash',     grp:'Cash', bal:180.00,  mv:-40.00,  col:'#2faf72', ico:'$', last:'a week ago', hist:[260,240,220,220,200,180] },
+  { name:'Roth IRA',  type:'Roth IRA', grp:'Investing', bal:14820.00, mv:+410.00, col:'#7568e8', ico:'R', last:'2 weeks ago', hist:[13100,13500,13900,14100,14400,14820] },
+  { name:'Visa',      type:'Credit',   grp:'Debt', bal:1240.50, mv:-180.00, col:'#e23b30', ico:'V', last:'yesterday',  hist:[1600,1520,1480,1400,1330,1240] },
+  { name:'Car loan',  type:'Loan',     grp:'Debt', bal:8600.00, mv:-220.00, col:'#b8910a', ico:'L', last:'1 Jul',      hist:[9800,9500,9200,9000,8800,8600] },
+];
+const isDebt = a => a.grp === 'Debt';
+const ASSETS = ACCTS.filter(a => !isDebt(a)).reduce((s,a) => s+a.bal, 0);
+const DEBTS  = ACCTS.filter(isDebt).reduce((s,a) => s+a.bal, 0);
+const NW     = ASSETS - DEBTS;
+const NW_HIST = ACCTS[0].hist.map((_,i) =>
+  ACCTS.reduce((s,a) => s + (isDebt(a) ? -a.hist[i] : a.hist[i]), 0));
+const NW_MV = NW_HIST[NW_HIST.length-1] - NW_HIST[0];
+const m = n => '$' + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const sgn = n => (n >= 0 ? '+' : '−') + m(n);
+const assetPct = ASSETS + DEBTS > 0 ? ASSETS / (ASSETS + DEBTS) * 100 : 100;
+
+function sparkPath(vals, w, h, pad = 2) {
+  const min = Math.min(...vals), max = Math.max(...vals), r = (max - min) || 1;
+  return vals.map((v,i) => `${i?'L':'M'}${(i/(vals.length-1)*(w-pad*2)+pad).toFixed(1)} ${(h-pad - (v-min)/r*(h-pad*2)).toFixed(1)}`).join(' ');
+}
+const HERO = `
+  <div class="hero">
+    <div class="hero-row">
+      <span class="hero-dog"></span>
+      <span><span class="hero-t">My Accounts</span>
+        <span class="hero-s">${ACCTS.length} accounts · tap to open</span></span>
+    </div>
+    <div class="hero-foot">
+      <span class="ver"><i></i>v5.52.0 · up to date</span>
+      <button class="pill">⟳ Check for update</button>
+    </div>
+  </div>`;
+
+const rowsGrouped = (render) => {
+  const groups = ['Cash','Investing','Debt'];
+  return groups.map(g => {
+    const items = ACCTS.filter(a => a.grp === g);
+    if (!items.length) return '';
+    const sub = items.reduce((s,a) => s+a.bal, 0);
+    return `<div class="grp"><span>${g}</span>
+      <span style="color:${g==='Debt'?'var(--danger)':'var(--muted)'}">${g==='Debt'?'−':''}${m(sub)}</span></div>
+      ${items.map(render).join('')}`;
+  }).join('');
+};
+
+const rowToday = a => `
+  <div class="row"><span class="row-stripe" style="background:${a.col}"></span>
+    <span class="row-ico" style="background:${a.col}22;color:${a.col}">${a.ico}</span>
+    <span class="row-info"><span class="row-name">${a.name}</span>
+      <span class="row-sub">${a.type}</span></span>
+    <span class="row-right"><span class="row-bal money"
+      style="color:${isDebt(a)?'var(--danger)':'var(--success)'}">${isDebt(a)?'Owes '+m(a.bal):m(a.bal)}</span></span>
+    <span class="chev">›</span></div>`;
+
+const rowMoved = a => `
+  <div class="row"><span class="row-stripe" style="background:${a.col}"></span>
+    <span class="row-ico" style="background:${a.col}22;color:${a.col}">${a.ico}</span>
+    <span class="row-info"><span class="row-name">${a.name}</span>
+      <span class="row-sub">${a.type} · ${a.last}</span></span>
+    <span class="row-right"><span class="row-bal money">${m(a.bal)}</span>
+      <span class="row-mv" style="color:${(isDebt(a)? -a.mv : a.mv) >= 0 ? 'var(--success)':'var(--danger)'}">${sgn(a.mv)}</span></span>
+    <span class="chev">›</span></div>`;
+
+const rowSpark = a => `
+  <div class="row" style="color:${a.col}"><span class="row-stripe" style="background:${a.col}"></span>
+    <span class="row-info"><span class="row-name">${a.name}</span>
+      <span class="row-sub">${a.type} · ${a.last}</span></span>
+    <svg class="row-spark" viewBox="0 0 44 20"><path d="${sparkPath(a.hist,44,20)}"/></svg>
+    <span class="row-right"><span class="row-bal money" style="color:var(--text)">${m(a.bal)}</span>
+      <span class="row-mv" style="color:${(isDebt(a)? -a.mv : a.mv) >= 0 ? 'var(--success)':'var(--danger)'}">${sgn(a.mv)}</span></span>
+    <span class="chev">›</span></div>`;
+
+const NW_BLOCK_TODAY = `
+  <div class="nw">
+    <div class="nw-head"><span class="lbl">Net worth</span>
+      <span class="nw-val money" style="color:var(--success)">${m(NW)}</span></div>
+    <div class="meter"><i class="seg-a" style="width:${assetPct.toFixed(1)}%"></i>
+      <i class="seg-d" style="width:${(100-assetPct).toFixed(1)}%"></i></div>
+    <div class="nw-leg"><span style="color:var(--success)">${m(ASSETS)} assets</span>
+      <span style="color:var(--danger)">${m(DEBTS)} debt</span></div>
+  </div>`;
+
+const NW_HERO = `
+  <div class="nw">
+    <span class="lbl">Net worth</span>
+    <span class="nw-big money" style="color:var(--text)">${m(NW)}</span>
+    <div class="nw-delta" style="color:${NW_MV>=0?'var(--success)':'var(--danger)'}">${sgn(NW_MV)} over 6 months</div>
+    <svg class="spark" viewBox="0 0 260 34" preserveAspectRatio="none">
+      <path class="fillp" d="${sparkPath(NW_HIST,260,34)} L258 34 L2 34 Z"/>
+      <path d="${sparkPath(NW_HIST,260,34)}"/>
+    </svg>
+    <div class="meter"><i class="seg-a" style="width:${assetPct.toFixed(1)}%"></i>
+      <i class="seg-d" style="width:${(100-assetPct).toFixed(1)}%"></i></div>
+    <div class="nw-leg"><span style="color:var(--success)">${m(ASSETS)} assets</span>
+      <span style="color:var(--danger)">${m(DEBTS)} debt</span></div>
+  </div>`;
+
+const QA = `<div class="qa"><button>+ Track a Transaction</button></div>`;
+
+const OPTS = [
+  { k:'now', name:'Today', tag:'for comparison',
+    note:`Mascot hero with the app version and update button inside it, a flat net-worth strip,
+          then balances. <b>No sense of direction anywhere</b> — nothing says whether any of it is
+          going up or down.`,
+    html: HERO + NW_BLOCK_TODAY + rowsGrouped(rowToday) + QA },
+
+  { k:'a', name:'A · Net worth first', tag:'recommended',
+    note:`Net worth becomes the top of the page with <b>a trend line and a six-month change</b>,
+          the mascot drops to the corner of the nav where he already lives, and the version /
+          update button moves to Settings → Data. Rows gain last-activity and a monthly movement
+          figure. Same information density, far less furniture.`,
+    html: NW_HERO + rowsGrouped(rowMoved) + QA },
+
+  { k:'b', name:'B · Wallet cards', tag:'boldest',
+    note:`Each account becomes a coloured card carrying its own balance and movement — closer to a
+          banking app. <b>Most scannable by colour</b>, but it is much taller per account and the
+          type colours start competing with your theme once you have more than a few.`,
+    html: `<div class="nw"><div class="nw-head"><span class="lbl">Net worth</span>
+        <span class="nw-val money" style="color:var(--text)">${m(NW)}</span></div>
+        <div class="nw-delta" style="color:var(--success)">${sgn(NW_MV)} over 6 months</div></div>`
+      + ACCTS.map(a => `<div class="wcard" style="background:linear-gradient(135deg,${a.col},${a.col}bb)">
+          <div class="wcard-top"><span class="wcard-name">${a.name}</span>
+            <span class="wcard-type">${a.type}</span></div>
+          <div class="wcard-bal money">${m(a.bal)}</div>
+          <div class="wcard-foot"><span>${a.last}</span><span>${sgn(a.mv)}</span></div>
+        </div>`).join('') + QA },
+
+  { k:'c', name:'C · Every row a trend', tag:'most information',
+    note:`Compact net worth, then <b>every account carries its own six-month sparkline</b> beside
+          the balance. Densest of the three and the only one where you can see a single account
+          heading the wrong way at a glance. Drops the type icons to make room.`,
+    html: `<div class="nw"><div class="nw-head"><span class="lbl">Net worth</span>
+        <span class="nw-val money" style="color:var(--text)">${m(NW)}</span></div>
+        <div class="nw-delta" style="color:var(--success)">${sgn(NW_MV)} over 6 months</div>
+        <div class="meter"><i class="seg-a" style="width:${assetPct.toFixed(1)}%"></i>
+          <i class="seg-d" style="width:${(100-assetPct).toFixed(1)}%"></i></div></div>`
+      + rowsGrouped(rowSpark) + QA },
+];
+
+document.getElementById('cols').innerHTML = OPTS.map(o => `
+  <div>
+    <div class="chead"><span class="cname">${o.name}</span>
+      <span class="ctag${o.tag==='recommended'?' rec':''}">${o.tag}</span></div>
+    <p class="cnote">${o.note}</p>
+    <div class="phone" id="ph-${o.k}">${o.html}</div>
+    <div class="scrollnote" id="sc-${o.k}"></div>
+  </div>`).join('');
+
+OPTS.forEach(o => {
+  const el = document.getElementById('ph-' + o.k);
+  document.getElementById('sc-' + o.k).textContent =
+    (el.scrollHeight / el.clientHeight).toFixed(2) + ' screens of scroll';
+});
+document.getElementById('theme').addEventListener('click', () => {
+  document.body.classList.toggle('light');
+  OPTS.forEach(o => {
+    const el = document.getElementById('ph-' + o.k);
+    document.getElementById('sc-' + o.k).textContent =
+      (el.scrollHeight / el.clientHeight).toFixed(2) + ' screens of scroll';
+  });
+});
+</script>
