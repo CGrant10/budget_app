@@ -7867,7 +7867,6 @@ body.skinned .backup-banner {
    while the skinned rule below survived only because it is also !important. */
 .acct-row.acct-card {
   display: block;
-  padding: 13px 14px;
   border-radius: 14px !important;
   background: linear-gradient(135deg,
     color-mix(in srgb, var(--acct-c) 88%, black 12%),
@@ -7876,6 +7875,13 @@ body.skinned .backup-banner {
   color: #fff;
   margin-bottom: 9px;
 }
+/* Padding needs BOTH !important and extra specificity. `.acct-picker-page .acct-row,
+   .acct-list .acct-row` lands `padding: 21px 2px !important` later in this file at the
+   same specificity as `.acct-row.acct-card`, so on equal weight the later rule won and
+   the text sat 2px from the card edge. Adding the ancestor outranks it. */
+.acct-picker-page .acct-row.acct-card,
+.acct-list .acct-row.acct-card { padding: 15px 17px !important; }
+
 .acct-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .acct-card-name { font-size: .86rem; font-weight: 700; min-width: 0; }
 .acct-row-type.acct-card-type {

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.53.0';
+const VERSION = '5.53.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -80,11 +80,8 @@ const ICONS = {
 // ON RELEASE: replace the entry below, and prepend the outgoing one to
 // changelog.json so the archive stays complete.
 const CHANGELOG = [
-  { version: '5.53.0', date: '2026-07-28', changes: [
-    "Accounts overview redesigned. Each account is now a card carrying its own balance, when you last used it, and how much it has moved this month — instead of a thin row showing only a balance. On the standard themes each card is tinted in its account type's colour; under the three skins they stay flat and quiet with a small coloured dot instead, which is how the rest of that page already behaves under a skin.",
-    "The mascot (or your own photo) now shares a block with your net worth rather than having a hero of its own, so there's one less thing to scroll past before you reach your accounts. Net worth also shows how far it has moved this month.",
-    "The version line and the update button stay right where they were. That screen is the first thing you see, which makes it the easiest place to update from — moving it into Settings would have made updating harder for no real gain.",
-    "On a credit card or loan, a falling balance is now coloured as the good direction rather than by whether the number went up or down.",
+  { version: '5.53.1', date: '2026-07-28', changes: [
+    "Fixed the text on the account cards sitting almost against the card edge — there was 2px of space where there should have been 17. Every card now has proper breathing room on both sides, on the standard themes and under the skins.",
   ]},
 ];
 

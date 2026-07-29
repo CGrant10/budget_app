@@ -1,5 +1,12 @@
 [
  {
+  "version": "5.53.1",
+  "date": "2026-07-28",
+  "changes": [
+   "Fixed the text on the account cards sitting almost against the card edge — there was 2px of space where there should have been 17. Every card now has proper breathing room on both sides, on the standard themes and under the skins."
+  ]
+ },
+ {
   "version": "5.53.0",
   "date": "2026-07-28",
   "changes": [
