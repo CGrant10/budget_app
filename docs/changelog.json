@@ -1,5 +1,14 @@
 [
  {
+  "version": "5.52.0",
+  "date": "2026-07-28",
+  "changes": [
+   "New splash screen exit: the app now arrives through the Doberman. When the splash leaves, a hole in his shape opens out of the middle of the screen and grows until it's swallowed everything, with the dashboard already sitting underneath — so it reads as one move into the app rather than a screen disappearing and another appearing.",
+   "The splash animation was also retimed. It had been choreographed for a four-second hold, so after launch got quick, the wordmark and tagline were still fading in at the moment the screen started fading out, and the little progress bar never got as far as filling at all. Everything now arrives by about two thirds of a second and holds for a beat before leaving.",
+   "Two things that could never be seen were dropped rather than sped up: the \"READY\" line, which used to appear at 3.5 seconds, and the barking loop, which started at exactly the moment the splash began to leave."
+  ]
+ },
+ {
   "version": "5.51.0",
   "date": "2026-07-28",
   "changes": [

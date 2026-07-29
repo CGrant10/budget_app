@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.51.0';
+const VERSION = '5.52.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -80,10 +80,10 @@ const ICONS = {
 // ON RELEASE: replace the entry below, and prepend the outgoing one to
 // changelog.json so the archive stays complete.
 const CHANGELOG = [
-  { version: '5.51.0', date: '2026-07-28', changes: [
-    "The app opens in about a second instead of nearly five. Almost all of that wait was a timer, not work: the splash screen was held for 4.2 seconds before the app was allowed to start reading your data, and because a second piece of code was hiding the splash at 2.6 seconds, you were left looking at a blank screen for roughly two seconds while nothing happened at all.",
-    "Your data is now read while the splash is still on screen rather than afterwards, and the splash stays up for a set minimum of about nine tenths of a second. So the launch takes as long as the slower of the two, instead of adding them together.",
-    "For comparison: the code-size work in the last release saved about 20 milliseconds of this. The timer was costing 4,600.",
+  { version: '5.52.0', date: '2026-07-28', changes: [
+    "New splash screen exit: the app now arrives through the Doberman. When the splash leaves, a hole in his shape opens out of the middle of the screen and grows until it's swallowed everything, with the dashboard already sitting underneath — so it reads as one move into the app rather than a screen disappearing and another appearing.",
+    "The splash animation was also retimed. It had been choreographed for a four-second hold, so after launch got quick, the wordmark and tagline were still fading in at the moment the screen started fading out, and the little progress bar never got as far as filling at all. Everything now arrives by about two thirds of a second and holds for a beat before leaving.",
+    "Two things that could never be seen were dropped rather than sped up: the \"READY\" line, which used to appear at 3.5 seconds, and the barking loop, which started at exactly the moment the splash began to leave.",
   ]},
 ];
 
@@ -4271,6 +4271,38 @@ function _openColorPicker(currentHex, onApply) {
 // How long the splash is guaranteed to stay up. Data loading now runs alongside
 // it, so this is the floor on launch time rather than something added to it.
 const SPLASH_MIN_MS = 900;
+// Long enough for the exit animation to play out before the node is torn down.
+const SPLASH_EXIT_MS = 580;
+
+// Feeds the iris hand-over (see .splash-screen.dismiss in the stylesheet): the app
+// is revealed through a hole shaped like the mascot. The CSS needs to know where he
+// actually is and how big he is, which depends on the layout and on which mascot is
+// active — a photo, a Pokémon sprite and the Doberman are all different sizes — so
+// it is measured here rather than hard-coded.
+// If anything is missing we clear --iris-src, and the @supports block's mask
+// resolves to none, which leaves the plain fade. Never throws: this runs on the
+// launch path and a failure here must not stop the splash from dismissing.
+function _armSplashIris(el) {
+  try {
+    const dog = el.querySelector('.splash-dob-idle');
+    if (!dog) return;
+    const r = dog.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    // The mascot artwork itself is the mask, so the hole is his silhouette.
+    el.style.setProperty('--iris-src', `url("${dog.currentSrc || dog.src}")`);
+    el.style.setProperty('--iris-x', (r.left + r.width / 2) + 'px');
+    el.style.setProperty('--iris-y', (r.top + r.height / 2) + 'px');
+    el.style.setProperty('--iris-w', r.width + 'px');
+    el.style.setProperty('--iris-h', r.height + 'px');
+    // Only now opt in. The iris rules are gated on this class as well as on
+    // @supports, so a missing mascot or an unmeasurable box falls back to the
+    // plain fade rather than to an invalid mask — which would leave the splash
+    // fully opaque until it was yanked from the DOM.
+    el.classList.add('splash-iris');
+  } catch (e) {
+    el.classList.remove('splash-iris');
+  }
+}
 
 function runSplash() {
   return new Promise(resolve => {
@@ -4309,12 +4341,15 @@ function runSplash() {
       if (done) return;
       done = true;
       stopAnim();
+      _armSplashIris(el);
       el.classList.add('dismiss');
       // Resolve as the fade STARTS, not after it. Boot awaits this promise, so
       // waiting out the 450ms fade put it on the critical path for no reason —
       // the fade can finish while the app is already loading behind it.
       resolve();
-      setTimeout(() => { if (el.parentNode) el.remove(); }, 450);
+      // Must outlast the exit animation: the iris runs 40-540ms, so removing at
+      // 450ms would have chopped the reveal off before it finished.
+      setTimeout(() => { if (el.parentNode) el.remove(); }, SPLASH_EXIT_MS);
     };
     // Minimum display time, not a fixed wait. This used to be 4200ms while the
     // inline escape hatch in index.html independently hid the splash at 2600ms —
@@ -12876,11 +12911,17 @@ window.addEventListener('popstate', () => {
     history.replaceState({ dawgBase: true }, '');
     render();
     if (window.__boot) window.__boot.firstRender = performance.now();
-    // Reveal the app now that the first frame is painted — eliminates the raw-HTML flash
-    requestAnimationFrame(() => {
+    // Reveal the app now that the first frame is painted — eliminates the raw-HTML flash.
+    // Belt AND braces: this was rAF-only, which leaves the app at opacity 0 forever if
+    // frames never arrive (throttled or backgrounded renderer) — a blank screen once the
+    // splash has gone. It matters more now that the splash exits by opening a hole onto
+    // the app: the hole must reveal something. Both paths are idempotent.
+    const _revealApp = () => {
       const appEl = document.getElementById('app');
       if (appEl) appEl.style.opacity = '1';
-    });
+    };
+    requestAnimationFrame(_revealApp);
+    setTimeout(_revealApp, 60);
     // Defer non-critical startup work — badges, bill/notes notifications,
     // what's-new modal, paycheck/contribution catch-up, and the update check —
     // to idle time so none of it competes with first paint or the user's first tap.
