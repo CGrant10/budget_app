@@ -1,0 +1,199 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Splash screen revamp mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bangers&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0e1013; --surface:#171a1f; --text:#f0f2f4; --muted:#838d98;
+  --border:rgba(255,255,255,.12); --accent:#4ea8ff;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Plus Jakarta Sans',system-ui,sans-serif; background:var(--bg);
+  color:var(--text); padding:26px 16px 70px; line-height:1.5; }
+.wrap { max-width:1240px; margin:0 auto; }
+h1 { font-size:1.45rem; font-weight:800; letter-spacing:-.02em; }
+.sub { color:var(--muted); font-size:.88rem; margin-top:6px; max-width:76ch; }
+.sub b { color:var(--text); font-weight:600; }
+.toolbar { display:flex; gap:10px; margin:16px 0 4px; flex-wrap:wrap; align-items:center; }
+.tbtn { font:inherit; font-size:.8rem; font-weight:600; cursor:pointer; background:var(--surface);
+  color:var(--text); border:1px solid var(--border); border-radius:999px; padding:6px 13px; }
+.tbtn:hover { border-color:var(--muted); }
+.tnote { font-size:.76rem; color:var(--muted); }
+
+.cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; margin-top:24px; }
+.chead { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+.cname { font-size:1.02rem; font-weight:700; }
+.ctag { font-size:.63rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); border:1px solid var(--border); border-radius:999px; padding:2px 8px; }
+.ctag.rec { color:var(--accent); border-color:currentColor; }
+.cnote { color:var(--muted); font-size:.8rem; margin:7px 0 11px; }
+.cnote b { color:var(--text); font-weight:600; }
+.times { font-size:.72rem; color:var(--muted); margin-top:9px; font-variant-numeric:tabular-nums; }
+
+/* phone-ish stage; the app fades in underneath so the handover is visible */
+.stage { position:relative; height:400px; border:1px solid var(--border); border-radius:18px;
+  overflow:hidden; background:var(--bg); }
+.fakeapp { position:absolute; inset:0; padding:16px; opacity:0; }
+.fakeapp.in { animation:appIn .34s ease both; }
+@keyframes appIn { from { opacity:0; transform:scale(.99) } to { opacity:1; transform:none } }
+.fa-lbl { font-size:.6rem; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); }
+.fa-bal { font-family:'Plus Jakarta Sans'; font-size:2rem; font-weight:800; letter-spacing:-.02em; margin-top:4px; }
+.fa-card { background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  height:58px; margin-top:12px; }
+
+.sp { position:absolute; inset:0; background:var(--bg); display:grid; place-items:center; }
+.sp-in { text-align:center; }
+.sp-dog { width:104px; height:104px; margin:0 auto; display:block;
+  background:url('./doberman.png') center/contain no-repeat; }
+.sp-brand { font-family:'Bangers',cursive; font-size:1.85rem; letter-spacing:.02em; margin-top:8px; }
+.sp-tag { font-size:.8rem; color:var(--muted); margin-top:2px; }
+.sp-boot { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.62rem; color:var(--muted);
+  margin-top:14px; text-align:left; display:inline-block; }
+.sp-boot div { white-space:nowrap; }
+.sp-bar { width:132px; height:3px; border-radius:2px; background:var(--border);
+  margin:13px auto 0; overflow:hidden; }
+.sp-bar i { display:block; height:100%; width:0; background:var(--accent); }
+
+/* ══ TODAY — original timings, cut off at 900ms ══════════════════════════════ */
+.t0 .sp { animation:spOut .45s cubic-bezier(.4,0,.6,1) .9s forwards; }
+.t0 .sp-dog   { animation:dogIn .55s cubic-bezier(.22,1,.36,1) .08s both; }
+.t0 .sp-brand { animation:upIn .4s ease .62s both; }
+.t0 .sp-tag   { animation:upIn .4s ease .78s both; }
+.t0 .sp-boot  { animation:fIn .3s ease .88s both; }
+.t0 .sp-bar i { animation:barFill 1.1s cubic-bezier(.4,0,.2,1) 1s both; }
+
+/* ══ A — same pieces, retimed to finish before the exit ══════════════════════ */
+.tA .sp { animation:spOut .34s cubic-bezier(.4,0,.6,1) .9s forwards; }
+.tA .sp-dog   { animation:dogIn .34s cubic-bezier(.22,1,.36,1) .02s both; }
+.tA .sp-brand { animation:upIn .26s ease .16s both; }
+.tA .sp-tag   { animation:upIn .24s ease .28s both; }
+.tA .sp-boot  { animation:fIn .2s ease .38s both; }
+.tA .sp-bar i { animation:barFill .46s cubic-bezier(.4,0,.2,1) .3s both; }
+
+/* ══ B — one beat: everything arrives as a single unit ══════════════════════ */
+.tB .sp { animation:spOut .32s cubic-bezier(.4,0,.6,1) .9s forwards; }
+.tB .sp-in { animation:unitIn .42s cubic-bezier(.22,1,.36,1) .04s both; }
+.tB .sp-bar { display:none; }
+.tB .sp-boot { display:none; }
+@keyframes unitIn {
+  from { opacity:0; transform:translateY(10px) scale(.965) }
+  to   { opacity:1; transform:none }
+}
+
+/* ══ C — settle, then hand over to the app ═════════════════════════════════ */
+.tC .sp { animation:spHandover .42s cubic-bezier(.4,0,.6,1) .86s forwards; }
+.tC .sp-dog   { animation:dogIn .32s cubic-bezier(.22,1,.36,1) .02s both; }
+.tC .sp-brand { animation:upIn .24s ease .14s both; }
+.tC .sp-tag   { animation:upIn .22s ease .25s both; }
+.tC .sp-boot  { display:none; }
+.tC .sp-bar i { animation:barFill .4s cubic-bezier(.4,0,.2,1) .28s both; }
+@keyframes spHandover {
+  from { opacity:1; transform:scale(1) }
+  to   { opacity:0; transform:scale(1.04) }
+}
+
+@keyframes dogIn { from { opacity:0; transform:translateY(12px) scale(.9) } to { opacity:1; transform:none } }
+@keyframes upIn  { from { opacity:0; transform:translateY(9px) } to { opacity:1; transform:none } }
+@keyframes fIn   { from { opacity:0 } to { opacity:1 } }
+@keyframes barFill { to { width:100% } }
+@keyframes spOut { to { opacity:0 } }
+</style>
+
+<div class="wrap">
+  <h1>Splash screen revamp</h1>
+  <p class="sub">
+    The splash animation was written for a <b>4.2 second</b> hold. Now that launch takes about a
+    second, the wordmark (finishes 1.02s), tagline (1.18s) and progress bar (2.10s) are all still
+    arriving when the fade-out starts at 900ms — so you see the dog land and then everything else
+    leave mid-entrance. <b>Nothing here changes how long launch takes</b>; all four dismiss at the
+    same 900ms. Only the choreography inside that window differs.
+  </p>
+  <div class="toolbar">
+    <button class="tbtn" id="all">Replay all</button>
+    <button class="tbtn" id="slow">Slow motion: off</button>
+    <span class="tnote">The dashboard fades in underneath, as it does in the real app.</span>
+  </div>
+
+  <div class="cols" id="cols"></div>
+</div>
+
+<script>
+const SPLASH_HTML = `
+  <div class="fakeapp">
+    <div class="fa-lbl">Available balance</div>
+    <div class="fa-bal">$3,468.40</div>
+    <div class="fa-card"></div><div class="fa-card"></div><div class="fa-card"></div>
+  </div>
+  <div class="sp">
+    <div class="sp-in">
+      <span class="sp-dog"></span>
+      <div class="sp-brand">Budget DAWGs</div>
+      <div class="sp-tag">Money on a leash.</div>
+      <div class="sp-boot">
+        <div>&gt; mounting accounts… ok</div>
+        <div>&gt; syncing balances… ok</div>
+        <div>&gt; loading ledger…… ok</div>
+      </div>
+      <div class="sp-bar"><i></i></div>
+    </div>
+  </div>`;
+
+const OPTS = [
+  { k:'t0', name:'Today', tag:'the problem',
+    note:`Original timings with the new 900ms exit. <b>Watch the wordmark and tagline fade out
+          while still fading in</b>, and the bar never fills at all.`,
+    times:'dog 0.08–0.63s · brand 0.62–1.02s · tagline 0.78–1.18s · bar 1.0–2.1s · exit 0.9s' },
+  { k:'tA', name:'A · Retimed', tag:'smallest change',
+    note:`Same elements and same order, compressed to <b>settle by 0.58s</b> so there is a held
+          beat before the exit. Keeps the boot log and the bar, which do read at this speed once
+          they actually finish.`,
+    times:'dog 0.02–0.36s · brand 0.16–0.42s · tagline 0.28–0.52s · bar 0.3–0.76s · exit 0.9s' },
+  { k:'tB', name:'B · One beat', tag:'smoothest',
+    note:`Dog, wordmark and tagline arrive together as <b>a single object</b> rather than three
+          staggered pieces. Drops the boot log and bar — at under a second they are noise. Calmest
+          of the four and the least likely to feel rushed.`,
+    times:'whole lockup 0.04–0.46s · exit 0.9s' },
+  { k:'tC', name:'C · Hand over', tag:'recommended',
+    note:`Like A but the exit <b>scales up slightly as it fades</b> while the dashboard fades in
+          beneath, so it reads as one continuous move into the app instead of a cut. Keeps the bar
+          as a completion cue, drops the boot log.`,
+    times:'dog 0.02–0.34s · brand 0.14–0.38s · tagline 0.25–0.47s · bar 0.28–0.68s · exit 0.86s' },
+];
+
+document.getElementById('cols').innerHTML = OPTS.map(o => `
+  <div>
+    <div class="chead"><span class="cname">${o.name}</span>
+      <span class="ctag${o.tag === 'recommended' ? ' rec' : ''}">${o.tag}</span></div>
+    <p class="cnote">${o.note}</p>
+    <div class="stage ${o.k}" id="st-${o.k}"></div>
+    <div class="times">${o.times}</div>
+  </div>`).join('');
+
+let slow = false;
+function play(k) {
+  const st = document.getElementById('st-' + k);
+  st.innerHTML = SPLASH_HTML;
+  // The app underneath starts fading in as the splash begins its exit, matching
+  // the real boot: the promise now resolves when the fade STARTS, not after it.
+  const app = st.querySelector('.fakeapp');
+  const delay = k === 'tC' ? 860 : 900;
+  setTimeout(() => app.classList.add('in'), slow ? delay * 3 : delay);
+  if (st.getAnimations) st.getAnimations({ subtree:true })
+    .forEach(a => { a.playbackRate = slow ? 0.33 : 1; });
+}
+function playAll() { OPTS.forEach(o => play(o.k)); }
+
+document.getElementById('all').addEventListener('click', playAll);
+document.getElementById('slow').addEventListener('click', e => {
+  slow = !slow;
+  e.target.textContent = 'Slow motion: ' + (slow ? 'on' : 'off');
+  playAll();
+});
+document.getElementById('cols').addEventListener('click', e => {
+  const st = e.target.closest('.stage');
+  if (st) play(st.id.replace('st-', ''));
+});
+playAll();
+</script>
