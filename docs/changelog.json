@@ -1,5 +1,16 @@
 [
  {
+  "version": "5.54.0",
+  "date": "2026-07-28",
+  "changes": [
+   "Weekly Planner rebuilt around one question: how much is left to spend this week. That figure is now the top of the page, with what you've spent, the bar, and then a quiet row carrying per day, this month and your balance underneath. The page is split into labelled sections — This week, History, Your plan — so scrolling always tells you where you are.",
+   "It used to show fifteen money figures with nothing to separate them, four of which looked identical. Your balance appeared twice, and \"this month\" and \"per week\" showed the same number whenever a single week was left in the month. Those are gone rather than restyled.",
+   "The plan inputs moved to the bottom, since they're set once and rarely changed.",
+   "Splash screen: the exit is now a straightforward zoom — the screen scales up a touch and fades while your dashboard rises underneath. The mascot-shaped reveal has been dropped.",
+   "Account cards are calmer. The bold colour-filled tiles are gone; each card now uses the same quiet surface as every other card in the app, with the account type carried by a thin coloured edge and a small dot. Under the skins they stay flat, as before."
+  ]
+ },
+ {
   "version": "5.53.1",
   "date": "2026-07-28",
   "changes": [

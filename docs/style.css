@@ -3946,70 +3946,14 @@ body.light .dawg-dob-bark { animation: dawgHeroBarkFlip 8s linear 2s infinite; }
   overflow: hidden;
 }
 .splash-screen.dismiss {
-  animation: splashDismiss .45s cubic-bezier(.4,0,.6,1) forwards;
+  /* Zoom through: the splash scales up a touch and fades while the dashboard
+     rises underneath. Chosen over the iris reveal — same timing, no masking. */
+  animation: splashDismiss .42s cubic-bezier(.4,0,.6,1) forwards;
   pointer-events: none;
 }
 @keyframes splashDismiss {
   0%   { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.04); }
-}
-
-/* ── Iris hand-over: the app arrives through the Doberman ────────────────────
-   The splash carries a two-layer mask — full-bleed, minus the mascot — composited
-   to exclude, which punches a mascot-shaped hole in it. Growing that hole reveals
-   #app underneath. The mask applies to the whole element including its content, so
-   the lockup is faded out first (splashIrisContent) and the hole opens behind it.
-
-   Position and start size come from --iris-* custom properties, which runSplash()
-   measures off the real mascot at dismiss time — the mascot's vertical position
-   depends on how much text is stacked under it, so a hard-coded offset would drift.
-   mask-position is interpolated alongside mask-size so the hole stays centred on
-   him instead of crawling toward the top-left as it grows.
-
-   Everything here sits behind @supports. Anything that can't do mask-composite
-   keeps the plain splashDismiss fade above, which is the H1 variant — a good exit
-   in its own right rather than a broken one. */
-@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
-  .splash-screen.dismiss.splash-iris {
-    /* the fade is replaced by the iris; the element stays fully opaque throughout
-       so the hole is the only thing revealing the app */
-    /* `both`, not `forwards`: during the 40ms delay there would otherwise be no
-       fill, so mask-size fell back to `auto` (the artwork's natural size) at
-       position 0% 0% — a brief mascot-shaped hole in the top-left corner before
-       the animation took over. Backwards fill pins the from-state instead. */
-    animation: splashIris .5s cubic-bezier(.5,0,.4,1) .04s both;
-    -webkit-mask-image: linear-gradient(#000,#000), var(--iris-src);
-            mask-image: linear-gradient(#000,#000), var(--iris-src);
-    -webkit-mask-repeat: no-repeat, no-repeat;
-            mask-repeat: no-repeat, no-repeat;
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-  }
-  .splash-screen.dismiss.splash-iris .splash-inner,
-  .splash-screen.dismiss.splash-iris .splash-anim-toggle {
-    animation: splashIrisContent .2s ease both;
-  }
-  @keyframes splashIrisContent {
-    to { opacity: 0; transform: scale(1.08); }
-  }
-  @keyframes splashIris {
-    from {
-      -webkit-mask-size: 100% 100%, var(--iris-w) var(--iris-h);
-              mask-size: 100% 100%, var(--iris-w) var(--iris-h);
-      -webkit-mask-position: center,
-        calc(var(--iris-x) - var(--iris-w) / 2) calc(var(--iris-y) - var(--iris-h) / 2);
-              mask-position: center,
-        calc(var(--iris-x) - var(--iris-w) / 2) calc(var(--iris-y) - var(--iris-h) / 2);
-    }
-    to {
-      -webkit-mask-size: 100% 100%, 260vmax 260vmax;
-              mask-size: 100% 100%, 260vmax 260vmax;
-      -webkit-mask-position: center,
-        calc(var(--iris-x) - 130vmax) calc(var(--iris-y) - 130vmax);
-              mask-position: center,
-        calc(var(--iris-x) - 130vmax) calc(var(--iris-y) - 130vmax);
-    }
-  }
+  100% { opacity: 0; transform: scale(1.06); }
 }
 
 /* inner content stack */
@@ -7857,6 +7801,44 @@ body.skinned .backup-banner {
    written at its destination in markup, so it stays correct with no animation. */
 .txn-a-card .txn-anim-progress { margin-top: 0; }
 
+/* ── Weekly Planner: labelled sections + one hero ─────────────────────────────
+   The page used to stack five money figures with nothing to tell them apart and no
+   heading until "Spending History", so scrolling gave no sense of place. */
+.wk-sec {
+  font-size: .63rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted);
+  margin: 22px 2px 9px; padding-bottom: 7px;
+  border-bottom: 1px solid var(--border);
+}
+.wk-sec:first-of-type { margin-top: 8px; }
+.wk-hero-val { font-size: 2rem; letter-spacing: -.02em; }
+.wk-hero-sub { font-size: .72rem; color: var(--muted); margin-top: 1px; }
+/* hairline supporting row, same idea as the skinned dashboard's stat row */
+.wk-statrow {
+  display: flex; margin-top: 13px; padding-top: 11px;
+  border-top: 1px solid var(--border);
+}
+.wk-stat { flex: 1; text-align: center; position: relative; min-width: 0; }
+.wk-stat + .wk-stat::before {
+  content: ''; position: absolute; left: 0; top: 2px; bottom: 2px; width: 1px;
+  background: var(--border);
+}
+.wk-stat-l {
+  display: block; font-size: .58rem; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted);
+}
+.wk-stat-v {
+  display: block; margin-top: 2px; font-size: 1rem; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+/* The skins carry their own label and numeral language. */
+body.skinned .wk-sec {
+  font-size: var(--sk-lbl-size); letter-spacing: var(--sk-lbl-track);
+  text-transform: var(--sk-lbl-case); font-weight: var(--sk-lbl-weight);
+}
+body.skinned .wk-stat-v,
+body.skinned .wk-hero-val { font-family: var(--sk-num); font-weight: var(--sk-num-weight); }
+
 /* ── accounts overview: wallet cards + merged hero ────────────────────────────
    The cards keep .acct-row so the tap handler, tap-glitch and entrance stagger all
    still apply; .acct-card overrides the old flex-row layout on top of it. */
@@ -7865,42 +7847,66 @@ body.skinned .backup-banner {
    `background: transparent !important; border-radius: 0 !important` on everything
    in this list, which silently flattened the card fill on the standard themes
    while the skinned rule below survived only because it is also !important. */
+/* Quiet card, not a coloured tile. The saturated per-type gradient read as too bold
+   against the DAWG look, so the card now uses the same surface language as every
+   other card in the standard themes (--glass-bg, hairline border, soft lift) with the
+   account type carried by a thin left edge and a small dot rather than a full fill.
+   That also means the skins need far less undoing — see below.
+
+   !important is required on background / radius / padding: the rule
+   `.acct-picker-page .acct-row, .acct-list .acct-row` forces transparent, 0 radius
+   and `21px 2px` padding, and its padding declaration sits LATER in this file at equal
+   specificity, so padding additionally needs the ancestor to outrank it. */
 .acct-row.acct-card {
   display: block;
-  border-radius: 14px !important;
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--acct-c) 88%, black 12%),
-    color-mix(in srgb, var(--acct-c) 62%, black 38%)) !important;
-  border: 0 !important;
-  color: #fff;
+  border-radius: 16px !important;
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: 0 3px 14px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.05);
+  color: var(--text);
   margin-bottom: 9px;
+  position: relative;
+  overflow: hidden;
 }
-/* Padding needs BOTH !important and extra specificity. `.acct-picker-page .acct-row,
-   .acct-list .acct-row` lands `padding: 21px 2px !important` later in this file at the
-   same specificity as `.acct-row.acct-card`, so on equal weight the later rule won and
-   the text sat 2px from the card edge. Adding the ancestor outranks it. */
+/* the type colour, kept to an edge */
+.acct-row.acct-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--acct-c);
+}
+/* padding AND box-shadow both need the ancestor: that same selector group sets
+   `padding: 21px 2px !important` and `box-shadow: none !important`, the latter also
+   later in the file, so plain !important at equal specificity still lost. The
+   skinned rule further down is equally specific but comes after, so the skins keep
+   their flat, shadowless treatment. */
 .acct-picker-page .acct-row.acct-card,
-.acct-list .acct-row.acct-card { padding: 15px 17px !important; }
+.acct-list .acct-row.acct-card {
+  padding: 15px 17px 15px 19px !important;
+  box-shadow: 0 3px 14px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.05) !important;
+}
 
 .acct-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .acct-card-name { font-size: .86rem; font-weight: 700; min-width: 0; }
 .acct-row-type.acct-card-type {
   font-size: .6rem; letter-spacing: .1em; text-transform: uppercase;
-  color: rgba(255,255,255,.72); white-space: nowrap;
+  color: var(--muted); white-space: nowrap;
 }
 .acct-row-bal.acct-card-bal {
   display: block; margin-top: 7px;
-  font-size: 1.55rem; letter-spacing: -.01em;
-  color: #fff !important;          /* the tinted fill already carries the debt/asset cue */
+  font-size: 1.5rem; letter-spacing: -.01em;
+  /* Without a tinted fill to carry it, the balance goes back to signalling
+     asset vs debt itself — the inline colour from the renderer applies. */
 }
 .acct-card-foot {
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
-  margin-top: 4px; font-size: .68rem; color: rgba(255,255,255,.78);
+  margin-top: 4px; font-size: .68rem; color: var(--muted);
 }
 .acct-card-move { font-family: var(--font-num, inherit); font-weight: 700; }
-.acct-card-move--flat { color: rgba(255,255,255,.6); font-weight: 500; }
-/* The per-type dot only earns its place once the fill is gone (see the skins below). */
-.acct-card-dot { display: none; }
+.acct-card-move--flat { color: var(--muted); font-weight: 500; }
+/* Shown in every mode now that nothing is tinted. */
+.acct-card-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--acct-c); margin-right: 7px; vertical-align: middle;
+}
 
 /* merged hero: mark beside the net-worth figure */
 .acct-hero2-row { display: flex; align-items: center; gap: 13px; }
@@ -7919,20 +7925,13 @@ body.skinned .acct-row.acct-card {
   background: transparent !important;
   border: 1px solid var(--border) !important;
   border-radius: var(--sk-card-r, var(--skin-radius-sm, 10px)) !important;
-  color: var(--text);
   box-shadow: none !important;
 }
-body.skinned .acct-row-type.acct-card-type,
-body.skinned .acct-card-foot { color: var(--muted); }
 body.skinned .acct-row-bal.acct-card-bal {
   color: var(--text) !important;
   font-family: var(--sk-num); font-weight: var(--sk-num-weight);
 }
-body.skinned .acct-card-move--flat { color: var(--muted); font-weight: 500; }
-body.skinned .acct-card-dot {
-  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
-  background: var(--acct-c); margin-right: 7px; vertical-align: middle;
-}
+/* The skins keep the edge too — it is the one colour cue on the page. */
 body.skinned .acct-hero2-val { font-family: var(--sk-num); font-weight: var(--sk-num-weight); }
 
 /* ── settings: grouped + searchable ───────────────────────────────────────────

@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.53.1';
+const VERSION = '5.54.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -80,8 +80,12 @@ const ICONS = {
 // ON RELEASE: replace the entry below, and prepend the outgoing one to
 // changelog.json so the archive stays complete.
 const CHANGELOG = [
-  { version: '5.53.1', date: '2026-07-28', changes: [
-    "Fixed the text on the account cards sitting almost against the card edge — there was 2px of space where there should have been 17. Every card now has proper breathing room on both sides, on the standard themes and under the skins.",
+  { version: '5.54.0', date: '2026-07-28', changes: [
+    "Weekly Planner rebuilt around one question: how much is left to spend this week. That figure is now the top of the page, with what you've spent, the bar, and then a quiet row carrying per day, this month and your balance underneath. The page is split into labelled sections — This week, History, Your plan — so scrolling always tells you where you are.",
+    "It used to show fifteen money figures with nothing to separate them, four of which looked identical. Your balance appeared twice, and \"this month\" and \"per week\" showed the same number whenever a single week was left in the month. Those are gone rather than restyled.",
+    "The plan inputs moved to the bottom, since they're set once and rarely changed.",
+    "Splash screen: the exit is now a straightforward zoom — the screen scales up a touch and fades while your dashboard rises underneath. The mascot-shaped reveal has been dropped.",
+    "Account cards are calmer. The bold colour-filled tiles are gone; each card now uses the same quiet surface as every other card in the app, with the account type carried by a thin coloured edge and a small dot. Under the skins they stay flat, as before.",
   ]},
 ];
 
@@ -4299,36 +4303,6 @@ const SPLASH_MIN_MS = 900;
 // Long enough for the exit animation to play out before the node is torn down.
 const SPLASH_EXIT_MS = 580;
 
-// Feeds the iris hand-over (see .splash-screen.dismiss in the stylesheet): the app
-// is revealed through a hole shaped like the mascot. The CSS needs to know where he
-// actually is and how big he is, which depends on the layout and on which mascot is
-// active — a photo, a Pokémon sprite and the Doberman are all different sizes — so
-// it is measured here rather than hard-coded.
-// If anything is missing we clear --iris-src, and the @supports block's mask
-// resolves to none, which leaves the plain fade. Never throws: this runs on the
-// launch path and a failure here must not stop the splash from dismissing.
-function _armSplashIris(el) {
-  try {
-    const dog = el.querySelector('.splash-dob-idle');
-    if (!dog) return;
-    const r = dog.getBoundingClientRect();
-    if (!r.width || !r.height) return;
-    // The mascot artwork itself is the mask, so the hole is his silhouette.
-    el.style.setProperty('--iris-src', `url("${dog.currentSrc || dog.src}")`);
-    el.style.setProperty('--iris-x', (r.left + r.width / 2) + 'px');
-    el.style.setProperty('--iris-y', (r.top + r.height / 2) + 'px');
-    el.style.setProperty('--iris-w', r.width + 'px');
-    el.style.setProperty('--iris-h', r.height + 'px');
-    // Only now opt in. The iris rules are gated on this class as well as on
-    // @supports, so a missing mascot or an unmeasurable box falls back to the
-    // plain fade rather than to an invalid mask — which would leave the splash
-    // fully opaque until it was yanked from the DOM.
-    el.classList.add('splash-iris');
-  } catch (e) {
-    el.classList.remove('splash-iris');
-  }
-}
-
 function runSplash() {
   return new Promise(resolve => {
     const el        = document.getElementById('splash-screen');
@@ -4366,7 +4340,6 @@ function runSplash() {
       if (done) return;
       done = true;
       stopAnim();
-      _armSplashIris(el);
       el.classList.add('dismiss');
       // Resolve as the fade STARTS, not after it. Boot awaits this promise, so
       // waiting out the 450ms fade put it on the critical path for no reason —
@@ -6907,13 +6880,20 @@ function renderWeekly() {
     <div class="page">
       <h1 class="page-title">Weekly Planner</h1>
       <p class="page-sub">estimate how much you can spend each week</p>
-      <div class="cards-grid" style="margin-bottom:16px">
-        <div class="card">
-          <div class="card-title">CURRENT BALANCE</div>
-          <div class="card-value" style="color:${balColor}">${fmt(balance)}</div>
-          <div class="card-sub">income − expenses</div>
+      <h2 class="wk-sec">This week</h2>
+      <div id="wk-live"></div>
+      <h2 class="wk-sec">History</h2>
+      <div id="wk-hist-card" class="form-card" style="display:none">
+        <div class="wk-hist-head">
+          <h2 class="section-title" style="margin:0">Spending History</h2>
+          <div class="wk-seg" id="wk-hist-seg" role="tablist">
+            <button class="wk-seg-btn" data-view="day"  role="tab">Per Day</button>
+            <button class="wk-seg-btn" data-view="week" role="tab">Per Week</button>
+          </div>
         </div>
+        <div id="wk-dh-body"></div>
       </div>
+      <h2 class="wk-sec">Your plan</h2>
       <div class="form-card">
         <div class="form-row">
           <label class="form-label">Fixed bills still due ($)</label>
@@ -6927,17 +6907,6 @@ function renderWeekly() {
           <button id="wk-save" class="btn-primary">Save</button>
           <span id="wk-save-status" class="status-inline"></span>
         </div>
-      </div>
-      <div id="wk-live"></div>
-      <div id="wk-hist-card" class="form-card" style="display:none">
-        <div class="wk-hist-head">
-          <h2 class="section-title" style="margin:0">Spending History</h2>
-          <div class="wk-seg" id="wk-hist-seg" role="tablist">
-            <button class="wk-seg-btn" data-view="day"  role="tab">Per Day</button>
-            <button class="wk-seg-btn" data-view="week" role="tab">Per Week</button>
-          </div>
-        </div>
-        <div id="wk-dh-body"></div>
       </div>
     </div>`;
 }
@@ -7288,13 +7257,6 @@ function calcWeekly() {
   const _perWeekCardSub = _wkFailed ? `+${fmt(weekNet - _effectivePerWeek)} over limit` : `across ${weeks} week${weeks!==1?'s':''} left`;
   const _perWeekColor   = _wkFailed ? 'var(--danger)' : 'var(--warn)';
   const _monthName      = now.toLocaleDateString('en-US', { month: 'long' });
-  const summaryCards = [
-    ['THIS MONTH',   fmt(available),           'var(--accent)',  _reservedLabel ? `after ${_reservedLabel}` : `spendable in ${_monthName}`],
-    ['BALANCE',      fmt(liveBalance),         'var(--text)',    `live — auto-updates`],
-    ['PER WEEK',     fmt(_perWeekCardVal),     _perWeekColor,    _perWeekCardSub],
-    ['PER DAY',      fmt(perDay),              'var(--accent)',  `${days} day${days!==1?'s':''} left · adjusts daily`],
-  ].map(([t,v,c,s]) => `<div class="card"><div class="card-title">${t}</div><div class="card-value" style="color:${c}">${v}</div><div class="card-sub">${s}</div></div>`).join('');
-
   const thisWeekTxns = state.transactions.filter(t=>t.date>=mondayStr).sort((a,b)=>b.date.localeCompare(a.date));
   const thisWeekTxnHtml = thisWeekTxns.length
     ? thisWeekTxns.map(t=>`<div class="pw-txn-row"><span class="pw-txn-date">${t.date}</span><span class="pw-txn-amt" style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</span><span class="pw-txn-cat">${_escHtml(t.category||'')}</span><span class="pw-txn-desc">${_escHtml(t.description||'')}</span></div>`).join('')
@@ -7412,22 +7374,31 @@ function calcWeekly() {
   // ── Write summary + this-week tracker to #wk-live (always updated) ─────
   const liveEl = document.getElementById('wk-live');
   if (!liveEl) return;
+  // One figure, answering the question the page is opened to ask, with the
+  // supporting numbers on a hairline row beneath — the pattern the skinned
+  // dashboard already uses. Replaces four visually identical cards, one of which
+  // repeated the balance already shown at the top of the page, and another of
+  // which showed the same number as THIS MONTH whenever a single week remained.
+  const _left = Math.max(0, weekBudget - weekNet);
+  const _stats = [
+    ['Per day',    fmt(perDay)],
+    ['This month', fmt(available)],
+    ['Balance',    fmt(liveBalance)],
+  ].map(([l, v]) => `<div class="wk-stat"><span class="wk-stat-l">${l}</span><span class="wk-stat-v">${v}</span></div>`).join('');
   liveEl.innerHTML = `
-    <div class="cards-grid">${summaryCards}</div>
-    <div class="week-tracker">
+    <div class="week-tracker wk-hero">
       <div class="wt-header">
-        <span class="wt-label">THIS WEEK</span>
+        <span class="wt-label">${_wkFailed ? 'Over your limit' : 'Left to spend this week'}</span>
         <span class="wt-dates">(Mon ${monLabel} – today)</span>
-        <span class="wt-pct" style="color:${barColor}">${_wkFailed ? 'OVER LIMIT' : (weekPct*100).toFixed(0)+'% used'}</span>
       </div>
       <div class="wt-amounts">
-        <span class="wt-spent" style="color:${barColor}">${fmt(weekNet)}</span>
-        <span class="wt-of" style="color:${barColor}"> / ${fmt(weekBudget)}</span>
+        <span class="wt-spent wk-hero-val" style="color:${barColor}">${_wkFailed ? '+' + fmt(weekNet - _effectivePerWeek) : fmt(_left)}</span>
       </div>
-      ${_wkFailed ? `<div class="wt-offset" style="color:var(--danger);font-weight:700">+${fmt(weekNet - _effectivePerWeek)} over limit</div>` : ''}
+      <div class="wk-hero-sub">${fmt(weekNet)} spent of ${fmt(weekBudget)}${_wkFailed ? ' · over limit' : ''}</div>
       <div class="progress-bar-bg">
         <div class="progress-bar-fill" style="width:${Math.min(weekPct*100, 100).toFixed(1)}%;background:${barColor}"></div>
       </div>
+      <div class="wk-statrow">${_stats}</div>
       <div class="wt-txns-section">
         <button class="wt-txns-toggle">▼  show transactions</button>
         <div class="pw-week-txns wt-txns-body">${thisWeekTxnHtml}</div>
