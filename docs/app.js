@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.52.0';
+const VERSION = '5.53.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -80,10 +80,11 @@ const ICONS = {
 // ON RELEASE: replace the entry below, and prepend the outgoing one to
 // changelog.json so the archive stays complete.
 const CHANGELOG = [
-  { version: '5.52.0', date: '2026-07-28', changes: [
-    "New splash screen exit: the app now arrives through the Doberman. When the splash leaves, a hole in his shape opens out of the middle of the screen and grows until it's swallowed everything, with the dashboard already sitting underneath — so it reads as one move into the app rather than a screen disappearing and another appearing.",
-    "The splash animation was also retimed. It had been choreographed for a four-second hold, so after launch got quick, the wordmark and tagline were still fading in at the moment the screen started fading out, and the little progress bar never got as far as filling at all. Everything now arrives by about two thirds of a second and holds for a beat before leaving.",
-    "Two things that could never be seen were dropped rather than sped up: the \"READY\" line, which used to appear at 3.5 seconds, and the barking loop, which started at exactly the moment the splash began to leave.",
+  { version: '5.53.0', date: '2026-07-28', changes: [
+    "Accounts overview redesigned. Each account is now a card carrying its own balance, when you last used it, and how much it has moved this month — instead of a thin row showing only a balance. On the standard themes each card is tinted in its account type's colour; under the three skins they stay flat and quiet with a small coloured dot instead, which is how the rest of that page already behaves under a skin.",
+    "The mascot (or your own photo) now shares a block with your net worth rather than having a hero of its own, so there's one less thing to scroll past before you reach your accounts. Net worth also shows how far it has moved this month.",
+    "The version line and the update button stay right where they were. That screen is the first thing you see, which makes it the easiest place to update from — moving it into Settings would have made updating harder for no real gain.",
+    "On a credit card or loan, a falling balance is now coloured as the good direction rather than by whether the number went up or down.",
   ]},
 ];
 
@@ -3982,41 +3983,74 @@ function attachDebt() {
 }
 
 // ── account picker ─────────────────────────────────────────────────────────
+// "today" / "yesterday" / "3 days ago" / a date, for account last-activity lines.
+function _relDayLabel(iso) {
+  try {
+    const d = new Date(iso + 'T00:00:00');
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const days = Math.round((now - d) / 86400000);
+    if (days <= 0) return 'today';
+    if (days === 1) return 'yesterday';
+    if (days < 7) return days + ' days ago';
+    if (days < 14) return 'last week';
+    if (days < 60) return Math.round(days / 7) + ' weeks ago';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch { return iso; }
+}
+
 function renderAccountPicker() {
   // Deeper, lower-glare tones than the raw status palette — neon green/yellow washed out
   // in light mode and glared in dark mode. These keep the per-type coding but stay readable
   // as both the icon stroke and its tinted chip on either background.
   const TYPE_COLORS = { checking:'#4a82d6', savings:'#28a048', credit:'#e23b30', loan:'#b8910a', cash:'#2faf72', roth_ira:'#7568e8', traditional_ira:'#4a82d6', '401k':'#28a048', hsa:'#1aa99a' };
-  let _assets = 0, _debts = 0;
+  let _assets = 0, _debts = 0, _nwDelta = 0;
+  const _thisMonth = localMonthKey();
   const acctInfo = state.accounts.map(acct => {
     const d        = JSON.parse(localStorage.getItem(accountDataKey(acct.id)) || '{}');
     const txns     = d.transactions || [];
     const startBal = parseFloat(d.startingBalance) || 0;
-    let inc = 0, exp = 0;
-    for (const t of txns) { if (t.type === 'income') inc += t.amount; else exp += t.amount; }
+    let inc = 0, exp = 0, mInc = 0, mExp = 0, last = '';
+    for (const t of txns) {
+      if (t.type === 'income') inc += t.amount; else exp += t.amount;
+      if (t.date && t.date.startsWith(_thisMonth)) {
+        if (t.type === 'income') mInc += t.amount; else mExp += t.amount;
+      }
+      if (t.date && t.date > last) last = t.date;
+    }
     const isDebt   = acct.type === 'credit' || acct.type === 'loan';
     const balance  = isDebt ? Math.max(0, startBal + exp - inc) : startBal + inc - exp;
-    if (isDebt) _debts += balance; else _assets += balance;
-    return { acct, isDebt, balance };
+    // How this account's own balance moved this month. On a debt account spending
+    // pushes the balance UP, which is why the sign flips.
+    const move     = isDebt ? (mExp - mInc) : (mInc - mExp);
+    if (isDebt) { _debts += balance; _nwDelta -= move; }
+    else        { _assets += balance; _nwDelta += move; }
+    return { acct, isDebt, balance, move, last };
   });
-  const rowHtml = ({ acct, isDebt, balance }) => {
+  // Wallet cards. The .acct-row class stays on them: it carries the tap handler,
+  // the tap-glitch classes and the entrance stagger, so keeping it means none of
+  // that has to be rewired. .acct-card supplies the card layout on top.
+  const rowHtml = ({ acct, isDebt, balance, move, last }) => {
     const balColor = isDebt ? 'var(--danger)' : (balance >= 0 ? 'var(--success)' : 'var(--danger)');
     const balLabel = isDebt ? `Owes ${fmt(balance)}` : fmt(balance);
     const typeLbl  = acct.type.charAt(0).toUpperCase() + acct.type.slice(1).replace('_', ' ');
     const stripe   = TYPE_COLORS[acct.type] || 'var(--accent)';
-    const icon     = _ACCT_SVG[acct.type] || _ACCT_SVG.checking;
+    // On a debt account a falling balance is the good direction, so the colour is
+    // keyed to whether the movement helps you, not to its raw sign.
+    const helps    = isDebt ? move <= 0 : move >= 0;
+    const moveHtml = move
+      ? `<span class="acct-card-move" style="color:${helps ? 'var(--success)' : 'var(--danger)'}">${move >= 0 ? '+' : '−'}${fmt(Math.abs(move))}</span>`
+      : '<span class="acct-card-move acct-card-move--flat">no change</span>';
     return `
-      <div class="acct-row" data-id="${acct.id}">
-        <div class="acct-row-stripe" style="background:${stripe}"></div>
-        <div class="acct-row-icon" style="color:${stripe}">${icon}</div>
-        <div class="acct-row-info">
-          <div class="acct-row-name">${_escHtml(acct.name)}</div>
-          <div class="acct-row-type">${typeLbl}</div>
+      <div class="acct-row acct-card" data-id="${acct.id}" style="--acct-c:${stripe}">
+        <div class="acct-card-top">
+          <span class="acct-card-name"><span class="acct-card-dot"></span>${_escHtml(acct.name)}</span>
+          <span class="acct-row-type acct-card-type">${typeLbl}</span>
         </div>
-        <div class="acct-row-right">
-          <div class="acct-row-bal" style="color:${balColor}">${balLabel}</div>
+        <span class="acct-row-bal acct-card-bal" style="color:${balColor}">${balLabel}</span>
+        <div class="acct-card-foot">
+          <span>${last ? _relDayLabel(last) : 'no activity yet'}</span>
+          ${moveHtml}
         </div>
-        <div class="acct-row-chevron">›</div>
       </div>`;
   };
   const GROUPS = [
@@ -4034,54 +4068,48 @@ function renderAccountPicker() {
     + groupBlock('Other', acctInfo.filter(x => !_knownTypes.has(x.acct.type)), false);
 
   const count = state.accounts.length;
+  const nw = _assets - _debts;
+  const assetPct = (_assets + _debts) > 0 ? (_assets / (_assets + _debts) * 100) : 100;
+  const _stale = _latestVersion && _latestVersion !== VERSION;
+  // The mascot (or your own photo) shares the block with net worth rather than
+  // sitting in a hero of its own — one block fewer before the first account, which
+  // matters because the cards are taller than the rows they replaced.
   return `
     <div class="dawg-page acct-picker-page">
-      <div class="dawg-hero acct-picker-hero">
-        <div class="dawg-hero-glow"></div>
-        <div class="acct-hero-inner">
-          <div class="acct-hero-row">
-            <div class="dawg-hero-dob acct-hero-dob">
-              <img src="${mascotSrc()}" class="dawg-dob-idle" alt="">
-              <img src="./maddawg.png"  class="dawg-dob-bark" alt="">
-            </div>
-            <div class="acct-hero-text">
-              <div class="acct-picker-title">My Accounts</div>
-              <div class="acct-picker-sub">${count} account${count !== 1 ? 's' : ''} · tap to open</div>
-            </div>
+      <div class="acct-nw2 acct-hero2">
+        <div class="acct-hero2-row">
+          <div class="dawg-hero-dob acct-hero-dob acct-hero2-mark">
+            <img src="${mascotSrc()}" class="dawg-dob-idle" alt="">
+            <img src="./maddawg.png"  class="dawg-dob-bark" alt="">
           </div>
-          <div class="acct-hero-foot">
-            <div class="acct-picker-ver">
-              <span class="acct-ver-dot${_latestVersion && _latestVersion !== VERSION ? ' stale' : ''}"></span>v${VERSION}${
-                _latestVersion && _latestVersion !== VERSION
-                  ? ` · <span style="color:var(--danger)">out of date</span>`
-                  : _upToDate ? ` · <span style="color:var(--success)">up to date</span>` : ''
-              }
-            </div>
-            ${_latestVersion && _latestVersion !== VERSION
-              ? `<button id="acct-force-update-btn" class="acct-update-pill">↑ v${_latestVersion} — update</button>`
-              : `<button id="acct-force-update-btn" class="acct-update-pill acct-update-pill--subtle">⟳ Check for update</button>`
-            }
+          <div class="acct-hero2-figs">
+            <span class="acct-nw2-label">NET WORTH</span>
+            <span class="acct-nw2-value acct-hero2-val" style="color:${nw >= 0 ? 'var(--success)' : 'var(--danger)'}" data-countup="${nw}" data-countup-key="networth">${fmt(nw)}</span>
+            ${count ? `<span class="acct-hero2-delta" style="color:${_nwDelta >= 0 ? 'var(--success)' : 'var(--danger)'}">${_nwDelta >= 0 ? '+' : '−'}${fmt(Math.abs(_nwDelta))} this month</span>` : ''}
           </div>
         </div>
+        ${count ? `
+        <div class="acct-nw2-meter">
+          <i class="seg-a" style="width:${assetPct.toFixed(1)}%"></i>
+          <i class="seg-d" style="width:${(100 - assetPct).toFixed(1)}%"></i>
+        </div>
+        <div class="acct-nw2-legend">
+          <span style="color:var(--success)">${fmt(_assets)} assets</span>
+          ${_debts > 0 ? `<span style="color:var(--danger)">${fmt(_debts)} debt</span>` : ''}
+        </div>` : ''}
+        <div class="acct-hero-foot acct-hero2-foot">
+          <div class="acct-picker-ver">
+            <span class="acct-ver-dot${_stale ? ' stale' : ''}"></span>v${VERSION}${
+              _stale ? ` · <span style="color:var(--danger)">out of date</span>`
+                     : _upToDate ? ` · <span style="color:var(--success)">up to date</span>` : ''
+            }
+          </div>
+          ${_stale
+            ? `<button id="acct-force-update-btn" class="acct-update-pill">↑ v${_latestVersion} — update</button>`
+            : `<button id="acct-force-update-btn" class="acct-update-pill acct-update-pill--subtle">⟳ Check for update</button>`
+          }
+        </div>
       </div>
-      ${count ? (() => {
-        const nw = _assets - _debts;
-        const assetPct = (_assets + _debts) > 0 ? (_assets / (_assets + _debts) * 100) : 100;
-        return `<div class="acct-nw2">
-          <div class="acct-nw2-head">
-            <span class="acct-nw2-label">NET WORTH</span>
-            <span class="acct-nw2-value" style="color:${nw >= 0 ? 'var(--success)' : 'var(--danger)'}" data-countup="${nw}" data-countup-key="networth">${fmt(nw)}</span>
-          </div>
-          <div class="acct-nw2-meter">
-            <i class="seg-a" style="width:${assetPct.toFixed(1)}%"></i>
-            <i class="seg-d" style="width:${(100 - assetPct).toFixed(1)}%"></i>
-          </div>
-          <div class="acct-nw2-legend">
-            <span style="color:var(--success)">${fmt(_assets)} assets</span>
-            ${_debts > 0 ? `<span style="color:var(--danger)">${fmt(_debts)} debt</span>` : ''}
-          </div>
-        </div>`;
-      })() : ''}
       <div class="acct-list acct-list-scroll">${rows}</div>
       <div class="acct-qa-bar">
         <button class="acct-qa-btn" id="acct-qa-btn">

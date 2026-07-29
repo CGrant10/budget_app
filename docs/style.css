@@ -7857,6 +7857,78 @@ body.skinned .backup-banner {
    written at its destination in markup, so it stays correct with no animation. */
 .txn-a-card .txn-anim-progress { margin-top: 0; }
 
+/* ── accounts overview: wallet cards + merged hero ────────────────────────────
+   The cards keep .acct-row so the tap handler, tap-glitch and entrance stagger all
+   still apply; .acct-card overrides the old flex-row layout on top of it. */
+/* !important is required, not decorative: an existing rule
+   `.acct-picker-page .acct-row, .acct-list .acct-row` already forces
+   `background: transparent !important; border-radius: 0 !important` on everything
+   in this list, which silently flattened the card fill on the standard themes
+   while the skinned rule below survived only because it is also !important. */
+.acct-row.acct-card {
+  display: block;
+  padding: 13px 14px;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--acct-c) 88%, black 12%),
+    color-mix(in srgb, var(--acct-c) 62%, black 38%)) !important;
+  border: 0 !important;
+  color: #fff;
+  margin-bottom: 9px;
+}
+.acct-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.acct-card-name { font-size: .86rem; font-weight: 700; min-width: 0; }
+.acct-row-type.acct-card-type {
+  font-size: .6rem; letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(255,255,255,.72); white-space: nowrap;
+}
+.acct-row-bal.acct-card-bal {
+  display: block; margin-top: 7px;
+  font-size: 1.55rem; letter-spacing: -.01em;
+  color: #fff !important;          /* the tinted fill already carries the debt/asset cue */
+}
+.acct-card-foot {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  margin-top: 4px; font-size: .68rem; color: rgba(255,255,255,.78);
+}
+.acct-card-move { font-family: var(--font-num, inherit); font-weight: 700; }
+.acct-card-move--flat { color: rgba(255,255,255,.6); font-weight: 500; }
+/* The per-type dot only earns its place once the fill is gone (see the skins below). */
+.acct-card-dot { display: none; }
+
+/* merged hero: mark beside the net-worth figure */
+.acct-hero2-row { display: flex; align-items: center; gap: 13px; }
+.acct-hero2-mark { flex: none; width: 62px; height: 62px; }
+.acct-hero2-mark img { width: 100%; height: 100%; object-fit: contain; }
+.acct-hero2-figs { flex: 1; min-width: 0; text-align: right; }
+.acct-nw2-value.acct-hero2-val { display: block; font-size: 1.75rem; letter-spacing: -.02em; }
+.acct-hero2-delta { font-size: .74rem; font-weight: 700; font-family: var(--font-num, inherit); }
+.acct-hero2-foot { margin-top: 12px; }
+
+/* ── the skins: flat, no fill ───────────────────────────────────────────────
+   The chosen treatment. Same pattern the rest of this page already uses under a
+   skin — transparent, hairline border, skin corners and numerals. The card loses
+   its colour fill entirely, so the type dot is brought back to carry that cue. */
+body.skinned .acct-row.acct-card {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--sk-card-r, var(--skin-radius-sm, 10px)) !important;
+  color: var(--text);
+  box-shadow: none !important;
+}
+body.skinned .acct-row-type.acct-card-type,
+body.skinned .acct-card-foot { color: var(--muted); }
+body.skinned .acct-row-bal.acct-card-bal {
+  color: var(--text) !important;
+  font-family: var(--sk-num); font-weight: var(--sk-num-weight);
+}
+body.skinned .acct-card-move--flat { color: var(--muted); font-weight: 500; }
+body.skinned .acct-card-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--acct-c); margin-right: 7px; vertical-align: middle;
+}
+body.skinned .acct-hero2-val { font-family: var(--sk-num); font-weight: var(--sk-num-weight); }
+
 /* ── settings: grouped + searchable ───────────────────────────────────────────
    Replaced 9 flat cards in one long scroll. Everything shut on arrival so the page
    fits a phone screen; the search box opens whichever groups hold matches. */
