@@ -1,0 +1,216 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weekly Planner under the skins</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body { font-family:'Plus Jakarta Sans',system-ui,sans-serif; background:#0e1013; color:#f0f2f4;
+  padding:26px 16px 70px; line-height:1.5; margin:0; }
+* { box-sizing:border-box; }
+.wrap { max-width:1300px; margin:0 auto; }
+h1 { font-size:1.45rem; font-weight:800; letter-spacing:-.02em; }
+.sub { color:#838d98; font-size:.88rem; margin-top:6px; max-width:82ch; }
+.sub b { color:#f0f2f4; font-weight:600; }
+.cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(292px,1fr)); gap:20px; margin-top:26px; }
+.chead { display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
+.cname { font-size:1rem; font-weight:700; }
+.ctag { font-size:.62rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:#838d98; border:1px solid rgba(255,255,255,.14); border-radius:999px; padding:2px 8px; }
+.ctag.rec { color:#4ea8ff; border-color:currentColor; }
+.cnote { color:#838d98; font-size:.79rem; margin:7px 0 11px; }
+.cnote b { color:#f0f2f4; font-weight:600; }
+.scrollnote { font-size:.71rem; color:#838d98; margin-top:8px; font-variant-numeric:tabular-nums; }
+
+/* Quiet skin palette, the one being complained about */
+.frame { height:560px; overflow-y:auto; border:1px solid rgba(255,255,255,.10); border-radius:12px;
+  padding:14px; background:#0e1013; color:#f0f2f4;
+  --bg:#0e1013; --surface:#171a1f; --surface2:#1f2429; --text:#f0f2f4; --muted:#838d98;
+  --border:rgba(255,255,255,.10); --accent:#7aa2c4; --ok:#62b898; }
+.frame::-webkit-scrollbar { width:5px; }
+.frame::-webkit-scrollbar-thumb { background:rgba(255,255,255,.16); border-radius:3px; }
+.money { font-variant-numeric:tabular-nums; font-weight:700; }
+.ptitle { font-size:1.3rem; font-weight:800; letter-spacing:-.02em; }
+.psub { font-size:.75rem; color:var(--muted); margin-bottom:16px; }
+
+/* today: four identical cards */
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:14px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px; }
+.card.wide { grid-column:1 / -1; }
+.card-t { font-size:.62rem; font-weight:700; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); }
+.card-v { font-size:1.25rem; margin-top:5px; display:block; }
+.card-v.big { font-size:2.1rem; }
+.card-s { font-size:.68rem; color:var(--muted); margin-top:3px; }
+.blk { background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  padding:14px; margin-bottom:14px; }
+.bar { height:6px; border-radius:4px; background:rgba(255,255,255,.09); overflow:hidden; margin-top:9px; }
+.bar i { display:block; height:100%; background:var(--ok); }
+
+/* proposal: section headings */
+.sec { font-size:.63rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--muted); margin:20px 2px 8px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+.sec:first-of-type { margin-top:6px; }
+
+/* proposal: one hero figure + hairline stat row */
+.hero { background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  padding:15px; margin-bottom:12px; }
+.hero-l { font-size:.62rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+.hero-v { font-size:2.2rem; letter-spacing:-.02em; display:block; margin-top:3px; }
+.hero-s { font-size:.7rem; color:var(--muted); }
+.statrow { display:flex; border-top:1px solid var(--border); margin-top:13px; padding-top:11px; }
+.stat { flex:1; text-align:center; position:relative; }
+.stat + .stat::before { content:''; position:absolute; left:0; top:2px; bottom:2px; width:1px;
+  background:var(--border); }
+.stat-l { font-size:.58rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+.stat-v { font-size:1rem; display:block; margin-top:2px; }
+
+/* history rows */
+.dh { display:flex; justify-content:space-between; font-size:.75rem; padding:6px 2px;
+  border-bottom:1px solid var(--border); }
+.dh:last-child { border-bottom:0; }
+.dh-d { color:var(--muted); font-size:.66rem; letter-spacing:.08em; text-transform:uppercase; }
+.seg { display:inline-flex; background:var(--surface2); border:1px solid var(--border);
+  border-radius:8px; padding:2px; }
+.seg b { font-size:.64rem; font-weight:600; padding:4px 9px; border-radius:6px; color:var(--muted); }
+.seg b.on { background:var(--bg); color:var(--text); }
+.rowhead { display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }
+.inp { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:9px 11px;
+  font-size:.8rem; color:var(--muted); margin-bottom:9px; }
+</style>
+
+<div class="wrap">
+  <h1>Weekly Planner under the skins</h1>
+  <p class="sub">
+    Measured from the live page in the Quiet skin. The problem is not spacing alone — it is that
+    <b>five money figures stack with nothing to tell them apart</b>: the balance appears twice
+    ($6,084.00 at the top and again in the summary cards), and "This month" and "Per week" show the
+    <b>same number</b> under different labels whenever one week is left. Four of the cards are
+    visually identical: same background, same border, 11px label over a 20px value. And the whole
+    middle section has no container and no heading, so scrolling gives you no idea which part you
+    are in.
+  </p>
+  <div class="cols" id="cols"></div>
+</div>
+
+<script>
+const F = { bal:6084.00, month:5244.00, week:5244.00, day:1748.00, spent:138.00,
+            stop:500.00, bills:340.00, today:42.00 };
+const m = n => '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+const PLAN_INPUTS = `
+  <div class="blk">
+    <div class="inp">Fixed bills still due ($) — 340.00</div>
+    <div class="inp">Stop at — minimum balance ($) — 500.00</div>
+    <div class="inp" style="background:var(--accent);color:#08131f;font-weight:700;border-color:transparent">Save</div>
+  </div>`;
+
+const HISTORY = `
+  <div class="blk">
+    <div class="rowhead">
+      <span class="card-t">Spending history</span>
+      <span class="seg"><b class="on">Per day</b><b>Per week</b></span>
+    </div>
+    <span class="money" style="font-size:1.1rem">${m(F.today)} <span style="color:var(--muted);font-weight:400;font-size:.78rem">/ ${m(F.day)}</span></span>
+    <div class="dh-d" style="margin-top:11px">This week · ${m(F.spent)}</div>
+    <div class="dh"><span class="dh-d">Mon 27</span><span class="money">$0.00</span></div>
+    <div class="dh"><span class="dh-d">Tue 28</span><span class="money">$96.00</span></div>
+    <div class="dh"><span class="dh-d">Wed 29</span><span class="money">$42.00</span></div>
+  </div>`;
+
+const TODAY = `
+  <div class="ptitle">Weekly Planner</div>
+  <div class="psub">estimate how much you can spend each week</div>
+  <div class="grid"><div class="card wide"><span class="card-t">Current balance</span>
+    <span class="card-v money">${m(F.bal)}</span><div class="card-s">income − expenses</div></div></div>
+  ${PLAN_INPUTS}
+  <div class="grid">
+    <div class="card wide"><span class="card-t">This month</span>
+      <span class="card-v big money">${m(F.month)}</span>
+      <div class="card-s">after ${m(F.stop)} stop-at + ${m(F.bills)} bills</div></div>
+    <div class="card"><span class="card-t">Balance</span>
+      <span class="card-v money">${m(F.bal)}</span><div class="card-s">live — auto-updates</div></div>
+    <div class="card"><span class="card-t">Per week</span>
+      <span class="card-v money">${m(F.week)}</span><div class="card-s">across 1 week left</div></div>
+    <div class="card"><span class="card-t">Per day</span>
+      <span class="card-v money">${m(F.day)}</span><div class="card-s">3 days left</div></div>
+  </div>
+  <div class="blk"><span class="card-t">This week (Mon 27 – today)</span>
+    <span class="card-v money">${m(F.spent)} <span style="font-size:.8rem;color:var(--muted)">/ ${m(F.week)}</span></span>
+    <div class="bar"><i style="width:3%"></i></div></div>
+  ${HISTORY}`;
+
+const A = `
+  <div class="ptitle">Weekly Planner</div>
+  <div class="psub">estimate how much you can spend each week</div>
+  <div class="sec">What you can spend</div>
+  <div class="hero">
+    <span class="hero-l">This month</span>
+    <span class="hero-v money">${m(F.month)}</span>
+    <span class="hero-s">after ${m(F.stop)} kept back + ${m(F.bills)} of bills</span>
+    <div class="statrow">
+      <div class="stat"><span class="stat-l">Per week</span><span class="stat-v money">${m(F.week)}</span></div>
+      <div class="stat"><span class="stat-l">Per day</span><span class="stat-v money">${m(F.day)}</span></div>
+      <div class="stat"><span class="stat-l">Balance</span><span class="stat-v money">${m(F.bal)}</span></div>
+    </div>
+  </div>
+  <div class="sec">This week</div>
+  <div class="blk"><span class="card-t">Mon 27 – today</span>
+    <span class="card-v money">${m(F.spent)} <span style="font-size:.8rem;color:var(--muted)">of ${m(F.week)}</span></span>
+    <div class="bar"><i style="width:3%"></i></div></div>
+  <div class="sec">Your plan</div>
+  ${PLAN_INPUTS}
+  <div class="sec">History</div>
+  ${HISTORY}`;
+
+const B = `
+  <div class="ptitle">Weekly Planner</div>
+  <div class="psub">estimate how much you can spend each week</div>
+  <div class="sec">This week</div>
+  <div class="hero">
+    <span class="hero-l">Left to spend this week</span>
+    <span class="hero-v money" style="color:var(--ok)">${m(F.week - F.spent)}</span>
+    <span class="hero-s">${m(F.spent)} spent of ${m(F.week)} · Mon 27 – today</span>
+    <div class="bar" style="margin-top:11px"><i style="width:3%"></i></div>
+    <div class="statrow">
+      <div class="stat"><span class="stat-l">Per day</span><span class="stat-v money">${m(F.day)}</span></div>
+      <div class="stat"><span class="stat-l">This month</span><span class="stat-v money">${m(F.month)}</span></div>
+      <div class="stat"><span class="stat-l">Balance</span><span class="stat-v money">${m(F.bal)}</span></div>
+    </div>
+  </div>
+  <div class="sec">History</div>
+  ${HISTORY}
+  <div class="sec">Your plan</div>
+  ${PLAN_INPUTS}`;
+
+const PANELS = [
+  { k:'now', name:'Today', tag:'the problem', html:TODAY,
+    note:`Five money figures, four identical cards, the balance twice, and <b>"This month" and
+          "Per week" showing the same $5,244.00</b>. No headings anywhere until "Spending history".` },
+  { k:'a', name:'A · Headings + one hero', tag:'recommended', html:A,
+    note:`Four labelled sections — <b>What you can spend / This week / Your plan / History</b> — so
+          scrolling always tells you where you are. The four cards collapse into one figure with a
+          hairline three-up row beneath, which is the pattern the skinned dashboard already uses.
+          The duplicate balance is gone; it appears once, in the stat row.` },
+  { k:'b', name:'B · Lead with what’s left', tag:'most useful figure', html:B,
+    note:`Same sections, but the hero answers <b>“how much is left this week”</b> rather than
+          restating the monthly allowance — the question you open this page to ask. Plan inputs move
+          to the bottom since you set them once and rarely revisit.` },
+];
+
+document.getElementById('cols').innerHTML = PANELS.map(p => `
+  <div>
+    <div class="chead"><span class="cname">${p.name}</span>
+      <span class="ctag${p.tag === 'recommended' ? ' rec' : ''}">${p.tag}</span></div>
+    <p class="cnote">${p.note}</p>
+    <div class="frame" id="fr-${p.k}">${p.html}</div>
+    <div class="scrollnote" id="sc-${p.k}"></div>
+  </div>`).join('');
+
+PANELS.forEach(p => {
+  const el = document.getElementById('fr-' + p.k);
+  const figs = (el.innerText.match(/\$[\d,]+\.\d\d/g) || []);
+  document.getElementById('sc-' + p.k).textContent =
+    (el.scrollHeight / el.clientHeight).toFixed(2) + ' screens · ' + figs.length +
+    ' money figures · ' + (new Set(figs).size) + ' distinct';
+});
+</script>
