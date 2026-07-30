@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.54.0';
+const VERSION = '5.55.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1195,7 +1195,9 @@ function _skRunway(sk) {
   }
   const burn = spent / SK_RUNWAY_WINDOW;
 
-  const foot = `<div class="sk-rw-foot"><span>${floor > 0 ? 'floor <b class="sk-rw-floor">' + fmt(floor) + '</b>' : 'no buffer set'}</span></div>`;
+  // Same vocabulary as the main branch below — one quantity, one name for it.
+  const foot = `<div class="sk-rw-foot"><span>${floor > 0
+    ? '<b class="sk-rw-floor">' + fmt(floor) + '</b> kept in reserve' : 'no buffer set'}</span></div>`;
 
   // Below the floor: a runway is meaningless, so say the actually-useful thing.
   if (spendable <= 0) {
@@ -1207,8 +1209,8 @@ function _skRunway(sk) {
   // No spending history yet — don't invent a burn rate.
   if (burn <= 0) {
     return `<div class="sk-rw">
-      <div class="sk-rw-line"><b class="money">${fmt(spendable)}</b> free to spend</div>
-      <div class="sk-rw-foot"><span>no spending in the last ${SK_RUNWAY_WINDOW} days yet</span></div>
+      <div class="sk-rw-line"><b class="money">${fmt(spendable)}</b> spendable</div>
+      <div class="sk-rw-foot"><span>no spending in the last ${SK_RUNWAY_WINDOW} days to pace it against</span></div>
     </div>`;
   }
 
@@ -1218,15 +1220,15 @@ function _skRunway(sk) {
   // nonsense, so say the plain thing instead.
   if (days < 1) {
     return `<div class="sk-rw sk-rw-over">
-      <div class="sk-rw-line"><b class="money">${fmt(spendable)}</b> left above your floor —
-        under a day at your recent pace of ${fmt(burn)}/day</div>
+      <div class="sk-rw-line"><b class="money">${fmt(spendable)}</b> spendable — under a day
+        at your recent ${fmt(burn)}/day</div>
       <div class="sk-track low"><i style="width:2%"></i></div>
       ${foot}</div>`;
   }
 
-  // "Covers N days" counts today as the first of those days, so the last day the
-  // money still stretches to is today + (N-1). Adding the full N double-counted
-  // today and dated a 5-day runway to the 6th day.
+  // The runway counts today as the first of its days, so the last day the money
+  // still stretches to is today + (N-1). Adding the full N double-counted today
+  // and dated a 5-day runway to the 6th day.
   const end  = new Date(); end.setHours(0, 0, 0, 0);
   end.setDate(end.getDate() + days - 1);
   const endLbl = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -1237,17 +1239,23 @@ function _skRunway(sk) {
     ? `${(days / 30.44).toFixed(1)} months`
     : `${days} day${days === 1 ? '' : 's'}`;
 
+  // The old line was just "Covers 5 days at your recent pace, $38/day" — which
+  // never said WHAT it was covering, so the 5 came out of nowhere. The two inputs
+  // are now both on screen: the money being divided (balance minus floor) and the
+  // rate it's divided by. Read top to bottom it's a sentence with no missing term.
+  //
+  // "at your recent pace" is load-bearing: this figure is the trailing burn rate
+  // (actual spend ÷ 30 days), NOT the Weekly Planner's per-day allowance
+  // (available ÷ days left in the month). Both were labelled "/day", which read as
+  // a contradiction. Don't swap in the allowance — runway is available ÷ per-day,
+  // so with the allowance it would always resolve to "days left in the month" and
+  // tell you nothing.
   return `<div class="sk-rw">
-    <!-- "at your recent pace" is load-bearing: this figure is the trailing burn
-         rate (actual spend ÷ 30 days), NOT the Weekly Planner's per-day allowance
-         (available ÷ days left in the month). Both were labelled "/day", which
-         read as a contradiction. Don't swap in the allowance — runway is
-         available ÷ per-day, so with the allowance it would always resolve to
-         "days left in the month" and tell you nothing. -->
-    <div class="sk-rw-line">Covers <b class="money sk-rw-span">${span}</b>
-      at your recent pace, ${fmt(burn)}/day</div>
+    <div class="sk-rw-line"><b class="money">${fmt(spendable)}</b> spendable lasts
+      <b class="money sk-rw-span">${span}</b> at your recent ${fmt(burn)}/day</div>
     <div class="sk-track${level}"><i style="width:${pct.toFixed(1)}%"></i></div>
-    <div class="sk-rw-foot"><span>through ${endLbl}</span>${floor > 0 ? `<span>floor <b class="sk-rw-floor">${fmt(floor)}</b></span>` : ''}</div>
+    <div class="sk-rw-foot"><span>through ${endLbl}</span>${floor > 0
+      ? `<span><b class="sk-rw-floor">${fmt(floor)}</b> kept in reserve</span>` : ''}</div>
   </div>`;
 }
 
@@ -4299,9 +4307,20 @@ function _openColorPicker(currentHex, onApply) {
 // ── splash screen ──────────────────────────────────────────────────────────
 // How long the splash is guaranteed to stay up. Data loading now runs alongside
 // it, so this is the floor on launch time rather than something added to it.
-const SPLASH_MIN_MS = 900;
+//
+// 900ms was too tight to be a splash: the entrance animations all land by ~600ms,
+// so the last of them (the READY line) had barely settled before the whole thing
+// zoomed out — five things happening at once and then gone, which reads as choppy
+// rather than fast. The CSS delays now run out to 1.9s (READY is last in, at 1.66s)
+// and this holds long enough to let them finish and sit for a beat. Ceiling is the
+// inline escape hatch in index.html, which dismisses at 2600ms whatever happens here.
+const SPLASH_MIN_MS = 2200;
+// Reduced motion strips every splash animation to nothing, so the long hold would
+// just be two seconds of a static screen. Those users get the old short launch.
+const SPLASH_MIN_MS_REDUCED = 800;
 // Long enough for the exit animation to play out before the node is torn down.
-const SPLASH_EXIT_MS = 580;
+// Must stay ahead of the .dismiss animation duration in style.css.
+const SPLASH_EXIT_MS = 760;
 
 function runSplash() {
   return new Promise(resolve => {
@@ -4345,8 +4364,7 @@ function runSplash() {
       // waiting out the 450ms fade put it on the critical path for no reason —
       // the fade can finish while the app is already loading behind it.
       resolve();
-      // Must outlast the exit animation: the iris runs 40-540ms, so removing at
-      // 450ms would have chopped the reveal off before it finished.
+      // Must outlast the exit animation, or the node is torn down mid-zoom.
       setTimeout(() => { if (el.parentNode) el.remove(); }, SPLASH_EXIT_MS);
     };
     // Minimum display time, not a fixed wait. This used to be 4200ms while the
@@ -4354,7 +4372,7 @@ function runSplash() {
     // each with its own `done` flag, so the inline dismissal never released this
     // promise. The result was ~2s of blank screen after the splash had gone,
     // before any data loading started, and a ~4.9s launch.
-    setTimeout(finish, SPLASH_MIN_MS);
+    setTimeout(finish, _reduceMotion() ? SPLASH_MIN_MS_REDUCED : SPLASH_MIN_MS);
     el.addEventListener('click', finish, { once: true });
     setTimeout(() => { if (!done) { done = true; if (el.parentNode) el.remove(); resolve(); } }, 6000);
   });

@@ -232,7 +232,9 @@
         if (done) return;
         done = true;
         el.classList.add('dismiss');
-        setTimeout(function() { if (el.parentNode) el.remove(); }, 460);
+        // Must outlast the .dismiss animation in style.css (.62s), or the node is
+        // torn down mid-zoom. Kept in step with SPLASH_EXIT_MS in app.js.
+        setTimeout(function() { if (el.parentNode) el.remove(); }, 760);
       }
       // Tap anywhere to skip
       el.addEventListener('click', dismiss);

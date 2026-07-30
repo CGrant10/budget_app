@@ -1,5 +1,16 @@
 [
  {
+  "version": "5.55.0",
+  "date": "2026-07-30",
+  "changes": [
+   "The three skins now use one type scale. That screen was carrying eleven different text sizes, six of them within three pixels of each other — too close to read as a hierarchy and just close enough to look like nothing lined up. There are four sizes now plus the small label and the balance, so the page reads as label, text, figure instead of text at every size at once.",
+   "The month arrows and the month label under a skin were still using the standard app's sizes, which put two more odd sizes in the middle of the page. They now match the skin.",
+   "Grid had no space between its sections, so every block butted straight up against the hairline above it and the whole page ran together. It's still the tightest of the three skins, just not touching. Grid also had three near-identical small-caps sizes doing the same job; now it has two.",
+   "The runway line under your balance never said what it was counting, so \"Covers 5 days\" came out of nowhere. It now names both halves: how much is spendable, and the daily pace it's divided by — \"$1,240 spendable lasts 5 days at your recent $38/day\". Underneath, the amount held out of that figure is labelled as kept in reserve rather than just \"floor\".",
+   "The splash screen was too fast to see. Everything landed inside the first six-tenths of a second and then it zoomed away, so five things happened at once and it read as choppy rather than quick. The mascot, wordmark, tagline and the three boot lines are now spread across a second and a half, the boot lines finish typing one at a time, and the exit pulls away instead of blinking out. Tap it to skip as before, and with Reduce motion on it stays short."
+  ]
+ },
+ {
   "version": "5.54.0",
   "date": "2026-07-28",
   "changes": [
