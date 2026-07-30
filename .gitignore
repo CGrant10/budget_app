@@ -20,6 +20,11 @@ __pycache__/
 /make_icon.html
 /slot_machine.html
 
+# Snow removal reservation form — its own git repo, pushed to
+# github.com/CGrant10/snow_removal. Lives here so .claude/launch.json can
+# serve it, but is not tracked by this repo.
+/snow_removal/
+
 # Unused icon exports. manifest.json uses icon-192.png, icon-512.png, and the
 # maskable pair; these per-platform variants are not referenced.
 docs/icon-android-*.png
