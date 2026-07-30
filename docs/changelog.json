@@ -1,5 +1,16 @@
 [
  {
+  "version": "5.56.0",
+  "date": "2026-07-30",
+  "changes": [
+   "Fixed the unreadable buttons in the account editor. Under a skin, Delete was white text on a pale grey background and Save was near-white on mint — the skin was replacing the button's colour but not its text colour. Both are legible now on every theme and skin combination that was checked.",
+   "Same fix applied everywhere else the pattern appeared: Delete on bills and goals, Remove PIN, Remove biometrics, the delete buttons in duplicate-finder, custom categories and split rows, and the confirm dialog's own Delete button.",
+   "Button text colour is now measured rather than assumed. It used to be hardcoded, which only suited some palettes — that's why Save went white on the light skins, and why white-on-red was hard to read on Gengar, Celtics, Squirtle and the terminal themes. Each theme now gets whichever text colour actually reads on its own colours, including a custom accent you pick yourself. Themes that were already fine are unchanged.",
+   "The \"active\" badge on your current account was invisible on every theme — accent-coloured text on an accent-coloured background. It's an outlined badge now, the way it was meant to look.",
+   "The primary buttons on the light themes (Add Transaction, Add Bill, Export, and so on) were near-white text on a light green fill. Now dark text."
+  ]
+ },
+ {
   "version": "5.55.1",
   "date": "2026-07-30",
   "changes": [

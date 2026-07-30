@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.55.1';
+const VERSION = '5.56.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -857,7 +857,7 @@ function showAddContribModal(acctId) {
         <input id="_ac-note" type="text" placeholder="e.g. Bi-weekly contribution"
           style="width:100%;box-sizing:border-box;padding:11px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:11px;color:var(--text);font-size:.88rem;font-family:var(--font-body);outline:none">
       </div>
-      <button id="_ac-save" style="width:100%;padding:14px;background:var(--accent);color:var(--bg);border:none;border-radius:13px;font-size:.95rem;font-weight:800;cursor:pointer;font-family:var(--font-body)">Add Contribution</button>
+      <button id="_ac-save" style="width:100%;padding:14px;background:var(--accent);color:var(--on-accent);border:none;border-radius:13px;font-size:.95rem;font-weight:800;cursor:pointer;font-family:var(--font-body)">Add Contribution</button>
       <div id="_ac-err" style="color:var(--danger);font-size:.78rem;text-align:center;margin-top:8px;display:none"></div>
     </div>`;
   document.body.appendChild(ov);
@@ -914,7 +914,7 @@ function showConfirmModal({ title, message, confirmText = 'Confirm', cancelText 
     <p style="font-size:.87rem;color:var(--muted);margin:0 0 20px;line-height:1.55">${message}</p>
     <div style="display:flex;gap:10px">
       <button id="_mc-cancel" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">${cancelText}</button>
-      <button id="_mc-confirm" style="flex:1;padding:10px;border:none;border-radius:10px;background:${danger?'var(--danger)':'var(--accent)'};color:${danger?'#fff':'var(--bg)'};font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">${confirmText}</button>
+      <button id="_mc-confirm" style="flex:1;padding:10px;border:none;border-radius:10px;background:${danger?'var(--danger)':'var(--accent)'};color:${danger?'var(--on-danger)':'var(--on-accent)'};font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">${confirmText}</button>
     </div>
   </div>`;
   document.body.appendChild(ov);
@@ -942,7 +942,7 @@ function showPinSetupModal(onSuccess) {
       <div id="_pin-err" style="font-size:.8rem;color:var(--danger);min-height:18px;text-align:center"></div>
       <div style="display:flex;gap:10px">
         <button id="_pin-cancel" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">Cancel</button>
-        <button id="_pin-save" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--accent);color:var(--bg);font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">Save PIN</button>
+        <button id="_pin-save" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--accent);color:var(--on-accent);font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">Save PIN</button>
       </div>
     </div>
   </div>`;
@@ -965,7 +965,7 @@ function showPinSetupModal(onSuccess) {
 function _showSaveError() {
   // Show a non-blocking toast if a localStorage save fails
   const el = document.createElement('div');
-  el.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:10002;background:var(--danger);color:#fff;padding:10px 18px;border-radius:10px;font-size:.85rem;font-weight:700;pointer-events:none;text-align:center';
+  el.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:10002;background:var(--danger);color:var(--on-danger);padding:10px 18px;border-radius:10px;font-size:.85rem;font-weight:700;pointer-events:none;text-align:center';
   el.textContent = '⚠ Save failed — storage may be full';
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 4000);
@@ -1498,13 +1498,67 @@ const SKINS = {
 };
 function activeSkin() { const k = loadSettings().skin; return SKINS[k] ? k : ''; }
 
+// ── Readable ink on a filled button (--on-accent / --on-danger) ─────────────
+// Filled buttons used to hardcode their text colour: `color: var(--bg)` on an
+// accent fill, and a literal `white` on a danger fill. Both are only right for
+// some palettes. `--bg` is near-black on the 22 dark themes (fine) but near-WHITE
+// on the six light themes and the two light skins, so "Save", "Add Bill" and every
+// other primary button rendered white-on-mint at 2.3:1. Literal white on --danger
+// fails on a dozen themes whose red is light (Gengar's is 2.8:1).
+//
+// So the ink is computed instead of assumed: keep the palette's own choice when it
+// already reads, otherwise fall back to black or white — whichever wins on that
+// fill. Themes that were already correct are untouched, and the `custom` /
+// `customlight` themes get the right answer for whatever accent the user picked,
+// which no static stylesheet could do.
+const _AA_SMALL = 4.5;                       // WCAG AA for normal-size text
+
+function _rgb(c) {
+  c = String(c).trim();
+  let m = c.match(/^#?([0-9a-f]{3})$/i);
+  if (m) { const h = m[1]; c = '#' + h[0]+h[0] + h[1]+h[1] + h[2]+h[2]; }
+  m = c.match(/^#?([0-9a-f]{6})$/i);
+  if (m) { const n = parseInt(m[1], 16); return { r: n >> 16 & 255, g: n >> 8 & 255, b: n & 255 }; }
+  m = c.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i);
+  return m ? { r: +m[1], g: +m[2], b: +m[3] } : null;
+}
+function _relLum({ r, g, b }) {
+  const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
+  return .2126 * f(r) + .7152 * f(g) + .0722 * f(b);
+}
+function _contrast(a, b) {
+  const x = _rgb(a), y = _rgb(b);
+  if (!x || !y) return 0;
+  const [hi, lo] = [_relLum(x), _relLum(y)].sort((p, q) => q - p);
+  return (hi + .05) / (lo + .05);
+}
+// Ink for text sitting on `fill`, preferring `preferred` when it's legible there.
+function _inkOn(fill, preferred) {
+  if (preferred && _contrast(preferred, fill) >= _AA_SMALL) return preferred;
+  return _contrast('#000000', fill) >= _contrast('#ffffff', fill) ? '#000000' : '#ffffff';
+}
+// Stamps --on-accent / --on-danger from whatever palette is currently resolved on
+// <body>. Must run after BOTH applyTheme and applySkin, since a skin changes --bg
+// (which is the preferred ink) without touching --accent.
+function _stampInkTokens() {
+  const cs   = getComputedStyle(document.body);
+  const get  = p => cs.getPropertyValue(p).trim();
+  const bg   = get('--bg') || '#101216';
+  const pairs = [['--on-accent', get('--accent'), bg],
+                 ['--on-danger', get('--danger'), '#ffffff']];
+  for (const [token, fill, preferred] of pairs) {
+    if (!fill) continue;
+    document.documentElement.style.setProperty(token, _inkOn(fill, preferred));
+  }
+}
+
 // Applies a beta skin. Must run AFTER applyTheme(), which resets body.light and
 // theme-color from the theme — the skin gets the last word on both.
 function applySkin(key) {
   const skin = SKINS[key];
   document.body.classList.remove(...Object.keys(SKINS).map(k => 'skin-' + k));
   document.body.classList.toggle('skinned', !!skin);
-  if (!skin) return;                       // no skin: applyTheme's values stand
+  if (!skin) { _stampInkTokens(); return; } // no skin: applyTheme's values stand
   document.body.classList.add('skin-' + key);
   document.body.classList.toggle('light', !!skin.light);
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', skin.bg);
@@ -1516,6 +1570,9 @@ function applySkin(key) {
   const cs = getComputedStyle(document.body);
   ['--bg', '--surface', '--surface2', '--card', '--text', '--muted', '--border']
     .forEach(p => document.documentElement.style.setProperty(p, cs.getPropertyValue(p).trim()));
+  // The skin just changed --bg, so the preferred ink for a filled button changed
+  // with it. Recompute after the mirror above, not before.
+  _stampInkTokens();
 }
 
 const NAV_ITEMS = [
@@ -6725,7 +6782,7 @@ function showDuplicatesModal() {
             <span class="dupe-row-date">${t.date || '—'}${t.category ? ` · ${_escHtml(t.category)}` : ''}</span>
           </div>
           <span class="dupe-row-amt ${t.type}">${sign}${fmt(Math.abs(Number(t.amount) || 0))}</span>
-          <button class="btn-xs dupe-del" data-gi="${gi}" data-ri="${ri}" style="background:var(--danger);color:#fff;border-color:var(--danger)">Delete</button>
+          <button class="btn-xs btn-danger dupe-del" data-gi="${gi}" data-ri="${ri}">Delete</button>
         </div>`;
       }).join('');
       return `<div class="dupe-group">
@@ -7508,7 +7565,7 @@ function renderBills() {
           <button class="btn-xs bill-paid-btn${paid ? ' bill-unpaid-btn' : ''}" data-idx="${i}" data-paid="${paid}">${paid ? '↩ Mark Unpaid' : '✓ Mark Paid'}</button>
           ${paid && !deducted ? `<button class="btn-xs bill-deduct-btn" data-idx="${i}">${ICONS.dollar} Deduct cash</button>` : ''}
           <button class="btn-xs bill-edit-btn" data-idx="${i}">Edit</button>
-          <button class="btn-xs bill-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-idx="${i}">Delete</button>
+          <button class="btn-xs btn-danger bill-delete-btn" data-idx="${i}">Delete</button>
         </div>
         ${paid ? `<div class="bill-deduct-note ${deducted ? 'is-deducted' : 'not-deducted'}">${deducted ? `✓ ${fmt(b.amount)} deducted from cash` : 'Not deducted from your cash balance'}</div>` : ''}
         ${debtAccts.length ? `<div class="bill-link-row"><span class="bill-link-lbl">Pays loan</span><select class="bill-link-select form-input" data-idx="${i}">${linkOpts(b.linkedAccountId)}</select></div>` : ''}
@@ -8353,7 +8410,7 @@ function renderGoals() {
       <div class="goal-card">
         <div class="goal-header">
           <span class="goal-name">${_escHtml(g.name)}</span>
-          <button class="btn-xs goal-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-idx="${i}">✕</button>
+          <button class="btn-xs btn-danger goal-delete-btn" data-idx="${i}">✕</button>
         </div>
         <div class="goal-amounts">${fmt(g.current)} <span class="goal-of">of</span> ${fmt(g.target)}</div>
         <div class="breakdown-bar-bg" style="margin:8px 0">
@@ -8985,7 +9042,7 @@ function renderSettings() {
   const customCatRows = customCats.length ? customCats.map((c, i) => `
     <div class="custom-cat-row">
       <span class="custom-cat-name">${_escHtml(c)}</span>
-      <button class="btn-xs custom-cat-del" data-idx="${i}" style="background:var(--danger);color:#fff;border-color:var(--danger)">✕</button>
+      <button class="btn-xs btn-danger custom-cat-del" data-idx="${i}">✕</button>
     </div>`).join('') : '<p style="font-size:.8rem;color:var(--muted);margin-bottom:6px">No custom categories yet.</p>';
 
   const TERMINAL_KEYS = ['vscode','powershell','cmd','kali','mintlinux','ubuntu'];
@@ -9251,7 +9308,7 @@ function renderSettings() {
           ${localStorage.getItem('slawminyaw_pin') ? `
         <div style="display:flex;align-items:center;gap:12px">
           <span style="font-size:.9rem;color:var(--success)">PIN Enabled ✓</span>
-          <button id="pin-remove-btn" class="btn-xs" style="background:var(--danger);color:#fff;border-color:var(--danger)">Remove PIN</button>
+          <button id="pin-remove-btn" class="btn-xs btn-danger">Remove PIN</button>
         </div>` : `
         <button id="pin-set-btn" class="btn-sm">Set PIN</button>`}
         <span id="pin-status" class="form-status" style="font-size:11px;margin-top:8px"></span>
@@ -9260,7 +9317,7 @@ function renderSettings() {
           ${bioEnabled ? `
           <div style="display:flex;align-items:center;gap:12px">
             <span style="font-size:.9rem;color:var(--success)">Phone Lock Enabled ✓</span>
-            <button id="bio-remove-btn" class="btn-xs" style="background:var(--danger);color:#fff;border-color:var(--danger)">Remove</button>
+            <button id="bio-remove-btn" class="btn-xs btn-danger">Remove</button>
           </div>` : `
           <button id="bio-set-btn" class="btn-sm"${!window.PublicKeyCredential ? ' disabled title="Not supported on this device/browser"' : ''}>Enable Phone Lock</button>`}
           <span id="bio-status" class="form-status" style="font-size:11px;margin-top:8px"></span>
@@ -9664,7 +9721,7 @@ function showNegativeBalancePopup() {
     <div style="background:var(--card);border:2px solid var(--danger);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.6)">
       <div style="font-size:1rem;font-weight:900;color:var(--danger);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Get your shit together, man</div>
       <p style="font-size:.83rem;color:var(--muted);margin:0 0 20px;line-height:1.55">Your balance just went negative. Time to lock tf in and get those finances right.</p>
-      <button id="neg-bal-dismiss" style="background:var(--danger);color:white;border:none;border-radius:10px;padding:10px 28px;font-size:.9rem;font-weight:800;cursor:pointer;font-family:var(--font-body);text-transform:uppercase;letter-spacing:.04em">I got it</button>
+      <button id="neg-bal-dismiss" style="background:var(--danger);color:var(--on-danger);border:none;border-radius:10px;padding:10px 28px;font-size:.9rem;font-weight:800;cursor:pointer;font-family:var(--font-body);text-transform:uppercase;letter-spacing:.04em">I got it</button>
     </div>`;
   document.body.appendChild(el);
   el.addEventListener('click', e => { if (e.target === el) el.remove(); });
@@ -9936,8 +9993,8 @@ function _buildAccountCards() {
         ${paycheckSection}
         ${retireFields}
         <div class="acct-settings-actions" style="margin-top:10px">
-          <button class="btn-xs acct-edit-save-btn" data-id="${a.id}" style="background:var(--accent);color:var(--bg);border-color:var(--accent)">Save</button>
-          ${a.id !== 'main' ? `<button class="btn-xs acct-delete-btn" style="background:var(--danger);color:white;border-color:var(--danger)" data-id="${a.id}">Delete</button>` : ''}
+          <button class="btn-xs btn-accent acct-edit-save-btn" data-id="${a.id}">Save</button>
+          ${a.id !== 'main' ? `<button class="btn-xs btn-danger acct-delete-btn" data-id="${a.id}">Delete</button>` : ''}
         </div>
       </div>
     </div>`;
@@ -11319,8 +11376,8 @@ function attachAdd() {
         <input type="number" class="form-input split-amount" data-idx="${i}"
           value="${row.amount}" placeholder="$0.00" step="0.01" min="0" inputmode="decimal"
           style="width:92px;padding:6px 8px;font-size:13px">
-        ${_splitRows.length > 2 ? `<button class="btn-xs split-del-row" data-idx="${i}"
-          style="background:var(--danger);color:#fff;border-color:var(--danger);flex-shrink:0">✕</button>` : ''}
+        ${_splitRows.length > 2 ? `<button class="btn-xs btn-danger split-del-row" data-idx="${i}"
+          style="flex-shrink:0">✕</button>` : ''}
       </div>`).join('');
     updateSplitSummary();
     container.querySelectorAll('.split-cat').forEach(sel => {
@@ -11757,7 +11814,7 @@ function _showBulkRecatModal(onPick) {
     <select id="_bulk-recat-sel" class="form-input" style="width:100%;margin-bottom:16px">${cats.map(c => `<option>${_escHtml(c)}</option>`).join('')}</select>
     <div style="display:flex;gap:10px">
       <button id="_bulk-recat-cancel" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-weight:700;cursor:pointer;font-family:var(--font-body)">Cancel</button>
-      <button id="_bulk-recat-ok" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--accent);color:var(--bg);font-weight:700;cursor:pointer;font-family:var(--font-body)">Apply</button>
+      <button id="_bulk-recat-ok" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--accent);color:var(--on-accent);font-weight:700;cursor:pointer;font-family:var(--font-body)">Apply</button>
     </div>
   </div>`;
   document.body.appendChild(ov);

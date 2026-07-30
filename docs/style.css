@@ -11,6 +11,14 @@
   --muted:   #6e6e73;
   --border:  rgba(255,255,255,.07);
   --surface2: #222223;
+  /* Ink for text on a filled accent / danger button. These are the pre-JS defaults
+     and reproduce the old hardcoded values exactly; _stampInkTokens() in app.js
+     replaces them with a measured choice once a theme or skin is applied, so a
+     palette whose accent or red is too light for them gets the opposite ink
+     instead of unreadable text. Never hardcode `white` or `var(--bg)` on a filled
+     button again — use these. */
+  --on-accent: var(--bg);
+  --on-danger: #ffffff;
   /* RGB-split glitch colors — overridden per theme so the glitch matches the palette */
   --gl-1: rgba(255,48,48,.9);
   --gl-2: rgba(0,216,255,.9);
@@ -1127,6 +1135,29 @@ html, body {
   font-size: 11px; cursor: pointer; white-space: nowrap;
 }
 .btn-xs:active { opacity: .8; }
+/* Destructive small button (Delete / Remove / ✕).
+   These used to be written inline as `style="background:var(--danger);color:white"`
+   on a .btn-xs. That broke under every skin: `body.skinned .btn-xs` forces
+   `background: var(--surface) !important`, which beat the inline fill, while its
+   `color` had no !important — so the inline white survived and you got white text
+   on a pale surface at 1.1:1, an invisible Delete button. As a class it can be
+   restyled per skin instead of fought over, and the ink is computed so it also
+   holds up on the dozen themes whose red is too light for white text. */
+.btn-danger {
+  background: var(--danger) !important;
+  border: 1px solid var(--danger) !important;
+  color: var(--on-danger) !important;
+}
+/* Affirmative small button (Save). Same story as .btn-danger: written inline as
+   `background:var(--accent);color:var(--bg)`, so under a skin the fill was
+   overridden to a pale surface while `var(--bg)` — near-white on the light skins —
+   stayed as the text colour. It sat right next to Delete in the account card, which
+   is where both were first spotted. */
+.btn-accent {
+  background: var(--accent) !important;
+  border: 1px solid var(--accent) !important;
+  color: var(--on-accent) !important;
+}
 
 /* ── bills ────────────────────────────────────────────────────────────────── */
 .bill-badge {
@@ -1347,7 +1378,7 @@ html, body {
 }
 .acct-day-opt.acct-day-opt-active {
   background: var(--accent);
-  color: var(--bg);
+  color: var(--on-accent);
   border-color: var(--accent);
   font-weight: 700;
 }
@@ -1380,7 +1411,7 @@ html, body {
 }
 .acct-type-chip.active {
   background: var(--accent);
-  color: var(--bg);
+  color: var(--on-accent);
   border-color: var(--accent);
   font-weight: 600;
 }
@@ -2810,7 +2841,7 @@ textarea:focus-visible,
 .nav-btn:active, .dawg-nav-btn:active { transform: scale(.9); }
 
 /* ── cross-account search toggle + read-only rows ─────────────────────────── */
-.lf-allacct-on { background: var(--accent) !important; color: var(--bg) !important; border-color: var(--accent) !important; }
+.lf-allacct-on { background: var(--accent) !important; color: var(--on-accent) !important; border-color: var(--accent) !important; }
 .ledger-row-ro .ledger-row-inner { cursor: default; }
 .ledger-row-ro { opacity: .96; }
 
@@ -6724,11 +6755,16 @@ body.theme-ubuntu .section-title::before {
 .acct-settings-card:not(.acct-card-collapsed)::after {
   opacity: 1;
 }
-/* Active account badge — neon */
+/* Active account badge — neon.
+   This is the outlined treatment: accent text inside an accent-tinted border. It
+   overrode the base rule's `color: white` but NOT its `background: var(--accent)`,
+   so the badge was accent text on an accent fill — 1.0:1, the word "active"
+   invisible on every theme. The outline style needs the fill cleared. */
 .acct-badge {
+  background: transparent !important;
   color: var(--accent) !important;
-  text-shadow: 0 0 5px var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 60%, transparent) !important;
+  text-shadow: 0 0 5px color-mix(in srgb, var(--accent) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent) !important;
   box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent) !important;
 }
 /* Account name on active card — subtle accent tint */
@@ -7057,7 +7093,7 @@ body.theme-ubuntu .section-title::before {
 .restore-pt-btn { flex-shrink: 0; }
 
 /* ── ledger multi-select ─────────────────────────────────────────────────── */
-.btn-xs-active { background: var(--accent) !important; color: var(--bg) !important; border-color: var(--accent) !important; }
+.btn-xs-active { background: var(--accent) !important; color: var(--on-accent) !important; border-color: var(--accent) !important; }
 /* Checkbox indicator on each row while selecting */
 .ledger-list.select-mode .ledger-row-inner { padding-left: 34px; position: relative; }
 .ledger-list.select-mode .ledger-row-inner::before {
@@ -7096,8 +7132,8 @@ body.theme-ubuntu .section-title::before {
   cursor: pointer; font-family: var(--font-body);
 }
 .lsb-btn:disabled { opacity: .4; cursor: default; }
-.lsb-btn.lsb-del { background: var(--danger); border-color: var(--danger); color: #fff; }
-.lsb-btn.lsb-done { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.lsb-btn.lsb-del { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
+.lsb-btn.lsb-done { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 /* Keep the list clear of the fixed bar */
 .ledger-list.select-mode { padding-bottom: 72px; }
 
@@ -7580,7 +7616,24 @@ body.skinned .btn-primary {
   border: 0 !important;
   border-radius: var(--skin-radius-sm) !important;
   box-shadow: none !important;
-  color: var(--bg) !important;
+  color: var(--on-accent) !important;
+}
+/* Save and Delete keep their solid fills under a skin. A tinted, outline-only
+   Delete was tried first and read better against the skins' flatness, but it puts
+   the raw --danger on the page as TEXT — and several themes' red is a light one
+   picked for a dark background, so on the two light skins it measured 2.5–4.2:1.
+   A solid fill with computed ink is legible by construction on every palette, and
+   it matches .btn-primary, which is already a solid accent fill here. The skin
+   still flattens both via the .btn-xs rule above (no shadow, its own radius). */
+body.skinned .btn-danger {
+  background: var(--danger) !important;
+  border: 1px solid var(--danger) !important;
+  color: var(--on-danger) !important;
+}
+body.skinned .btn-accent {
+  background: var(--accent) !important;
+  border: 1px solid var(--accent) !important;
+  color: var(--on-accent) !important;
 }
 body.skinned .type-pills > *,
 body.skinned .lv-tab,
