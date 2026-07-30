@@ -4021,6 +4021,10 @@ body.light .dawg-dob-bark { animation: dawgHeroBarkFlip 8s linear 2s infinite; }
   filter: drop-shadow(0 10px 32px rgba(0,0,0,.6));
 }
 /* Both images occupy grid cell 1/1 — stacked on top of each other, same size */
+/* The idle frame ships with no src (the inline script in index.html sets it before
+   first paint). Until it has one there is nothing to show — without this the
+   browser renders the alt text, which would flash exactly the wrong thing. */
+.splash-dob-idle:not([src]) { visibility: hidden; }
 .splash-dob-idle,
 .splash-dob-bark {
   grid-area: 1 / 1;

@@ -48,9 +48,14 @@
   <div id="splash-screen" class="splash-screen">
     <canvas id="splash-canvas" class="splash-canvas"></canvas>
     <div class="splash-inner">
+      <!-- No src on the idle frame: the inline script below picks the mascot before
+           first paint. Hardcoding ./doberman.png here meant a Gengar or a custom
+           photo only arrived once app.js reached applyTheme(), i.e. visibly partway
+           through the splash. CSS hides the element until it has a src, so a failed
+           script shows nothing rather than a broken-image glyph or alt text. -->
       <div class="splash-dog">
-        <img src="./doberman.png" alt="Budget DAWGs" class="splash-dob-idle"/>
-        <img src="./maddawg.png"  alt=""             class="splash-dob-bark"/>
+        <img alt="Budget DAWGs" class="splash-dob-idle"/>
+        <img src="./maddawg.png" alt="" class="splash-dob-bark"/>
       </div>
       <div class="splash-texts">
         <div class="splash-brand" data-glitch="Budget DAWGs">Budget DAWGs</div>
@@ -66,6 +71,27 @@
     </div>
     <button id="splash-anim-toggle" class="splash-anim-toggle">✦ hide effects</button>
   </div>
+  <!-- Paints the right splash mascot + tagline on the FIRST frame. Runs here, right
+       after the markup, so the element exists and no paint has happened yet.
+       Reads the hint applyTheme() wrote on the last run (see _saveSplashHint in
+       app.js) — no theme table is duplicated here, so adding a theme or changing a
+       mascot needs no edit to this file. A custom photo wins over the theme's
+       mascot and is read straight from its own key, since the hint never copies it.
+       Any failure falls through to the Doberman, which is the correct default. -->
+  <script>!function(){try{
+    var img=document.querySelector('.splash-dob-idle');if(!img)return;
+    var h={};try{h=JSON.parse(localStorage.getItem('slawminyaw_splash')||'{}')}catch(e){}
+    var photo='';try{photo=localStorage.getItem('slawminyaw_mascot')||''}catch(e){}
+    img.src=photo||h.m||'./doberman.png';
+    var b=document.body;
+    /* Mirror applyTheme() exactly — it adds the theme classes AND mascot-photo when
+       both apply, so doing anything different here would still be a visible change
+       at handover, just a smaller one. */
+    if(h.cls)h.cls.split(' ').forEach(function(c){if(c)b.classList.add(c)});
+    if(photo)b.classList.add('mascot-photo');
+    document.documentElement.style.setProperty('--mascot-pixelated',photo?'auto':(h.px||'auto'));
+    if(h.tag){var tg=document.querySelector('.splash-tagline');if(tg)tg.textContent=h.tag;}
+  }catch(e){var i=document.querySelector('.splash-dob-idle');if(i&&!i.src)i.src='./doberman.png';}}();</script>
 
   <div id="app" style="opacity:0;transition:opacity .18s ease">
     <header class="header">

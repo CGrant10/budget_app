@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.56.0';
+const VERSION = '5.56.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1725,6 +1725,38 @@ function applyNavItems(hiddenTabs) {
 const MASCOT_KEY = 'slawminyaw_mascot';
 let _customMascotCache;   // undefined = not read yet; '' = none set
 
+// ── Splash pre-paint hint ───────────────────────────────────────────────────
+// The splash used to be hardcoded to the Doberman in index.html and only got the
+// real mascot once app.js reached applyTheme() — which lands after the splash has
+// already been painted, so a Gengar or a custom photo appeared to swap in halfway
+// through the zoom-out. Fixing that means resolving the mascot BEFORE first paint,
+// which means without app.js.
+//
+// So applyTheme() leaves a note for the next launch: the few small values the
+// inline script in index.html needs to paint the right first frame. Written here
+// rather than duplicated as a theme table inline, so there's one source of truth —
+// change a theme's mascot or tagline and the splash follows on the next launch
+// with nothing to keep in sync.
+//
+// Deliberately does NOT include the photo itself. That's a data URL big enough to
+// matter and it already lives under MASCOT_KEY; copying it would double the storage
+// for the one thing most likely to hit the quota (see the note on MASCOT_KEY above).
+// The inline script reads the photo straight from MASCOT_KEY and prefers it over
+// anything here, so a stale hint can never resurface an old mascot.
+const SPLASH_HINT_KEY = 'slawminyaw_splash';
+
+function _saveSplashHint(t, theme, photo) {
+  try {
+    localStorage.setItem(SPLASH_HINT_KEY, JSON.stringify({
+      m:   t.mascot || '',                                  // theme mascot path, '' = Doberman
+      tag: t.splashTagline || 'Money on a leash.',
+      cls: t.pokemon ? 'theme-pokemon theme-' + theme
+         : t.team    ? 'theme-team theme-' + theme : '',
+      px:  (t.pokemon && !photo) ? 'pixelated' : 'auto',
+    }));
+  } catch (e) { /* a stale or missing hint just means the old Doberman-first frame */ }
+}
+
 function customMascot() {
   if (_customMascotCache === undefined) {
     try { _customMascotCache = localStorage.getItem(MASCOT_KEY) || ''; }
@@ -2019,6 +2051,7 @@ function applyTheme(theme) {
   document.querySelectorAll('.splash-dob-idle, .brand-dob, .dawg-nav-dob, .nav-side-dob').forEach(img => { img.src = _mascot; });
   const _splashTag = document.querySelector('.splash-tagline');
   if (_splashTag) _splashTag.textContent = t.splashTagline || 'Money on a leash.';
+  _saveSplashHint(t, theme, _photo);
   // Custom / Customlight themes: apply the saved custom accent color
   if (theme === 'custom' || theme === 'customlight') {
     const _cc = loadSettings().customAccent;

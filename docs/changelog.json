@@ -1,5 +1,13 @@
 [
  {
+  "version": "5.56.1",
+  "date": "2026-07-30",
+  "changes": [
+   "The splash screen now opens on your actual mascot. It was hardcoded to the Doberman and only picked up your theme's character — or your own photo — once the app finished loading, which landed partway through the zoom-out, so you saw it change on the way in. It's correct from the first frame now, tagline included.",
+   "One exception worth knowing: the very first launch after this update still starts on the Doberman, because the splash reads what the app recorded on the previous run and there's nothing recorded yet. Every launch after that is right."
+  ]
+ },
+ {
   "version": "5.56.0",
   "date": "2026-07-30",
   "changes": [
