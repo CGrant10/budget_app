@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.55.0';
+const VERSION = '5.55.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1376,7 +1376,6 @@ function _skBills(sk) {
 // Month nav + privacy button reuse the stock ids so their handlers still bind.
 function renderDashboardSkinned(sk) {
   const bal   = _skMoneyParts(sk.balance);
-  const up    = sk.monthDelta >= 0;
   const left  = Math.max(0, sk.perWeek - sk.weekSpent);
   const wkPct = sk.perWeek > 0 ? Math.min(sk.weekSpent / sk.perWeek * 100, 100) : 0;
   const over  = sk.perWeek > 0 && sk.weekSpent > sk.perWeek;
@@ -1445,10 +1444,6 @@ function renderDashboardSkinned(sk) {
              with no re-render, and so restoring the figure is a CSS-only change. -->
         <span class="sk-ghost" aria-hidden="true"></span>
         <span class="sk-cur">${bal.cur}</span>${bal.whole}<span class="sk-cents">.${bal.cents}</span>
-      </div>
-      <div class="sk-delta">
-        <span class="sk-pill${up ? '' : ' down'}">${up ? '▲' : '▼'} ${sk.deltaPct.toFixed(1)}%</span>
-        <span class="sk-sub">${up ? '+' : '−'}${fmt(Math.abs(sk.monthDelta))} in ${_escHtml((sk.dashMonthLabel || '').split(' ')[0])}</span>
       </div>
       ${_skRunway(sk)}
     </div>

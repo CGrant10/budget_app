@@ -5720,7 +5720,6 @@ body.amounts-hidden .ibp-amt {
    The runway's <b class="money"> holds a DURATION ("20 days"), not currency, so
    it is excluded via .sk-rw-span — blurring it would hide a number that isn't an
    amount while leaving the words around it legible. */
-body.amounts-hidden .sk-delta,
 body.amounts-hidden .sk-lval,
 body.amounts-hidden .sk-tamt,
 body.amounts-hidden .sk-bamt,
@@ -7160,19 +7159,17 @@ body.skinned {
 }
 .sk-cur   { font-size: .46em; font-weight: 500; opacity: .5; align-self: flex-start; margin-top: .28em; }
 .sk-cents { font-size: .48em; opacity: .45; margin-left: 2px; }
-.sk-delta { margin-top: 12px; display: flex; align-items: center; gap: 8px; font-size: var(--sk-t-body); }
-.sk-sub   { color: var(--muted); }
-.sk-pill {
-  display: inline-flex; align-items: center; gap: 4px; font-size: var(--sk-t-meta); font-weight: 600;
-  padding: 3px 8px; border-radius: var(--sk-pill-r);
-  background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent);
-}
-.sk-pill.down {
-  background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger);
-}
+/* The month-over-month delta used to sit here — a coloured ▲/▼ percentage pill
+   plus the net amount beside it. Removed: the pill was the only tinted chip on an
+   otherwise flat page, and its two figures said the same thing twice. The month's
+   net is still on the Weekly Planner and in the stock dashboard's hero line.
+   .sk-delta / .sk-sub / .sk-pill went with it; --sk-pill-r stays, it's the
+   corner-radius token for the meters and badges too. */
+
 /* Runway — what sits under the balance instead of a trend line. The number above
-   says how much; this says how long, which is the question it can't answer. */
-.sk-rw { margin-top: 18px; }
+   says how much; this says how long, which is the question it can't answer.
+   Carries the gap the delta row used to hold, hence 24px rather than 18px. */
+.sk-rw { margin-top: 24px; }
 .sk-rw-line { font-size: var(--sk-t-body); color: var(--muted); margin-bottom: 9px; }
 .sk-rw-line b {
   color: var(--text); font-weight: var(--sk-num-weight);
@@ -7327,7 +7324,6 @@ body.skin-ledger .sk-stats { border-top: 1px solid var(--border); border-bottom:
 body.skin-ledger .sk-stat + .sk-stat { border-left: 1px solid var(--border); padding-left: 14px; }
 body.skin-ledger .sk-card { border-top: 1px solid var(--border); padding-top: 18px; }
 body.skin-ledger .sk-shead { border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-body.skin-ledger .sk-pill { background: transparent; padding: 0; }
 body.skin-ledger .sk-title { font-family: var(--skin-num-font); font-size: 17px; font-weight: 500; }
 
 body.skin-quiet {

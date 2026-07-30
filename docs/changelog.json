@@ -1,5 +1,12 @@
 [
  {
+  "version": "5.55.1",
+  "date": "2026-07-30",
+  "changes": [
+   "Removed the coloured percentage pill and the amount next to it from under the balance on the skins. It was the only tinted chip on an otherwise flat page, and the two figures were saying the same thing twice. The balance and the runway line have that space now."
+  ]
+ },
+ {
   "version": "5.55.0",
   "date": "2026-07-30",
   "changes": [
