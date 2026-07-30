@@ -1,5 +1,17 @@
 [
  {
+  "version": "5.57.0",
+  "date": "2026-07-30",
+  "changes": [
+   "Your theme's accent is now readable on the light skins. Ledger and Grid keep whichever accent your theme uses, but those accents were picked to sit on a near-black screen — on a white page all of them were too pale to read, around 2.3 against the 4.5 that counts as legible. Roughly forty places were affected: the All and Details links, income amounts, the active ledger tab, the big Weekly figure, budget suggestions, settings icons. Rather than restyle each one, the colour itself is now deepened just enough to read, keeping its hue and saturation — Gengar is still purple, Dodgers still blue, it just holds up on a pale background.",
+   "The same applies to the six light themes, which had the milder version of the problem on their own backgrounds.",
+   "The 22 dark themes keep their accent and their hand-made gradient exactly as they were. Nothing is adjusted unless it actually fails.",
+   "Primary buttons are legible on every theme now. Add Transaction, Add Bill, the export buttons and the rest painted white text over a gradient that ran from a dark shade to a light one — on 23 of the 28 themes there was no text colour that worked at both ends, including the default. The gradient is now built from the accent itself, so the text has one job instead of two.",
+   "Also swept up 26 smaller controls that hardcoded white text on a coloured fill — chips, calculator keys, the Save buttons, the active ledger tab and type pills, the font picker, the date-range pill. They all work out their own text colour now.",
+   "Known remaining: a few pieces of intentionally-muted small text (bill day badges, the inactive Per Week toggle, the ledger count) still sit slightly under the mark. Those are meant to be quiet, so they're left alone for now rather than made louder."
+  ]
+ },
+ {
   "version": "5.56.1",
   "date": "2026-07-30",
   "changes": [

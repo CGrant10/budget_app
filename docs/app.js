@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.56.1';
+const VERSION = '5.57.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -1533,9 +1533,62 @@ function _contrast(a, b) {
   return (hi + .05) / (lo + .05);
 }
 // Ink for text sitting on `fill`, preferring `preferred` when it's legible there.
+// Every one of the 28 theme accents clears AA against black or white (the tightest
+// is Lightrose at 4.65), so the fallback always succeeds.
 function _inkOn(fill, preferred) {
   if (preferred && _contrast(preferred, fill) >= _AA_SMALL) return preferred;
   return _contrast('#000000', fill) >= _contrast('#ffffff', fill) ? '#000000' : '#ffffff';
+}
+
+// ── Hue-preserving lightness shifts ─────────────────────────────────────────
+// Used to make a theme's accent legible on a background it was never designed for
+// (see _stampSkinSafeColors). Only L moves — H and S are held — so Gengar stays
+// purple and Dodgers stays blue. Deepening a colour is the one adjustment that
+// doesn't change which colour it is.
+function _toHsl({ r, g, b }) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  const l = (mx + mn) / 2;
+  if (!d) return { h: 0, s: 0, l };
+  const s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const h = mx === r ? ((g - b) / d + (g < b ? 6 : 0))
+          : mx === g ? (b - r) / d + 2
+          :            (r - g) / d + 4;
+  return { h: h * 60, s, l };
+}
+function _hslHex({ h, s, l }) {
+  h = ((h % 360) + 360) % 360; s = Math.min(1, Math.max(0, s)); l = Math.min(1, Math.max(0, l));
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+  const seg = [[c,x,0],[x,c,0],[0,c,x],[0,x,c],[x,0,c],[c,0,x]][Math.floor(h / 60) % 6];
+  return '#' + seg.map(v => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join('');
+}
+// Moves `hex` lighter (+) or darker (-) by `pct` points of lightness.
+function _shiftL(hex, pct) {
+  const c = _rgb(hex); if (!c) return hex;
+  const h = _toHsl(c); h.l += pct / 100;
+  return _hslHex(h);
+}
+// Moves `hex` until it reads on `against`, or gives up at the end of the ramp and
+// returns the most legible point it reached.
+//
+// Direction is taken from the background, not fixed: deepen against a light page,
+// lighten against a dark one. Hardcoding "darken" was wrong for half the app — it
+// pushed --danger the wrong way on every dark theme, which is why #c05050 sat at
+// 4.05:1 on the default theme and got no better.
+function _shiftToContrast(hex, against, target = _AA_SMALL) {
+  const c = _rgb(hex), bg = _rgb(against);
+  if (!c || !bg) return hex;
+  if (_contrast(hex, against) >= target) return hex;   // already reads — leave as authored
+  const base = _toHsl(c);
+  const dir  = _relLum(bg) > .5 ? -1 : +1;
+  let best = hex, bestCr = _contrast(hex, against);
+  for (let step = 2; step <= 100; step += 2) {
+    const cand = _hslHex({ ...base, l: base.l + dir * step / 100 });
+    const cr   = _contrast(cand, against);
+    if (cr > bestCr) { best = cand; bestCr = cr; }
+    if (cr >= target) return cand;
+  }
+  return best;
 }
 // Stamps --on-accent / --on-danger from whatever palette is currently resolved on
 // <body>. Must run after BOTH applyTheme and applySkin, since a skin changes --bg
@@ -1550,6 +1603,82 @@ function _stampInkTokens() {
     if (!fill) continue;
     document.documentElement.style.setProperty(token, _inkOn(fill, preferred));
   }
+  _stampButtonFill();
+}
+
+// ── Skin-safe accent / warn / danger / success ──────────────────────────────
+// A skin swaps the page to a new background but deliberately keeps the theme's
+// accent, so your theme still shows through. The catch: those accents were chosen
+// against a near-black page. All 28 of them fail on Ledger's #fbfaf7 and 27 fail on
+// Grid's #ffffff — so anywhere the accent was used as TEXT rather than as a fill it
+// came out around 2.3:1. That was ~41 places: the "All" / "Details" links, income
+// amounts, the active ledger tab, the Weekly hero figure, budget suggestions,
+// settings icons. Same story for --warn on the health score and bill badges.
+//
+// Rather than restyle those 41 rules, the colour itself is deepened until it reads
+// on the skin's background — hue and saturation held, so it is recognisably the same
+// accent. Fills deepen along with the text, which keeps the page in one family, and
+// --on-accent / --on-danger recompute afterwards so filled buttons follow.
+//
+// Derived from _rawPalette (what the theme actually specified) rather than from
+// whatever is currently on :root, so applying a skin twice can't compound the shift.
+// The rule is the same whether the light background came from a skin or from one of
+// the six light THEMES, which have the identical problem unskinned — theme `light`
+// puts its own #2fa56f accent on its own #f5f5f7 page at 2.86:1. So this keys off the
+// page background actually in effect, not off whether a skin is active. On the 22
+// dark themes every colour already reads and _shiftToContrast returns it untouched,
+// so their palettes are byte-identical to before.
+let _rawPalette = null;
+
+function _stampSkinSafeColors(pageBg) {
+  if (!_rawPalette || !pageBg) return;
+  const root = document.documentElement;
+  const adj = {};
+  for (const [name, raw] of Object.entries(_rawPalette)) {
+    if (!raw || name === 'gradient') continue;   // gradient is rebuilt below, not shifted
+    adj[name] = _shiftToContrast(raw, pageBg);
+    root.style.setProperty('--' + name, adj[name]);
+  }
+  // Rebuild the gradient ONLY when --accent itself moved.
+  //
+  // Gating this on "did anything shift" was wrong twice over. --danger moves on most
+  // dark themes (#c05050 sits at 4.05 on #111112), and --accent2 moves on many more —
+  // it does double duty as a gradient stop AND as the text colour for bill and
+  // breakdown amounts, so it has to stay legible. Either one firing threw away a
+  // hand-authored `grad` whose accent had not changed at all, on 14 themes.
+  // The gradient is decorative; keeping what the theme author wrote wins.
+  const accentMoved = adj.accent !== _rawPalette.accent;
+  if (accentMoved && adj.accent) {
+    root.style.setProperty('--accent-gradient',
+      `linear-gradient(135deg, ${adj.accent} 0%, ${adj.accent2 || adj.accent} 100%)`);
+  } else if (_rawPalette.gradient) {
+    root.style.setProperty('--accent-gradient', _rawPalette.gradient);
+  }
+}
+
+// ── Primary button fill ─────────────────────────────────────────────────────
+// .btn-primary painted --accent-gradient with a literal white. Those gradients run
+// from a dark stop to a light one, so on 23 of the 28 themes NEITHER black nor white
+// clears AA at both ends — white measured 1.8–3.8 on most of them, including the
+// default dark theme. No single ink can fix a gradient that spans that much
+// lightness, so the fill has to change, not the text.
+//
+// It stays a gradient — that's the app's look — but both stops are now the accent,
+// and the second one is shifted AWAY from the chosen ink (lighter when the ink is
+// dark, darker when it's light) so the far end is strictly more legible than the
+// near end, not less. If a palette somehow still can't carry it, this falls back to
+// a flat accent fill, which _inkOn guarantees.
+function _stampButtonFill() {
+  const cs     = getComputedStyle(document.body);
+  const accent = cs.getPropertyValue('--accent').trim();
+  const ink    = cs.getPropertyValue('--on-accent').trim() || '#ffffff';
+  if (!accent) return;
+  const inkRgb = _rgb(ink);
+  const dir    = inkRgb && _relLum(inkRgb) < .5 ? +1 : -1;   // dark ink → lighten the far stop
+  const far    = _shiftL(accent, dir * 14);
+  const ok     = _contrast(ink, accent) >= _AA_SMALL && _contrast(ink, far) >= _AA_SMALL;
+  document.documentElement.style.setProperty('--btn-fill',
+    ok ? `linear-gradient(135deg, ${accent} 0%, ${far} 100%)` : accent);
 }
 
 // Applies a beta skin. Must run AFTER applyTheme(), which resets body.light and
@@ -1558,7 +1687,12 @@ function applySkin(key) {
   const skin = SKINS[key];
   document.body.classList.remove(...Object.keys(SKINS).map(k => 'skin-' + k));
   document.body.classList.toggle('skinned', !!skin);
-  if (!skin) { _stampInkTokens(); return; } // no skin: applyTheme's values stand
+  if (!skin) {
+    // No skin: the page background is the theme's own, which applyTheme just stamped.
+    _stampSkinSafeColors(document.documentElement.style.getPropertyValue('--bg').trim());
+    _stampInkTokens();
+    return;
+  }
   document.body.classList.add('skin-' + key);
   document.body.classList.toggle('light', !!skin.light);
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', skin.bg);
@@ -1570,8 +1704,9 @@ function applySkin(key) {
   const cs = getComputedStyle(document.body);
   ['--bg', '--surface', '--surface2', '--card', '--text', '--muted', '--border']
     .forEach(p => document.documentElement.style.setProperty(p, cs.getPropertyValue(p).trim()));
-  // The skin just changed --bg, so the preferred ink for a filled button changed
-  // with it. Recompute after the mirror above, not before.
+  // Order matters: deepen the accent for this skin's background first, then compute
+  // the ink for filled buttons from the deepened value — not the authored one.
+  _stampSkinSafeColors(skin.bg);
   _stampInkTokens();
 }
 
@@ -2062,6 +2197,18 @@ function applyTheme(theme) {
       root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${t.surface2} 0%, ${_cc} 100%)`);
     }
   }
+  // Snapshot what the theme actually asked for, AFTER the custom-accent override
+  // above, so a user-picked accent is what gets adjusted for a light skin rather
+  // than the theme's placeholder. _stampSkinSafeColors() derives from this rather
+  // than from :root, which is what stops repeated applySkin() calls compounding.
+  _rawPalette = {
+    accent:   root.style.getPropertyValue('--accent').trim()   || t.accent,
+    accent2:  root.style.getPropertyValue('--accent2').trim()  || t.accent2,
+    success:  root.style.getPropertyValue('--success').trim()  || t.success,
+    warn:     root.style.getPropertyValue('--warn').trim()     || t.warn,
+    danger:   root.style.getPropertyValue('--danger').trim()   || t.danger,
+    gradient: root.style.getPropertyValue('--accent-gradient').trim(),
+  };
   // Update category colors to match theme
   if (t.cats) Object.assign(CAT_COLORS, t.cats);
   // Auto-apply bundled font for terminal-style themes

@@ -19,6 +19,7 @@
      button again — use these. */
   --on-accent: var(--bg);
   --on-danger: #ffffff;
+  --btn-fill:  var(--accent);   /* replaced by _stampButtonFill() with a gradient */
   /* RGB-split glitch colors — overridden per theme so the glitch matches the palette */
   --gl-1: rgba(255,48,48,.9);
   --gl-2: rgba(0,216,255,.9);
@@ -504,8 +505,12 @@ html, body {
 .btn-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 .btn-primary {
-  background: var(--accent-gradient);
-  color: white;
+  /* --btn-fill is an accent-to-accent gradient computed in _stampButtonFill(); the
+     old --accent-gradient ran dark-stop to light-stop, so no single text colour
+     cleared AA at both ends on 23 of the 28 themes. Falls back to a flat accent
+     before JS runs. */
+  background: var(--btn-fill, var(--accent));
+  color: var(--on-accent);
   border: none;
   border-radius: 11px;
   padding: 13px 24px;
@@ -593,7 +598,7 @@ html, body {
 
 .btn-sm {
   background: var(--accent);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: 8px;
   padding: 8px 14px;
@@ -661,7 +666,7 @@ html, body {
   cursor: pointer;
   font-family: var(--font-body);
 }
-.lf-density-btn:active { background: var(--accent); color: #fff; }
+.lf-density-btn:active { background: var(--accent); color: var(--on-accent); }
 .ledger-row {
   position: relative;
   overflow: hidden;
@@ -689,7 +694,7 @@ html, body {
   height: 100%;
   width: 76px;
   background: var(--danger);
-  color: white;
+  color: var(--on-danger);
   border: none;
   font-size: 13px;
   font-family: var(--font-body);
@@ -874,7 +879,7 @@ html, body {
 .wkb-row.wkb-past { border-color: var(--border); }
 .wkb-row.wkb-past .wkb-header,
 .wkb-row.wkb-past .week-dates { color: var(--muted); }
-.wkb-current-badge { font-size: .65rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: var(--accent); color: #fff; border-radius: 4px; padding: 1px 6px; margin-right: 4px; white-space: nowrap; }
+.wkb-current-badge { font-size: .65rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: var(--accent); color: var(--on-accent); border-radius: 4px; padding: 1px 6px; margin-right: 4px; white-space: nowrap; }
 .wkb-row.wkb-forfeited { opacity: .45; }
 .wkb-forfeited-badge { font-size: .65rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .wkb-forfeit-btn {
@@ -1021,7 +1026,7 @@ html, body {
 
 /* ── budget badges ───────────────────────────────────────────────────────── */
 .budget-badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: bold; margin-left: 6px; }
-.budget-badge.over { background: var(--danger); color: white; }
+.budget-badge.over { background: var(--danger); color: var(--on-danger); }
 .budget-badge.warn { background: var(--warn); color: #111; }
 
 /* ── roast toast ─────────────────────────────────────────────────────────── */
@@ -1100,7 +1105,7 @@ html, body {
   cursor: pointer;
   transition: background .15s, border-color .15s;
 }
-.anim-dismiss:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.anim-dismiss:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
 /* ── category dot ────────────────────────────────────────────────────────── */
 .cat-dot {
@@ -1165,7 +1170,7 @@ html, body {
   font-weight: bold; white-space: nowrap;
 }
 .bill-badge.due-today     { background: var(--warn);    color: #111; }
-.bill-badge.overdue       { background: var(--danger);  color: white; }
+.bill-badge.overdue       { background: var(--danger);  color: var(--on-danger); }
 .bill-badge.due-soon      { background: var(--accent2); color: #111; }
 .bill-badge.upcoming-soon { background: var(--accent2); color: #111; opacity: .75; }
 .bill-badge.upcoming      { background: var(--border);  color: var(--muted); }
@@ -1205,7 +1210,7 @@ html, body {
 }
 .bill-edit-form .form-row { margin-bottom: 8px; }
 .bill-edit-actions { display: flex; gap: 8px; margin-top: 4px; }
-.bill-edit-save { background: var(--accent); color: #fff; border-color: var(--accent); }
+.bill-edit-save { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .bill-card-paid {
   opacity: .55;
   border-left: 3px solid var(--success);
@@ -1421,7 +1426,7 @@ html, body {
 .account-type { font-size: 12px; color: var(--muted); }
 .acct-badge {
   font-size: 9px; padding: 2px 7px; border-radius: 4px;
-  background: var(--accent); color: white; margin-left: 4px;
+  background: var(--accent); color: var(--on-accent); margin-left: 4px;
 }
 
 /* ── budget progress ──────────────────────────────────────────────────────── */
@@ -1764,8 +1769,10 @@ body.light .section-title::before {
 }
 .fp-option:hover   { background: var(--surface2); }
 .fp-option.active  { background: var(--accent); }
+/* Fill is on .fp-option.active above; the ink is on its children, so this pairing
+   also needed finding by hand rather than per-rule. */
 .fp-option.active .fp-opt-name,
-.fp-option.active .fp-opt-preview { color: #fff; }
+.fp-option.active .fp-opt-preview { color: var(--on-accent); }
 .fp-opt-name    { font-size: .72rem; color: var(--muted); white-space: nowrap; min-width: 90px; }
 .fp-opt-preview {
   font-size: 1rem;
@@ -1792,7 +1799,7 @@ body.light .section-title::before {
 .cap-chip.active {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /* ── gengar background overlay ────────────────────────────────────────────── */
@@ -1812,7 +1819,7 @@ body.light .section-title::before {
   position: absolute;
   top: 4px; right: 6px;
   background: var(--danger);
-  color: #fff;
+  color: var(--on-danger);
   font-size: 9px;
   font-weight: 700;
   min-width: 16px; height: 16px;
@@ -2025,7 +2032,7 @@ body.light .section-title::before {
   box-shadow: 0 2px 8px rgba(0,0,0,0.35);
   transition: background .15s, color .15s;
 }
-.tut-float:hover { background: var(--accent); color: #fff; }
+.tut-float:hover { background: var(--accent); color: var(--on-accent); }
 
 
 /* ── amount field + calculator ─────────────────────────────────────────────── */
@@ -2043,7 +2050,7 @@ body.light .section-title::before {
   align-items: center;
   justify-content: center;
 }
-.calc-trigger:active { background: var(--accent); color: #fff; }
+.calc-trigger:active { background: var(--accent); color: var(--on-accent); }
 
 .calc-overlay {
   position: fixed;
@@ -2099,7 +2106,7 @@ body.light .section-title::before {
   cursor: pointer;
   font-family: var(--font-body);
 }
-.calc-key:active { background: var(--accent); color: #fff; }
+.calc-key:active { background: var(--accent); color: var(--on-accent); }
 .calc-key.calc-op { color: var(--accent); font-weight: 700; }
 .calc-key.calc-fn { color: var(--warn); }
 .calc-actions { display: flex; gap: 8px; margin-top: 12px; }
@@ -2113,7 +2120,7 @@ body.light .section-title::before {
   font-family: var(--font-body);
 }
 .calc-cancel { background: transparent; border: 1px solid var(--border); color: var(--muted); }
-.calc-done   { background: var(--accent); border: 1px solid var(--accent); color: #fff; }
+.calc-done   { background: var(--accent); border: 1px solid var(--accent); color: var(--on-accent); }
 
 /* ── ledger filter bar ────────────────────────────────────────────────────── */
 .ledger-filter-bar {
@@ -2157,7 +2164,7 @@ body.light .section-title::before {
 .type-pill.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /* ── accessibility: respect reduced-motion preference ──────────────────────── */
@@ -2250,7 +2257,7 @@ textarea:focus-visible,
 .lv-tab.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .lv-count {
   font-size: .72rem;
@@ -2341,7 +2348,7 @@ textarea:focus-visible,
   cursor: pointer;
   font-family: var(--font-body);
 }
-.lf-clear-btn:active { background: var(--danger); color: #fff; border-color: var(--danger); }
+.lf-clear-btn:active { background: var(--danger); color: var(--on-danger); border-color: var(--danger); }
 .goals-total-card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -2365,7 +2372,7 @@ textarea:focus-visible,
   cursor: pointer;
   font-family: var(--font-body);
 }
-.dash-reconcile-btn:active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.dash-reconcile-btn:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .reconcile-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -2436,7 +2443,7 @@ textarea:focus-visible,
 .bills-month-arrow:active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .bills-month-label {
   flex: 1;
@@ -2530,7 +2537,7 @@ textarea:focus-visible,
   cursor: pointer;
   transition: background .15s, color .15s;
 }
-.acct-update-pill:active { background: var(--danger); color: #fff; }
+.acct-update-pill:active { background: var(--danger); color: var(--on-danger); }
 .acct-update-pill--subtle {
   border-color: var(--border);
   color: var(--muted);
@@ -2620,7 +2627,7 @@ textarea:focus-visible,
 
 .debt-subnav { display:flex; gap:8px; margin-bottom:16px; }
 .debt-pill { flex:1; padding:9px 0; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:.82rem; font-weight:600; cursor:pointer; transition:all .15s; font-family:var(--font-body); }
-.debt-pill.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+.debt-pill.active { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
 
 .debt-acct-list { display:flex; flex-direction:column; gap:12px; }
 .debt-acct-card { background:var(--glass-bg); border:1px solid var(--glass-border); box-shadow:var(--shadow-card); border-radius:18px; overflow:hidden; }
@@ -2904,7 +2911,11 @@ textarea:focus-visible,
   background:transparent; border:none; color:var(--muted);
   border-radius:8px; cursor:pointer; transition:color .2s;
 }
-.dawg-tbtn-active { color:#08120d !important; }
+/* The accent fill for this one lives on .dawg-tbtn-pill below, not on the button, so
+   the hardcoded near-black here was invisible to a per-rule sweep. It happened to
+   work while every accent was light; now that the light themes' accents are deepened
+   it has to be computed like every other ink on an accent fill. */
+.dawg-tbtn-active { color: var(--on-accent) !important; }
 .dawg-tbtn-pill {
   position:absolute; z-index:1; top:3px; bottom:3px; left:3px; width:0;
   border-radius:8px; background:var(--accent);
@@ -3086,7 +3097,7 @@ body.light .dawg-tile-grid .dawg-budget-tile {
   border-radius: 20px; color: var(--text); font-size: .74rem; font-weight: 700;
   cursor: pointer; white-space: nowrap;
 }
-.dem-preset:active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.dem-preset:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
 /* Hint text */
 .dem-hint {
@@ -3219,7 +3230,7 @@ body.light .dawg-tile-grid .dawg-budget-tile {
   font-weight: 700; white-space: nowrap;
 }
 .dem-btn span { font-size: .68rem; font-weight: 700; }
-.dem-btn:active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.dem-btn:active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .dem-vis-btn {
   padding: 7px 9px;
 }
@@ -3245,7 +3256,7 @@ body.light .dawg-tile-grid .dawg-budget-tile {
 .dem-done {
   width: 100%; padding: 14px 0;
   background: var(--accent); border: none; border-radius: 14px;
-  color: #fff; font-size: .9rem; font-weight: 800;
+  color: var(--on-accent); font-size: .9rem; font-weight: 800;
   cursor: pointer; letter-spacing: .02em;
 }
 .dem-done:active { filter: brightness(.88); }
