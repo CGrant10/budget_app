@@ -1,5 +1,18 @@
 [
  {
+  "version": "5.57.1",
+  "date": "2026-07-30",
+  "changes": [
+   "What's New is working again. It had been broken since 5.55.0 — the app kept its release notes in two places and only one of them was being updated, so the popup went looking for notes matching the version, found none, and quietly gave up. It also marked the version as already-seen on its way out, which is why it never came back on its own. There is one copy of the notes now, and if it ever can't find them it says so instead of going quiet.",
+   "Because of that, four releases went by without notes. Here's what you missed:",
+   "5.57.0 — Your theme's accent is now readable on the light skins and light themes. Those accents were picked for a near-black screen and were too pale to read on a white page, in about forty places. The colour is deepened just enough to read while keeping its hue, so Gengar stays purple. Primary buttons were white text on a gradient running dark-to-light, which no single text colour could survive; the gradient is built from the accent now. Around 26 smaller controls that hardcoded white text on a coloured fill were fixed too.",
+   "5.56.1 — The splash screen opens on your actual mascot. It was hardcoded to the Doberman and only picked up your theme's character, or your own photo, partway through the zoom-out.",
+   "5.56.0 — Fixed unreadable buttons in the account editor: under a skin, Delete was white text on pale grey and Save was near-white on mint. Same fix everywhere else the pattern appeared. Button text colour is measured now rather than assumed. The \"active\" badge on your current account had been invisible on every theme — accent text on an accent background.",
+   "5.55.1 — Removed the coloured percentage pill and the amount beside it from under the balance on the skins.",
+   "5.55.0 — The three skins now share one type scale. That screen had eleven text sizes, six of them within three pixels of each other. The runway line under your balance now says what it's counting. The splash screen is slower and less choppy — everything used to land in the first six-tenths of a second."
+  ]
+ },
+ {
   "version": "5.57.0",
   "date": "2026-07-30",
   "changes": [

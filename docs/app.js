@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.57.0';
+const VERSION = '5.57.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -72,20 +72,38 @@ const ICONS = {
 
 // ── Release notes ────────────────────────────────────────────────────────────
 // ONLY the current release lives here. Both readers — the About page and the
-// What's New popup — filter to VERSION and never show any other entry, so
-// keeping 350 past releases inline meant parsing ~141KB of text on every launch
-// in order to display one of them.
+// ── What's New / changelog ──────────────────────────────────────────────────
+// docs/changelog.json is the single source. It used to be an archive that nothing
+// read, with the current release ALSO hand-copied into an inline array here — and
+// that is exactly how the popup broke: five releases shipped with changelog.json
+// updated and the inline copy left on 5.54.0, so `find(c => c.version === VERSION)`
+// matched nothing. Worse, the no-match branch still wrote the seen-version flag, so
+// it failed silently and permanently rather than complaining once.
 //
-// The full history lives in docs/changelog.json, which nothing loads at boot.
-// ON RELEASE: replace the entry below, and prepend the outgoing one to
-// changelog.json so the archive stays complete.
-const CHANGELOG = [
-  { version: '5.54.0', date: '2026-07-28', changes: [
-    "Weekly Planner rebuilt around one question: how much is left to spend this week. That figure is now the top of the page, with what you've spent, the bar, and then a quiet row carrying per day, this month and your balance underneath. The page is split into labelled sections — This week, History, Your plan — so scrolling always tells you where you are.",
-    "It used to show fifteen money figures with nothing to separate them, four of which looked identical. Your balance appeared twice, and \"this month\" and \"per week\" showed the same number whenever a single week was left in the month. Those are gone rather than restyled.",
-    "The plan inputs moved to the bottom, since they're set once and rarely changed.",
-    "Splash screen: the exit is now a straightforward zoom — the screen scales up a touch and fades while your dashboard rises underneath. The mascot-shaped reveal has been dropped.",
-    "Account cards are calmer. The bold colour-filled tiles are gone; each card now uses the same quiet surface as every other card in the app, with the account type carried by a thin coloured edge and a small dot. Under the skins they stay flat, as before.",
+// Now it is fetched instead of duplicated, lazily — only on the first launch of a
+// version you haven't seen, so a normal launch reads nothing. It's in the service
+// worker's precache (see ASSETS in sw.js) so it works offline like everything else.
+// The inline entry below is a last-resort fallback for the one case a fetch can't
+// cover: a brand-new install that goes offline before the precache lands.
+let _changelogCache = null;
+
+async function _loadChangelog() {
+  if (_changelogCache) return _changelogCache;
+  try {
+    const res = await fetch('./changelog.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    if (Array.isArray(json) && json.length) { _changelogCache = json; return json; }
+    throw new Error('changelog.json was not a non-empty array');
+  } catch (e) {
+    console.warn('Budget DAWGs: could not load changelog.json —', e.message);
+    return CHANGELOG_FALLBACK;
+  }
+}
+
+const CHANGELOG_FALLBACK = [
+  { version: VERSION, date: '2026-07-30', changes: [
+    "See the full release notes on the About screen.",
   ]},
 ];
 
@@ -10628,8 +10646,17 @@ function renderAbout() {
   const built    = new Date().getFullYear();
   const s        = loadSettings();
   const userName = s.name || null;
-  // Only show the changelog entry for the current exact version
-  const changelogHtml = CHANGELOG.filter(e => e.version === VERSION).map(entry => `
+  // Only show the changelog entry for the current exact version.
+  // This render is synchronous, so it uses whatever _loadChangelog() has already
+  // cached — normally warm, because the What's New check runs during boot idle. If
+  // it isn't yet, kick a load and re-render once, rather than showing nothing.
+  if (!_changelogCache) {
+    _loadChangelog().then(log => {
+      if (log !== CHANGELOG_FALLBACK && currentTab === 'about') render();
+    });
+  }
+  const changelogHtml = (_changelogCache || CHANGELOG_FALLBACK)
+    .filter(e => e.version === VERSION).map(entry => `
     <div style="margin-bottom:18px">
       <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
         <span style="font-size:.95rem;font-weight:700;color:var(--accent)">v${entry.version}</span>
@@ -12520,12 +12547,17 @@ function _showUpdateTerminal() {
 }
 
 // ── what's new popup ──────────────────────────────────────────────────────
-function maybeShowWhatsNew() {
+async function maybeShowWhatsNew() {
   const seenKey = 'slawminyaw_seen_version';
   if (localStorage.getItem(seenKey) === VERSION) return;
-  const entry = CHANGELOG.find(function(c) { return c.version === VERSION; });
+  const log   = await _loadChangelog();
+  const entry = log.find(function(c) { return c.version === VERSION; });
+  // Deliberately does NOT mark the version seen when there's no entry. Doing that
+  // is what turned a missing changelog entry into a permanent silent no-op: the
+  // flag was set on the first launch, so even shipping the entry later couldn't
+  // bring the popup back. Now it stays pending and says so.
   if (!entry || !entry.changes.length) {
-    localStorage.setItem(seenKey, VERSION);
+    console.warn('Budget DAWGs: no changelog entry for v' + VERSION + ' — What\'s New skipped.');
     return;
   }
 

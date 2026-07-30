@@ -1,4 +1,4 @@
-const CACHE      = "slawminyaw-v471";
+const CACHE      = "slawminyaw-v472";
 const FONT_CACHE = "slawminyaw-fonts-v1";
 const CDN_CACHE  = "slawminyaw-cdn-v1";
 const ASSETS = [
@@ -8,6 +8,7 @@ const ASSETS = [
   "./app.js",
   "./animations.js",
   "./manifest.json",
+  "./changelog.json",
   "./icon-192.png",
   "./icon-192-maskable.png",
   "./icon-512.png",
