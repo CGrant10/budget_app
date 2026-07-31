@@ -1,5 +1,16 @@
 [
  {
+  "version": "5.58.0",
+  "date": "2026-07-31",
+  "changes": [
+   "New: daily auto-backup to a single file. Go to Import / Export and choose where to keep it — after that the app updates that same file once a day when you open it. It replaces the file in place rather than downloading a new one each time, so you get one backup instead of a folder full of them.",
+   "This exists because the restore points inside the app live in browser storage, which means they disappear in exactly the situation you need them — clearing your browser data. A file on disk doesn't.",
+   "It will not overwrite a good backup with an empty one. If the app opens with no transactions but the backup file has some, it leaves the file alone and tells you, with a shortcut to Import. That's the one moment an automatic save could do real damage.",
+   "If your browser asks for permission again after a restart, you'll get a single prompt to allow it rather than the backup silently not happening.",
+   "Needs Edge or Chrome on a computer, since phone browsers can't write to a file on their own. On a phone the section explains that and points you at the manual JSON backup instead."
+  ]
+ },
+ {
   "version": "5.57.1",
   "date": "2026-07-30",
   "changes": [

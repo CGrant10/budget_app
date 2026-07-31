@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.57.1';
+const VERSION = '5.58.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -978,6 +978,19 @@ function showPinSetupModal(onSuccess) {
     ov.remove();
     onSuccess?.();
   });
+}
+
+// Brief non-blocking message. _showSaveError below predates this and stays as-is;
+// this is the neutral version for things that aren't errors.
+function _toast(msg, ms = 3200) {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:10002;'
+    + 'background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 18px;'
+    + 'border-radius:10px;font-size:.85rem;font-weight:600;pointer-events:none;text-align:center;'
+    + 'max-width:78vw;box-shadow:0 6px 24px rgba(0,0,0,.4)';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), ms);
 }
 
 function _showSaveError() {
@@ -2963,6 +2976,175 @@ function daysSinceBackup() {
 }
 function markBackupDone() {
   const s = loadSettings(); s.lastBackupDate = today(); saveSettings(s);
+}
+
+// ── Daily auto-backup to one file ───────────────────────────────────────────
+// Written after a cache clear wiped everything: restore points and snapshots both
+// live in localStorage, so they die with exactly the event you need them for. This
+// puts a copy on the actual filesystem, outside the browser's reach.
+//
+// The mechanism is the File System Access API. The point of it here is that a
+// download can't overwrite — the browser appends "(1)", "(2)" and you end up with
+// a folder full of near-identical files. Instead the user picks the destination
+// ONCE; the resulting FileSystemFileHandle is kept and re-opened for writing every
+// day after, so it's the same file being replaced. One file, no rotation.
+//
+// The handle goes in IndexedDB because a handle is structured-cloneable but not
+// JSON-serialisable, so localStorage cannot hold it. Losing the handle (site data
+// cleared again) only costs re-picking the file — the backup on disk is untouched,
+// which is the whole idea.
+const _FSDB = { name: 'slawminyaw_fs', store: 'handles', key: 'autoBackup' };
+
+function autoBackupSupported() {
+  return typeof window !== 'undefined' && 'showSaveFilePicker' in window;
+}
+function _fsOpen() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(_FSDB.name, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(_FSDB.store);
+    req.onsuccess = () => res(req.result);
+    req.onerror   = () => rej(req.error);
+  });
+}
+function _fsTx(mode, fn) {
+  return _fsOpen().then(db => new Promise((res, rej) => {
+    const tx = db.transaction(_FSDB.store, mode);
+    const rq = fn(tx.objectStore(_FSDB.store));
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror   = () => rej(rq.error);
+  })).catch(e => { console.warn('Budget DAWGs: backup handle store failed —', e && e.message); return null; });
+}
+const _fsGetHandle = ()  => _fsTx('readonly',  st => st.get(_FSDB.key));
+const _fsPutHandle = (h) => _fsTx('readwrite', st => st.put(h, _FSDB.key));
+const _fsDelHandle = ()  => _fsTx('readwrite', st => st.delete(_FSDB.key));
+
+// Transaction counting for the guard below reuses the existing _payloadTxnCount()
+// defined alongside _applyBackupPayload — no second copy.
+
+// Writes the payload over the chosen file.
+//
+// The guard matters more than the write. An automatic overwrite is dangerous in
+// precisely the situation this feature exists for: open the app after site data has
+// been cleared and the in-memory state is EMPTY, so a blind daily write would
+// replace a good backup with nothing and destroy the only surviving copy. So it
+// reads the file first and refuses to trade a populated backup for an empty one.
+async function _writeAutoBackup(handle, { force = false } = {}) {
+  const payload = _buildBackupPayload();
+  const fresh   = _payloadTxnCount(payload);
+  if (!force) {
+    let existing = 0;
+    try {
+      const txt = await (await handle.getFile()).text();
+      if (txt.trim()) existing = _payloadTxnCount(JSON.parse(txt));
+    } catch { /* unreadable or empty file — nothing to protect */ }
+    if (existing > 0 && fresh === 0) {
+      return { ok: false, reason: 'refused: app has no transactions but the backup file has ' +
+                                  existing + ' — not overwriting' };
+    }
+  }
+  // Chromium's writable streams commit on close() via a swap file, so an
+  // interrupted write leaves the previous contents intact rather than a half file.
+  const w = await handle.createWritable();
+  await w.write(JSON.stringify(payload, null, 2));
+  await w.close();
+  const s = loadSettings();
+  s.autoBackup     = true;
+  s.autoBackupName = handle.name || s.autoBackupName || 'backup.json';
+  s.lastAutoBackup = today();
+  saveSettings(s);
+  markBackupDone();          // counts as a backup, so the stale-backup banner rests
+  return { ok: true, txns: fresh };
+}
+
+// One-time setup: user picks the destination, and it's written straight away so
+// they can see it worked rather than waiting a day to find out.
+async function chooseAutoBackupFile() {
+  const handle = await window.showSaveFilePicker({
+    suggestedName: 'budget-dawgs-backup.json',
+    types: [{ description: 'Budget DAWGs backup', accept: { 'application/json': ['.json'] } }],
+  });
+  await _fsPutHandle(handle);
+  return _writeAutoBackup(handle, { force: true });   // brand-new file, nothing to protect
+}
+
+async function disableAutoBackup() {
+  await _fsDelHandle();
+  const s = loadSettings();
+  s.autoBackup = false; delete s.autoBackupName; delete s.lastAutoBackup;
+  saveSettings(s);
+}
+
+// Boot check. Returns a status the UI can show; never throws.
+// 'prompt' is the one case that can't be handled silently: Chromium drops file
+// permission back to prompt in a new session and requestPermission() needs a user
+// gesture, so the UI has to offer a button rather than us failing quietly.
+// getHandle is a parameter rather than a direct call so the handle source can be
+// substituted — a real FileSystemFileHandle only comes from a file picker, which
+// needs a user gesture, so this is the only way to exercise the branches below.
+async function maybeAutoBackup(getHandle = _fsGetHandle) {
+  const s = loadSettings();
+  if (!s.autoBackup || !autoBackupSupported()) return { state: 'off' };
+  if (s.lastAutoBackup === today())            return { state: 'done-today' };
+  const handle = await getHandle();
+  if (!handle) { return { state: 'no-handle' }; }
+  let perm = 'denied';
+  try { perm = await handle.queryPermission({ mode: 'readwrite' }); } catch {}
+  if (perm !== 'granted') return { state: 'needs-permission' };
+  try {
+    const r = await _writeAutoBackup(handle);
+    return r.ok ? { state: 'written', txns: r.txns } : { state: 'refused', reason: r.reason };
+  } catch (e) {
+    console.warn('Budget DAWGs: auto-backup write failed —', e && e.message);
+    return { state: 'error', reason: e && e.message };
+  }
+}
+
+// Boot wiring. Runs the daily write and, for the two outcomes the user has to know
+// about, says so instead of failing quietly:
+//   needs-permission → a tap is required, so offer one (a toast is not enough).
+//   refused          → the empty-state guard fired; that is worth interrupting for,
+//                      because it means this launch has no data and the file does.
+function _runAutoBackupCheck() {
+  maybeAutoBackup().then(r => {
+    if (!r || r.state === 'off' || r.state === 'done-today' || r.state === 'written') return;
+    if (r.state === 'needs-permission') {
+      showConfirmModal({
+        title: 'Resume daily backup?',
+        message: 'Your browser needs permission again before it can update the backup file. '
+               + 'This happens after a restart and only takes one tap.',
+        confirmText: 'Allow',
+        onConfirm: () => resumeAutoBackup().then(res => {
+          if (res.state === 'written') _toast('✓ Backup updated');
+        }),
+      });
+      return;
+    }
+    if (r.state === 'refused') {
+      showConfirmModal({
+        title: 'Backup not overwritten', danger: true,
+        message: 'This app currently has no transactions, but your backup file does — so it was '
+               + 'left alone rather than replaced with an empty one. If your data is missing, '
+               + 'import that file before doing anything else.',
+        confirmText: 'Got it', cancelText: 'Open Import',
+        onCancel: () => { currentTab = 'import'; render(); },
+      });
+      return;
+    }
+    if (r.state === 'no-handle') _toast('Auto-backup needs the file choosing again');
+  });
+}
+
+// Called from a click, so requestPermission() has the gesture it needs.
+async function resumeAutoBackup(getHandle = _fsGetHandle) {
+  const handle = await getHandle();
+  if (!handle) return { state: 'no-handle' };
+  let perm = 'denied';
+  try { perm = await handle.requestPermission({ mode: 'readwrite' }); } catch {}
+  if (perm !== 'granted') return { state: 'denied' };
+  try {
+    const r = await _writeAutoBackup(handle);
+    return r.ok ? { state: 'written', txns: r.txns } : { state: 'refused', reason: r.reason };
+  } catch (e) { return { state: 'error', reason: e && e.message }; }
 }
 
 // ── restore points (automatic local snapshots) ──────────────────────────────
@@ -8708,12 +8890,52 @@ function attachGoals() {
   });
 }
 
+// The auto-backup card. Deliberately at the top of Import / Export: it's the thing
+// that would have prevented the data loss, and it's set up once and then forgotten.
+function autoBackupCardHtml() {
+  const s = loadSettings();
+  if (!autoBackupSupported()) {
+    return `<div class="form-card">
+      <h2 class="section-title" style="margin-bottom:6px">${ICONS.download} Daily auto-backup</h2>
+      <p class="code-hint">This browser can't write to a file on its own, so auto-backup isn't
+        available here. It works in Edge and Chrome on a computer. On this device, use
+        <strong>Download Budget DAWGs Backup (JSON)</strong> below now and then.</p>
+    </div>`;
+  }
+  const on   = !!s.autoBackup;
+  const when = s.lastAutoBackup === today() ? 'today'
+             : s.lastAutoBackup ? s.lastAutoBackup : 'not yet';
+  return `<div class="form-card" id="autobackup-card">
+    <h2 class="section-title" style="margin-bottom:6px">${ICONS.download} Daily auto-backup</h2>
+    ${on ? `
+      <p class="code-hint" style="margin-bottom:4px">Saving to
+        <strong>${_escHtml(s.autoBackupName || 'your chosen file')}</strong>, once a day when you
+        open the app. The same file is replaced each time, so it never piles up.</p>
+      <p class="code-hint" style="margin-bottom:12px">Last saved: <strong>${_escHtml(when)}</strong></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="autobk-now" class="btn-xs btn-accent">Save now</button>
+        <button id="autobk-change" class="btn-xs">Change file…</button>
+        <button id="autobk-off" class="btn-xs btn-danger">Turn off</button>
+      </div>
+    ` : `
+      <p class="code-hint" style="margin-bottom:12px">Keeps a copy of everything in a file on this
+        computer, updated once a day. Pick the file once — after that it's replaced in place, so
+        you get one backup rather than a folder full of them. Restore points inside the app live
+        in browser storage and are lost if you clear it; this is not.</p>
+      <button id="autobk-setup" class="btn-primary">${ICONS.download} Choose backup file…</button>
+    `}
+    <p class="code-hint" id="autobk-status" style="margin-top:10px;margin-bottom:0"></p>
+  </div>`;
+}
+
 // ── import ─────────────────────────────────────────────────────────────────
 function renderImport() {
   return `
     <div class="page">
       <h1 class="page-title">Import / Export</h1>
       <p class="page-sub">Excel &amp; spreadsheet friendly</p>
+
+      ${autoBackupCardHtml()}
 
       <div class="form-card" id="backup-section">
         <h2 class="section-title" style="margin-bottom:6px">${ICONS.download} Export to Excel / CSV</h2>
@@ -12147,6 +12369,46 @@ function attachWeekly() {
 }
 
 function attachImport() {
+  // ── daily auto-backup ─────────────────────────────────────────────────────
+  const abStatus = (msg, kind) => {
+    const el = document.getElementById('autobk-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = kind === 'ok' ? 'var(--success)'
+                   : kind === 'bad' ? 'var(--danger)' : 'var(--muted)';
+  };
+  // The picker and requestPermission both need to run inside the click, so these
+  // handlers must not await anything before calling them.
+  const abPick = async () => {
+    try {
+      const r = await chooseAutoBackupFile();
+      if (r.ok) { abStatus(`✓ Saved ${r.txns} transaction${r.txns === 1 ? '' : 's'}.`, 'ok'); render(); }
+      else abStatus(r.reason, 'bad');
+    } catch (e) {
+      // AbortError just means they closed the picker — not worth a scary message.
+      if (e && e.name === 'AbortError') abStatus('Cancelled — nothing changed.');
+      else abStatus('Could not set that up: ' + (e && e.message), 'bad');
+    }
+  };
+  document.getElementById('autobk-setup')?.addEventListener('click', abPick);
+  document.getElementById('autobk-change')?.addEventListener('click', abPick);
+  document.getElementById('autobk-now')?.addEventListener('click', async () => {
+    abStatus('Saving…');
+    const r = await resumeAutoBackup();          // also (re-)grants permission if needed
+    if (r.state === 'written') { abStatus(`✓ Saved ${r.txns} transaction${r.txns === 1 ? '' : 's'}.`, 'ok'); render(); }
+    else if (r.state === 'refused') abStatus(r.reason, 'bad');
+    else if (r.state === 'denied')  abStatus('Permission denied, so nothing was written.', 'bad');
+    else if (r.state === 'no-handle') abStatus('The file link was lost — choose the file again.', 'bad');
+    else abStatus('Could not save: ' + (r.reason || r.state), 'bad');
+  });
+  document.getElementById('autobk-off')?.addEventListener('click', async () => {
+    if (!await confirmAsync({ title: 'Turn off auto-backup?',
+      message: 'The file already on disk is kept — it just stops being updated.',
+      confirmText: 'Turn off', danger: true })) return;
+    await disableAutoBackup();
+    render();
+  });
+
   // ── import mode toggle (append / overwrite) ───────────────────────────────
   let importMode = 'append';
   const hintEl = document.getElementById('import-mode-hint');
@@ -13212,6 +13474,7 @@ window.addEventListener('popstate', () => {
       updateNotesBadge();
       checkNotesAlert();
       maybeShowWhatsNew();
+      _runAutoBackupCheck();
       _checkPaychecks();
       _checkContributions();
       checkForUpdate();
