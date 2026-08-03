@@ -25,6 +25,10 @@ __pycache__/
 # serve it, but is not tracked by this repo.
 /snow_removal/
 
+# Home inventory PWA — its own git repo, pushed to
+# github.com/CGrant10/grant_inventory. Same arrangement as snow_removal.
+/grant_inventory/
+
 # Unused icon exports. manifest.json uses icon-192.png, icon-512.png, and the
 # maskable pair; these per-platform variants are not referenced.
 docs/icon-android-*.png
