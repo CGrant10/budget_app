@@ -48,6 +48,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8793", "--directory", "grant_inventory"],
       "port": 8793
+    },
+    {
+      "name": "dfl-hq",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8794", "--directory", "dfl_hq"],
+      "port": 8794
     }
   ]
 }

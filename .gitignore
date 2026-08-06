@@ -29,6 +29,10 @@ __pycache__/
 # github.com/CGrant10/grant_inventory. Same arrangement as snow_removal.
 /grant_inventory/
 
+# DFL HQ fantasy football league PWA — gets its own git repo, deployed to
+# GitHub Pages from that repo's root. Same arrangement as grant_inventory.
+/dfl_hq/
+
 # Unused icon exports. manifest.json uses icon-192.png, icon-512.png, and the
 # maskable pair; these per-platform variants are not referenced.
 docs/icon-android-*.png
