@@ -1,11 +1,36 @@
 'use strict';
 
-const VERSION = '5.58.0';
+const VERSION = '5.58.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
   const s = loadSettings();
   return [...DEFAULT_CATEGORIES, ...(s.customCategories || [])];
+}
+
+// The same categories, ordered so the ones you actually use drift to the front.
+// Each past transaction contributes a recency-decayed vote (half-life 60 days), so
+// the order tracks current habits instead of freezing on whatever you logged a year
+// ago — and it moves gradually, never jumping around after a single entry. Ties
+// (including every category with no history) keep the declared order, so a fresh
+// install looks exactly like it does today.
+function getCategoriesByUsage() {
+  const cats = getCategories();
+  const dayNum = s => {
+    const [y, m, d] = String(s).split('-').map(Number);
+    return Math.floor(Date.UTC(y, m - 1, d) / 86400000);
+  };
+  const todayNum = dayNum(today());
+  const score = {};
+  for (const t of (state.transactions || [])) {
+    if (!t.category || t._xfer || t.type === 'transfer') continue;
+    const age = t.date ? Math.max(0, todayNum - dayNum(t.date)) : 0;
+    score[t.category] = (score[t.category] || 0) + Math.pow(0.5, age / 60);
+  }
+  return cats
+    .map((c, i) => ({ c, i, s: score[c] || 0 }))
+    .sort((a, b) => (b.s - a.s) || (a.i - b.i))
+    .map(x => x.c);
 }
 
 // ── auto-categorization ──────────────────────────────────────────────────────
@@ -11472,7 +11497,7 @@ function _moveTbtnPill() {
 // ── Fast-add bottom sheet ──────────────────────────────────────────────────
 function _showFastAdd() {
   if (document.getElementById('fast-add-sheet')) return;
-  const cats     = getCategories();
+  const cats     = getCategoriesByUsage();
   const todayStr = today();
   const accounts = state.accounts || [];
   const multiAcct = accounts.length > 1;
@@ -11533,8 +11558,9 @@ function _showFastAdd() {
   document.body.appendChild(overlay);
   setTimeout(() => overlay.querySelector('#fas-amount')?.focus(), 80);
 
-  let selType  = 'expense';
-  let selCat   = cats[0];
+  let selType    = 'expense';
+  let selCat     = cats[0];
+  let catTouched = false;   // true once you pick a category yourself
   let fromAcct = currentAccountId;
   let toAcct   = null;
 
@@ -11562,8 +11588,29 @@ function _showFastAdd() {
       overlay.querySelectorAll('.fas-cat-chip').forEach(c => c.classList.remove('fas-cat-active'));
       chip.classList.add('fas-cat-active');
       selCat = chip.dataset.cat;
+      catTouched = true;   // a manual pick wins; stop auto-categorizing
     });
   });
+
+  // Auto-suggest a category from the description, same as the Add Entry page:
+  // your own history first, then the built-in merchant hints. Expense only, and
+  // never once you've picked a category yourself.
+  const pickCat = (cat) => {
+    const chip = [...overlay.querySelectorAll('.fas-cat-chip')].find(c => c.dataset.cat === cat);
+    if (!chip) return;
+    overlay.querySelectorAll('.fas-cat-chip').forEach(c => c.classList.remove('fas-cat-active'));
+    chip.classList.add('fas-cat-active');
+    selCat = cat;
+    try { chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }); } catch (e) {}
+  };
+  const autoCat = () => {
+    if (catTouched || selType !== 'expense') return;
+    const guess = _guessCategory(overlay.querySelector('#fas-desc')?.value.trim(), 'expense');
+    if (guess && guess !== 'Other') pickCat(guess);
+  };
+  const _fasDesc = overlay.querySelector('#fas-desc');
+  _fasDesc?.addEventListener('input', _debounce(autoCat, 350));
+  _fasDesc?.addEventListener('blur', autoCat);
 
   // Account pickers (from / to)
   const wireAccts = (containerId, onPick) => {
@@ -11588,7 +11635,8 @@ function _showFastAdd() {
       if (amtEl) amtEl.value = t.amount;
       const descEl = overlay.querySelector('#fas-desc');
       if (descEl) descEl.value = t.description || '';
-      selCat = t.category;
+      selCat     = t.category;
+      catTouched = true;   // the habit carries its own category — don't second-guess it
       overlay.querySelectorAll('.fas-cat-chip').forEach(c =>
         c.classList.toggle('fas-cat-active', c.dataset.cat === t.category));
       // If the habit's category isn't one of the rendered chips (e.g. a custom /
@@ -11604,6 +11652,7 @@ function _showFastAdd() {
             overlay.querySelectorAll('.fas-cat-chip').forEach(c => c.classList.remove('fas-cat-active'));
             nc.classList.add('fas-cat-active');
             selCat = nc.dataset.cat;
+            catTouched = true;
           });
           catBox.prepend(nc);
         }

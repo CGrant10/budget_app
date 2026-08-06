@@ -1,5 +1,13 @@
 [
  {
+  "version": "5.58.1",
+  "date": "2026-08-06",
+  "changes": [
+   "Track a Transaction now guesses the category from what you type, the same way the Add Entry page does — your own history first, then the built-in merchant list. Type \"Starbucks\" and it lands on Food before you reach for a chip. Tap a category yourself and it stops guessing for that entry.",
+   "The category chips now sit in order of how much you use them, so your usual few drift to the front and are the first thing under your thumb. Recent entries count for more than old ones, so the order follows your current habits and moves gradually rather than reshuffling after a single transaction."
+  ]
+ },
+ {
   "version": "5.58.0",
   "date": "2026-07-31",
   "changes": [
