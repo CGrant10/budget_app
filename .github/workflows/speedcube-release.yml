@@ -2,11 +2,14 @@ name: Speedcube release patch
 on:
   push:
     branches: ["agent/speedcube-5.59.0"]
+  pull_request:
+    branches: ["main"]
+    types: [opened, synchronize, reopened]
 permissions:
   contents: write
 jobs:
   patch:
-    if: "!contains(github.event.head_commit.message, '[speedcube-release-done]')"
+    if: "github.event_name == 'pull_request' || !contains(github.event.head_commit.message, '[speedcube-release-done]')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
