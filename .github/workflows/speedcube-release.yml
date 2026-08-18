@@ -1,0 +1,57 @@
+name: Speedcube release patch
+on:
+  push:
+    branches: ["main"]
+permissions:
+  contents: write
+jobs:
+  patch-speedcube-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/speedcube-5.59.0
+          fetch-depth: 0
+      - name: Finish release files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+          docs = Path('docs')
+          app = (docs/'app.js').read_text(encoding='utf-8')
+          app2, n = re.subn(r"const VERSION = '5\.58\.1';", "const VERSION = '5.59.0';", app, count=1)
+          assert n == 1, 'VERSION replacement failed'
+          (docs/'app.js').write_text(app2, encoding='utf-8')
+
+          idxp = docs/'index.html'
+          idx = idxp.read_text(encoding='utf-8')
+          if 'href="./cube.html"' not in idx:
+              marker = '<button class="dawg-drawer-item" data-tab="import">'
+              pos = idx.find(marker)
+              assert pos >= 0, 'Import drawer marker not found'
+              item = '<a class="dawg-drawer-item" href="./cube.html" style="text-decoration:none;color:inherit"><span class="dawg-di-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9.33h16M4 14.67h16M9.33 4v16M14.67 4v16"/></svg></span><span class="dawg-di-lbl">Speedcube</span></a>\n        '
+              idx = idx[:pos] + item + idx[pos:]
+              idxp.write_text(idx, encoding='utf-8')
+
+          cp = docs/'changelog.json'
+          data = json.loads(cp.read_text(encoding='utf-8'))
+          data = [x for x in data if x.get('version') != '5.59.0']
+          data.insert(0, {
+            'version':'5.59.0',
+            'date':'2026-08-18',
+            'changes':[
+              'Added Speedcube — a dedicated 3×3 cube screen built just for watching satisfying solves.',
+              'Scrambles use legal face turns and Solve reverses the exact sequence with animated moves.',
+              'Added drag-to-orbit controls plus Chill, Normal, and Speedcuber move speeds.',
+              'Added Speedcube to the DAWG menu and offline app cache.'
+            ]
+          })
+          cp.write_text(json.dumps(data, indent=2, ensure_ascii=False)+'\n', encoding='utf-8')
+          PY
+          rm -f .github/workflows/speedcube-release.yml
+          git config user.name "Budget DAWGs Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/app.js docs/index.html docs/changelog.json
+          git add -u .github/workflows || true
+          git commit -m "Finish Speedcube 5.59.0 release"
+          git push origin HEAD:agent/speedcube-5.59.0
