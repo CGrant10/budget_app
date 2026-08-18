@@ -1,5 +1,15 @@
 [
  {
+  "version": "5.59.0",
+  "date": "2026-08-18",
+  "changes": [
+   "Added Speedcube — a dedicated 3×3 cube screen built just for watching satisfying solves.",
+   "Scrambles use legal face turns and Solve reverses the exact sequence with animated moves.",
+   "Added drag-to-orbit controls plus Chill, Normal, and Speedcuber move speeds.",
+   "Added Speedcube to the DAWG menu and offline app cache."
+  ]
+ },
+ {
   "version": "5.58.1",
   "date": "2026-08-06",
   "changes": [
