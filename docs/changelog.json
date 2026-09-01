@@ -1,5 +1,14 @@
 [
  {
+  "version": "5.60.0",
+  "date": "2026-09-01",
+  "changes": [
+   "Added Android-ready Quick Transaction launch links: open the app with ?quick=expense or ?quick=income to land directly in the fast-add sheet.",
+   "Installed Android PWAs now expose Add expense and Add income as app-icon shortcuts.",
+   "Quick-launch links skip the account overview while still keeping the account picker inside the transaction sheet."
+  ]
+ },
+ {
   "version": "5.59.0",
   "date": "2026-08-18",
   "changes": [

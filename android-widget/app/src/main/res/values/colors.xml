@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_background">#111112</color>
+    <color name="widget_border">#34343A</color>
+    <color name="widget_text">#F6F6F8</color>
+    <color name="expense_button">#C83E4D</color>
+    <color name="income_button">#39FF14</color>
+    <color name="income_button_text">#071006</color>
+</resources>

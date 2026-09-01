@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Budget DAWGs</string>
+    <string name="widget_title">Quick Transaction</string>
+    <string name="widget_description">Record an expense or income from your home screen</string>
+    <string name="add_expense">− Expense</string>
+    <string name="add_income">+ Income</string>
+    <string name="pwa_url">https://cgrant10.github.io/budget_app/</string>
+</resources>
