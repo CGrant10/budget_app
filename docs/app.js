@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.59.0';
+const VERSION = '5.60.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
 
 function getCategories() {
@@ -11495,7 +11495,7 @@ function _moveTbtnPill() {
 }
 
 // ── Fast-add bottom sheet ──────────────────────────────────────────────────
-function _showFastAdd() {
+function _showFastAdd(initialType = 'expense') {
   if (document.getElementById('fast-add-sheet')) return;
   const cats     = getCategoriesByUsage();
   const todayStr = today();
@@ -11582,6 +11582,7 @@ function _showFastAdd() {
 
   overlay.querySelectorAll('.fas-type-btn').forEach(btn =>
     btn.addEventListener('click', () => applyType(btn.dataset.type)));
+  applyType(initialType === 'income' ? 'income' : 'expense');
 
   overlay.querySelectorAll('.fas-cat-chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -13495,10 +13496,21 @@ window.addEventListener('popstate', () => {
     document.getElementById('account-switcher')?.addEventListener('change', async e => {
       await api.switchAccount(e.target.value, true);
     });
-    if (state.accounts.length > 1) showingAccountPicker = true;
+    // Android/PWA shortcuts and the future home-screen widget launch the existing
+    // fast-add sheet through one of these URLs. Keep the transaction UI in one
+    // place so validation, categories, accounts, and local data behave exactly as
+    // they do when Quick Add is opened inside the app.
+    const _quickLaunch = new URLSearchParams(location.search).get('quick');
+    const _quickLaunchType = _quickLaunch === 'income' ? 'income'
+      : _quickLaunch === 'expense' ? 'expense'
+      : null;
+    if (state.accounts.length > 1 && !_quickLaunchType) showingAccountPicker = true;
     // Seed base history entry — back button will hit popstate with an empty stack and exit cleanly
-    history.replaceState({ dawgBase: true }, '');
+    const _baseUrl = new URL(location.href);
+    _baseUrl.searchParams.delete('quick');
+    history.replaceState({ dawgBase: true }, '', _baseUrl);
     render();
+    if (_quickLaunchType) requestAnimationFrame(() => _showFastAdd(_quickLaunchType));
     if (window.__boot) window.__boot.firstRender = performance.now();
     // Reveal the app now that the first frame is painted — eliminates the raw-HTML flash.
     // Belt AND braces: this was rAF-only, which leaves the app at opacity 0 forever if
