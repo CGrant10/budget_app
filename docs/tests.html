@@ -88,6 +88,17 @@
       ok(!isExcludedFromSpend({ amount: 10 }), 'normal');
     });
 
+    test('gambling totals separate wins, losses, and net', () => {
+      const txns = [
+        { date: '2026-06-01', type: 'expense', category: 'Gambling', amount: 40 },
+        { date: '2026-06-02', type: 'income',  category: 'Gambling', amount: 65 },
+        { date: '2026-05-30', type: 'expense', category: 'Gambling', amount: 10 },
+        { date: '2026-06-03', type: 'income',  category: 'Income',   amount: 500 },
+      ];
+      eq(calculateGamblingTotals(txns, '2026-06'), { wins: 65, losses: 40, net: 25 }, 'month');
+      eq(calculateGamblingTotals(txns), { wins: 65, losses: 50, net: 15 }, 'all time');
+    });
+
     // ── bill multi-month model + migration ──────────────────────────────────────
     test('bill paid model migrates legacy single paidMonth', () => {
       const b = { paidMonth: '2026-05', loggedTxnId: 't1' };

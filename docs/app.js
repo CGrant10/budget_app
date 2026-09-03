@@ -1,7 +1,7 @@
 'use strict';
 
-const VERSION = '5.59.0';
-const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Other'];
+const VERSION = '5.60.0';
+const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
   const s = loadSettings();
@@ -47,6 +47,7 @@ const _CAT_KEYWORDS = [
   ['Home',          ['rent','mortgage','lowes','home depot','ikea','furniture','electric','water bill','utility','utilities','internet','comcast','xfinity','spectrum','at&t','verizon','t-mobile','insurance']],
   ['Entertainment', ['netflix','spotify','hulu','disney','movie','cinema','theater','theatre','steam','xbox','playstation','hbo','prime video','concert','ticketmaster','twitch']],
   ['Health',        ['pharmacy','cvs','walgreens','doctor','dental','dentist','clinic','hospital','gym','fitness','medical','rite aid']],
+  ['Gambling',      ['sportsbook','casino','betting',' wager',' bet ','poker','blackjack','roulette','slots','jackpot','lottery','draftkings','fanduel','betmgm','caesars']],
   ['Tools',         ['hardware','harbor freight','ace hardware',' tool']],
 ];
 function _normDesc(s) {
@@ -377,6 +378,7 @@ let CAT_COLORS = {
   Home:          '#8dcb4e',
   Entertainment: '#f76ab5',
   Health:        '#4eaecb',
+  Gambling:      '#f0b44d',
   Other:         '#9896a4',
 };
 
@@ -1511,6 +1513,11 @@ function renderDashboardSkinned(sk) {
     </div>
 
     ${_skBills(sk)}
+
+    <div class="sk-card gambling-card">
+      <div class="sk-shead"><span class="sk-eyebrow">Gambling · ${_escHtml(sk.dashMonthLabel)}</span></div>
+      ${_gamblingTrackerBody(sk.gamblingMonth, sk.gamblingAll)}
+    </div>
 
     ${sk.perWeek > 0 ? `<div class="sk-card">
       <div class="sk-mtop">
@@ -2697,6 +2704,42 @@ function monthTotals(monthStr) {
   return result;
 }
 
+// Gambling entries use the normal transaction ledger: payouts are income and
+// wagers/losses are expenses. Keeping the calculation pure makes the dashboard
+// summary easy to verify and lets imported transactions participate too.
+function calculateGamblingTotals(transactions, monthStr = '') {
+  let wins = 0, losses = 0;
+  for (const t of (transactions || [])) {
+    if (String(t.category || '').toLowerCase() !== 'gambling') continue;
+    if (monthStr && (!t.date || !t.date.startsWith(monthStr))) continue;
+    const amount = Number(t.amount);
+    if (!Number.isFinite(amount) || amount <= 0) continue;
+    if (t.type === 'income') wins += amount;
+    else if (t.type === 'expense') losses += amount;
+  }
+  return { wins, losses, net: wins - losses };
+}
+
+function _gamblingTrackerBody(month, all) {
+  const monthNetColor = month.net >= 0 ? 'var(--success)' : 'var(--danger)';
+  const allNetColor   = all.net >= 0 ? 'var(--success)' : 'var(--danger)';
+  const signed = n => n === 0 ? fmt(0) : `${n > 0 ? '+' : '−'}${fmt(Math.abs(n))}`;
+  return `<div class="gambling-stats">
+      <div class="gambling-stat"><span>WINS</span><strong class="money gambling-win">${fmt(month.wins)}</strong></div>
+      <div class="gambling-stat"><span>LOSSES</span><strong class="money gambling-loss">${fmt(month.losses)}</strong></div>
+      <div class="gambling-stat gambling-net"><span>NET</span><strong class="money" style="color:${monthNetColor}">${signed(month.net)}</strong></div>
+    </div>
+    <div class="gambling-foot">
+      <span>ALL-TIME NET</span>
+      <strong class="money" style="color:${allNetColor}">${signed(all.net)}</strong>
+    </div>
+    <div class="gambling-actions">
+      <button type="button" class="gambling-action gambling-action-loss" id="gambling-log-loss">Log loss</button>
+      <button type="button" class="gambling-action gambling-action-win" id="gambling-log-win">Log win</button>
+    </div>
+    <p class="gambling-hint">Log wagers as losses and payouts as wins.</p>`;
+}
+
 // Average actual spending (per day / week / month) over a trailing window of the
 // current account's expense history. Rate-based: weekly and monthly are the daily
 // average scaled, so the three numbers stay internally consistent. Counts the same
@@ -3555,6 +3598,7 @@ let dashMonth = localMonthKey();
 let debtSubTab = 'credit'; // 'credit' | 'loan'
 let _pendingAccountExpand = null; // account id to auto-expand when Accounts tab renders
 let _quickAddType = null;         // pre-select expense/income when navigating from Quick Add tile
+let _quickAddCategory = null;     // optionally pre-select a category from a dashboard action
 let debtCalcMode = 'snowball'; // 'snowball' | 'avalanche'
 let debtMonthlyPay = '';
 let showingAccountPicker = false;
@@ -5309,12 +5353,14 @@ const DASH_TILE_META = {
   'weekly-plan':    { label: 'Weekly Plan Snapshot', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>` },
   'budgets-cats':   { label: 'Category Budgets',     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>` },
   'monthly-stats':  { label: 'Monthly Stats',        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>` },
+  'gambling':       { label: 'Gambling Tracker',     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1" fill="currentColor"/><circle cx="16" cy="8" r="1" fill="currentColor"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>` },
   'quick-add':      { label: 'Quick Add',            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>` },
 };
 const DEFAULT_DASH_LAYOUT = [
   { id: 'budget-week',    size: 'half', visible: true  },
   { id: 'budget-day',     size: 'half', visible: true  },
   { id: 'breakdown',      size: 'full', visible: true  },
+  { id: 'gambling',       size: 'full', visible: true  },
   { id: 'goals',          size: 'full', visible: true  },
   { id: 'transactions',   size: 'full', visible: true  },
   { id: 'networth',       size: 'full', visible: false },
@@ -5328,7 +5374,8 @@ const DEFAULT_DASH_LAYOUT = [
 const DASH_PRESETS = {
   default:  [
     { id:'budget-week',    size:'half', visible:true  }, { id:'budget-day',     size:'half', visible:true  },
-    { id:'breakdown',      size:'full', visible:true  }, { id:'goals',          size:'full', visible:true  },
+    { id:'breakdown',      size:'full', visible:true  }, { id:'gambling',       size:'full', visible:true  },
+    { id:'goals',          size:'full', visible:true  },
     { id:'transactions',   size:'full', visible:true  },
     { id:'networth',       size:'full', visible:false }, { id:'bills-upcoming', size:'full', visible:false },
     { id:'debt-summary',   size:'full', visible:false }, { id:'weekly-plan',    size:'half', visible:false },
@@ -5338,7 +5385,7 @@ const DASH_PRESETS = {
   budget: [
     { id:'budget-week',    size:'full', visible:true  }, { id:'budget-day',     size:'full', visible:true  },
     { id:'breakdown',      size:'full', visible:true  }, { id:'budgets-cats',   size:'full', visible:true  },
-    { id:'weekly-plan',    size:'half', visible:true  },
+    { id:'weekly-plan',    size:'half', visible:true  }, { id:'gambling',       size:'full', visible:true  },
     { id:'monthly-stats',  size:'half', visible:true  }, { id:'transactions',   size:'half', visible:true  },
     { id:'goals',          size:'half', visible:true  }, { id:'bills-upcoming', size:'full', visible:false },
     { id:'networth',       size:'full', visible:false }, { id:'debt-summary',   size:'full', visible:false },
@@ -5347,7 +5394,8 @@ const DASH_PRESETS = {
   compact: [
     { id:'budget-week',    size:'half', visible:true  }, { id:'budget-day',     size:'half', visible:true  },
     { id:'weekly-plan',    size:'half', visible:true  }, { id:'monthly-stats',  size:'half', visible:true  },
-    { id:'quick-add',      size:'half', visible:true  }, { id:'bills-upcoming', size:'half', visible:true  },
+    { id:'quick-add',      size:'half', visible:true  }, { id:'gambling',       size:'full', visible:true  },
+    { id:'bills-upcoming', size:'half', visible:true  },
     { id:'transactions',   size:'full', visible:true  }, { id:'breakdown',      size:'full', visible:false },
     { id:'goals',          size:'full', visible:false },
     { id:'networth',       size:'full', visible:false }, { id:'budgets-cats',   size:'full', visible:false },
@@ -5355,7 +5403,8 @@ const DASH_PRESETS = {
   ],
   spending: [
     { id:'breakdown',      size:'full', visible:true  }, { id:'budgets-cats',   size:'full', visible:true  },
-    { id:'transactions',   size:'full', visible:true  }, { id:'budget-week',    size:'half', visible:true  },
+    { id:'transactions',   size:'full', visible:true  }, { id:'gambling',       size:'full', visible:true  },
+    { id:'budget-week',    size:'half', visible:true  },
     { id:'budget-day',     size:'half', visible:true  }, { id:'monthly-stats',  size:'half', visible:true  },
     { id:'goals',          size:'half', visible:false },
     { id:'networth',       size:'full', visible:false }, { id:'bills-upcoming', size:'full', visible:false },
@@ -5367,6 +5416,7 @@ const DASH_PRESETS = {
 // plus a lean monthly summary, recent transactions, and quick-add. No budgeting tiles.
 const SIMPLE_DASH_LAYOUT = [
   { id: 'monthly-stats',  size: 'full', visible: true  },
+  { id: 'gambling',       size: 'full', visible: true  },
   { id: 'transactions',   size: 'full', visible: true  },
   { id: 'quick-add',      size: 'half', visible: true  },
 ];
@@ -5703,6 +5753,8 @@ function renderDashboardDawg() {
     .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   // Monthly totals reflect the browsed month
   const { income: mInc, expense: mExp, bycat } = monthTotals(dashMonth);
+  const gamblingMonth = calculateGamblingTotals(state.transactions, dashMonth);
+  const gamblingAll   = calculateGamblingTotals(state.transactions);
   const monthDelta = mInc - mExp; // net for the browsed month (works for both debt and checking)
   const deltaColor = _isDebt
     ? (monthDelta > 0 ? 'var(--success)' : 'var(--muted)')
@@ -5809,6 +5861,7 @@ function renderDashboardDawg() {
     'Housing':       _si('<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/><path d="M2 22h20"/><path d="M9 7h1m4 0h1M9 11h1m4 0h1M9 15h1m4 0h1"/>'),
     'Entertainment': _si('<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01"/><path d="M7 12v-2m0 4v-2m2-2h2"/>'),
     'Health':        _si('<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>'),
+    'Gambling':      _si('<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1" fill="currentColor"/><circle cx="16" cy="8" r="1" fill="currentColor"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/>'),
     'Shopping':      _si('<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>'),
     'Income':        _si('<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>'),
     'Other':         _si('<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>'),
@@ -5888,6 +5941,7 @@ function renderDashboardDawg() {
       // The skinned donut has no such link, so a cap there just loses data.
       cats: allCatEntries.filter(([cat]) => !isCatHidden(cat)), catTotal: totalMExp,
       txns: recentTxns, todayStr, yesterdayStr,
+      gamblingMonth, gamblingAll,
     };
     return renderDashboardSkinned(_sk);
   }
@@ -6189,6 +6243,11 @@ function renderDashboardDawg() {
             ${_bcRows}`;
         }
       }
+
+      // Gambling tracker
+      _tileHtml['gambling'] = `
+        <div class="dawg-card-title">GAMBLING · ${_escHtml(dashMonthLabel)}</div>
+        ${_gamblingTrackerBody(gamblingMonth, gamblingAll)}`;
 
       // Monthly Stats
       {
@@ -11280,6 +11339,12 @@ function attachDashboardDawg() {
   // Quick Add tile buttons — pre-select expense or income type
   document.getElementById('dawg-qa-expense')?.addEventListener('click', () => { _quickAddType = 'expense'; showTab('add'); });
   document.getElementById('dawg-qa-income')?.addEventListener('click',  () => { _quickAddType = 'income';  showTab('add'); });
+  document.getElementById('gambling-log-loss')?.addEventListener('click', () => {
+    _quickAddType = 'expense'; _quickAddCategory = 'Gambling'; showTab('add');
+  });
+  document.getElementById('gambling-log-win')?.addEventListener('click', () => {
+    _quickAddType = 'income'; _quickAddCategory = 'Gambling'; showTab('add');
+  });
 
   // Month navigator
   document.getElementById('dash-month-prev')?.addEventListener('click', () => {
@@ -11787,6 +11852,14 @@ function attachAdd() {
     const radio = document.querySelector(`input[name="etype"][value="${_quickAddType}"]`);
     if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change', { bubbles: true })); }
     _quickAddType = null;
+  }
+  if (_quickAddCategory) {
+    const cat = document.getElementById('add-cat');
+    if (cat && [...cat.options].some(o => o.value === _quickAddCategory)) {
+      cat.value = _quickAddCategory;
+      cat._userTouched = true;
+    }
+    _quickAddCategory = null;
   }
 
   // ── "Frequent" template chips — tap to pre-fill (expenses only) ───────────

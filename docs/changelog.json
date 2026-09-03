@@ -1,5 +1,14 @@
 [
  {
+  "version": "5.60.0",
+  "date": "2026-09-03",
+  "changes": [
+   "Added a Gambling tracker to the dashboard with monthly wins, losses, net results, and an all-time net total.",
+   "Added one-tap Log win and Log loss actions that preselect the Gambling category on a new transaction.",
+   "Added Gambling as a built-in category with automatic suggestions for common sportsbooks, casinos, and betting descriptions."
+  ]
+ },
+ {
   "version": "5.59.0",
   "date": "2026-08-18",
   "changes": [
