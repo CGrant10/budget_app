@@ -99,6 +99,31 @@
       eq(calculateGamblingTotals(txns), { wins: 65, losses: 50, net: 15 }, 'all time');
     });
 
+    test('gambling overall combines every account', () => {
+      const saved = { accounts: state.accounts, current: currentAccountId, txns: state.transactions };
+      const otherId = 'gambling-test-other';
+      const otherKey = accountDataKey(otherId);
+      const oldOther = localStorage.getItem(otherKey);
+      try {
+        state.accounts = [{ id: 'main' }, { id: otherId }];
+        currentAccountId = 'main';
+        state.transactions = [
+          { date: '2026-06-01', type: 'expense', category: 'Gambling', amount: 300 },
+        ];
+        localStorage.setItem(otherKey, JSON.stringify({ transactions: [
+          { date: '2026-06-02', type: 'income', category: 'Gambling', amount: 1000 },
+        ] }));
+        eq(calculateGamblingTotals(gamblingTransactionsAcrossAccounts()),
+           { wins: 1000, losses: 300, net: 700 }, 'cross-account overall');
+      } finally {
+        state.accounts = saved.accounts;
+        currentAccountId = saved.current;
+        state.transactions = saved.txns;
+        if (oldOther === null) localStorage.removeItem(otherKey);
+        else localStorage.setItem(otherKey, oldOther);
+      }
+    });
+
     // ── bill multi-month model + migration ──────────────────────────────────────
     test('bill paid model migrates legacy single paidMonth', () => {
       const b = { paidMonth: '2026-05', loggedTxnId: 't1' };

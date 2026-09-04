@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.60.0';
+const VERSION = '5.60.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -2720,24 +2720,45 @@ function calculateGamblingTotals(transactions, monthStr = '') {
   return { wins, losses, net: wins - losses };
 }
 
+// The dashboard belongs to one account, but a gambling result does not. A
+// payout may land in checking while the wager came from cash or a different
+// bank account. Reading only state.transactions made "all-time" mean "this
+// account", which could show a loss even when the person was up overall.
+function gamblingTransactionsAcrossAccounts() {
+  const accounts = Array.isArray(state.accounts) && state.accounts.length
+    ? state.accounts : [{ id: currentAccountId }];
+  const combined = [];
+  for (const account of accounts) {
+    if (String(account.id) === String(currentAccountId)) {
+      combined.push(...(state.transactions || []));
+      continue;
+    }
+    try {
+      const saved = JSON.parse(localStorage.getItem(accountDataKey(account.id)) || '{}');
+      combined.push(...(saved.transactions || []));
+    } catch { /* A damaged account should not hide results from healthy ones. */ }
+  }
+  return combined;
+}
+
 function _gamblingTrackerBody(month, all) {
   const monthNetColor = month.net >= 0 ? 'var(--success)' : 'var(--danger)';
   const allNetColor   = all.net >= 0 ? 'var(--success)' : 'var(--danger)';
   const signed = n => n === 0 ? fmt(0) : `${n > 0 ? '+' : '−'}${fmt(Math.abs(n))}`;
   return `<div class="gambling-stats">
-      <div class="gambling-stat"><span>WINS</span><strong class="money gambling-win">${fmt(month.wins)}</strong></div>
-      <div class="gambling-stat"><span>LOSSES</span><strong class="money gambling-loss">${fmt(month.losses)}</strong></div>
-      <div class="gambling-stat gambling-net"><span>NET</span><strong class="money" style="color:${monthNetColor}">${signed(month.net)}</strong></div>
+      <div class="gambling-stat"><span>MONTH WINS</span><strong class="money gambling-win">${fmt(month.wins)}</strong></div>
+      <div class="gambling-stat"><span>MONTH LOSSES</span><strong class="money gambling-loss">${fmt(month.losses)}</strong></div>
+      <div class="gambling-stat gambling-net"><span>MONTH NET</span><strong class="money" style="color:${monthNetColor}">${signed(month.net)}</strong></div>
     </div>
     <div class="gambling-foot">
-      <span>ALL-TIME NET</span>
+      <span>OVERALL NET · ALL ACCOUNTS</span>
       <strong class="money" style="color:${allNetColor}">${signed(all.net)}</strong>
     </div>
     <div class="gambling-actions">
       <button type="button" class="gambling-action gambling-action-loss" id="gambling-log-loss">Log loss</button>
       <button type="button" class="gambling-action gambling-action-win" id="gambling-log-win">Log win</button>
     </div>
-    <p class="gambling-hint">Log wagers as losses and payouts as wins.</p>`;
+    <p class="gambling-hint">All accounts included · log wagers as losses and total payouts as wins.</p>`;
 }
 
 // Average actual spending (per day / week / month) over a trailing window of the
@@ -5753,8 +5774,9 @@ function renderDashboardDawg() {
     .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   // Monthly totals reflect the browsed month
   const { income: mInc, expense: mExp, bycat } = monthTotals(dashMonth);
-  const gamblingMonth = calculateGamblingTotals(state.transactions, dashMonth);
-  const gamblingAll   = calculateGamblingTotals(state.transactions);
+  const gamblingTransactions = gamblingTransactionsAcrossAccounts();
+  const gamblingMonth = calculateGamblingTotals(gamblingTransactions, dashMonth);
+  const gamblingAll   = calculateGamblingTotals(gamblingTransactions);
   const monthDelta = mInc - mExp; // net for the browsed month (works for both debt and checking)
   const deltaColor = _isDebt
     ? (monthDelta > 0 ? 'var(--success)' : 'var(--muted)')
