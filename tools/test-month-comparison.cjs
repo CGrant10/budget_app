@@ -9,6 +9,7 @@ const functions = ['calculateMonthComparison', 'renderMonthComparison', 'shiftMo
 }).join('\n');
 const context = vm.createContext({ state: { transactions: [] }, dashMonth: '2026-09', today: () => '2026-09-07', fmt: n => '$' + n.toFixed(2) });
 vm.runInContext(functions, context);
+vm.runInContext(source.match(/function isBillTxn\(t\) \{[^\n]+/)[0], context);
 const calc = context.calculateMonthComparison;
 const txn = (date, amount, type = 'expense', extra = {}) => ({ date, amount, type, ...extra });
 let result = calc([
@@ -39,3 +40,14 @@ assert.match(context.renderMonthComparison(), /\$50.00 less spent/);
 
 assert.match(context.renderMonthComparison(), /class="dawg-section-card month-comparison"/);
 assert.match(context.renderMonthComparison(true), /class="sk-card month-comparison"/);
+const withoutBills = calc([
+  txn('2026-09-01', 1200, 'expense', { _billTxnId: 'rent-sep' }),
+  txn('2026-08-01', 1100, 'expense', { _billTxnId: 'rent-aug' }),
+  txn('2026-09-03', 50), txn('2026-08-03', 250)
+], '2026-09', '2026-09-07');
+assert.equal(withoutBills.current.expense, 50);
+assert.equal(withoutBills.prior.expense, 250);
+const billsOnly = calc([txn('2026-09-01', 1000, 'expense', { _billTxnId: 'rent' })], '2026-09', '2026-09-07');
+assert.equal(billsOnly.current.expense, 0);
+assert.equal(billsOnly.current.count, 1);
+assert.match(context.renderMonthComparison(), /Bills excluded/);
