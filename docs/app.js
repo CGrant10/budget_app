@@ -1512,6 +1512,8 @@ function renderDashboardSkinned(sk) {
       <button class="dawg-mnav-btn dawg-mnav-next${!sk.isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
     </div>
 
+    ${renderMonthComparison()}
+
     ${_skBills(sk)}
 
     <div class="sk-card gambling-card">
@@ -2684,6 +2686,46 @@ function totals() {
   const result = { income, expense, bycat };
   _totalsCache = { ver: _calcVer, result };
   return result;
+}
+
+
+// Current months compare matching calendar days; completed months compare in full.
+// Transfers move money between accounts and are not income or spending.
+function calculateMonthComparison(transactions, month, asOf = today()) {
+  const previous = shiftMonthKey(month, -1);
+  const [year, number] = previous.split('-').map(Number);
+  const currentMonth = asOf.slice(0, 7) === month;
+  const day = currentMonth ? Number(asOf.slice(8, 10)) : 31;
+  const end = month + '-' + String(day).padStart(2, '0');
+  const previousEnd = previous + '-' + String(Math.min(day, new Date(year, number, 0).getDate())).padStart(2, '0');
+  const total = (key, cutoff) => {
+    const result = { income: 0, expense: 0, net: 0, count: 0 };
+    for (const t of transactions || []) {
+      if (!t.date || !t.date.startsWith(key + '-') || t.date > cutoff || t._xfer || !['income', 'expense'].includes(t.type)) continue;
+      const amount = Number(t.amount);
+      if (!Number.isFinite(amount)) continue;
+      result[t.type] += amount;
+      result.count++;
+    }
+    result.net = result.income - result.expense;
+    return result;
+  };
+  return { month, previous, end, previousEnd, currentMonth, current: total(month, end), prior: total(previous, previousEnd) };
+}
+
+function renderMonthComparison() {
+  const c = calculateMonthComparison(state.transactions, dashMonth);
+  const period = c.currentMonth
+    ? c.month + '-01 – ' + c.end + ' vs ' + c.previous + '-01 – ' + c.previousEnd
+    : monthKeyLabel(c.month) + ' vs ' + monthKeyLabel(c.previous);
+  const rows = [['expense', 'Spent', -1], ['income', 'Income', 1], ['net', 'Net income', 1]].map(([key, label, direction]) => {
+    const delta = Math.round((c.current[key] - c.prior[key]) * 100) / 100;
+    const change = delta === 0 ? 'No change' : fmt(Math.abs(delta)) + (delta > 0 ? ' more' : ' less');
+    const percent = c.prior[key] > 0 && key !== 'net' ? ' (' + (Math.abs(delta) / c.prior[key] * 100).toFixed(1) + '%)' : '';
+    const tone = delta === 0 ? '' : delta * direction > 0 ? ' comparison-better' : ' comparison-worse';
+    return '<div class="comparison-row"><strong>' + label + '</strong><span class="comparison-value">' + fmt(c.current[key]) + '</span><span class="comparison-value comparison-prior">' + fmt(c.prior[key]) + '</span><span class="comparison-value comparison-change' + tone + '">' + (c.current.count && c.prior.count ? change + percent : '—') + '</span></div>';
+  }).join('');
+  return '<section class="dawg-card sk-card month-comparison" aria-label="Month comparison"><h2>Compared with last month</h2><p class="comparison-period">' + period + '</p><div class="comparison-head"><span></span><span>Selected month</span><span>Previous month</span><span>Change</span></div>' + rows + '<p class="comparison-note">' + (!c.prior.count ? 'No transactions recorded in the previous period. Add or import them to compare.' : !c.current.count ? 'No transactions recorded in the selected period yet.' : 'Net income is income minus spending. Transfers are excluded.') + '</p></section>';
 }
 
 function monthTotals(monthStr) {
@@ -6005,6 +6047,8 @@ function renderDashboardDawg() {
       <span class="dawg-mnav-label">${dashMonthLabel}${isPastDash ? '' : ' · Now'}</span>
       <button class="dawg-mnav-btn dawg-mnav-next${!isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
     </div>
+
+    ${!_isDebt ? renderMonthComparison() : ''}
 
     ${(() => {
       // Build tile HTML map — only tiles that have content get included
