@@ -25,14 +25,17 @@ assert.equal(calc([], '2026-01', '2026-01-07').previousEnd, '2025-12-07');
 assert.equal(calc([], '2024-03', '2024-03-31').previousEnd, '2024-02-29');
 assert.equal(calc([], '2026-03', '2026-03-31').previousEnd, '2026-02-28');
 assert.equal(calc([txn('2026-08-31', 90)], '2026-08', '2026-09-07').current.expense, 90);
-assert.match(context.renderMonthComparison(), /Add last month’s spending to compare/);
+assert.match(context.renderMonthComparison(), /No comparison yet/);
 context.state.transactions = [txn('2026-08-01', 0), txn('2026-09-01', 10)];
 assert.doesNotMatch(context.renderMonthComparison(), /Infinity|NaN/);
 assert.match(context.renderMonthComparison(), /\$10.00 more/);
 context.state.transactions = [txn('2026-08-01', 100), txn('2026-09-01', 50)];
-assert.match(context.renderMonthComparison(), /comparison-better">You’ve spent \$50.00 less so far this month/);
+assert.match(context.renderMonthComparison(), /comparison-better">\$50.00 less spent/);
 console.log('Month comparison checks passed: date cutoffs, year rollover, leap years, full months, transfers, invalid amounts, empty history, zero baseline, and spending direction.');
 
 assert.doesNotMatch(context.renderMonthComparison(), /Net income|Selected month|>Income</);
 context.state.transactions.push(txn('2026-09-01', 10000, 'income'));
-assert.match(context.renderMonthComparison(), /You’ve spent \$50.00 less/);
+assert.match(context.renderMonthComparison(), /\$50.00 less spent/);
+
+assert.match(context.renderMonthComparison(), /class="dawg-section-card month-comparison"/);
+assert.match(context.renderMonthComparison(true), /class="sk-card month-comparison"/);

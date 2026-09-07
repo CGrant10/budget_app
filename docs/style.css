@@ -8779,26 +8779,11 @@ body.skin-grid .splash-boot-ready { text-transform: uppercase; letter-spacing: .
    accent slab on the title; keep a slim accent tick on section labels. */
 .page-title { font-size: 22px; font-weight: 700; letter-spacing: -.2px; padding-left: 0; border-left: none; }
 
-/* Same-period month comparison, shared by the stock dashboard and all skins. */
-.month-comparison { margin: 16px 0; padding: 20px; }
-.month-comparison h2 { margin: 0 0 8px; font-size: 1rem; color: var(--text); }
-.comparison-period, .comparison-note { font-size: .875rem; color: var(--muted); line-height: 1.5; }
-.comparison-head, .comparison-row { display: grid; grid-template-columns: .8fr 1fr 1fr 1.4fr; gap: 12px; align-items: baseline; }
-.comparison-head { font-size: .875rem; color: var(--muted); padding: 12px 0; }
-.comparison-row { font-size: 1rem; border-top: 1px solid var(--border); padding: 14px 0; }
+/* Spending comparison inherits the dashboard's native card and type styles. */
+.month-comparison .comparison-caption { margin-top: 6px; }
+.month-comparison .comparison-totals { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; margin-top: 12px; }
+.comparison-totals b { color: var(--text); font-weight: 600; margin-left: 4px; }
+.month-comparison .comparison-better { color: var(--success); }
+.month-comparison .comparison-worse { color: var(--danger); }
 .comparison-value { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.comparison-prior { color: var(--muted); }
-.comparison-better { color: var(--accent); }
-.comparison-worse { color: var(--danger); }
-.comparison-note { margin-bottom: 0; }
 body.amounts-hidden .comparison-value { filter: blur(6px); user-select: none; }
-@media (max-width: 520px) {
-  .comparison-head { grid-template-columns: .8fr 1fr 1fr; }
-  .comparison-head span:last-child { display: none; }
-  .comparison-row { grid-template-columns: .8fr 1fr 1fr; }
-  .comparison-change { grid-column: 2 / 4; font-size: .875rem; }
-}
-
-.comparison-headline { font-size: 1.5rem; font-weight: 700; line-height: 1.35; margin: 16px 0 8px; }
-.comparison-spending-totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin: 20px 0; font-size: .875rem; color: var(--muted); }
-.comparison-spending-totals strong { display: block; margin-top: 6px; font-size: 1.125rem; color: var(--text); }

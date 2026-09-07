@@ -1512,7 +1512,7 @@ function renderDashboardSkinned(sk) {
       <button class="dawg-mnav-btn dawg-mnav-next${!sk.isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
     </div>
 
-    ${renderMonthComparison()}
+    ${renderMonthComparison(true)}
 
     ${_skBills(sk)}
 
@@ -2713,23 +2713,18 @@ function calculateMonthComparison(transactions, month, asOf = today()) {
   return { month, previous, end, previousEnd, currentMonth, current: total(month, end), prior: total(previous, previousEnd) };
 }
 
-function renderMonthComparison() {
+function renderMonthComparison(skinned = false) {
   const c = calculateMonthComparison(state.transactions, dashMonth);
   const delta = Math.round((c.current.expense - c.prior.expense) * 100) / 100;
   const comparable = c.current.count > 0 && c.prior.count > 0;
-  const when = c.currentMonth ? 'so far this month' : 'in ' + monthKeyLabel(c.month);
-  const baseline = c.currentMonth ? 'by this point last month' : 'in ' + monthKeyLabel(c.previous);
   const tone = !comparable || delta === 0 ? '' : delta < 0 ? ' comparison-better' : ' comparison-worse';
-  const headline = !c.prior.count ? 'Add last month’s spending to compare'
-    : !c.current.count ? 'No transactions recorded this period yet'
-    : delta === 0 ? 'You’ve spent the same amount ' + when
-    : 'You’ve spent ' + fmt(Math.abs(delta)) + (delta < 0 ? ' less ' : ' more ') + when;
-  const percent = comparable && c.prior.expense > 0 && delta !== 0
-    ? (Math.abs(delta) / c.prior.expense * 100).toFixed(1) + '% ' + (delta < 0 ? 'less' : 'more') + ' than ' + baseline + '. ' : '';
-  const period = c.currentMonth
-    ? c.month + '-01 – ' + c.end + ' vs ' + c.previous + '-01 – ' + c.previousEnd
+  const headline = !c.prior.count ? 'No comparison yet' : !c.current.count ? 'No spending recorded yet'
+    : delta === 0 ? 'Spending is unchanged' : fmt(Math.abs(delta)) + (delta < 0 ? ' less spent' : ' more spent');
+  const shortDate = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const period = c.currentMonth ? 'Through ' + shortDate(c.end) + ' vs ' + shortDate(c.previousEnd)
     : monthKeyLabel(c.month) + ' vs ' + monthKeyLabel(c.previous);
-  return '<section class="dawg-card sk-card month-comparison" aria-label="Spending comparison"><h2>Spending vs last month</h2><p class="comparison-headline comparison-value' + tone + '">' + headline + '</p><p class="comparison-value">' + (comparable ? percent + 'Compared with spending ' + baseline + '.' : 'Add or import transactions for both periods to compare.') + '</p><div class="comparison-spending-totals"><span>Spent ' + when + '<strong class="comparison-value">' + fmt(c.current.expense) + '</strong></span><span>Spent ' + baseline + '<strong class="comparison-value">' + fmt(c.prior.expense) + '</strong></span></div><p class="comparison-period">' + period + '</p><p class="comparison-note">Spending only. Transfers are excluded.</p></section>';
+  const note = !c.prior.count ? 'Add last month’s transactions to compare.' : !c.current.count ? 'Add transactions to start comparing.' : period;
+  return '<section class="' + (skinned ? 'sk-card' : 'dawg-section-card') + ' month-comparison" aria-label="Spending comparison"><div class="' + (skinned ? 'sk-shead' : 'dawg-section-hdr') + '"><span class="' + (skinned ? 'sk-eyebrow' : 'dawg-card-title') + '">Spending vs last month</span></div><div class="' + (skinned ? 'sk-mamt money' : 'dawg-tile-amt') + ' comparison-value' + tone + '">' + headline + '</div><div class="' + (skinned ? 'sk-mof' : 'dawg-tile-sub') + ' comparison-caption">' + note + '</div><div class="comparison-totals ' + (skinned ? 'sk-mfoot' : 'dawg-tile-sub') + '"><span>This month <b class="comparison-value">' + fmt(c.current.expense) + '</b></span><span>Last month <b class="comparison-value">' + fmt(c.prior.expense) + '</b></span></div></section>';
 }
 
 
