@@ -2715,18 +2715,23 @@ function calculateMonthComparison(transactions, month, asOf = today()) {
 
 function renderMonthComparison() {
   const c = calculateMonthComparison(state.transactions, dashMonth);
+  const delta = Math.round((c.current.expense - c.prior.expense) * 100) / 100;
+  const comparable = c.current.count > 0 && c.prior.count > 0;
+  const when = c.currentMonth ? 'so far this month' : 'in ' + monthKeyLabel(c.month);
+  const baseline = c.currentMonth ? 'by this point last month' : 'in ' + monthKeyLabel(c.previous);
+  const tone = !comparable || delta === 0 ? '' : delta < 0 ? ' comparison-better' : ' comparison-worse';
+  const headline = !c.prior.count ? 'Add last month’s spending to compare'
+    : !c.current.count ? 'No transactions recorded this period yet'
+    : delta === 0 ? 'You’ve spent the same amount ' + when
+    : 'You’ve spent ' + fmt(Math.abs(delta)) + (delta < 0 ? ' less ' : ' more ') + when;
+  const percent = comparable && c.prior.expense > 0 && delta !== 0
+    ? (Math.abs(delta) / c.prior.expense * 100).toFixed(1) + '% ' + (delta < 0 ? 'less' : 'more') + ' than ' + baseline + '. ' : '';
   const period = c.currentMonth
     ? c.month + '-01 – ' + c.end + ' vs ' + c.previous + '-01 – ' + c.previousEnd
     : monthKeyLabel(c.month) + ' vs ' + monthKeyLabel(c.previous);
-  const rows = [['expense', 'Spent', -1], ['income', 'Income', 1], ['net', 'Net income', 1]].map(([key, label, direction]) => {
-    const delta = Math.round((c.current[key] - c.prior[key]) * 100) / 100;
-    const change = delta === 0 ? 'No change' : fmt(Math.abs(delta)) + (delta > 0 ? ' more' : ' less');
-    const percent = c.prior[key] > 0 && key !== 'net' ? ' (' + (Math.abs(delta) / c.prior[key] * 100).toFixed(1) + '%)' : '';
-    const tone = delta === 0 ? '' : delta * direction > 0 ? ' comparison-better' : ' comparison-worse';
-    return '<div class="comparison-row"><strong>' + label + '</strong><span class="comparison-value">' + fmt(c.current[key]) + '</span><span class="comparison-value comparison-prior">' + fmt(c.prior[key]) + '</span><span class="comparison-value comparison-change' + tone + '">' + (c.current.count && c.prior.count ? change + percent : '—') + '</span></div>';
-  }).join('');
-  return '<section class="dawg-card sk-card month-comparison" aria-label="Month comparison"><h2>Compared with last month</h2><p class="comparison-period">' + period + '</p><div class="comparison-head"><span></span><span>Selected month</span><span>Previous month</span><span>Change</span></div>' + rows + '<p class="comparison-note">' + (!c.prior.count ? 'No transactions recorded in the previous period. Add or import them to compare.' : !c.current.count ? 'No transactions recorded in the selected period yet.' : 'Net income is income minus spending. Transfers are excluded.') + '</p></section>';
+  return '<section class="dawg-card sk-card month-comparison" aria-label="Spending comparison"><h2>Spending vs last month</h2><p class="comparison-headline comparison-value' + tone + '">' + headline + '</p><p class="comparison-value">' + (comparable ? percent + 'Compared with spending ' + baseline + '.' : 'Add or import transactions for both periods to compare.') + '</p><div class="comparison-spending-totals"><span>Spent ' + when + '<strong class="comparison-value">' + fmt(c.current.expense) + '</strong></span><span>Spent ' + baseline + '<strong class="comparison-value">' + fmt(c.prior.expense) + '</strong></span></div><p class="comparison-period">' + period + '</p><p class="comparison-note">Spending only. Transfers are excluded.</p></section>';
 }
+
 
 function monthTotals(monthStr) {
   const key = monthStr + '|' + _calcVer;

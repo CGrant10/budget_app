@@ -8798,3 +8798,7 @@ body.amounts-hidden .comparison-value { filter: blur(6px); user-select: none; }
   .comparison-row { grid-template-columns: .8fr 1fr 1fr; }
   .comparison-change { grid-column: 2 / 4; font-size: .875rem; }
 }
+
+.comparison-headline { font-size: 1.5rem; font-weight: 700; line-height: 1.35; margin: 16px 0 8px; }
+.comparison-spending-totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin: 20px 0; font-size: .875rem; color: var(--muted); }
+.comparison-spending-totals strong { display: block; margin-top: 6px; font-size: 1.125rem; color: var(--text); }
