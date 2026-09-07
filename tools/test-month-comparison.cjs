@@ -10,6 +10,7 @@ const functions = ['calculateMonthComparison', 'renderMonthComparison', 'shiftMo
 const context = vm.createContext({ state: { transactions: [] }, dashMonth: '2026-09', today: () => '2026-09-07', fmt: n => '$' + n.toFixed(2) });
 vm.runInContext(functions, context);
 vm.runInContext(source.match(/function isBillTxn\(t\) \{[^\n]+/)[0], context);
+vm.runInContext(source.match(/function isExcludedFromSpend\(t\) \{[^\n]+/)[0], context);
 const calc = context.calculateMonthComparison;
 const txn = (date, amount, type = 'expense', extra = {}) => ({ date, amount, type, ...extra });
 let result = calc([
@@ -50,4 +51,21 @@ assert.equal(withoutBills.prior.expense, 250);
 const billsOnly = calc([txn('2026-09-01', 1000, 'expense', { _billTxnId: 'rent' })], '2026-09', '2026-09-07');
 assert.equal(billsOnly.current.expense, 0);
 assert.equal(billsOnly.current.count, 1);
-assert.match(context.renderMonthComparison(), /Bills excluded/);
+assert.match(context.renderMonthComparison(), /Bills & excluded spending omitted/);
+const adjustmentHistory = [
+  txn('2026-09-01', 800, 'expense', { category: 'Adjustment', excludeFromBudget: true }),
+  txn('2026-08-01', 150, 'expense', { excludeFromBudget: true }),
+  txn('2026-09-04', 100), txn('2026-08-04', 300)
+];
+const adjusted = calc(adjustmentHistory, '2026-09', '2026-09-07');
+assert.equal(adjusted.current.expense, 100);
+assert.equal(adjusted.prior.expense, 300);
+assert.equal(adjusted.current.expense - adjusted.prior.expense, -200);
+context.state.transactions = adjustmentHistory;
+assert.match(context.renderMonthComparison(), /\$200.00 less spent/);
+// Independently total each period with the existing dashboard spending rules.
+for (const [month, expected] of [['2026-09', adjusted.current.expense], ['2026-08', adjusted.prior.expense]]) {
+  const ledgerTotal = adjustmentHistory.filter(t => t.type === 'expense' && t.date >= month + '-01' && t.date <= month + '-07' && !t._xfer && !context.isExcludedFromSpend(t)).reduce((sum, t) => sum + t.amount, 0);
+  assert.equal(expected, ledgerTotal);
+}
+console.log('Bill, balance-adjustment, manual-exclusion, and independent ledger-total checks passed.');

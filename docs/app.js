@@ -2691,7 +2691,8 @@ function totals() {
 
 // Current months compare matching calendar days; completed months compare in full.
 // Transfers move money between accounts and are not income or spending.
-// Bill payments establish recorded history but do not count toward spending.
+// Use the same exclusions as weekly/daily spending, including bill payments
+// and balance adjustments. Excluded entries still establish recorded history.
 function calculateMonthComparison(transactions, month, asOf = today()) {
   const previous = shiftMonthKey(month, -1);
   const [year, number] = previous.split('-').map(Number);
@@ -2706,7 +2707,7 @@ function calculateMonthComparison(transactions, month, asOf = today()) {
       const amount = Number(t.amount);
       if (!Number.isFinite(amount)) continue;
       result.count++;
-      if (isBillTxn(t)) continue;
+      if (isExcludedFromSpend(t)) continue;
       result[t.type] += amount;
     }
     result.net = result.income - result.expense;
@@ -2725,7 +2726,7 @@ function renderMonthComparison(skinned = false) {
   const shortDate = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const period = c.currentMonth ? 'Through ' + shortDate(c.end) + ' vs ' + shortDate(c.previousEnd)
     : monthKeyLabel(c.month) + ' vs ' + monthKeyLabel(c.previous);
-  const note = (!c.prior.count ? 'Add last month’s transactions to compare.' : !c.current.count ? 'Add transactions to start comparing.' : period) + ' · Bills excluded';
+  const note = (!c.prior.count ? 'Add last month’s transactions to compare.' : !c.current.count ? 'Add transactions to start comparing.' : period) + ' · Bills & excluded spending omitted';
   return '<section class="' + (skinned ? 'sk-card' : 'dawg-section-card') + ' month-comparison" aria-label="Spending comparison"><div class="' + (skinned ? 'sk-shead' : 'dawg-section-hdr') + '"><span class="' + (skinned ? 'sk-eyebrow' : 'dawg-card-title') + '">Spending vs last month</span></div><div class="' + (skinned ? 'sk-mamt money' : 'dawg-tile-amt') + ' comparison-value' + tone + '">' + headline + '</div><div class="' + (skinned ? 'sk-mof' : 'dawg-tile-sub') + ' comparison-caption">' + note + '</div><div class="comparison-totals ' + (skinned ? 'sk-mfoot' : 'dawg-tile-sub') + '"><span>This month <b class="comparison-value">' + fmt(c.current.expense) + '</b></span><span>Last month <b class="comparison-value">' + fmt(c.prior.expense) + '</b></span></div></section>';
 }
 
