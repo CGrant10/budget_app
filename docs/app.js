@@ -2726,8 +2726,8 @@ function renderMonthComparison(skinned = false) {
   const shortDate = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const period = c.currentMonth ? 'Through ' + shortDate(c.end) + ' vs ' + shortDate(c.previousEnd)
     : monthKeyLabel(c.month) + ' vs ' + monthKeyLabel(c.previous);
-  const note = (!c.prior.count ? 'Add last month’s transactions to compare.' : !c.current.count ? 'Add transactions to start comparing.' : period) + ' · Bills & excluded spending omitted';
-  return '<section class="' + (skinned ? 'sk-card' : 'dawg-section-card') + ' month-comparison" aria-label="Spending comparison"><div class="' + (skinned ? 'sk-shead' : 'dawg-section-hdr') + '"><span class="' + (skinned ? 'sk-eyebrow' : 'dawg-card-title') + '">Spending vs last month</span></div><div class="' + (skinned ? 'sk-mamt money' : 'dawg-tile-amt') + ' comparison-value' + tone + '">' + headline + '</div><div class="' + (skinned ? 'sk-mof' : 'dawg-tile-sub') + ' comparison-caption">' + note + '</div><div class="comparison-totals ' + (skinned ? 'sk-mfoot' : 'dawg-tile-sub') + '"><span>This month <b class="comparison-value">' + fmt(c.current.expense) + '</b></span><span>Last month <b class="comparison-value">' + fmt(c.prior.expense) + '</b></span></div></section>';
+  const note = (!c.prior.count ? 'Add last month’s transactions to compare.' : !c.current.count ? 'Add transactions to start comparing.' : period);
+  return '<section class="' + (skinned ? 'sk-card' : 'dawg-section-card') + ' month-comparison" aria-label="Spending comparison"><div class="comparison-summary"><span class="' + (skinned ? 'sk-eyebrow' : 'dawg-card-title') + '">Spending vs last month</span><span class="comparison-amount comparison-value' + tone + '">' + headline + '</span></div><div class="' + (skinned ? 'sk-mof' : 'dawg-tile-sub') + ' comparison-caption">' + note + '</div></section>';
 }
 
 

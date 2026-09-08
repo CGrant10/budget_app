@@ -51,7 +51,7 @@ assert.equal(withoutBills.prior.expense, 250);
 const billsOnly = calc([txn('2026-09-01', 1000, 'expense', { _billTxnId: 'rent' })], '2026-09', '2026-09-07');
 assert.equal(billsOnly.current.expense, 0);
 assert.equal(billsOnly.current.count, 1);
-assert.match(context.renderMonthComparison(), /Bills & excluded spending omitted/);
+assert.doesNotMatch(context.renderMonthComparison(), /Bills & excluded spending omitted/);
 const adjustmentHistory = [
   txn('2026-09-01', 800, 'expense', { category: 'Adjustment', excludeFromBudget: true }),
   txn('2026-08-01', 150, 'expense', { excludeFromBudget: true }),

@@ -8779,10 +8779,11 @@ body.skin-grid .splash-boot-ready { text-transform: uppercase; letter-spacing: .
    accent slab on the title; keep a slim accent tick on section labels. */
 .page-title { font-size: 22px; font-weight: 700; letter-spacing: -.2px; padding-left: 0; border-left: none; }
 
-/* Spending comparison inherits the dashboard's native card and type styles. */
-.month-comparison .comparison-caption { margin-top: 6px; }
-.month-comparison .comparison-totals { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; margin-top: 12px; }
-.comparison-totals b { color: var(--text); font-weight: 600; margin-left: 4px; }
+/* Compact spending comparison retains the native card surface. */
+.month-comparison { gap: 4px; padding: 12px 15px; }
+.comparison-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; }
+.comparison-amount { font-size: .95rem; font-weight: 600; }
+.month-comparison .comparison-caption { margin-top: 0; }
 .month-comparison .comparison-better { color: var(--success); }
 .month-comparison .comparison-worse { color: var(--danger); }
 .comparison-value { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
