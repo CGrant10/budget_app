@@ -1,5 +1,12 @@
 [
  {
+  "version": "5.60.2",
+  "date": "2026-09-11",
+  "changes": [
+   "Refund income now reduces the spending used from weekly and daily limits while regular income remains separate."
+  ]
+ },
+ {
   "version": "5.60.1",
   "date": "2026-09-04",
   "changes": [

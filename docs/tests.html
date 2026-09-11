@@ -88,6 +88,24 @@
       ok(!isExcludedFromSpend({ amount: 10 }), 'normal');
     });
 
+    test('refund income reduces weekly spending without treating paychecks as refunds', () => {
+      const txns = [
+        { type: 'expense', amount: 200, category: 'Shopping', description: 'Shoes' },
+        { type: 'income', amount: 45, category: 'Refund', description: 'Shoes returned' },
+        { type: 'income', amount: 800, category: 'Income', description: 'Paycheck' },
+      ];
+      ok(isRefundIncome(txns[1]), 'refund classified');
+      ok(!isRefundIncome(txns[2]), 'paycheck stays ordinary income');
+      eq(discretionarySpend(txns), 155, 'refund reverses spend');
+    });
+
+    test('refund detection supports existing descriptions and never makes spend negative', () => {
+      eq(discretionarySpend([
+        { type: 'expense', amount: 20, category: 'Food' },
+        { type: 'income', amount: 30, category: 'Income', description: 'Restaurant reimbursement' },
+      ]), 0, 'net spend floors at zero');
+    });
+
     test('gambling totals separate wins, losses, and net', () => {
       const txns = [
         { date: '2026-06-01', type: 'expense', category: 'Gambling', amount: 40 },

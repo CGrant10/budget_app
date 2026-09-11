@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.60.1';
+const VERSION = '5.60.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -4082,9 +4082,8 @@ function checkWeekMilestone() {
   const mon = new Date(today); mon.setDate(today.getDate() - 6);
   const monStr   = localDateStr(mon);
   const todayStr = localDateStr(today);
-  const weekSpent = state.transactions
-    .filter(t => t.type === 'expense' && t.date >= monStr && t.date <= todayStr)
-    .reduce((s, t) => s + t.amount, 0);
+  const weekSpent = discretionarySpend(state.transactions
+    .filter(t => t.date >= monStr && t.date <= todayStr));
   const isoWeek = today.getFullYear() + '-W' + String(getWeekNumber(today)).padStart(2, '0');
   if (weekSpent < perWeek && localStorage.getItem('last_week_celebrated') !== isoWeek) {
     localStorage.setItem('last_week_celebrated', isoWeek);
@@ -5842,19 +5841,17 @@ function renderDashboardDawg() {
   _wkMon.setDate(_wkNow.getDate() - (_wkNow.getDay() === 0 ? 6 : _wkNow.getDay() - 1));
   const _monStr  = _wkMon.toISOString().split('T')[0];
   const _todayStr2 = today();
-  let _wkExp = 0, _wkInc = 0, _dayExp = 0, _dayInc = 0;
+  let _wkExp = 0, _wkRefund = 0, _dayExp = 0, _dayRefund = 0;
   for (const t of state.transactions) {
     if (t.date >= _monStr) {
       // Bills + user-flagged items are excluded from discretionary spend (matches planner).
       if (t.type === 'expense') { if (!isExcludedFromSpend(t)) { _wkExp += t.amount; if (t.date === _todayStr2) _dayExp += t.amount; } }
-      else if (t.type === 'income') { _wkInc += t.amount; if (t.date === _todayStr2) _dayInc += t.amount; }
+      else if (isRefundIncome(t)) { _wkRefund += t.amount; if (t.date === _todayStr2) _dayRefund += t.amount; }
     }
   }
-  // Spent stands on its own — what you spent this week/today stays put. Income does NOT
-  // erase it; income only lifts the spendable balance (via _dashLiveBal below), i.e. how
-  // much you're *able* to spend, never how much you've already spent.
-  const weekSpent = _wkExp;
-  const daySpent  = _dayExp;
+  // Ordinary income does not erase spending. Refunds do because they reverse a purchase.
+  const weekSpent = Math.max(0, _wkExp - _wkRefund);
+  const daySpent  = Math.max(0, _dayExp - _dayRefund);
 
   // Plan settings
   const { income: _dashTotalInc, expense: _dashTotalExp } = totals();
@@ -6001,7 +5998,7 @@ function renderDashboardDawg() {
     const _sk = {
       balance, balColor, mInc, mExp, monthDelta, deltaPct, isPastDash,
       dashMonthLabel, acctName: _acctName,
-      weekSpent, perWeek: _livePerWeek, daySpent: _dayExp,
+      weekSpent, perWeek: _livePerWeek, daySpent,
       billsLeft: _dashBills, daysLeft: _dashDays, stopAt: _dashStopAt,
       // Uncapped on purpose: catEntries is the top-8 *preview* for the stock
       // dashboard's category list, which has a "Details" link to see the rest.
@@ -7541,6 +7538,25 @@ function isBillTxn(t) { return !!(t && t._billTxnId); }
 // or the user flagged it "don't count toward weekly spending" when adding/editing it.
 function isExcludedFromSpend(t) { return isBillTxn(t) || (t && t.excludeFromBudget === true); }
 
+// Refunds reverse discretionary spending. Regular paychecks and other income still
+// affect the available balance without erasing what was spent. A refund can be
+// identified either by its category or its description so existing entries work too.
+function isRefundIncome(t) {
+  if (!t || t.type !== 'income' || t._xfer || isExcludedFromSpend(t)) return false;
+  const label = `${t.category || ''} ${t.description || ''}`.toLowerCase();
+  return /\brefund(?:ed|s)?\b|\breimburse(?:d|ment|ments)?\b/.test(label);
+}
+
+function discretionarySpend(txns) {
+  let expenses = 0, refunds = 0;
+  for (const t of (txns || [])) {
+    if (isExcludedFromSpend(t)) continue;
+    if (t.type === 'expense') expenses += Number(t.amount) || 0;
+    else if (isRefundIncome(t)) refunds += Number(t.amount) || 0;
+  }
+  return Math.max(0, expenses - refunds);
+}
+
 // ── bill paid-month model ────────────────────────────────────────────────────
 // A bill can be paid for several months at once (e.g. paying next month early), so we
 // track a set of YYYY-MM keys plus the logged expense txn id per month. These helpers
@@ -7723,9 +7739,7 @@ function buildDailyHistoryHTML(todayPerDay, buffer, bills) {
       const d = new Date(wMon); d.setDate(wMon.getDate() + i);
       const dStr = localDateStr(d);
       if (dStr > _today) break;   // no future days in the current week
-      const spent = state.transactions
-        .filter(t => t.type === 'expense' && t.date === dStr && !isExcludedFromSpend(t))
-        .reduce((s, t) => s + t.amount, 0);
+      const spent = discretionarySpend(state.transactions.filter(t => t.date === dStr));
       const budget = dStr === _today ? todayPerDay : dailyBudgetFor(dStr, buffer, bills);
       days.push({ dStr, spent, budget, isToday: dStr === _today, label: d.toLocaleDateString('en-US', { weekday: 'short' }), dayNum: d.getDate() });
     }
@@ -7800,16 +7814,9 @@ function calcWeekly() {
   const perDay     = lastCalcPerDay;
   // Bills (logged from the Bills tab) are reserved separately via the "Fixed bills" field,
   // so they must NOT count toward discretionary weekly/daily spending.
-  let weekExpenses = 0;
-  for (const t of state.transactions) {
-    if (t.date >= mondayStr) {
-      if (t.type==='expense') { if (!isExcludedFromSpend(t)) weekExpenses+=t.amount; }
-    }
-  }
-  // What you've spent this week stands on its own — income does NOT cancel it out.
-  // Income only lifts the spendable balance (liveBalance → available → perWeek), i.e.
-  // how much you're *able* to spend, never how much you've already spent.
-  const weekNet  = weekExpenses;
+  // Paychecks and ordinary income do not cancel spending. Refund income reverses the
+  // purchase it belongs to, so it reduces the amount used from this week's limit.
+  const weekNet = discretionarySpend(state.transactions.filter(t => t.date >= mondayStr));
   // Effective weekly limit. Prefer the live monthly figure; only fall back to a saved or
   // reconstructed value when the spendable balance has hit 0 (user dipped into the buffer).
   let _effectivePerWeek;
@@ -7908,7 +7915,7 @@ function calcWeekly() {
     const year       = sd.getFullYear();
     const lbl = `${sd.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${ed.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
     const wkTxns = state.transactions.filter(t=>t.date>=sdS&&t.date<=edS);
-    const wkExp  = wkTxns.filter(t=>t.type==='expense' && !isExcludedFromSpend(t)).reduce((s,t)=>s+t.amount,0);
+    const wkExp  = discretionarySpend(wkTxns);
     const wkNet  = wkExp;
     const txnHtml = wkTxns.length
       ? wkTxns.sort((a,b)=>b.date.localeCompare(a.date)).map(txnRow).join('')
@@ -8019,10 +8026,7 @@ function calcWeekly() {
   if (dhBody) {
     // Prominent "spent / limit" stat per view (e.g. $10 / $100).
     const _todayStr = today();
-    let _todaySpent = 0;
-    for (const t of state.transactions) {
-      if (t.type === 'expense' && t.date === _todayStr && !isExcludedFromSpend(t)) _todaySpent += t.amount;
-    }
+    const _todaySpent = discretionarySpend(state.transactions.filter(t => t.date === _todayStr));
     const _statColor = (spent, lim) => spent > lim && lim > 0 ? 'var(--danger)' : (lim > 0 && spent >= lim * 0.8 ? 'var(--warn)' : 'var(--accent)');
     const _statHtml = (spent, lim, cap) => lim > 0
       ? `<div class="wk-hist-stat"><span class="wk-hist-stat-val" style="color:${_statColor(spent, lim)}">${fmt(spent)} <span class="wk-hist-stat-of">/ ${fmt(lim)}</span></span><span class="wk-hist-stat-cap">${cap}</span></div>`
@@ -11850,10 +11854,12 @@ function _showFastAdd() {
     }
 
     const finalDesc = desc || (selType === 'income' ? 'Income' : selCat);
+    const incomeCategory = isRefundIncome({ type: 'income', category: selCat, description: finalDesc })
+      ? 'Refund' : 'Income';
     const t = {
       type: selType, amount,
       description: finalDesc,
-      category: selType === 'income' ? 'Income' : selCat,
+      category: selType === 'income' ? incomeCategory : selCat,
       account: fromAcct,
       date: todayStr,
       ts: Date.now(),
@@ -11862,7 +11868,7 @@ function _showFastAdd() {
     if (fromAcct === currentAccountId) await autoUpdateWeeklyPlan();
     haptic([10]);
     if (selType === 'expense') { showRobbery(amount, finalDesc, fromAcct, selCat); checkRoast(selCat); checkSpendingAlert(selCat); }
-    else showPayday(amount, finalDesc, fromAcct, 'Income');
+    else showPayday(amount, finalDesc, fromAcct, incomeCategory);
     close();
     render();
   });
