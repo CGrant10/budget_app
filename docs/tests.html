@@ -106,6 +106,36 @@
       ]), 0, 'net spend floors at zero');
     });
 
+    test('month comparison uses discretionary spending and subtracts refunds', () => {
+      const txns = [
+        { date: '2026-06-02', type: 'expense', amount: 100, category: 'Shopping' },
+        { date: '2026-06-03', type: 'income', amount: 35, category: 'Refund', description: 'Return' },
+        { date: '2026-06-04', type: 'expense', amount: 200, category: 'Housing', _billTxnId: 'bill-1' },
+        { date: '2026-06-05', type: 'income', amount: 900, category: 'Income', description: 'Paycheck' },
+        { date: '2026-05-02', type: 'expense', amount: 80, category: 'Shopping' },
+      ];
+      const c = calculateMonthComparison(txns, '2026-06', '2026-06-05');
+      eq(c.current.expense, 65, 'current net discretionary spend');
+      eq(c.current.count, 2, 'only expense and refund establish comparison data');
+      eq(c.prior.expense, 80, 'prior matching period');
+    });
+
+    test('smart budget suggestions omit bills, transfers and excluded spending', () => {
+      const saved = state.transactions;
+      try {
+        const m = shiftMonthKey(localMonthKey(), -1);
+        state.transactions = [
+          { date: `${m}-02`, type: 'expense', amount: 48, category: 'Food' },
+          { date: `${m}-03`, type: 'expense', amount: 999, category: 'Food', _billTxnId: 'bill-2' },
+          { date: `${m}-04`, type: 'expense', amount: 500, category: 'Food', _xfer: 1 },
+          { date: `${m}-05`, type: 'expense', amount: 300, category: 'Food', excludeFromBudget: true },
+        ];
+        eq(getSmartBudgetSuggestions().suggestions.Food, 50, 'rounds only discretionary history');
+      } finally {
+        state.transactions = saved;
+      }
+    });
+
     test('gambling totals separate wins, losses, and net', () => {
       const txns = [
         { date: '2026-06-01', type: 'expense', category: 'Gambling', amount: 40 },

@@ -1,4 +1,4 @@
-const CACHE      = "slawminyaw-v484";
+const CACHE      = "slawminyaw-v561";
 const FONT_CACHE = "slawminyaw-fonts-v1";
 const CDN_CACHE  = "slawminyaw-cdn-v1";
 const ASSETS = [
@@ -8,26 +8,13 @@ const ASSETS = [
   "./app.js",
   "./animations.js",
   "./manifest.json",
-  "./changelog.json",
-  "./cube.html",
   "./icon-192.png",
   "./icon-192-maskable.png",
   "./icon-512.png",
   "./icon-512-maskable.png",
   "./apple-touch-icon.png",
   "./favicon.ico",
-  "./doberman.png",
-  "./maddawg.png",
-  "./newicon.png",
-  "./poke-gengar.gif",
-  "./poke-gastly.gif",
-  "./poke-haunter.gif",
-  "./poke-charizard.gif",
-  "./poke-squirtle.gif",
-  "./team-bears.png",
-  "./team-dodgers.png",
-  "./team-knights.png",
-  "./team-celtics.png"
+  "./doberman.png"
 ];
 
 self.addEventListener("install", e => {

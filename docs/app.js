@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.60.2';
+const VERSION = '5.61.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -2692,7 +2692,7 @@ function totals() {
 // Current months compare matching calendar days; completed months compare in full.
 // Transfers move money between accounts and are not income or spending.
 // Use the same exclusions as weekly/daily spending, including bill payments
-// and balance adjustments. Excluded entries still establish recorded history.
+// and balance adjustments. Refunds reverse spending; regular income is ignored.
 function calculateMonthComparison(transactions, month, asOf = today()) {
   const previous = shiftMonthKey(month, -1);
   const [year, number] = previous.split('-').map(Number);
@@ -2701,15 +2701,20 @@ function calculateMonthComparison(transactions, month, asOf = today()) {
   const end = month + '-' + String(day).padStart(2, '0');
   const previousEnd = previous + '-' + String(Math.min(day, new Date(year, number, 0).getDate())).padStart(2, '0');
   const total = (key, cutoff) => {
-    const result = { income: 0, expense: 0, net: 0, count: 0 };
+    const result = { income: 0, expense: 0, refunds: 0, net: 0, count: 0 };
     for (const t of transactions || []) {
       if (!t.date || !t.date.startsWith(key + '-') || t.date > cutoff || t._xfer || !['income', 'expense'].includes(t.type)) continue;
       const amount = Number(t.amount);
-      if (!Number.isFinite(amount)) continue;
-      result.count++;
-      if (isExcludedFromSpend(t)) continue;
-      result[t.type] += amount;
+      if (!Number.isFinite(amount) || isExcludedFromSpend(t)) continue;
+      if (t.type === 'expense') {
+        result.expense += amount;
+        result.count++;
+      } else if (isRefundIncome(t)) {
+        result.refunds += amount;
+        result.count++;
+      }
     }
+    result.expense = Math.max(0, result.expense - result.refunds);
     result.net = result.income - result.expense;
     return result;
   };
@@ -3392,6 +3397,13 @@ function backupStatusHtml() {
   else if (n === 0)    { txt = '✓ Backed up today'; color = 'var(--success)'; }
   else                 { txt = `Last backup: ${n} day${n !== 1 ? 's' : ''} ago`; color = n > BACKUP_STALE_DAYS ? 'var(--warn)' : 'var(--muted)'; }
   return `<p class="code-hint" id="backup-status" style="margin-top:8px;color:${color}">${txt}</p>`;
+}
+
+function backupStatusLabel() {
+  const n = daysSinceBackup();
+  if (n === null) return 'No device backup yet';
+  if (n === 0) return 'Backed up today';
+  return `Last backup ${n} day${n !== 1 ? 's' : ''} ago`;
 }
 // Banner shown atop the dashboard when a backup is overdue.
 function backupBannerHtml() {
@@ -6437,7 +6449,9 @@ function getSmartBudgetSuggestions() {
   // Single pass: accumulate per-category totals keyed by "cat|month"
   const byKey = {};
   for (const t of state.transactions) {
-    if (t.type !== 'expense') continue;
+    // Suggestions represent discretionary spending. Bills, transfers and anything
+    // explicitly excluded from the weekly plan already have their own place.
+    if (t.type !== 'expense' || !t.date || t._xfer || isExcludedFromSpend(t)) continue;
     const m = t.date.slice(0, 7);
     if (!monthSet.has(m)) continue;
     const k = `${t.category}|${m}`;
@@ -9940,7 +9954,7 @@ function renderSettings() {
         <div class="set-g-body">
         <div class="set-row" data-keys="import export csv backup download upload spreadsheet restore">
           <button class="set-link" type="button" onclick="showTab('import')">
-            <span class="set-link-t">Import / Export<span class="set-g-sub">CSV, backups and restore points</span></span>
+            <span class="set-link-t">Import / Export<span class="set-g-sub">${backupStatusLabel()}</span></span>
             <span class="set-g-caret">›</span>
           </button>
         </div>
@@ -13675,7 +13689,8 @@ window.addEventListener('popstate', () => {
       _checkPaychecks();
       _checkContributions();
       checkForUpdate();
-      _ensureChart();  // warm Chart.js after first paint so charts are ready when needed
+      // Charts stay truly on-demand. Warming Chart.js here made every launch fetch
+      // and parse it even when the user never opened a chart.
     });
 
     // ── swipe between tabs ────────────────────────────────────────────────

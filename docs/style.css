@@ -3916,9 +3916,18 @@ body.light #dawg-bottom-nav {
 .dawg-drawer-close:active { color:var(--text); background:var(--surface2); }
 @media (hover:hover) { .dawg-drawer-close:hover { color:var(--text); background:var(--surface2); } }
 .dawg-drawer-items { flex:1; overflow-y:auto; padding:8px 0; }
+.dawg-drawer-group {
+  padding:14px 20px 5px;
+  color:var(--muted);
+  font-size:.62rem;
+  font-weight:800;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+}
+.dawg-drawer-group:first-child { padding-top:7px; }
 .dawg-drawer-item {
   width:100%; display:flex; align-items:center; gap:14px;
-  padding:15px 20px; background:none; border:none; cursor:pointer;
+  padding:12px 20px; background:none; border:none; cursor:pointer;
   font-family:var(--font-body); transition:background .15s; border-radius:0;
 }
 .dawg-drawer-item:active { background:var(--surface2); }

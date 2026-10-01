@@ -1,5 +1,15 @@
 [
  {
+  "version": "5.61.0",
+  "date": "2026-10-01",
+  "changes": [
+   "Updates now preload only the core app and default mascot; optional themes and tools cache when you use them, cutting the initial offline download by about 43%.",
+   "The Gengar menu is grouped into Accounts, Planning, Insights & tools, and App sections with tighter spacing.",
+   "Spending comparisons and smart budget suggestions now share the same discretionary-spending rules: bills, transfers, adjustments, and excluded entries stay out, while refunds reduce spending.",
+   "Settings now shows the latest device-backup status directly beside Import / Export."
+  ]
+ },
+ {
   "version": "5.60.2",
   "date": "2026-09-11",
   "changes": [
