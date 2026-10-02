@@ -2998,12 +2998,6 @@ textarea:focus-visible,
   margin:8px 0 7px; color:var(--muted); font-size:.68rem;
 }
 .dawg-limit-row strong { color:var(--text); font-size:.76rem; white-space:nowrap; }
-.bill-reserve-flag {
-  display:block; width:100%; margin-top:8px; padding:5px 6px;
-  border:1px solid color-mix(in srgb, var(--warn) 45%, transparent);
-  border-radius:7px; background:color-mix(in srgb, var(--warn) 9%, transparent);
-  color:var(--warn); font:700 .61rem/1.2 var(--font-body); cursor:pointer;
-}
 .dash-more-details { margin:12px 14px 0; }
 .dash-more-details > summary {
   list-style:none; display:flex; align-items:center; justify-content:center; gap:8px;

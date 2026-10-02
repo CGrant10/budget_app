@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.62.0';
+const VERSION = '5.62.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -6119,7 +6119,6 @@ function renderDashboardDawg() {
             <div class="dawg-limit-value" style="color:${dayColor}">${fmt(_perDayLimit)}</div>
             <div class="dawg-limit-row"><span>Spent today</span><strong>${fmt(daySpent)}</strong></div>
             <div class="dawg-meter"><i style="width:${Math.min(dayPct, 100).toFixed(1)}%;background:${dayColor}"></i></div>
-            ${_billReserveMismatch ? `<button class="bill-reserve-flag" id="bill-reserve-flag">Bills reserve differs</button>` : ''}
             ${dayFailed ? `<div class="dawg-tile-sub" style="color:var(--danger)">${_belowBuffer ? `−${fmt(_bufferDeficit)} below buffer` : `+${fmt(daySpent - _perDayLimit)} over`}</div>` : ''}`;
         }
 
@@ -11440,7 +11439,6 @@ function attachDashboardDawg() {
   document.getElementById('dash-privacy-btn')?.addEventListener('click', toggleAmountsHidden);
   document.querySelectorAll('.limit-info-btn').forEach(btn =>
     btn.addEventListener('click', () => showDashboardLimitMath(btn.dataset.limitKind)));
-  document.getElementById('bill-reserve-flag')?.addEventListener('click', () => showDashboardLimitMath('daily'));
 
   // Skinned dashboard: "Details" / "All" / account chip jump to the real pages.
   document.querySelectorAll('[data-sk-go]').forEach(el => {

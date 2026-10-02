@@ -1,5 +1,12 @@
 [
  {
+  "version": "5.62.1",
+  "date": "2026-10-01",
+  "changes": [
+   "Removed the bill-reserve warning from the dynamic daily limit card to keep the dashboard focused and uncluttered."
+  ]
+ },
+ {
   "version": "5.62.0",
   "date": "2026-10-01",
   "changes": [
