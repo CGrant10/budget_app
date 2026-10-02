@@ -1806,7 +1806,7 @@ body.light .section-title::before {
 #gengar-bg-overlay {
   position: absolute;
   inset: 0;
-  background: url('gengar.png') center / 70% no-repeat;
+  background: url('gengar.webp') center / 70% no-repeat;
   opacity: 0.12;
   pointer-events: none;
   z-index: 0;
@@ -2979,6 +2979,47 @@ textarea:focus-visible,
 
 /* ── Bento treatment — richer tile surfaces within the dashboard grid ─────── */
 .dawg-tile-grid { gap: 9px; }
+.dawg-limit-head {
+  display:flex; align-items:flex-start; justify-content:space-between; gap:7px;
+}
+.limit-info-btn {
+  width:20px; height:20px; flex:0 0 20px; padding:0;
+  border:1px solid var(--border); border-radius:50%;
+  background:transparent; color:var(--muted);
+  font:700 .68rem/1 var(--font-body); cursor:pointer;
+}
+.limit-info-btn:active { color:var(--text); background:var(--surface2); }
+@media (hover:hover) { .limit-info-btn:hover { color:var(--text); background:var(--surface2); } }
+.dawg-limit-value {
+  margin-top:9px; font-size:1.4rem; line-height:1; font-weight:800; letter-spacing:-.035em;
+}
+.dawg-limit-row {
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  margin:8px 0 7px; color:var(--muted); font-size:.68rem;
+}
+.dawg-limit-row strong { color:var(--text); font-size:.76rem; white-space:nowrap; }
+.bill-reserve-flag {
+  display:block; width:100%; margin-top:8px; padding:5px 6px;
+  border:1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+  border-radius:7px; background:color-mix(in srgb, var(--warn) 9%, transparent);
+  color:var(--warn); font:700 .61rem/1.2 var(--font-body); cursor:pointer;
+}
+.dash-more-details { margin:12px 14px 0; }
+.dash-more-details > summary {
+  list-style:none; display:flex; align-items:center; justify-content:center; gap:8px;
+  min-height:38px; border:1px solid var(--border); border-radius:12px;
+  background:var(--surface); color:var(--muted); cursor:pointer;
+  font-size:.66rem; font-weight:800; letter-spacing:.11em;
+}
+.dash-more-details > summary::-webkit-details-marker { display:none; }
+.dash-more-details > summary::after { content:'⌄'; font-size:.86rem; transition:transform .18s ease; }
+.dash-more-details[open] > summary::after { transform:rotate(180deg); }
+.dash-more-count {
+  min-width:19px; height:19px; padding:0 5px; border-radius:10px;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--surface2); color:var(--text); letter-spacing:0;
+}
+.dash-more-details .dash-secondary-grid { margin:10px 0 0; }
 .dawg-tile-grid .dawg-section-card,
 .dawg-tile-grid .dawg-budget-tile {
   background: linear-gradient(155deg, var(--card), color-mix(in srgb, var(--card) 78%, #000));

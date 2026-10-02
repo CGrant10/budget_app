@@ -76,6 +76,30 @@
       eq(localDateStr(w.monthEnd), '2026-06-30', 'month end');
     });
 
+    test('dynamic daily limit responds to purchases, refunds and income', () => {
+      const reserve = 200;
+      const days = 10;
+      eq(dynamicSpendingLimit(1000, 0, reserve, days), 80, 'starting pace');
+      eq(dynamicSpendingLimit(900, 0, reserve, days), 70, 'purchase lowers pace');
+      eq(dynamicSpendingLimit(940, 0, reserve, days), 74, 'refund raises pace');
+      eq(dynamicSpendingLimit(1140, 0, reserve, days), 94, 'income raises pace');
+    });
+
+    test('dynamic daily limit handles month end, reserves and a depleted balance', () => {
+      eq(dynamicSpendingLimit(500, 100, 50, 1), 350, 'one day remaining');
+      eq(dynamicSpendingLimit(140, 100, 50, 1), 0, 'never goes negative');
+      eq(dynamicSpendingLimit(500, 100, 50, 0), 0, 'zero-period guard');
+    });
+
+    test('bills still due total excludes bills paid for the selected month', () => {
+      const bills = [
+        { amount: 90, paidMonths: [] },
+        { amount: 40, paidMonths: ['2026-06'] },
+        { amount: 25, paidMonths: ['2026-05'] },
+      ];
+      eq(billsStillDueTotal('2026-06', bills), 115, 'unpaid current-month bills');
+    });
+
     // ── transaction classifiers ────────────────────────────────────────────────
     test('isBillTxn detects bill payments', () => {
       ok(isBillTxn({ _billTxnId: 'billtxn-abc' }), 'has id');

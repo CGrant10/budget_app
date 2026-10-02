@@ -1,5 +1,16 @@
 [
  {
+  "version": "5.62.0",
+  "date": "2026-10-01",
+  "changes": [
+   "The dashboard now labels the dynamic daily limit clearly and separates the limit from today's spending instead of presenting them as one fraction.",
+   "Daily and weekly cards have a compact calculation button showing the exact balance, minimum balance, bills reserve, remaining periods, and resulting limit.",
+   "The app quietly flags when the Weekly Planner's bills reserve differs from the unpaid total on the Bills page without changing either number automatically.",
+   "Secondary dashboard cards now sit inside a collapsed More Details section while the daily and weekly limits remain visible.",
+   "Default and Gengar mascot artwork now uses compressed WebP files, reducing the three converted images from about 1.4 MB to about 330 KB."
+  ]
+ },
+ {
   "version": "5.61.0",
   "date": "2026-10-01",
   "changes": [

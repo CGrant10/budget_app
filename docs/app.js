@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.61.0';
+const VERSION = '5.62.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -2146,7 +2146,7 @@ function mascotSrc() {
   const custom = customMascot();
   if (custom) return custom;
   const t = THEMES[loadSettings().theme];
-  return (t && t.mascot) ? t.mascot : './doberman.png';
+  return (t && t.mascot) ? t.mascot : './doberman.webp';
 }
 // Dashboard hero tagline — themed for Pokémon, else the DAWG "LOCK TF IN." glitch tagline
 function heroTaglineHTML() {
@@ -2169,7 +2169,7 @@ function heroMascotHTML() {
   }
   return `<div class="dawg-hero-dob">
           <img src="${mascotSrc()}" class="dawg-dob-idle" alt="">
-          <img src="./maddawg.png"  class="dawg-dob-bark" alt="">
+          <img src="./maddawg.webp" class="dawg-dob-bark" alt="">
         </div>`;
 }
 
@@ -2237,7 +2237,7 @@ function applyTheme(theme) {
   _applyThemeFx(theme);
   // Swap mascot + splash tagline on the persistent (non-re-rendered) elements
   const _photo  = customMascot();
-  const _mascot = _photo || t.mascot || './doberman.png';
+  const _mascot = _photo || t.mascot || './doberman.webp';
   // Gates off the two-frame Doberman bark (there is no bark frame for a photo) —
   // the same thing body.theme-pokemon / body.theme-team already do for their
   // mascots, and it rounds the photo wherever it's drawn small.
@@ -3673,6 +3673,7 @@ function calcHealthScore() {
 // ── tabs ───────────────────────────────────────────────────────────────────
 let currentTab = 'dashboard';
 let dashMonth = localMonthKey();
+let _latestDashboardLimitMath = null;
 let debtSubTab = 'credit'; // 'credit' | 'loan'
 let _pendingAccountExpand = null; // account id to auto-expand when Accounts tab renders
 let _quickAddType = null;         // pre-select expense/income when navigating from Quick Add tile
@@ -4667,7 +4668,7 @@ function renderAccountPicker() {
         <div class="acct-hero2-row">
           <div class="dawg-hero-dob acct-hero-dob acct-hero2-mark">
             <img src="${mascotSrc()}" class="dawg-dob-idle" alt="">
-            <img src="./maddawg.png"  class="dawg-dob-bark" alt="">
+            <img src="./maddawg.webp" class="dawg-dob-bark" alt="">
           </div>
           <div class="acct-hero2-figs">
             <span class="acct-nw2-label">NET WORTH</span>
@@ -5419,8 +5420,8 @@ function renderRetirementDashboard(acct) {
 
 // ── Dashboard tile layout ──────────────────────────────────────────────────
 const DASH_TILE_META = {
-  'budget-week':    { label: 'Per Week Budget',      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="3"/></svg>` },
-  'budget-day':     { label: 'Per Day Budget',       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>` },
+  'budget-week':    { label: 'Weekly Limit',         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="3"/></svg>` },
+  'budget-day':     { label: 'Dynamic Daily Limit',  icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>` },
   'breakdown':      { label: 'Spending Breakdown',   icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="15" y2="6"/><line x1="3" y1="18" x2="9" y2="18"/></svg>` },
   'goals':          { label: 'Savings Goals',        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>` },
   'transactions':   { label: 'Recent Transactions',  icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>` },
@@ -5873,6 +5874,8 @@ function renderDashboardDawg() {
   // Month-based window — same math as the Weekly Planner so the per-week / per-day tiles match.
   const { daysLeft: _dashDays, weeksLeft: _dashWeeks } = monthWindow(_wkNow, _wkMon);
   const _dashAvail = Math.max(0, _dashLiveBal - _dashStopAt - _dashBills);
+  const _trackedBillsDue = billsStillDueTotal();
+  const _billReserveMismatch = state.bills.length > 0 && Math.abs(_trackedBillsDue - _dashBills) >= 0.01;
 
   // The committed per-week/day limit.
   // Priority: fresh live computation → budget_per_week → per_week → saved_date reconstruction
@@ -5896,6 +5899,18 @@ function renderDashboardDawg() {
     return { week: 0, day: 0 };
   };
   const { week: _livePerWeek, day: _livePerDay } = _getLimit(_dashWeeks, _dashDays);
+  _latestDashboardLimitMath = {
+    balance: _dashLiveBal,
+    stopAt: _dashStopAt,
+    bills: _dashBills,
+    trackedBills: _trackedBillsDue,
+    billMismatch: _billReserveMismatch,
+    days: _dashDays,
+    weeks: _dashWeeks,
+    perDay: dynamicSpendingLimit(_dashLiveBal, _dashStopAt, _dashBills, _dashDays),
+    perWeek: _livePerWeek,
+    weeklyFromSaved: _dashAvail <= 0 && _livePerWeek > 0,
+  };
 
   // Is the live balance already below the buffer floor?
   // When true, both budget tiles should show FAILED regardless of this week's spending.
@@ -6076,13 +6091,13 @@ function renderDashboardDawg() {
           const wkColor  = wkFailed || wkPct >= 90 ? 'var(--danger)' : wkPct >= 80 ? 'var(--warn)' : 'var(--accent)';
           const wkDash   = (C * (1 - wkPct / 100)).toFixed(1);
           _tileHtml['budget-week'] = `
-            <div class="dawg-card-title">BUDGET OVERVIEW</div>
-            <div class="dawg-meter-head">
-              <span class="dawg-tile-period">PER WEEK</span>
-              <span class="dawg-meter-pct" style="color:${wkColor}">${wkFailed ? '⚠ OVER' : wkPct.toFixed(0) + '%'}</span>
+            <div class="dawg-limit-head">
+              <span class="dawg-card-title">WEEKLY LIMIT</span>
+              <button class="limit-info-btn" data-limit-kind="weekly" aria-label="How the weekly limit is calculated">i</button>
             </div>
+            <div class="dawg-limit-value" style="color:${wkColor}">${fmt(_livePerWeek)}</div>
+            <div class="dawg-limit-row"><span>Spent this week</span><strong>${fmt(weekSpent)}</strong></div>
             <div class="dawg-meter"><i style="width:${Math.min(wkPct, 100).toFixed(1)}%;background:${wkColor}"></i></div>
-            <div class="dawg-meter-amt">${fmt(weekSpent)} <span>/ ${fmt(_livePerWeek)}</span></div>
             ${wkFailed ? `<div class="dawg-tile-sub" style="color:var(--danger)">${_belowBuffer ? `−${fmt(_bufferDeficit)} below buffer` : `+${fmt(weekSpent - _livePerWeek)} over`}</div>` : ''}`;
         }
         // ── Per-day tile: adjusted daily allowance ───────────────────────────
@@ -6090,20 +6105,21 @@ function renderDashboardDawg() {
         // live balance and remaining days, so it self-corrects daily: underspend
         // and tomorrow rises, overspend and it falls — landing on your buffer at
         // month end. ($0 while below the buffer floor.)
-        const _perDayLimit = _dashAvail > 0 ? _dashAvail / _dashDays : 0;
+        const _perDayLimit = dynamicSpendingLimit(_dashLiveBal, _dashStopAt, _dashBills, _dashDays);
         if (_perDayLimit > 0 || daySpent > 0 || _belowBuffer) {
           const dayFailed = _belowBuffer || (_perDayLimit > 0 && daySpent > _perDayLimit);
           const dayPct    = dayFailed ? 100 : (_perDayLimit > 0 ? Math.min(daySpent / _perDayLimit * 100, 100) : (daySpent > 0 ? 100 : 0));
           const dayColor  = dayFailed || dayPct >= 90 ? 'var(--danger)' : dayPct >= 75 ? 'var(--warn)' : 'var(--accent)';
           const dayDash   = (C * (1 - dayPct / 100)).toFixed(1);
           _tileHtml['budget-day'] = `
-            <div class="dawg-card-title">BUDGET OVERVIEW</div>
-            <div class="dawg-meter-head">
-              <span class="dawg-tile-period">PER DAY</span>
-              <span class="dawg-meter-pct" style="color:${dayColor}">${dayFailed ? '⚠ OVER' : dayPct.toFixed(0) + '%'}</span>
+            <div class="dawg-limit-head">
+              <span class="dawg-card-title">DYNAMIC DAILY LIMIT</span>
+              <button class="limit-info-btn" data-limit-kind="daily" aria-label="How the dynamic daily limit is calculated">i</button>
             </div>
+            <div class="dawg-limit-value" style="color:${dayColor}">${fmt(_perDayLimit)}</div>
+            <div class="dawg-limit-row"><span>Spent today</span><strong>${fmt(daySpent)}</strong></div>
             <div class="dawg-meter"><i style="width:${Math.min(dayPct, 100).toFixed(1)}%;background:${dayColor}"></i></div>
-            <div class="dawg-meter-amt">${fmt(daySpent)} <span>/ ${fmt(_perDayLimit)}</span></div>
+            ${_billReserveMismatch ? `<button class="bill-reserve-flag" id="bill-reserve-flag">Bills reserve differs</button>` : ''}
             ${dayFailed ? `<div class="dawg-tile-sub" style="color:var(--danger)">${_belowBuffer ? `−${fmt(_bufferDeficit)} below buffer` : `+${fmt(daySpent - _perDayLimit)} over`}</div>` : ''}`;
         }
 
@@ -6366,15 +6382,27 @@ function renderDashboardDawg() {
 
       // Build the tile grid from layout
       const layout = loadDashLayout();
-      const gridHtml = layout.filter(t => t.visible && _tileHtml[t.id]).map(t => {
+      const visibleTiles = layout.filter(t => t.visible && _tileHtml[t.id]);
+      const tileHtml = t => {
         const isTile = (t.id === 'budget-week' || t.id === 'budget-day');
         const cls = isTile ? 'dawg-budget-tile' : 'dawg-section-card';
         return `<div class="dawg-tile-wrap ${cls}" data-id="${t.id}" data-size="${t.size}">${_tileHtml[t.id]}</div>`;
-      }).join('');
+      };
+      const primaryIds = new Set(['budget-week', 'budget-day']);
+      const primaryTiles = visibleTiles.filter(t => primaryIds.has(t.id));
+      const secondaryTiles = visibleTiles.filter(t => !primaryIds.has(t.id));
+      const collapseSecondary = !_isDebt && !isSimpleMode() && primaryTiles.length > 0 && secondaryTiles.length > 0;
+      const gridHtml = collapseSecondary
+        ? `<div class="dawg-tile-grid" id="dawg-tile-grid">${primaryTiles.map(tileHtml).join('')}</div>
+           <details class="dash-more-details" id="dash-more-details">
+             <summary><span>MORE DETAILS</span><span class="dash-more-count">${secondaryTiles.length}</span></summary>
+             <div class="dawg-tile-grid dash-secondary-grid">${secondaryTiles.map(tileHtml).join('')}</div>
+           </details>`
+        : `<div class="dawg-tile-grid" id="dawg-tile-grid">${visibleTiles.map(tileHtml).join('')}</div>`;
 
       return `
         ${debtHtml}
-        <div class="dawg-tile-grid" id="dawg-tile-grid">${gridHtml}</div>
+        ${gridHtml}
         <button class="dash-layout-btn" id="dash-layout-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Customize Layout
         </button>
@@ -7545,6 +7573,20 @@ function monthWindow(refDate, monday) {
   };
 }
 
+// Dynamic allowance used by the dashboard and Weekly Planner. The current live
+// balance is deliberately used: purchases lower tomorrow's pace, while income and
+// refunds raise it. `periods` includes the current day/week.
+function dynamicSpendingLimit(balance, stopAt, bills, periods) {
+  const available = Math.max(0, (Number(balance) || 0) - (Number(stopAt) || 0) - (Number(bills) || 0));
+  return periods > 0 ? available / periods : 0;
+}
+
+function billsStillDueTotal(month = localMonthKey(), bills = state.bills) {
+  return (bills || [])
+    .filter(b => !isBillPaidFor(b, month))
+    .reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+}
+
 // A "bill" transaction is one logged from the Bills tab's "Mark Paid" action.
 function isBillTxn(t) { return !!(t && t._billTxnId); }
 
@@ -7822,9 +7864,9 @@ function calcWeekly() {
   const currentMonthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   const available  = Math.max(0, liveBalance - stopAt - bills);
-  const perWeek    = weeks > 0 ? available / weeks : 0;
+  const perWeek    = dynamicSpendingLimit(liveBalance, stopAt, bills, weeks);
   lastCalcPerWeek  = perWeek;
-  lastCalcPerDay   = days > 0 ? available / days : 0;
+  lastCalcPerDay   = dynamicSpendingLimit(liveBalance, stopAt, bills, days);
   const perDay     = lastCalcPerDay;
   // Bills (logged from the Bills tab) are reserved separately via the "Fixed bills" field,
   // so they must NOT count toward discretionary weekly/daily spending.
@@ -8005,7 +8047,7 @@ function calcWeekly() {
   // which showed the same number as THIS MONTH whenever a single week remained.
   const _left = Math.max(0, weekBudget - weekNet);
   const _stats = [
-    ['Per day',    fmt(perDay)],
+    ['Dynamic daily', fmt(perDay)],
     ['This month', fmt(available)],
     ['Balance',    fmt(liveBalance)],
   ].map(([l, v]) => `<div class="wk-stat"><span class="wk-stat-l">${l}</span><span class="wk-stat-v">${v}</span></div>`).join('');
@@ -8047,7 +8089,7 @@ function calcWeekly() {
       : '';
 
     const _dailyRows = buildDailyHistoryHTML(perDay, stopAt, bills);
-    const _dailyHtml  = _dailyRows  ? _statHtml(_todaySpent, perDay, 'spent today · per-day limit') + _dailyRows : '';
+    const _dailyHtml  = _dailyRows  ? _statHtml(_todaySpent, perDay, 'spent today · dynamic daily limit') + _dailyRows : '';
     const _weeklyHtml = breakdownHtml ? _statHtml(weekNet, _effectivePerWeek, 'this week · per-week limit') + breakdownHtml : '';
 
     const card = document.getElementById('wk-hist-card');
@@ -9792,7 +9834,7 @@ function renderSettings() {
           <p class="code-hint" style="margin-bottom:10px">Use your own photo instead of the Doberman. It shows in the bottom bar, on the accounts overview, the splash screen and empty screens. You'll get to move and zoom it before it's saved, then it's shrunk to 320px — about as much room as a single receipt.</p>
           <div class="mascot-pick">
             <span class="mascot-prev${customMascot() ? '' : ' is-default'}"
-                  style="background-image:url('${customMascot() || './doberman.png'}')"></span>
+                  style="background-image:url('${customMascot() || './doberman.webp'}')"></span>
             <div class="mascot-pick-btns">
               <button class="btn-sm" id="mascot-choose" type="button">${customMascot() ? 'Change photo' : 'Choose photo'}</button>
               ${customMascot() ? '<button class="btn-secondary" id="mascot-clear" type="button">Use the Doberman</button>' : ''}
@@ -11359,6 +11401,29 @@ function toggleDawgBell() {
   }
 }
 
+function showDashboardLimitMath(kind = 'daily') {
+  const m = _latestDashboardLimitMath;
+  if (!m) return;
+  const daily = kind === 'daily';
+  const periods = daily ? m.days : m.weeks;
+  const result = daily ? m.perDay : m.perWeek;
+  const unit = daily ? `day${periods !== 1 ? 's' : ''}` : `week${periods !== 1 ? 's' : ''}`;
+  const available = Math.max(0, m.balance - m.stopAt - m.bills);
+  const resultLine = !daily && m.weeklyFromSaved
+    ? `<strong style="color:var(--accent);font-size:1rem">${fmt(result)} saved weekly limit</strong><br><span style="color:var(--muted)">Kept from your last positive calculation because the current available amount is ${fmt(available)}.</span>`
+    : `${fmt(available)} ÷ ${periods} ${unit} remaining<br><strong style="color:var(--accent);font-size:1rem">= ${fmt(result)}</strong>`;
+  const mismatch = m.billMismatch
+    ? `<br><br><span style="color:var(--warn);font-weight:700">Bills reserve differs:</span> the plan reserves ${fmt(m.bills)}, while the Bills page has ${fmt(m.trackedBills)} still due.`
+    : '';
+  showConfirmModal({
+    title: daily ? 'Dynamic daily limit' : 'Weekly limit',
+    message: `${fmt(m.balance)} balance<br>− ${fmt(m.stopAt)} minimum balance<br>− ${fmt(m.bills)} bills still due<br><strong style="color:var(--text)">= ${fmt(available)} available</strong><br><br>${resultLine}${mismatch}`,
+    confirmText: 'Open Planner',
+    cancelText: 'Close',
+    onConfirm: () => showTab('weekly'),
+  });
+}
+
 function attachDashboardDawg() {
   // Roll the balance hero (and any other [data-countup] stats) to their values
   _runCountUps(document.getElementById('main-content'));
@@ -11373,6 +11438,9 @@ function attachDashboardDawg() {
   });
   document.getElementById('dash-reconcile')?.addEventListener('click', showReconcileModal);
   document.getElementById('dash-privacy-btn')?.addEventListener('click', toggleAmountsHidden);
+  document.querySelectorAll('.limit-info-btn').forEach(btn =>
+    btn.addEventListener('click', () => showDashboardLimitMath(btn.dataset.limitKind)));
+  document.getElementById('bill-reserve-flag')?.addEventListener('click', () => showDashboardLimitMath('daily'));
 
   // Skinned dashboard: "Details" / "All" / account chip jump to the real pages.
   document.querySelectorAll('[data-sk-go]').forEach(el => {
@@ -11924,8 +11992,8 @@ async function autoUpdateWeeklyPlan() {
   const monday   = new Date(now); monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
   const { daysLeft: days, weeksLeft: weeks } = monthWindow(now, monday);  // month-based, matches planner
   const available = Math.max(0, liveBalance - stopAt - bills);
-  const perWeek  = available / weeks;
-  const perDay   = available / days;
+  const perWeek  = dynamicSpendingLimit(liveBalance, stopAt, bills, weeks);
+  const perDay   = dynamicSpendingLimit(liveBalance, stopAt, bills, days);
   // budget_per_week/day = the committed limit — only updated when budget is positive,
   // so it survives when the user dips into their buffer (available = 0).
   const budgetPerWeek = available > 0 ? perWeek : (parseFloat(wp.budget_per_week) || parseFloat(wp.per_week) || 0);

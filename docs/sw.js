@@ -1,4 +1,4 @@
-const CACHE      = "slawminyaw-v561";
+const CACHE      = "slawminyaw-v562";
 const FONT_CACHE = "slawminyaw-fonts-v1";
 const CDN_CACHE  = "slawminyaw-cdn-v1";
 const ASSETS = [
@@ -14,7 +14,7 @@ const ASSETS = [
   "./icon-512-maskable.png",
   "./apple-touch-icon.png",
   "./favicon.ico",
-  "./doberman.png"
+  "./doberman.webp"
 ];
 
 self.addEventListener("install", e => {

@@ -55,7 +55,7 @@
            script shows nothing rather than a broken-image glyph or alt text. -->
       <div class="splash-dog">
         <img alt="Budget DAWGs" class="splash-dob-idle"/>
-        <img src="./maddawg.png" alt="" class="splash-dob-bark"/>
+        <img src="./maddawg.webp" alt="" class="splash-dob-bark"/>
       </div>
       <div class="splash-texts">
         <div class="splash-brand" data-glitch="Budget DAWGs">Budget DAWGs</div>
@@ -82,7 +82,7 @@
     var img=document.querySelector('.splash-dob-idle');if(!img)return;
     var h={};try{h=JSON.parse(localStorage.getItem('slawminyaw_splash')||'{}')}catch(e){}
     var photo='';try{photo=localStorage.getItem('slawminyaw_mascot')||''}catch(e){}
-    img.src=photo||h.m||'./doberman.png';
+    img.src=photo||h.m||'./doberman.webp';
     var b=document.body;
     /* Mirror applyTheme() exactly — it adds the theme classes AND mascot-photo when
        both apply, so doing anything different here would still be a visible change
@@ -91,13 +91,13 @@
     if(photo)b.classList.add('mascot-photo');
     document.documentElement.style.setProperty('--mascot-pixelated',photo?'auto':(h.px||'auto'));
     if(h.tag){var tg=document.querySelector('.splash-tagline');if(tg)tg.textContent=h.tag;}
-  }catch(e){var i=document.querySelector('.splash-dob-idle');if(i&&!i.src)i.src='./doberman.png';}}();</script>
+  }catch(e){var i=document.querySelector('.splash-dob-idle');if(i&&!i.src)i.src='./doberman.webp';}}();</script>
 
   <div id="app" style="opacity:0;transition:opacity .18s ease">
     <header class="header">
       <div class="header-inner">
         <div class="brand-lockup">
-          <img src="./doberman.png" class="brand-dob" alt="">
+          <img src="./doberman.webp" class="brand-dob" alt="">
           <span class="logo">BUDGET DAWGS</span>
         </div>
         <div class="header-right">
@@ -187,7 +187,7 @@
         <span class="dawg-nav-lbl">Ledger</span>
       </button>
       <button class="dawg-nav-btn dawg-nav-center-btn" id="dawg-nav-accts" title="Dashboard">
-        <img src="./doberman.png" class="dawg-nav-dob" alt="Dashboard">
+        <img src="./doberman.webp" class="dawg-nav-dob" alt="Dashboard">
       </button>
       <button class="dawg-nav-btn" data-tab="weekly">
         <span class="dawg-nav-icon"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
