@@ -1,5 +1,12 @@
 [
  {
+  "version": "5.63.1",
+  "date": "2026-10-02",
+  "changes": [
+   "Fixed quick-add gambling wins being saved as generic income. Wins now count toward the gambling tracker's monthly and overall net even when no losses have been recorded."
+  ]
+ },
+ {
   "version": "5.63.0",
   "date": "2026-10-01",
   "changes": [
