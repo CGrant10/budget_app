@@ -1,5 +1,12 @@
 [
  {
+  "version": "5.63.3",
+  "date": "2026-10-02",
+  "changes": [
+   "Gambling wins now include income entries labeled Redeem, Redeemed, or Redemption in their category or description. A $100 October 1 redeem with no losses adds $100 to October and overall net."
+  ]
+ },
+ {
   "version": "5.63.2",
   "date": "2026-10-02",
   "changes": [

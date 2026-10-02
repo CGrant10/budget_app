@@ -25,7 +25,7 @@ async function saveEntry(type, category, description = '') {
   nodes['#fas-amount'].value = '100';
   nodes['#fas-desc'].value = description;
   const types = ['income', 'expense'].map(type => element({ type }));
-  const categories = ['Food', 'Gambling', 'Refund'].map(cat => element({ cat }));
+  const categories = ['Food', 'Gambling', 'Refund', 'Redeem'].map(cat => element({ cat }));
   const overlay = element();
   overlay.querySelectorAll = selector => selector === '.fas-type-btn' ? types
     : selector === '.fas-cat-chip' ? categories : [];
@@ -87,5 +87,24 @@ async function saveEntry(type, category, description = '') {
     assert.equal(win.context.calculateGamblingTotals([{ ...legacy, ...extra }]).net, 0);
   }
   assert.equal(win.context.calculateGamblingTotals([{ ...legacy, category: ' Gambling ', description: '' }]).net, 75);
+  for (const entry of [
+    { category: 'Income', description: 'Redeem' },
+    { category: 'Redeem', description: '' },
+    { category: 'Other', description: ' redeemed ' },
+  ]) {
+    const txn = { ...legacy, ...entry, amount: 100, date: '2026-10-01' };
+    for (const month of ['2026-10', '']) {
+      const totals = win.context.calculateGamblingTotals([txn], month);
+      assert.equal(totals.wins, 100);
+      assert.equal(totals.losses, 0);
+      assert.equal(totals.net, 100);
+      assert.match(win.context._gamblingTrackerBody(totals, totals), /\+\$100\.00/);
+    }
+    assert.equal(win.context.calculateGamblingTotals([txn], '2026-09').net, 0);
+  }
+  assert.equal(win.context.calculateGamblingTotals([{ ...legacy, description: 'Redeem gift card' }]).net, 0);
+  const redeem = await saveEntry('income', 'Redeem');
+  assert.equal(redeem.transaction.category, 'Redeem');
+  assert.equal(redeem.context.calculateGamblingTotals([redeem.transaction], '2026-10').net, 100);
   console.log('Gambling checks passed: quick-add save, wins without losses, month/all-time totals, display, mixed results, expenses, ordinary income, and refunds.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

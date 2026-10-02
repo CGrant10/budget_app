@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.63.2';
+const VERSION = '5.63.3';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -2761,11 +2761,15 @@ function isGamblingTransaction(t) {
   if (!t || t._xfer || !['income', 'expense'].includes(t.type)) return false;
   const category = String(t.category || '').trim().toLowerCase();
   if (category === 'gambling') return true;
+  // "Redeem" is also used for gambling payouts in the ledger.
+  const redeemLabel = /^(?:redeem(?:ed)?|redemption)$/;
+  if (t.type === 'income' && redeemLabel.test(category)) return true;
   // Older quick-add wins lost their category. Recognize clearly labeled payouts
   // in generic income without rewriting the ledger or requiring a loss entry.
   if (t.type !== 'income' || !['', 'income', 'other'].includes(category)) return false;
   const description = String(t.description || '').toLowerCase();
   if (isRefundIncome(t) || /\b(payroll|paycheck|salary|wages|employer)\b/.test(description)) return false;
+  if (redeemLabel.test(description.trim())) return true;
   return /\b(gambling|sportsbook|casino|betting|wager|poker|blackjack|roulette|slots|jackpot|lottery|draftkings|fanduel|betmgm|caesars)\b/.test(description);
 }
 
@@ -12078,7 +12082,7 @@ function _showFastAdd() {
 
     const finalDesc = desc || (selType === 'income' ? 'Income' : selCat);
     // Keep payouts in the tracker even when no wagers/losses have been logged.
-    const incomeCategory = String(selCat).toLowerCase() === 'gambling' ? 'Gambling'
+    const incomeCategory = ['gambling', 'redeem', 'redeemed', 'redemption'].includes(String(selCat).trim().toLowerCase()) ? String(selCat).trim()
       : isRefundIncome({ type: 'income', category: selCat, description: finalDesc })
         ? 'Refund' : 'Income';
     const t = {
