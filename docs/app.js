@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.63.1';
+const VERSION = '5.63.2';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -2757,10 +2757,22 @@ function monthTotals(monthStr) {
 // Gambling entries use the normal transaction ledger: payouts are income and
 // wagers/losses are expenses. Keeping the calculation pure makes the dashboard
 // summary easy to verify and lets imported transactions participate too.
+function isGamblingTransaction(t) {
+  if (!t || t._xfer || !['income', 'expense'].includes(t.type)) return false;
+  const category = String(t.category || '').trim().toLowerCase();
+  if (category === 'gambling') return true;
+  // Older quick-add wins lost their category. Recognize clearly labeled payouts
+  // in generic income without rewriting the ledger or requiring a loss entry.
+  if (t.type !== 'income' || !['', 'income', 'other'].includes(category)) return false;
+  const description = String(t.description || '').toLowerCase();
+  if (isRefundIncome(t) || /\b(payroll|paycheck|salary|wages|employer)\b/.test(description)) return false;
+  return /\b(gambling|sportsbook|casino|betting|wager|poker|blackjack|roulette|slots|jackpot|lottery|draftkings|fanduel|betmgm|caesars)\b/.test(description);
+}
+
 function calculateGamblingTotals(transactions, monthStr = '') {
   let wins = 0, losses = 0;
   for (const t of (transactions || [])) {
-    if (String(t.category || '').toLowerCase() !== 'gambling') continue;
+    if (!isGamblingTransaction(t)) continue;
     if (monthStr && (!t.date || !t.date.startsWith(monthStr))) continue;
     const amount = Number(t.amount);
     if (!Number.isFinite(amount) || amount <= 0) continue;

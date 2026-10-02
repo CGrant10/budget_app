@@ -1,5 +1,13 @@
 [
  {
+  "version": "5.63.2",
+  "date": "2026-10-02",
+  "changes": [
+   "The gambling tracker now includes existing generic income entries clearly described as gambling winnings or sportsbook payouts, even with no losses. Your saved ledger stays unchanged.",
+   "Gambling category matching now tolerates extra spaces; transfers, refunds, and gambling employer paychecks are excluded from inferred winnings."
+  ]
+ },
+ {
   "version": "5.63.1",
   "date": "2026-10-02",
   "changes": [

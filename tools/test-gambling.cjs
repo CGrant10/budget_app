@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname, '../docs/app.js'), 'utf8');
-const names = ['_showFastAdd', 'calculateGamblingTotals', '_gamblingTrackerBody', 'isRefundIncome'];
+const names = ['_showFastAdd', 'isGamblingTransaction', 'calculateGamblingTotals', '_gamblingTrackerBody', 'isRefundIncome'];
 const functions = names.map(name => {
   const start = source.indexOf('function ' + name + '(');
   assert(start >= 0, name);
@@ -67,5 +67,25 @@ async function saveEntry(type, category, description = '') {
   assert.equal((await saveEntry('income', 'Refund', 'Store refund')).transaction.category, 'Refund');
   assert.equal(loss.transaction.category, 'Gambling');
   assert.equal(loss.context.calculateGamblingTotals([loss.transaction]).net, -100);
+  const legacy = { type: 'income', category: 'Income', description: 'Gambling winnings', amount: 75, date: '2026-10-01' };
+  const legacyTotals = win.context.calculateGamblingTotals([legacy], '2026-10');
+  assert.equal(legacyTotals.wins, 75);
+  assert.equal(legacyTotals.losses, 0);
+  assert.equal(legacyTotals.net, 75);
+  assert.equal(legacy.category, 'Income', 'existing ledger remains unchanged');
+  assert.equal(win.context.calculateGamblingTotals([legacy], '2026-09').net, 0);
+  assert.equal(win.context.calculateGamblingTotals([legacy]).net, 75);
+  for (const description of ['DraftKings payout', 'FanDuel winnings', 'Casino win']) {
+    assert.equal(win.context.calculateGamblingTotals([{ ...legacy, description }]).wins, 75);
+  }
+  for (const extra of [
+    { description: 'Paycheck' }, { description: 'Casino paycheck' },
+    { description: 'Casino refund' }, { category: 'Refund' },
+    { category: 'Transfer', _xfer: 1 }, { _xfer: 1 },
+    { type: 'expense' }, { amount: 'invalid' },
+  ]) {
+    assert.equal(win.context.calculateGamblingTotals([{ ...legacy, ...extra }]).net, 0);
+  }
+  assert.equal(win.context.calculateGamblingTotals([{ ...legacy, category: ' Gambling ', description: '' }]).net, 75);
   console.log('Gambling checks passed: quick-add save, wins without losses, month/all-time totals, display, mixed results, expenses, ordinary income, and refunds.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
