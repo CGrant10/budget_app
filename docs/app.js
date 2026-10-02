@@ -12065,8 +12065,10 @@ function _showFastAdd() {
     }
 
     const finalDesc = desc || (selType === 'income' ? 'Income' : selCat);
-    const incomeCategory = isRefundIncome({ type: 'income', category: selCat, description: finalDesc })
-      ? 'Refund' : 'Income';
+    // Keep payouts in the tracker even when no wagers/losses have been logged.
+    const incomeCategory = String(selCat).toLowerCase() === 'gambling' ? 'Gambling'
+      : isRefundIncome({ type: 'income', category: selCat, description: finalDesc })
+        ? 'Refund' : 'Income';
     const t = {
       type: selType, amount,
       description: finalDesc,
