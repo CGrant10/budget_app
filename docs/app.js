@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.62.1';
+const VERSION = '5.63.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -6505,6 +6505,131 @@ function getSmartBudgetSuggestions() {
   return { suggestions: presets, isPreset: true };
 }
 
+// Build a conservative spending target from the most recent eight weeks. Bills,
+// transfers and user-excluded purchases are omitted; refunds reduce the net total.
+// The result is capped by the Weekly Planner's live safe-to-spend figure.
+function analyzeSmartBudget(txns, safeWeekly = null, refDate = new Date()) {
+  const end = new Date(refDate); end.setHours(0, 0, 0, 0);
+  const start = new Date(end); start.setDate(end.getDate() - 55);
+  const startStr = localDateStr(start);
+  const endStr = localDateStr(end);
+  const grossByCategory = {};
+  let gross = 0;
+  let refunds = 0;
+  let earliest = null;
+
+  for (const t of (txns || [])) {
+    if (!t?.date || t.date < startStr || t.date > endStr || t._xfer || isExcludedFromSpend(t)) continue;
+    if (t.type === 'expense') {
+      const amount = Number(t.amount) || 0;
+      if (amount <= 0) continue;
+      const category = t.category || 'Other';
+      grossByCategory[category] = (grossByCategory[category] || 0) + amount;
+      gross += amount;
+      if (!earliest || t.date < earliest) earliest = t.date;
+    } else if (isRefundIncome(t)) {
+      refunds += Number(t.amount) || 0;
+      if (!earliest || t.date < earliest) earliest = t.date;
+    }
+  }
+
+  if (gross <= 0) return null;
+  const net = Math.max(0, gross - refunds);
+  const first = earliest ? new Date(earliest + 'T00:00:00') : start;
+  const observedDays = Math.max(14, Math.min(56, Math.round((end - first) / 86400000) + 1));
+  const observedWeeks = observedDays / 7;
+  const historyWeekly = net / observedWeeks;
+  const historyWithRoom = historyWeekly * 1.08;
+  const hasSafeLimit = safeWeekly !== null && safeWeekly !== undefined && Number.isFinite(Number(safeWeekly));
+  const safeLimit = hasSafeLimit ? Math.max(0, Number(safeWeekly)) : null;
+  const cappedWeekly = hasSafeLimit ? Math.min(historyWithRoom, safeLimit) : historyWithRoom;
+  const roundedWeekly = Math.max(0, Math.round(cappedWeekly / 5) * 5);
+  const weeklyTarget = hasSafeLimit ? Math.min(roundedWeekly, safeLimit) : roundedWeekly;
+  const dailyTarget = weeklyTarget / 7;
+  const monthlyTarget = weeklyTarget * 52 / 12;
+  const refundScale = gross > 0 ? net / gross : 0;
+  const netByCategory = Object.fromEntries(
+    Object.entries(grossByCategory).map(([cat, amount]) => [cat, amount * refundScale])
+  );
+  const netCategoryTotal = Object.values(netByCategory).reduce((sum, amount) => sum + amount, 0);
+  const categoryBudgets = {};
+  if (netCategoryTotal > 0 && monthlyTarget > 0) {
+    for (const [cat, amount] of Object.entries(netByCategory)) {
+      const suggested = monthlyTarget * amount / netCategoryTotal;
+      categoryBudgets[cat] = Math.max(5, Math.round(suggested / 5) * 5);
+    }
+  }
+
+  return {
+    categoryBudgets,
+    weeklyTarget,
+    dailyTarget,
+    historyWeekly,
+    safeWeekly: safeLimit,
+    observedDays,
+    netSpend: net,
+    refunds,
+  };
+}
+
+function getSmartSpendingPlan() {
+  const { income, expense } = totals();
+  const balance = (state.startingBalance || 0) + income - expense;
+  const stopAt = parseFloat(state.weekly_plan?.stop_at || 0) || 0;
+  const bills = parseFloat(state.weekly_plan?.bills || 0) || 0;
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
+  const { weeksLeft } = monthWindow(now, monday);
+  const safeWeekly = dynamicSpendingLimit(balance, stopAt, bills, weeksLeft);
+  return analyzeSmartBudget(state.transactions, safeWeekly, now);
+}
+
+function showSmartBudgetPlanner() {
+  const plan = getSmartSpendingPlan();
+  if (!plan) {
+    _toast('Add at least two weeks of spending to build a smart budget.');
+    return;
+  }
+  if (plan.weeklyTarget <= 0 || !Object.keys(plan.categoryBudgets).length) {
+    _toast('Your safe spending limit is $0. Adjust your bills or minimum balance first.');
+    return;
+  }
+  const rows = Object.entries(plan.categoryBudgets)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cat, amount]) => `<div class="smart-plan-row"><span class="cat-dot" style="background:${catColor(cat, '#9896a4')}"></span><span>${_escHtml(cat)}</span><strong>${fmt(amount)}/mo</strong></div>`)
+    .join('');
+  const ov = document.createElement('div');
+  ov.className = 'smart-plan-overlay';
+  ov.innerHTML = `<div class="smart-plan-modal" role="dialog" aria-modal="true" aria-labelledby="smart-plan-title">
+    <div class="smart-plan-head"><div><span class="smart-plan-kicker">PREVIEW</span><h2 id="smart-plan-title">Suggested spending plan</h2></div><button class="smart-plan-close" aria-label="Close">×</button></div>
+    <div class="smart-plan-targets">
+      <div><span>Weekly target</span><strong>${fmt(plan.weeklyTarget)}</strong></div>
+      <div><span>Daily target</span><strong>${fmt(plan.dailyTarget)}</strong></div>
+    </div>
+    <div class="smart-plan-meta">Based on ${Math.round(plan.observedDays / 7)} weeks of recent spending</div>
+    <div class="smart-plan-rows">${rows}</div>
+    <div class="smart-plan-actions"><button class="btn-secondary" id="smart-plan-cancel">Cancel</button><button class="btn-primary" id="smart-plan-apply">Apply Plan</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.querySelector('.smart-plan-close').addEventListener('click', close);
+  ov.querySelector('#smart-plan-cancel').addEventListener('click', close);
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  ov.querySelector('#smart-plan-apply').addEventListener('click', async () => {
+    await api.saveBudgets({ ...state.budgets, ...plan.categoryBudgets });
+    await api.saveWeeklyPlan({
+      ...state.weekly_plan,
+      smart_target_weekly: plan.weeklyTarget,
+      smart_target_daily: plan.dailyTarget,
+      smart_plan_date: today(),
+    });
+    close();
+    render();
+    _toast('Smart budget applied.');
+  });
+}
+
 function renderBudgets() {
   const m = localMonthKey();
   const { bycat } = monthTotals(m);
@@ -7515,6 +7640,8 @@ function renderWeekly() {
   const wp = state.weekly_plan;
   const defStopAt  = wp.stop_at  ?? '0';
   const defBills   = wp.bills    ?? '0';
+  const smartWeekly = parseFloat(wp.smart_target_weekly || 0) || 0;
+  const smartDaily = parseFloat(wp.smart_target_daily || 0) || 0;
   const balance  = (state.startingBalance || 0) + income - expense;
   const balColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
   return `
@@ -7534,7 +7661,11 @@ function renderWeekly() {
         </div>
         <div id="wk-dh-body"></div>
       </div>
-      <h2 class="wk-sec">Your plan</h2>
+      <div class="wk-plan-heading">
+        <h2 class="wk-sec">Your plan</h2>
+        <button id="smart-budget-btn" class="smart-budget-btn">${smartWeekly > 0 ? 'Refresh suggestion' : 'Suggest my budget'}</button>
+      </div>
+      ${smartWeekly > 0 ? `<div class="smart-target-strip"><span>SMART SPENDING TARGET</span><strong>${fmt(smartWeekly)}/week</strong><i>${fmt(smartDaily)}/day</i></div>` : ''}
       <div class="form-card">
         <div class="form-row">
           <label class="form-label">Fixed bills still due ($)</label>
@@ -12612,6 +12743,7 @@ function attachWeekly() {
     document.getElementById(id)?.addEventListener('change', _debouncedCalc);
     document.getElementById(id)?.addEventListener('input',  _debouncedCalc);
   });
+  document.getElementById('smart-budget-btn')?.addEventListener('click', showSmartBudgetPlanner);
   document.getElementById('wk-save')?.addEventListener('click', async () => {
     const plan = {
       ...state.weekly_plan,

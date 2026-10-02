@@ -1,5 +1,14 @@
 [
  {
+  "version": "5.63.0",
+  "date": "2026-10-01",
+  "changes": [
+   "Added an on-device Smart Budget Planner that previews weekly, daily, and category targets from the most recent eight weeks of discretionary spending.",
+   "Smart plans exclude bills, transfers, and user-excluded purchases, subtract refunds, and never recommend a weekly target above the live safe-spending limit.",
+   "Applying a plan updates monthly category limits and keeps the smart weekly and daily spending targets visible in the Weekly Planner."
+  ]
+ },
+ {
   "version": "5.62.1",
   "date": "2026-10-01",
   "changes": [
