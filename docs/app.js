@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.63.3';
+const VERSION = '5.63.4';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -2631,12 +2631,35 @@ const api = {
 // ── recurring ──────────────────────────────────────────────────────────────
 async function processRecurring() {
   const currentMonth = localMonthKey();
-  const len = state.transactions.length;
-  for (let i = 0; i < len; i++) {
-    const t = state.transactions[i];
-    if (t.recurring === true && t.recur_month !== currentMonth) {
-      state.transactions.push({ ...t, date: currentMonth + '-01', recur_month: currentMonth });
-      state.transactions[i] = { ...t, recur_month: currentMonth };
+  const sources = new Map();
+  for (const t of state.transactions) {
+    if (t.recurring !== true) continue;
+    // Older monthly copies inherited the original timestamp and recurring flag.
+    // Keep one schedule per source, without removing any recorded money. Entries
+    // without an identity stay independent: matching labels alone aren't proof
+    // that two user-entered schedules are the same.
+    const sourceId = t._recurringSourceId || (t.ts != null
+      ? JSON.stringify(['monthly', currentAccountId, t.ts, t.type, t.amount, t.category, t.description])
+      : 'monthly-' + crypto.randomUUID());
+    t._recurringSourceId = sourceId;
+    const source = sources.get(sourceId);
+    const postedMonth = [t.recur_month || '', (t.date || '').slice(0, 7)].sort().pop();
+    if (source) {
+      t.recurring = false;
+      source.recur_month = [source.recur_month || '', postedMonth].sort().pop();
+    } else {
+      t.recur_month = postedMonth;
+      sources.set(sourceId, t);
+    }
+  }
+  let nextStamp = state.transactions.reduce((max, t) => Math.max(max, Number(t.ts) || 0), Date.now());
+  for (const t of sources.values()) {
+    if (t.recur_month < currentMonth) {
+      state.transactions.push({
+        ...t, date: currentMonth + '-01', recur_month: currentMonth,
+        recurring: false, ts: ++nextStamp,
+      });
+      t.recur_month = currentMonth;
     }
   }
   // Monthly interest for credit/loan accounts (current account only)

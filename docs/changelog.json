@@ -1,5 +1,13 @@
 [
  {
+  "version": "5.63.4",
+  "date": "2026-10-07",
+  "changes": [
+   "Fixed monthly recurring entries multiplying each month and inflating income or expenses. Each identified schedule now adds just one entry per month, including after reopening the app.",
+   "Existing recurring copies sharing the original entry's timestamp now use one schedule. Your recorded transactions and amounts are preserved; review any past unwanted entries in the Ledger."
+  ]
+ },
+ {
   "version": "5.63.3",
   "date": "2026-10-02",
   "changes": [
