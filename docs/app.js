@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.63.4';
+const VERSION = '5.63.5';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -2533,6 +2533,9 @@ function _loadAccountData(id) {
   state.goals           = d.goals           || [];
   state.challenges      = d.challenges      || [];
   state.startingBalance = parseFloat(d.startingBalance) || 0;
+  // Every load replaces the calculation inputs, including direct Accounts-page
+  // switches, browser-back navigation, and restores of the same account ID.
+  _calcVer++;
 }
 
 const api = {
@@ -2576,7 +2579,6 @@ const api = {
   async switchAccount(id, useSkeleton = false) {
     currentAccountId = id;
     _loadAccountData(id);
-    _calcVer++; // new account's transactions — invalidate memos
     updateAccountSwitcher();
     currentTab = 'dashboard'; // always land on dashboard when switching accounts
     // Rebuild the bottom nav for this account (e.g. hide Weekly for debt accounts)
