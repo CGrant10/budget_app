@@ -1,5 +1,12 @@
 [
  {
+  "version": "5.63.5",
+  "date": "2026-10-07",
+  "changes": [
+   "Fixed stale balances after switching accounts from the Accounts page, returning with the back button, or restoring a backup. Each account load now refreshes its balance, totals, and running-balance calculations immediately."
+  ]
+ },
+ {
   "version": "5.63.4",
   "date": "2026-10-07",
   "changes": [
