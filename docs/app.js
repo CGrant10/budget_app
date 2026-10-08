@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.63.5';
+const VERSION = '5.64.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -192,7 +192,7 @@ const THEMES = {
   mintlinux: {
     label: 'Linux Mint',
     bg: '#1c2128', surface: '#22272e', surface2: '#2d333b', card: '#22272e',
-    text: '#adbac7', muted: '#768390', border: '#373e47',
+    text: '#adbac7', muted: '#97a5b3', border: '#373e47',
     accent: '#87cf3e', accent2: '#5fa832', success: '#87cf3e', warn: '#d9a520', danger: '#e05252',
     grad: 'linear-gradient(135deg, #1c3010 0%, #87cf3e 100%)',
     font: 'default',
@@ -695,6 +695,10 @@ function _txnFlavor(isExpense, isTransfer, isPaycheck) {
 
 function _showTxnAnim(type, amount, desc, acctId, cat) {
   document.getElementById('txn-anim')?.remove();
+  if (!loadSettings().transactionEffects || _reduceMotion()) {
+    showAlert(`${type === 'transfer' ? 'Transfer recorded' : type === 'income' ? 'Income added' : 'Expense added'} · ${fmt(amount)}`);
+    return;
+  }
 
   const isExpense  = type === 'expense';
   const isTransfer = type === 'transfer';
@@ -1410,7 +1414,7 @@ function _skBills(sk) {
   const total = upcoming.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
   const rows = upcoming.slice(0, SK_BILLS_SHOWN).map(b => {
     const d    = getDaysUntilDue(b.dueDay);
-    const when = d === 0 ? 'today' : d === 1 ? 'tomorrow' : `in ${d} days`;
+    const when = billDueLabel(d);
     // Only the genuinely imminent ones get colour; everything else stays neutral
     // so the row doesn't read as a wall of warnings.
     const urgent = d <= 2 ? ' urgent' : d <= 5 ? ' soon' : '';
@@ -1504,6 +1508,7 @@ function renderDashboardSkinned(sk) {
         <span class="sk-cur">${bal.cur}</span>${bal.whole}<span class="sk-cents">.${bal.cents}</span>
       </div>
       ${_skRunway(sk)}
+      ${!sk.isPastDash ? budgetReserveHtml(sk.balance, sk.stopAt, sk.billsLeft, billsStillDueTotal()) : ''}
     </div>
 
     <div class="dawg-month-nav sk-mnav">
@@ -1748,14 +1753,26 @@ function _stampButtonFill() {
 
 // Applies a beta skin. Must run AFTER applyTheme(), which resets body.light and
 // theme-color from the theme — the skin gets the last word on both.
+function _stampMutedContrast() {
+  const css = getComputedStyle(document.body);
+  let muted = css.getPropertyValue('--muted').trim();
+  for (const token of ['--bg', '--surface', '--surface2', '--card']) {
+    muted = _shiftToContrast(muted, css.getPropertyValue(token).trim());
+  }
+  document.documentElement.style.setProperty('--muted', muted);
+  document.body.style.setProperty('--muted', muted);
+}
+
 function applySkin(key) {
   const skin = SKINS[key];
+  document.body.style.removeProperty('--muted');
   document.body.classList.remove(...Object.keys(SKINS).map(k => 'skin-' + k));
   document.body.classList.toggle('skinned', !!skin);
   if (!skin) {
     // No skin: the page background is the theme's own, which applyTheme just stamped.
     _stampSkinSafeColors(document.documentElement.style.getPropertyValue('--bg').trim());
     _stampInkTokens();
+    _stampMutedContrast();
     return;
   }
   document.body.classList.add('skin-' + key);
@@ -1773,6 +1790,7 @@ function applySkin(key) {
   // the ink for filled buttons from the deepened value — not the authored one.
   _stampSkinSafeColors(skin.bg);
   _stampInkTokens();
+  _stampMutedContrast();
 }
 
 const NAV_ITEMS = [
@@ -3749,6 +3767,8 @@ let ledgerDateFrom = '';
 let ledgerDateTo = '';
 let _ledgerShowAll = false;          // when true, render the full filtered list (past the cap)
 const LEDGER_CAP = 300;              // max rows put in the DOM at once before a "Show all" button
+let ledgerFiltersOpen = false;
+let ledgerToolsOpen = false;
 let ledgerAllAccounts = false;       // when true, the ledger searches across every account (read-only)
 let _ledgerSelectMode = false;       // multi-select mode in the transactions ledger
 let _ledgerSelected = new Set();     // real indices (_i) into state.transactions
@@ -4146,14 +4166,37 @@ function checkWeekMilestone() {
 }
 
 // ── bills helpers ──────────────────────────────────────────────────────────
-function getDaysUntilDue(dueDay) {
-  const now = new Date(); now.setHours(0, 0, 0, 0);
-  const thisMonth = new Date(now.getFullYear(), now.getMonth(), dueDay);
-  if (thisMonth < now) {
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, dueDay);
-    return Math.ceil((nextMonth - now) / 86400000);
-  }
-  return Math.ceil((thisMonth - now) / 86400000);
+function billDueDay(dueDay, monthKey = localMonthKey()) {
+  const [year, month] = monthKey.split('-').map(Number);
+  return Math.min(Math.max(1, Number(dueDay) || 1), new Date(year, month, 0).getDate());
+}
+function getDaysUntilDue(dueDay, monthKey = localMonthKey()) {
+  const now = new Date();
+  const [year, month] = monthKey.split('-').map(Number);
+  // Unpaid bills belong to the selected month. A past due date is overdue,
+  // not next month's bill. UTC day arithmetic avoids daylight-saving offsets.
+  return (Date.UTC(year, month - 1, billDueDay(dueDay, monthKey)) -
+    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000;
+}
+function billDueLabel(days) {
+  if (days < 0) return `Overdue by ${Math.abs(days)} day${days === -1 ? '' : 's'}`;
+  return days === 0 ? 'Due today' : days === 1 ? 'Due tomorrow' : `in ${days} days`;
+}
+
+function budgetReserveHtml(balance, buffer, bills, trackedBills) {
+  const available = Math.max(0, balance - buffer - bills);
+  const mismatch = Math.abs(trackedBills - bills) >= 0.01;
+  return `<details class="reserve-explanation">
+    <summary>How your spending plan is calculated</summary>
+    <div class="reserve-explanation-body">
+      <div><span>Current balance</span><strong>${fmt(balance)}</strong></div>
+      <div><span>Protected buffer</span><strong>−${fmt(buffer)}</strong></div>
+      <div><span>Manual bills reserve</span><strong>−${fmt(bills)}</strong></div>
+      <div class="reserve-result"><span>Available for your plan</span><strong>${fmt(available)}</strong></div>
+      <p>The bills reserve is set in Weekly. ${mismatch ? `Your tracked unpaid bills total ${fmt(trackedBills)}; they do not automatically change this reserve.` : 'Your tracked unpaid bills match this reserve.'} Allowances use the days left in this month.</p>
+      <button type="button" class="btn-secondary" data-plan-review>Review spending plan</button>
+    </div>
+  </details>`;
 }
 
 function getUpcomingBills(days = 7) {
@@ -4670,7 +4713,7 @@ function renderAccountPicker() {
       ? `<span class="acct-card-move" style="color:${helps ? 'var(--success)' : 'var(--danger)'}">${move >= 0 ? '+' : '−'}${fmt(Math.abs(move))}</span>`
       : '<span class="acct-card-move acct-card-move--flat">no change</span>';
     return `
-      <div class="acct-row acct-card" data-id="${acct.id}" style="--acct-c:${stripe}">
+      <button type="button" class="acct-row acct-card" data-id="${acct.id}" style="--acct-c:${stripe}" aria-label="${_escHtml(acct.name)}, ${_escHtml(balLabel)}">
         <div class="acct-card-top">
           <span class="acct-card-name"><span class="acct-card-dot"></span>${_escHtml(acct.name)}</span>
           <span class="acct-row-type acct-card-type">${typeLbl}</span>
@@ -4680,7 +4723,7 @@ function renderAccountPicker() {
           <span>${last ? _relDayLabel(last) : 'no activity yet'}</span>
           ${moveHtml}
         </div>
-      </div>`;
+      </button>`;
   };
   const GROUPS = [
     { label: 'Cash',      types: ['checking','savings','cash'] },
@@ -5483,7 +5526,7 @@ const DEFAULT_DASH_LAYOUT = [
   { id: 'goals',          size: 'full', visible: true  },
   { id: 'transactions',   size: 'full', visible: true  },
   { id: 'networth',       size: 'full', visible: false },
-  { id: 'bills-upcoming', size: 'full', visible: false },
+  { id: 'bills-upcoming', size: 'full', visible: true  },
   { id: 'debt-summary',   size: 'full', visible: false },
   { id: 'weekly-plan',    size: 'half', visible: false },
   { id: 'budgets-cats',   size: 'full', visible: false },
@@ -6098,6 +6141,18 @@ function renderDashboardDawg() {
       ${paymentDueStr ? `<div class="dawg-balance-due" style="color:${parseInt(_curAcctD?.payment_due_day)>0&&Math.round((new Date(new Date().getFullYear(),new Date().getMonth(),parseInt(_curAcctD.payment_due_day))-new Date())/86400000)<=3?'var(--warn)':'var(--muted)'}">${paymentDueStr}</div>` : ''}
       ${_isDebt ? `<div class="dawg-balance-delta" style="color:${deltaColor}">${deltaStr}</div>` : ''}
       ${isPastDash ? '' : '<button id="dash-reconcile" class="dash-reconcile-btn"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Reconcile to bank</button>'}
+      ${!_isDebt && !isPastDash ? `<div class="dashboard-decisions">
+        <button type="button" id="dash-open-weekly" class="dashboard-decision">
+          <span>Left to spend this week</span>
+          <strong>${fmt(_belowBuffer ? 0 : Math.max(0, _livePerWeek - weekSpent))}</strong>
+          <small>${fmt(weekSpent)} spent this week</small>
+        </button>
+        <button type="button" id="dash-open-bills" class="dashboard-decision">
+          <span>Unpaid bills</span><strong>${fmt(_trackedBillsDue)}</strong>
+          <small>${state.bills.some(b => !isBillPaidFor(b, localMonthKey()) && getDaysUntilDue(b.dueDay) < 0) ? 'Includes overdue bills' : 'This month'}</small>
+        </button>
+      </div>
+      ${budgetReserveHtml(_dashLiveBal, _dashStopAt, _dashBills, _trackedBillsDue)}` : ''}
       <div class="dawg-sparkline-wrap"><canvas id="dawg-sparkline"></canvas></div>
       <div class="dawg-time-btns">
         <span class="dawg-tbtn-pill"></span>
@@ -6255,8 +6310,8 @@ function renderDashboardDawg() {
           const _billTotal = _unpaid.reduce((s,b) => s + b.amount, 0);
           const _billRows  = _unpaid.map(b => {
             const _d    = getDaysUntilDue(b.dueDay);
-            const _col  = _d === 0 ? 'var(--danger)' : _d <= 3 ? 'var(--warn)' : 'var(--muted)';
-            const _dlbl = _d === 0 ? 'TODAY' : _d === 1 ? 'TOMORROW' : `${_d}d`;
+            const _col  = _d < 0 ? 'var(--danger)' : _d <= 3 ? 'var(--warn)' : 'var(--muted)';
+            const _dlbl = _d < 0 ? 'OVERDUE' : _d === 0 ? 'TODAY' : _d === 1 ? 'TOMORROW' : `${_d}d`;
             return `<div class="dawg-bill-row">
               <span class="dawg-bill-name">${_escHtml(b.name)}</span>
               <span class="dawg-bill-due" style="color:${_col}">${_dlbl}</span>
@@ -6428,7 +6483,7 @@ function renderDashboardDawg() {
         const cls = isTile ? 'dawg-budget-tile' : 'dawg-section-card';
         return `<div class="dawg-tile-wrap ${cls}" data-id="${t.id}" data-size="${t.size}">${_tileHtml[t.id]}</div>`;
       };
-      const primaryIds = new Set(['budget-week', 'budget-day']);
+      const primaryIds = new Set(['budget-week', 'budget-day', 'bills-upcoming', 'transactions']);
       const primaryTiles = visibleTiles.filter(t => primaryIds.has(t.id));
       const secondaryTiles = visibleTiles.filter(t => !primaryIds.has(t.id));
       const collapseSecondary = !_isDebt && !isSimpleMode() && primaryTiles.length > 0 && secondaryTiles.length > 0;
@@ -7218,7 +7273,7 @@ function renderAdd() {
     <div class="page">
       <h1 class="page-title">Add Entry</h1>
       <p class="page-sub">record income or expense</p>
-      <div class="form-card">
+      <div class="form-card entry-card">
         ${(() => {
           const tmpls = getCommonTemplates();
           if (!tmpls.length) return '';
@@ -7242,25 +7297,49 @@ function renderAdd() {
           </div>
         </div>
         <div class="form-row">
-          <label class="form-label">Amount ($)</label>
+          <label class="form-label" for="add-amount">Amount ($)</label>
           <div class="amount-wrap">
-            <input type="number" id="add-amount" class="form-input" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
+            <input type="number" id="add-amount" aria-describedby="add-amount-error" class="form-input" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
             <button type="button" id="add-calc-btn" class="calc-trigger" aria-label="Open calculator" title="Calculator">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8" y2="11"/><line x1="12" y1="11" x2="12" y2="11"/><line x1="16" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="8" y2="15"/><line x1="12" y1="15" x2="12" y2="15"/><line x1="16" y1="15" x2="16" y2="18"/></svg>
             </button>
           </div>
+          <div id="add-amount-error" class="form-status" aria-live="polite"></div>
         </div>
         <div class="form-row" id="add-desc-row">
-          <label class="form-label">Description</label>
+          <label class="form-label" for="add-desc">Description</label>
           <input type="text" id="add-desc" class="form-input" placeholder="What was this for?" list="desc-suggestions" autocomplete="off">
           <datalist id="desc-suggestions">${_descSugg}</datalist>
         </div>
         <div class="form-row" id="add-cat-row">
-          <label class="form-label">Category</label>
+          <label class="form-label" for="add-cat">Category</label>
           <div style="flex:1">
             <select id="add-cat" class="form-input">${getCategories().map(c=>`<option value="${_escHtml(c)}">${_escHtml(c)}</option>`).join('')}<option value="__custom__">Custom…</option></select>
-            <input type="text" id="add-cat-custom" class="form-input" placeholder="Type custom category" style="display:none;margin-top:6px">
+            <input type="text" id="add-cat-custom" aria-label="Custom category" class="form-input" placeholder="Type custom category" style="display:none;margin-top:6px">
           </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="add-acct">From Account</label>
+          <select id="add-acct" class="form-input form-select">${acctOptions}</select>
+        </div>
+        <div class="form-row" id="add-to-acct-row" style="display:none">
+          <label class="form-label" for="add-to-acct">To / Pay</label>
+          <select id="add-to-acct" class="form-input form-select">${toAcctOptions}</select>
+        </div>
+        <details class="entry-options" id="add-options">
+          <summary>More options <span>Date, split &amp; recurring</span></summary>
+          <div class="entry-options-body">
+        <div class="form-row">
+          <label class="form-label" for="add-date">Date</label>
+          <input type="date" id="add-date" class="form-input" value="${today()}">
+        </div>
+        <div class="form-row" id="add-recurring-row"${_adv}>
+          <label class="form-label">Recurring</label>
+          <label class="radio-label"><input type="checkbox" id="add-recurring"> Auto-add monthly</label>
+        </div>
+        <div class="form-row" id="add-exclude-row"${_adv}>
+          <label class="form-label">Weekly budget</label>
+          <label class="radio-label"><input type="checkbox" id="add-exclude-budget"> Don't count toward weekly spending</label>
         </div>
         <div class="form-row" id="add-split-row"${_adv}>
           <label class="form-label" style="align-self:flex-start;padding-top:2px">Split</label>
@@ -7275,27 +7354,9 @@ function renderAdd() {
             </div>
           </div>
         </div>
-        <div class="form-row">
-          <label class="form-label">From Account</label>
-          <select id="add-acct" class="form-input form-select">${acctOptions}</select>
-        </div>
-        <div class="form-row" id="add-to-acct-row" style="display:none">
-          <label class="form-label">To / Pay</label>
-          <select id="add-to-acct" class="form-input form-select">${toAcctOptions}</select>
-        </div>
-        <div class="form-row">
-          <label class="form-label">Date</label>
-          <input type="date" id="add-date" class="form-input" value="${today()}">
-        </div>
-        <div class="form-row" id="add-recurring-row"${_adv}>
-          <label class="form-label">Recurring</label>
-          <label class="radio-label"><input type="checkbox" id="add-recurring"> Auto-add monthly</label>
-        </div>
-        <div class="form-row" id="add-exclude-row"${_adv}>
-          <label class="form-label">Weekly budget</label>
-          <label class="radio-label"><input type="checkbox" id="add-exclude-budget"> Don't count toward weekly spending</label>
-        </div>
-        <div id="add-status" class="form-status"></div>
+          </div>
+        </details>
+        <div id="add-status" class="form-status" role="status"></div>
         <button id="add-btn" class="btn-primary">Add Transaction</button>
       </div>
     </div>`;
@@ -7303,6 +7364,10 @@ function renderAdd() {
 
 // ── ledger ─────────────────────────────────────────────────────────────────
 function renderLedger() {
+  // Read live disclosure state before replacing the page. Native toggle events
+  // can be queued after a fast filter change or a page transition.
+  ledgerFiltersOpen = document.getElementById('ledger-filter-options')?.open ?? ledgerFiltersOpen;
+  ledgerToolsOpen = document.getElementById('ledger-tools-options')?.open ?? ledgerToolsOpen;
   const cats = getCategories();
   const density = loadSettings().ledgerDensity === 'compact' ? 'compact' : 'comfortable';
   const catOptFilter = cats.map(c =>
@@ -7390,8 +7455,13 @@ function renderLedger() {
           <div class="ledger-right">
             <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
             <div class="ledger-running-bal">bal: ${fmt(runBal[t._i])}</div>
-            <button class="ledger-edit-btn" data-idx="${t._i}" title="Edit" aria-label="Edit ${_escHtml(t.description||'transaction')}">✏️</button>
-            <button class="ledger-delete" data-idx="${t._i}" aria-label="Delete ${_escHtml(t.description||'transaction')}">✕</button>
+            <details class="ledger-row-actions">
+              <summary aria-label="Actions for ${_escHtml(t.description || 'transaction')}">⋯</summary>
+              <div>
+                <button class="ledger-edit-btn" data-idx="${t._i}" aria-label="Edit ${_escHtml(t.description||'transaction')}">Edit</button>
+                <button class="ledger-delete" data-idx="${t._i}" aria-label="Delete ${_escHtml(t.description||'transaction')}">Delete</button>
+              </div>
+            </details>
           </div>
         </div>
         <div class="ledger-inline-edit">
@@ -7421,12 +7491,17 @@ function renderLedger() {
       <p class="page-sub">${rows.length} ${ledgerView === 'bills' ? 'bill' : 'transaction'}${rows.length !== 1 ? 's' : ''}${_crossAcct ? ' · all accounts (read-only)' : ''}</p>
       <div class="ledger-view-tabs">
         <button class="lv-tab${ledgerView === 'transactions' ? ' active' : ''}" data-view="transactions">Transactions${_allTxnRows.length ? ` <span class="lv-count">${_allTxnRows.length}</span>` : ''}</button>
-        <button class="lv-tab${ledgerView === 'bills' ? ' active' : ''}" data-view="bills">Bills${_allBillRows.length ? ` <span class="lv-count">${_allBillRows.length}</span>` : ''}</button>
+        <button class="lv-tab${ledgerView === 'bills' ? ' active' : ''}" data-view="bills">Bill payments${_allBillRows.length ? ` <span class="lv-count">${_allBillRows.length}</span>` : ''}</button>
       </div>
       <div class="ledger-filter-bar">
         <div class="lf-row1">
-          <input type="search" id="ledger-search" class="form-input lf-search" placeholder="Search…" value="${ledgerFilter}">
-          <select id="ledger-sort" class="form-input lf-sort">
+          <input type="search" id="ledger-search" class="form-input lf-search" placeholder="Search…" value="${_escHtml(ledgerFilter)}" aria-label="Search transactions">
+        </div>
+        <details id="ledger-filter-options" class="ledger-options"${ledgerFiltersOpen ? ' open' : ''}>
+          <summary>Filters <span>${[ledgerTypeFilter !== 'all', !!ledgerCatFilter, !!ledgerDateFrom, !!ledgerDateTo, ledgerAllAccounts].filter(Boolean).length || ''}</span></summary>
+          <div class="ledger-options-body">
+          <div class="lf-row1">
+          <select id="ledger-sort" aria-label="Sort transactions" class="form-input lf-sort">
             <option value="date-desc"${ledgerSort === 'date-desc' ? ' selected' : ''}>Newest</option>
             <option value="date-asc"${ledgerSort === 'date-asc' ? ' selected' : ''}>Oldest</option>
             <option value="amount-desc"${ledgerSort === 'amount-desc' ? ' selected' : ''}>$ High</option>
@@ -7441,22 +7516,27 @@ function renderLedger() {
             <button class="type-pill${ledgerTypeFilter === 'income' ? ' active' : ''}" data-type="income">Income</button>
             <button class="type-pill${ledgerTypeFilter === 'expense' ? ' active' : ''}" data-type="expense">Expense</button>
           </div>
-          <select id="ledger-cat-filter" class="form-input lf-cat">
-            <option value="">All Cats</option>
+          <select id="ledger-cat-filter" aria-label="Filter by category" class="form-input lf-cat">
+            <option value="">All categories</option>
             ${catOptFilter}
           </select>
         </div>
         <div class="lf-row3">
-          <input type="date" id="ledger-date-from" class="form-input lf-date" value="${ledgerDateFrom}" title="From date">
+          <input type="date" id="ledger-date-from" class="form-input lf-date" value="${ledgerDateFrom}" aria-label="From date">
           <span class="lf-dash">—</span>
-          <input type="date" id="ledger-date-to" class="form-input lf-date" value="${ledgerDateTo}" title="To date">
+          <input type="date" id="ledger-date-to" class="form-input lf-date" value="${ledgerDateTo}" aria-label="To date">
         </div>
-        <div class="lf-row4">
+          </div>
+        </details>
+        <details id="ledger-tools-options" class="ledger-options"${ledgerToolsOpen || _ledgerSelectMode ? ' open' : ''}>
+          <summary>Tools</summary>
+          <div class="ledger-options-body lf-row4">
           <button id="ledger-export-csv" class="btn-xs"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</button>
           <button id="ledger-find-dupes" class="btn-xs" title="Scan for duplicate transactions"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Duplicates</button>
           <button id="ledger-find-amount" class="btn-xs" title="Find transactions that add up to an amount"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Find $</button>
           ${ledgerView !== 'bills' && !_crossAcct ? `<button id="ledger-select-toggle" class="btn-xs${_ledgerSelectMode ? ' btn-xs-active' : ''}" title="Select multiple to delete or recategorize"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>${_ledgerSelectMode ? 'Cancel' : 'Select'}</button>` : ''}
         </div>
+        </details>
         ${(ledgerFilter || ledgerTypeFilter !== 'all' || ledgerCatFilter || ledgerDateFrom || ledgerDateTo)
           ? `<button id="ledger-clear-filters" class="lf-clear-btn">✕ Clear filters</button>` : ''}
       </div>
@@ -7464,7 +7544,7 @@ function renderLedger() {
         ${rowsHtml || (state.transactions.length === 0
           ? emptyState('No transactions yet', 'Tap Add to log your first one')
           : ledgerView === 'bills'
-            ? '<p style="padding:24px 0;text-align:center;color:var(--muted);font-size:.85rem">No bills logged yet — tap "Mark Paid" on a bill in the Bills tab</p>'
+            ? '<p style="padding:24px 0;text-align:center;color:var(--muted);font-size:.85rem">No bill payments yet. Mark a bill paid in Menu → Bills and choose Log &amp; Deduct.</p>'
             : '<p style="padding:24px 0;text-align:center;color:var(--muted);font-size:.85rem">No matching transactions</p>')}
         ${capped ? `<button id="ledger-show-all" class="lf-clear-btn" style="margin:12px auto 0;display:block">Show all ${totalRows} ${ledgerView === 'bills' ? 'bills' : 'transactions'} (showing ${LEDGER_CAP})</button>` : ''}
       </div>
@@ -7827,8 +7907,9 @@ function monthKeyLabel(mKey) {
 // Badge for a bill card. Urgency (TODAY / in Nd) only shown for the current month.
 function billBadgeHtml(b, mKey, isCurrentMonth) {
   if (isBillPaidFor(b, mKey)) return '<span class="bill-badge paid">PAID</span>';
-  if (!isCurrentMonth)        return `<span class="bill-badge upcoming">day ${b.dueDay}</span>`;
-  const d = getDaysUntilDue(b.dueDay);
+  const d = getDaysUntilDue(b.dueDay, mKey);
+  if (d < 0) return '<span class="bill-badge overdue">OVERDUE</span>';
+  if (!isCurrentMonth) return `<span class="bill-badge upcoming">day ${billDueDay(b.dueDay, mKey)}</span>`;
   if (d === 0) return '<span class="bill-badge due-today">TODAY</span>';
   if (d <= 3)  return `<span class="bill-badge due-soon">in ${d}d</span>`;
   if (d <= 7)  return `<span class="bill-badge upcoming-soon">in ${d}d</span>`;
@@ -8377,7 +8458,7 @@ function renderBills() {
     const todayD   = isCurMonth ? new Date().getDate() : -1;
     // Map dueDay -> bills
     const billsByDay = {};
-    state.bills.forEach(b => { (billsByDay[b.dueDay] = billsByDay[b.dueDay] || []).push(b); });
+    state.bills.forEach(b => { (billsByDay[billDueDay(b.dueDay, m)] = billsByDay[billDueDay(b.dueDay, m)] || []).push(b); });
     const dayHdrs = ['S','M','T','W','T','F','S'].map(d => `<div class="bcal-hdr">${d}</div>`).join('');
     let cells = '';
     for (let i = 0; i < firstDay; i++) cells += '<div class="bcal-cell"></div>';
@@ -8422,7 +8503,7 @@ function renderBills() {
       <div class="bsum-div"></div>
       <div class="bsum-blk">
         <div class="bsum-k">Paid</div>
-        <div class="bsum-v" style="color:var(--success)">${fmt(totalPaid)}</div>
+        <div id="bills-paid-total" class="bsum-v" style="color:var(--success)">${fmt(totalPaid)}</div>
       </div>
     </div>`;
 
@@ -8468,6 +8549,19 @@ function renderBills() {
       ` : ''}
       ${addFormHtml}
     </div>`;
+}
+
+function refreshBillsView(billIndex) {
+  const day = document.querySelector('.bcal-selected')?.dataset.day;
+  const main = document.getElementById('main-content');
+  const scroll = main?.scrollTop || 0;
+  rerenderKeepScroll();
+  if (day) document.querySelector(`#bcal-grid [data-day="${day}"]`)?.click();
+  if (main) main.scrollTop = scroll;
+  const focus = day
+    ? document.querySelector(`#bcal-day-detail [data-bidx="${billIndex}"]`)
+    : document.querySelector(`.bill-paid-btn[data-idx="${billIndex}"]`);
+  focus?.focus({ preventScroll: true });
 }
 
 function attachBills() {
@@ -8552,33 +8646,7 @@ function attachBills() {
       const m    = billsMonth;
       const isCurMonth = m === curMonthKey();
 
-      // Update just the card DOM — no render(), no scroll jump
-      const refreshCard = () => {
-        const b2     = state.bills[i];
-        const isPaid = isBillPaidFor(b2, m);
-        const card   = btn.closest('.bill-card');
-        if (!card) return;
-        card.classList.toggle('bill-card-paid', isPaid);
-        const badgeEl = card.querySelector('.bill-badge');
-        if (badgeEl) badgeEl.outerHTML = billBadgeHtml(b2, m, isCurMonth);
-        btn.innerHTML = isPaid ? '↩ Mark Unpaid' : '✓ Mark Paid';
-        btn.dataset.paid = String(isPaid);
-        btn.classList.toggle('bill-unpaid-btn', isPaid);
-        const stillDue   = state.bills.filter(b => !isBillPaidFor(b, m)).reduce((s, b) => s + b.amount, 0);
-        const stillDueEl = document.getElementById('bills-still-due');
-        if (stillDueEl) {
-          stillDueEl.textContent   = fmt(stillDue);
-          stillDueEl.style.color   = stillDue > 0 ? 'var(--warn)' : 'var(--success)';
-        }
-        const calCell = document.querySelector(`#bcal-grid .bcal-cell[data-day="${b2.dueDay}"]`);
-        if (calCell) {
-          const dayBills = state.bills.filter(b => b.dueDay === b2.dueDay);
-          const allPaid  = dayBills.length > 0 && dayBills.every(b => isBillPaidFor(b, m));
-          calCell.classList.toggle('bill-paid', allPaid);
-          calCell.classList.toggle('bill-due',  !allPaid);
-        }
-        updateBillBadge();
-      };
+      const refreshCard = () => refreshBillsView(i);
 
       if (paid) {
         // Marking unpaid — remove this month's logged expense (if one was logged)
@@ -8710,7 +8778,7 @@ function attachBills() {
   document.querySelectorAll('#bcal-grid .bcal-cell[data-day]').forEach(cell => {
     cell.addEventListener('click', () => {
       const day = parseInt(cell.dataset.day);
-      const bills = state.bills.filter(b => b.dueDay === day);
+      const bills = state.bills.filter(b => billDueDay(b.dueDay, curM2) === day);
       if (!bills.length) return;
 
       // Toggle off if clicking the same day
@@ -8762,19 +8830,7 @@ function attachBills() {
             if (state.bills[bi].linkedAccountId) await postLoanPayment(state.bills[bi], curM2);
           }
           await api.saveBills(state.bills);
-          // Re-render detail without full page render
-          btn.dataset.paid = String(!wasPaid);
-          if (!wasPaid) {
-            btn.textContent = '✓ Paid';
-            btn.style.cssText = 'background:rgba(50,215,75,.15);color:var(--success);border-color:rgba(50,215,75,.3)';
-            cell.classList.remove('bill-due');
-            cell.classList.add('bill-paid');
-          } else {
-            btn.textContent = 'Mark Paid';
-            btn.style.cssText = '';
-            cell.classList.remove('bill-paid');
-            cell.classList.add('bill-due');
-          }
+          refreshBillsView(bi);
         });
       });
     });
@@ -9567,7 +9623,7 @@ async function checkBillNotifications() {
   const reg = await navigator.serviceWorker?.ready.catch(() => null);
   due.forEach(b => {
     const d = getDaysUntilDue(b.dueDay);
-    const when = d === 0 ? 'due TODAY' : `due in ${d} day${d===1?'':'s'}`;
+    const when = billDueLabel(d);
     const opts = { body: `${fmt(b.amount)} — ${when}`, icon: 'icon-192.png', badge: 'icon-192.png', tag: `bill-${b.id||b.name}` };
     if (reg) reg.showNotification(`📑 ${b.name}`, opts);
     else new Notification(`📑 ${b.name}`, opts);
@@ -10045,6 +10101,14 @@ function renderSettings() {
         </div>
         </div>
 
+        <div class="set-row" data-keys="transaction animation effects confirmation purchase income">
+          <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="transaction-effects-settings"${s.transactionEffects ? ' checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
+            Animated transaction confirmations
+          </label>
+          <p class="code-hint">Show your theme’s celebration after saving. Off uses a short confirmation. Reduce motion takes precedence.</p>
+        </div>
+
         <div class="set-row" data-keys="screenshot demo fake invented numbers share zero privacy">
           <label class="form-label" style="margin-bottom:8px">Screenshot mode</label>
           <p class="code-hint" style="margin-bottom:10px">Replaces every figure in the app with invented ones that add up, so you can screenshot the look without showing your own finances. Your real data is set aside untouched and comes straight back when you turn this off — and it always comes back by itself next time you open the app.</p>
@@ -10416,6 +10480,12 @@ function attachSettings() {
     document.body.classList.toggle('fx-reduced', e.target.checked);
   });
 
+  document.getElementById('transaction-effects-settings')?.addEventListener('change', e => {
+    const s = loadSettings();
+    s.transactionEffects = e.target.checked;
+    saveSettings(s);
+  });
+
   document.getElementById('hide-amounts-settings')?.addEventListener('change', e => {
     const s = loadSettings();
     s.hideAmounts = e.target.checked;
@@ -10517,20 +10587,9 @@ function _fmtCurrency(n) {
 }
 let _shownNegativePopup = false;
 function showNegativeBalancePopup() {
-  if (document.getElementById('neg-balance-popup')) return;
-  const el = document.createElement('div');
-  el.id = 'neg-balance-popup';
-  el.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
-  el.innerHTML = `
-    <div style="background:var(--card);border:2px solid var(--danger);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.6)">
-      <div style="font-size:1rem;font-weight:900;color:var(--danger);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Get your shit together, man</div>
-      <p style="font-size:.83rem;color:var(--muted);margin:0 0 20px;line-height:1.55">Your balance just went negative. Time to lock tf in and get those finances right.</p>
-      <button id="neg-bal-dismiss" style="background:var(--danger);color:var(--on-danger);border:none;border-radius:10px;padding:10px 28px;font-size:.9rem;font-weight:800;cursor:pointer;font-family:var(--font-body);text-transform:uppercase;letter-spacing:.04em">I got it</button>
-    </div>`;
-  document.body.appendChild(el);
-  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
-  document.getElementById('neg-bal-dismiss')?.addEventListener('click', () => el.remove());
+  showAlert('Your balance is below zero. Review your transactions or reconcile it with your bank.');
 }
+
 const _ACCT_SVG = {
   checking: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 22 7 2 7"/></svg>`,
   savings:  `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="18"/><path d="M15 9a3 3 0 0 0-6 0c0 3 6 3 6 6a3 3 0 0 1-6 0"/></svg>`,
@@ -11462,8 +11521,8 @@ function getDawgNotifications() {
   (state.bills||[]).forEach(b => {
     if (isBillPaidFor(b, curMonth)) return; // already paid this month
     const d = getDaysUntilDue(b.dueDay);
-    if (d >= 0 && d <= 3) {
-      notes.push({ type:'bill', icon:'📄', title:`${b.name} due`, body: d===0 ? 'Due today!' : `Due in ${d} day${d===1?'':'s'}` });
+    if (d <= 3) {
+      notes.push({ type:'bill', icon:'📄', title:`${b.name} ${d < 0 ? 'overdue' : 'due'}`, body: billDueLabel(d) });
     }
   });
   const { expense: _mExp } = monthTotals(curMonth);
@@ -11596,6 +11655,9 @@ function showDashboardLimitMath(kind = 'daily') {
 }
 
 function attachDashboardDawg() {
+  document.getElementById('dash-open-weekly')?.addEventListener('click', () => showTab('weekly'));
+  document.getElementById('dash-open-bills')?.addEventListener('click', () => showTab('bills'));
+  document.querySelectorAll('[data-plan-review]').forEach(btn => btn.addEventListener('click', () => showTab('weekly')));
   // Roll the balance hero (and any other [data-countup] stats) to their values
   _runCountUps(document.getElementById('main-content'));
   // Backup reminder banner
@@ -11723,9 +11785,13 @@ function attachDashboardDawg() {
         _sparkClrRgb = '220,50,50';
         _sparkClr    = getComputedStyle(document.documentElement).getPropertyValue('--danger').trim() || '#dc3232';
       } else {
-        _sparkClrRgb = document.body.classList.contains('light') ? '34,170,34' : '57,255,20';
+        _sparkClrRgb = '98,184,152';
         _sparkClr    = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
       }
+    }
+    if (typeof _sparkClr === 'string') {
+      const rgb = _rgb(_sparkClr);
+      if (rgb) _sparkClrRgb = `${rgb.r},${rgb.g},${rgb.b}`;
     }
     // VS Code theme: multi-color horizontal gradient line
     const _vsTheme = (loadSettings().theme) || 'dark';
@@ -11757,7 +11823,8 @@ function attachDashboardDawg() {
     const _pulsePlugin = {
       id: 'dawgPulse',
       afterInit(chart) {
-        chart._drawPhase = 0;
+        chart._drawPhase = _reduceMotion() ? 1 : 0;
+        if (_reduceMotion()) return;
         let _lastTs = null;
         const tick = ts => {
           if (!chart.canvas?.isConnected) return;
@@ -12289,6 +12356,11 @@ function attachAdd() {
   });
 
   document.getElementById('add-amount')?.addEventListener('input', () => {
+    const amount = document.getElementById('add-amount');
+    if (Number(amount.value) > 0) {
+      amount.removeAttribute('aria-invalid');
+      document.getElementById('add-amount-error').textContent = '';
+    }
     if (document.getElementById('split-toggle')?.checked) updateSplitSummary();
   });
 
@@ -12343,7 +12415,13 @@ function attachAdd() {
   document.getElementById('add-btn')?.addEventListener('click', async () => {
     const amtVal = document.getElementById('add-amount').value;
     const amount = parseFloat(amtVal);
-    if (!amtVal || isNaN(amount) || amount <= 0) { showStatus('add-status', 'Enter a valid amount.', 'error'); return; }
+    if (!amtVal || isNaN(amount) || amount <= 0) {
+      const field = document.getElementById('add-amount');
+      field.setAttribute('aria-invalid', 'true');
+      showStatus('add-amount-error', 'Enter an amount greater than zero.', 'error', 0);
+      field.focus();
+      return;
+    }
     const type = document.querySelector('input[name="etype"]:checked').value;
     const date = document.getElementById('add-date').value || today();
 
@@ -12540,6 +12618,8 @@ function exportCSVTemplate() {
 }
 
 function attachLedger() {
+  document.getElementById('ledger-filter-options')?.addEventListener('toggle', e => { if (e.target.isConnected) ledgerFiltersOpen = e.target.open; });
+  document.getElementById('ledger-tools-options')?.addEventListener('toggle', e => { if (e.target.isConnected) ledgerToolsOpen = e.target.open; });
   document.getElementById('ledger-search')?.addEventListener('input', _debounce(e => {
     // Update ONLY the list — never re-render the whole page, or the search box would lose
     // focus and the mobile keyboard would close after each keystroke.

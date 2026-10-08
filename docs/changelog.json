@@ -1,5 +1,16 @@
 [
  {
+  "version": "5.64.0",
+  "date": "2026-10-08",
+  "changes": [
+   "Your theme keeps its character with a smaller dashboard hero, weekly spending and unpaid bills above the chart, and chart colors that match your palette.",
+   "Add now keeps date, split, and recurring options under More options. Ledger filters, tools, and transaction actions expand when needed; bill-payment history is named clearly.",
+   "Bill totals, cash-deduction controls, and calendar states now refresh together after payment or reversal. Unpaid past-due bills remain overdue, and short months use their last valid due day.",
+   "Spending plans explain the manual bills reserve and protected buffer. Account cards support the keyboard, entry fields have connected labels, and secondary text stays readable across theme surfaces.",
+   "Transactions use a short confirmation by default. Animated confirmations are optional in Look settings, and reduced motion stops the chart animation."
+  ]
+ },
+ {
   "version": "5.63.5",
   "date": "2026-10-07",
   "changes": [

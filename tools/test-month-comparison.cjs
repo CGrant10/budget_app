@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../docs/app.js'), 'utf8');
-const functions = ['calculateMonthComparison', 'renderMonthComparison', 'shiftMonthKey', 'monthKeyLabel'].map(name => {
+const functions = ['calculateMonthComparison', 'renderMonthComparison', 'shiftMonthKey', 'monthKeyLabel', 'isRefundIncome'].map(name => {
   const start = source.indexOf('function ' + name + '(');
   assert(start >= 0, name);
   return source.slice(start, source.indexOf('\n}', start) + 2);
@@ -20,9 +20,20 @@ let result = calc([
 ], '2026-09', '2026-09-07');
 assert.equal(result.current.expense, 50);
 assert.equal(result.prior.expense, 100);
-assert.equal(result.current.income, 200);
-assert.equal(result.current.net, 150);
-assert.equal(result.current.count, 2);
+// This is a discretionary-spending comparison: paychecks affect balances,
+// while only purchase refunds offset spending in this view.
+assert.equal(result.current.income, 0);
+assert.equal(result.current.net, -50);
+assert.equal(result.current.count, 1);
+const refunded = calc([
+  txn('2026-09-02', 50),
+  txn('2026-09-03', 15, 'income', {category:'Refund'}),
+  txn('2026-09-04', 500, 'income', {description:'Paycheck'}),
+  txn('2026-09-05', 100, 'income', {_xfer:true,category:'Refund'}),
+], '2026-09', '2026-09-07');
+assert.equal(refunded.current.refunds, 15);
+assert.equal(refunded.current.expense, 35);
+assert.equal(refunded.current.count, 2);
 assert.equal(calc([], '2026-01', '2026-01-07').previousEnd, '2025-12-07');
 assert.equal(calc([], '2024-03', '2024-03-31').previousEnd, '2024-02-29');
 assert.equal(calc([], '2026-03', '2026-03-31').previousEnd, '2026-02-28');
@@ -50,7 +61,7 @@ assert.equal(withoutBills.current.expense, 50);
 assert.equal(withoutBills.prior.expense, 250);
 const billsOnly = calc([txn('2026-09-01', 1000, 'expense', { _billTxnId: 'rent' })], '2026-09', '2026-09-07');
 assert.equal(billsOnly.current.expense, 0);
-assert.equal(billsOnly.current.count, 1);
+assert.equal(billsOnly.current.count, 0);
 assert.doesNotMatch(context.renderMonthComparison(), /Bills & excluded spending omitted/);
 const adjustmentHistory = [
   txn('2026-09-01', 800, 'expense', { category: 'Adjustment', excludeFromBudget: true }),
