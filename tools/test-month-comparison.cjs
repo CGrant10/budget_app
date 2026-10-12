@@ -35,6 +35,8 @@ assert.equal(refunded.current.refunds, 15);
 assert.equal(refunded.current.expense, 35);
 assert.equal(refunded.current.count, 2);
 assert.equal(calc([], '2026-01', '2026-01-07').previousEnd, '2025-12-07');
+assert.equal(calc([], '2026-02', '2026-10-12').end, '2026-02-28');
+assert.equal(calc([], '2024-02', '2024-03-12').end, '2024-02-29');
 assert.equal(calc([], '2024-03', '2024-03-31').previousEnd, '2024-02-29');
 assert.equal(calc([], '2026-03', '2026-03-31').previousEnd, '2026-02-28');
 assert.equal(calc([txn('2026-08-31', 90)], '2026-08', '2026-09-07').current.expense, 90);

@@ -1,5 +1,17 @@
 [
  {
+  "version": "5.65.0",
+  "date": "2026-10-12",
+  "changes": [
+   "Weekly targets and available limits are shown separately. You can choose to keep the bills reserve in sync with unpaid bills or preserve your manual amount.",
+   "Financial health no longer penalizes bills that are not overdue. Recorded surplus is clearly separated from actual savings, with clearer explanations on phones.",
+   "Data & backups separates complete backup and recovery from spreadsheet tools. Restore previews show dates, account balances, and transaction counts; restore proceeds only after an undo point is saved.",
+   "New installations get a skippable setup checklist linking opening balance, bills, income, spending plans, and backup. Return to it from Menu → Getting started.",
+   "Insights uses the same comparable spending windows as Home. Reports show recorded cashflow and clearly labeled scenarios, with one useful next action.",
+   "Planning and restore dialogs support keyboard focus and Escape, and the shared layouts use your selected theme and skin."
+  ]
+ },
+ {
   "version": "5.64.0",
   "date": "2026-10-08",
   "changes": [

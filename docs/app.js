@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.64.0';
+const VERSION = '5.65.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -955,11 +955,42 @@ async function _hashPin(pin) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
+function manageModalFocus(overlay, initial, dismiss) {
+  const previous = document.activeElement;
+  const background = document.getElementById('app');
+  const wasInert = background?.inert;
+  if (background && !background.contains(overlay)) background.inert = true;
+  const dialog = overlay.querySelector('[role="dialog"]') || overlay.firstElementChild;
+  dialog?.setAttribute('role', 'dialog');
+  dialog?.setAttribute('aria-modal', 'true');
+  if (dialog) dialog.tabIndex = -1;
+  const keys = e => {
+    if (e.key === 'Escape') { e.preventDefault(); dismiss(); return; }
+    if (e.key !== 'Tab') return;
+    const items = [...overlay.querySelectorAll('button, input, select, a[href], [tabindex="0"]')]
+      .filter(el => !el.disabled && el.getClientRects().length);
+    const first = items[0], last = items[items.length - 1];
+    if (!first) { e.preventDefault(); dialog?.focus(); }
+    else if (e.shiftKey && (document.activeElement === first || !overlay.contains(document.activeElement))) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && (document.activeElement === last || !overlay.contains(document.activeElement))) {
+      e.preventDefault(); first.focus();
+    }
+  };
+  overlay.addEventListener('keydown', keys);
+  (initial || dialog)?.focus({ preventScroll: true });
+  return () => {
+    overlay.removeEventListener('keydown', keys);
+    if (background) background.inert = wasInert;
+    if (previous?.isConnected) previous.focus({ preventScroll: true });
+  };
+}
+
 function showConfirmModal({ title, message, confirmText = 'Confirm', cancelText = 'Cancel', danger = false, onConfirm, onCancel } = {}) {
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
   ov.innerHTML = `<div style="background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:24px 20px;max-width:320px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.6)">
-    ${title ? `<div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:8px">${title}</div>` : ''}
+    ${title ? `<h2 id="confirm-modal-title" style="font-size:1rem;font-weight:800;color:var(--text);margin:0 0 8px">${title}</h2>` : ''}
     <p style="font-size:.87rem;color:var(--muted);margin:0 0 20px;line-height:1.55">${message}</p>
     <div style="display:flex;gap:10px">
       <button id="_mc-cancel" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">${cancelText}</button>
@@ -967,7 +998,9 @@ function showConfirmModal({ title, message, confirmText = 'Confirm', cancelText 
     </div>
   </div>`;
   document.body.appendChild(ov);
-  const close = (cb) => { ov.remove(); cb?.(); };
+  const close = (cb) => { ov.remove(); releaseFocus(); cb?.(); };
+  if (title) ov.firstElementChild.setAttribute('aria-labelledby', 'confirm-modal-title');
+  const releaseFocus = manageModalFocus(ov, ov.querySelector('#_mc-cancel'), () => close(onCancel));
   ov.querySelector('#_mc-confirm').addEventListener('click', () => close(onConfirm));
   ov.querySelector('#_mc-cancel').addEventListener('click',  () => close(onCancel));
   ov.addEventListener('click', e => { if (e.target === ov) close(onCancel); });
@@ -1488,6 +1521,7 @@ function renderDashboardSkinned(sk) {
   }).join('') : '<div class="sk-empty">No transactions yet.</div>';
 
   return `<div class="dawg-page sk-page">
+    ${gettingStartedHtml()}
     ${backupBannerHtml()}
     <div class="sk-topbar">
       <span class="sk-title">Overview</span>
@@ -1808,7 +1842,7 @@ const NAV_ITEMS = [
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="6" width="20" height="14" rx="2"/><line x1="2" y1="11" x2="22" y2="11"/><line x1="6" y1="15" x2="9" y2="15"/></svg>` },
   { key: 'goals',     label: 'Goals',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>` },
-  { key: 'import',    label: 'Import',
+  { key: 'import',    label: 'Backups',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v13"/><polyline points="7,12 12,17 17,12"/><path d="M3 19h18"/></svg>` },
   { key: 'budgets',   label: 'Budgets',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="20" x2="5" y2="9"/><line x1="12" y1="20" x2="12" y2="3"/><line x1="19" y1="20" x2="19" y2="13"/></svg>` },
@@ -2741,7 +2775,8 @@ function calculateMonthComparison(transactions, month, asOf = today()) {
   const [year, number] = previous.split('-').map(Number);
   const currentMonth = asOf.slice(0, 7) === month;
   const day = currentMonth ? Number(asOf.slice(8, 10)) : 31;
-  const end = month + '-' + String(day).padStart(2, '0');
+  const [currentYear, currentNumber] = month.split('-').map(Number);
+  const end = month + '-' + String(Math.min(day, new Date(currentYear, currentNumber, 0).getDate())).padStart(2, '0');
   const previousEnd = previous + '-' + String(Math.min(day, new Date(year, number, 0).getDate())).padStart(2, '0');
   const total = (key, cutoff) => {
     const result = { income: 0, expense: 0, refunds: 0, net: 0, count: 0 };
@@ -2764,8 +2799,8 @@ function calculateMonthComparison(transactions, month, asOf = today()) {
   return { month, previous, end, previousEnd, currentMonth, current: total(month, end), prior: total(previous, previousEnd) };
 }
 
-function renderMonthComparison(skinned = false) {
-  const c = calculateMonthComparison(state.transactions, dashMonth);
+function renderMonthComparison(skinned = false, month = dashMonth) {
+  const c = calculateMonthComparison(state.transactions, month);
   const delta = Math.round((c.current.expense - c.prior.expense) * 100) / 100;
   const comparable = c.current.count > 0 && c.prior.count > 0;
   const tone = !comparable || delta === 0 ? '' : delta < 0 ? ' comparison-better' : ' comparison-worse';
@@ -3173,6 +3208,7 @@ function daysSinceBackup() {
   return Math.max(0, Math.round((now - last) / 86400000));
 }
 function markBackupDone() {
+  completeGettingStartedStep('backup');
   const s = loadSettings(); s.lastBackupDate = today(); saveSettings(s);
 }
 
@@ -3361,6 +3397,7 @@ function _buildBackupPayload() {
   });
   return {
     _backupVersion: VERSION,
+    _backupCreatedAt: new Date().toISOString(),
     _multiAccount:  true,
     accounts:       state.accounts,
     currentAccountId,
@@ -3376,6 +3413,107 @@ function _buildBackupPayload() {
     challenges:     state.challenges,
     startingBalance: state.startingBalance,
   };
+}
+
+function backupPreviewData(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid backup file');
+  if (data.notes !== undefined && !Array.isArray(data.notes)) throw new Error('Invalid notes');
+  if (data.settings !== undefined && (!data.settings || typeof data.settings !== 'object' || Array.isArray(data.settings))) throw new Error('Invalid settings');
+  const multi = data._multiAccount === true;
+  if (multi && (!data.accountData || typeof data.accountData !== 'object' || Array.isArray(data.accountData))) throw new Error('Missing account data');
+  if (!multi && !Array.isArray(data.transactions)) throw new Error('Missing transactions');
+  const accounts = data.accounts || defaultAccounts();
+  if (!Array.isArray(accounts) || !accounts.length) throw new Error('No accounts in backup');
+  const ids = new Set();
+  const legacyId = accounts.find(a => a?.id === data.currentAccountId)?.id || accounts.find(a => a?.id === 'main')?.id || accounts[0]?.id;
+  const rows = accounts.map(account => {
+    if (!account || typeof account.id !== 'string' || !account.id || ids.has(account.id)) throw new Error('Invalid or duplicate account');
+    ids.add(account.id);
+    const content = multi ? data.accountData[account.id] : account.id === legacyId ? data : {};
+    if (!content || typeof content !== 'object' || Array.isArray(content)) throw new Error('Missing data for an account');
+    for (const field of ['weekly_plan', 'budgets']) {
+      if (content[field] !== undefined && (!content[field] || typeof content[field] !== 'object' || Array.isArray(content[field]))) throw new Error(`Invalid ${field}`);
+    }
+    for (const field of ['bills', 'goals', 'challenges']) {
+      if (content[field] !== undefined && !Array.isArray(content[field])) throw new Error(`Invalid ${field}`);
+    }
+    const txns = content.transactions || [];
+    if (!Array.isArray(txns) || txns.some(t => !t || !['income', 'expense'].includes(t.type) || !Number.isFinite(Number(t.amount)) || Number(t.amount) < 0)) throw new Error('Invalid transactions');
+    const opening = Number(content.startingBalance || 0);
+    if (!Number.isFinite(opening)) throw new Error('Invalid starting balance');
+    const debt = account.type === 'credit' || account.type === 'loan';
+    const movement = txns.reduce((sum, t) => sum + (t.type === 'income' ? 1 : -1) * Number(t.amount), 0);
+    return { name:account.name || 'Account', type:account.type || 'checking', debt, balance: debt ? opening - movement : opening + movement, count:txns.length };
+  });
+  const date = data._backupCreatedAt ? new Date(data._backupCreatedAt) : null;
+  return { rows, count:rows.reduce((sum, row) => sum + row.count, 0), createdAt: date && Number.isFinite(date.getTime()) ? date.toISOString() : null };
+}
+
+function restoreBackupWithUndo(raw) {
+  backupPreviewData(raw);
+  const data = JSON.parse(JSON.stringify(raw));
+  const contents = data._multiAccount ? Object.values(data.accountData) : [data];
+  contents.forEach(content => {
+    if (content.transactions) content.transactions = content.transactions.map(transaction => ({...transaction, amount:Number(transaction.amount)}));
+    if (content.startingBalance !== undefined) content.startingBalance = Number(content.startingBalance);
+  });
+  const accounts = data.accounts || defaultAccounts();
+  const previousId = currentAccountId;
+  const keys = new Set([ACCOUNTS_KEY, SETTINGS_KEY, NOTES_KEY, accountDataKey(previousId), ...state.accounts.map(account => accountDataKey(account.id)), ...accounts.map(account => accountDataKey(account.id))]);
+  if (!takeSnapshot('before-restore')) throw new Error('An undo point could not be saved. Download a backup file and free browser storage before restoring.');
+  const before = new Map([...keys].map(key => [key, localStorage.getItem(key)]));
+  try {
+    _applyBackupPayload(data);
+    const expected = new Map([[ACCOUNTS_KEY, JSON.stringify(accounts)], [NOTES_KEY, JSON.stringify(data.notes || [])]]);
+    if (data.settings) expected.set(SETTINGS_KEY, JSON.stringify(data.settings));
+    if (data._multiAccount) accounts.forEach(account => expected.set(accountDataKey(account.id), JSON.stringify(data.accountData[account.id] || {})));
+    else expected.set(accountDataKey(currentAccountId), JSON.stringify({transactions:data.transactions || [], weekly_plan:data.weekly_plan || {}, budgets:data.budgets || {}, bills:data.bills || [], goals:data.goals || [], challenges:data.challenges || [], startingBalance:Number(data.startingBalance) || 0}));
+    if ([...expected].some(([key, value]) => localStorage.getItem(key) !== value)) throw new Error('Backup could not be saved completely');
+  } catch (error) {
+    // Remove newly written values first, freeing space for the original values.
+    [...keys].forEach(key => localStorage.removeItem(key));
+    before.forEach((value, key) => { if (value !== null) localStorage.setItem(key, value); });
+    _settingsCache = null;
+    currentAccountId = previousId;
+    state.accounts = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '[]');
+    state.notes = loadNotes();
+    _loadAccountData(previousId);
+    updateAccountSwitcher();
+    throw new Error('Restore could not finish. Your previous data has been kept; its undo point is also available.');
+  }
+}
+
+function showBackupRestorePreview(data, filename) {
+  const preview = backupPreviewData(data);
+  const date = preview.createdAt ? new Date(preview.createdAt).toLocaleString() : 'Date unavailable — older backup';
+  const overlay = document.createElement('div');
+  overlay.className = 'backup-preview-overlay';
+  overlay.innerHTML = `<div class="backup-preview-card" role="dialog" aria-modal="true" aria-labelledby="backup-preview-title">
+    <h2 id="backup-preview-title">Review backup before restore</h2>
+    <p class="code-hint">${_escHtml(filename)}<br>${_escHtml(date)}</p>
+    <p>${preview.count} transactions across ${preview.rows.length} accounts.</p>
+    <div class="backup-preview-rows">${preview.rows.map(row => `<div><span><strong>${_escHtml(row.name)}</strong><small>${row.count} transactions · ${row.debt ? 'Owed' : 'Balance'}</small></span><strong class="money">${fmt(row.balance)}</strong></div>`).join('')}</div>
+    <p class="code-hint">Replaces all current accounts, transactions, bills, plans, goals, notes, and included settings. Your current data will be saved as an undo point on this device. Keep a backup file too: clearing browser data removes undo points.</p>
+    <div class="backup-preview-actions"><button type="button" id="backup-preview-cancel" class="btn-secondary">Cancel</button><button type="button" id="backup-preview-restore" class="btn-primary">Restore this backup</button></div>
+  </div>`;
+  document.body.appendChild(overlay);
+  const close = () => { overlay.remove(); releaseFocus(); };
+  const releaseFocus = manageModalFocus(overlay, overlay.querySelector('#backup-preview-cancel'), close);
+  overlay.querySelector('#backup-preview-cancel').addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.querySelector('#backup-preview-restore').addEventListener('click', () => {
+    try { restoreBackupWithUndo(data); }
+    catch (error) {
+      close();
+      applySettings(); render();
+      showStatus('json-import-status', `Restore stopped: ${error.message}`, 'error', 0);
+      return;
+    }
+    applySettings();
+    close();
+    render();
+    showStatus('json-import-status', `Restored ${preview.count} transactions. Your previous data is in Restore points.`, 'success', 0);
+  });
 }
 
 function _payloadTxnCount(data) {
@@ -3395,8 +3533,8 @@ function _applyBackupPayload(data) {
   if (isMulti) {
     state.accounts = acctList.length ? acctList : defaultAccounts();
     _saveAccounts();
-    Object.entries(data.accountData).forEach(([id, d]) => {
-      localStorage.setItem(accountDataKey(id), JSON.stringify(d || {}));
+    state.accounts.forEach(account => {
+      localStorage.setItem(accountDataKey(account.id), JSON.stringify(data.accountData[account.id] || {}));
     });
     const startId = state.accounts.find(a => a.id === data.currentAccountId) ? data.currentAccountId : state.accounts[0].id;
     currentAccountId = startId;
@@ -3408,8 +3546,10 @@ function _applyBackupPayload(data) {
     state.bills        = data.bills        || [];
     state.goals        = data.goals        || [];
     state.challenges   = data.challenges   || [];
-    if (typeof data.startingBalance === 'number') state.startingBalance = data.startingBalance;
-    state.accounts     = acctList.length ? acctList : defaultAccounts();
+    state.startingBalance = Number(data.startingBalance) || 0;
+    state.accounts = acctList.length ? acctList : defaultAccounts();
+    currentAccountId = state.accounts.find(a => a.id === data.currentAccountId)?.id || state.accounts.find(a => a.id === 'main')?.id || state.accounts[0].id;
+    state.accounts.filter(account => account.id !== currentAccountId).forEach(account => localStorage.setItem(accountDataKey(account.id), '{}'));
     _save(); _saveAccounts();
   }
   updateAccountSwitcher();
@@ -3430,14 +3570,14 @@ function _writeSnapshots(list) {
 function takeSnapshot(reason) {
   // Never let the demo dataset become a restore point — it would then be
   // restorable as though it were real history.
-  if (_demoMode) return;
+  if (_demoMode) return false;
   try {
     const payload = _buildBackupPayload();
     const list = loadSnapshots();
     list.push({ ts: Date.now(), reason: reason || 'auto', txnCount: _payloadTxnCount(payload), payload });
     while (list.length > MAX_SNAPSHOTS) list.shift();
-    _writeSnapshots(list);
-  } catch (e) { /* never let a snapshot failure block the real action */ }
+    return _writeSnapshots(list);
+  } catch (e) { return false; }
 }
 // One automatic snapshot per calendar day, taken at startup.
 function maybeDailySnapshot() {
@@ -3448,6 +3588,54 @@ function maybeDailySnapshot() {
 }
 const BACKUP_STALE_DAYS = 30;
 let _backupBannerDismissed = false;   // per-session
+function completeGettingStartedStep(step) {
+  if (_demoMode) return;
+  const settings = loadSettings();
+  if (!settings.gettingStarted) return;
+  settings.gettingStarted.steps = { ...settings.gettingStarted.steps, [step]: true };
+  saveSettings(settings);
+}
+
+function gettingStartedHtml() {
+  if (_demoMode || _isDebtAcct(_currentAcct())) return '';
+  const setup = loadSettings().gettingStarted;
+  if (!setup || setup.dismissed) return '';
+  const settings = loadSettings(), done = setup.steps || {};
+  const paycheck = _currentAcct()?.paySchedule;
+  const steps = [
+    {key:'balance', label:'Set your opening balance', detail:'The balance when you start tracking, including $0.', action:'Set balance', tab:'accounts', done:done.balance || state.startingBalance !== 0},
+    {key:'bills', label:'Add your bills', detail:'Keep due dates and payments in one place.', action:'Add bills', tab:'bills', done:done.bills || state.bills.length > 0, skip:'No bills to add'},
+    {key:'paycheck', label:'Choose how to record income', detail:'Set a paycheck schedule, or add income manually.', action:'Set schedule', tab:'accounts', done:done.paycheck || (paycheck?.enabled && paycheck.amount > 0 && paycheck.nextPayDate), skip:'Use manual income'},
+    {key:'plan', label:'Protect your spending money', detail:'Choose a bills reserve and minimum balance.', action:'Set plan', tab:'weekly', done:done.plan || !!state.weekly_plan.saved_date || !!state.weekly_plan.smart_plan_date},
+    {key:'backup', label:'Keep a backup file', detail:'A file protects you if browser data is cleared.', action:'Back up', tab:'import', done:done.backup || !!settings.lastBackupDate},
+  ];
+  const completed = steps.filter(step => step.done).length;
+  if (completed === steps.length) return '';
+  return `<section class="setup-card" aria-labelledby="setup-title">
+    <div class="setup-heading"><h2 id="setup-title">Get started</h2><button type="button" id="setup-dismiss" class="btn-xs">Skip setup</button></div>
+    <p class="code-hint">${completed} of ${steps.length} complete. Use the steps that fit you; return from Menu → Getting started.</p>
+    <ul class="setup-steps">${steps.filter(step => !step.done).map(step => `<li>
+      <div><strong>${step.label}</strong><p>${step.detail}</p></div>
+      <div class="setup-actions"><button type="button" class="btn-secondary" data-setup-go="${step.tab}" data-setup-step="${step.key}">${step.action}</button>
+      ${step.skip ? `<button type="button" class="btn-xs" data-setup-skip="${step.key}">${step.skip}</button>` : ''}</div>
+    </li>`).join('')}</ul>
+  </section>`;
+}
+
+function attachGettingStarted() {
+  document.getElementById('setup-dismiss')?.addEventListener('click', () => {
+    const settings = loadSettings(); settings.gettingStarted.dismissed = true; saveSettings(settings); render();
+  });
+  document.querySelectorAll('[data-setup-skip]').forEach(button => button.addEventListener('click', () => {
+    completeGettingStartedStep(button.dataset.setupSkip); render();
+  }));
+  document.querySelectorAll('[data-setup-go]').forEach(button => button.addEventListener('click', () => {
+    if (button.dataset.setupGo === 'accounts') _pendingAccountExpand = currentAccountId;
+    if (button.dataset.setupGo === 'import') _dataToolsView = 'backup';
+    showTab(button.dataset.setupGo);
+  }));
+}
+
 function backupStatusHtml() {
   const n = daysSinceBackup();
   const hasData = (state.transactions?.length || 0) > 0;
@@ -3658,7 +3846,7 @@ function initSoundsToggle() {
 // ── health score ───────────────────────────────────────────────────────────
 function calcHealthScore() {
   const m = localMonthKey();
-  const { income, expense } = monthTotals(m);
+  const { income, expense } = recordedCashflow(state.transactions, m + '-01', today());
 
   // ── Savings Rate (50 pts) ──────────────────────────────────────
   let savingsScore, savingsLabel;
@@ -3667,10 +3855,10 @@ function calcHealthScore() {
   } else {
     const rate = (income - expense) / income;
     const pct  = (rate * 100).toFixed(0);
-    if      (rate >= 0.30) { savingsScore = 50; savingsLabel = `Saving ${pct}% of income — excellent`; }
-    else if (rate >= 0.20) { savingsScore = 40; savingsLabel = `Saving ${pct}% of income — great`; }
-    else if (rate >= 0.10) { savingsScore = 28; savingsLabel = `Saving ${pct}% of income — good, aim for 20%+`; }
-    else if (rate >= 0.01) { savingsScore = 15; savingsLabel = `Saving ${pct}% — aim for 10%+`; }
+    if      (rate >= 0.30) { savingsScore = 50; savingsLabel = `Recorded surplus: ${pct}% of income — excellent`; }
+    else if (rate >= 0.20) { savingsScore = 40; savingsLabel = `Recorded surplus: ${pct}% of income — great`; }
+    else if (rate >= 0.10) { savingsScore = 28; savingsLabel = `Recorded surplus: ${pct}% of income — good, aim for 20%+`; }
+    else if (rate >= 0.01) { savingsScore = 15; savingsLabel = `Recorded surplus: ${pct}% — aim for 10%+`; }
     else if (rate >= -0.05){ savingsScore = 5;  savingsLabel = 'Nearly breaking even'; }
     else                   { savingsScore = 0;  savingsLabel = 'Spending more than earning'; }
   }
@@ -3702,19 +3890,8 @@ function calcHealthScore() {
   }
 
   // ── Bills (25 pts) ─────────────────────────────────────────────
-  let billScore, billLabel;
-  if (state.bills.length === 0) {
-    billScore = 25; billLabel = 'No bills tracked';
-  } else {
-    const n    = state.bills.length;
-    const paid = state.bills.filter(b => isBillPaidFor(b, m)).length;
-    const pct  = paid / n;
-    if      (pct === 1)    { billScore = 25; billLabel = `${paid} of ${n} bills paid this month`; }
-    else if (pct >= 0.75)  { billScore = 18; billLabel = `${paid} of ${n} bills paid this month`; }
-    else if (pct >= 0.50)  { billScore = 12; billLabel = `${paid} of ${n} bills paid this month`; }
-    else if (pct >= 0.25)  { billScore = 6;  billLabel = `${paid} of ${n} bills paid this month`; }
-    else                   { billScore = 0;  billLabel = `${paid} of ${n} bills paid this month`; }
-  }
+  const billHealth = calculateBillHealth(state.bills, m);
+  const billScore = billHealth.score, billLabel = billHealth.label;
 
   const total = Math.min(savingsScore + balanceScore + billScore, 100);
   let grade, color;
@@ -3896,7 +4073,7 @@ function rangeCategoryTotals(start, end) {
   const bycat = {}, bycatN = {};
   let total = 0, income = 0, count = 0;
   for (const t of (state.transactions || [])) {
-    if (t._xfer) continue;
+    if (t._xfer || (t.category === 'Adjustment' && t.excludeFromBudget)) continue;
     if (!t.date) continue;
     if (start && t.date < start) continue;
     if (end && t.date > end) continue;
@@ -4184,6 +4361,7 @@ function billDueLabel(days) {
 }
 
 function budgetReserveHtml(balance, buffer, bills, trackedBills) {
+  const tracked = state.weekly_plan?.bills_source === 'tracked';
   const available = Math.max(0, balance - buffer - bills);
   const mismatch = Math.abs(trackedBills - bills) >= 0.01;
   return `<details class="reserve-explanation">
@@ -4191,9 +4369,9 @@ function budgetReserveHtml(balance, buffer, bills, trackedBills) {
     <div class="reserve-explanation-body">
       <div><span>Current balance</span><strong>${fmt(balance)}</strong></div>
       <div><span>Protected buffer</span><strong>−${fmt(buffer)}</strong></div>
-      <div><span>Manual bills reserve</span><strong>−${fmt(bills)}</strong></div>
+      <div><span>${tracked ? 'Tracked unpaid bills' : 'Manual bills reserve'}</span><strong>−${fmt(bills)}</strong></div>
       <div class="reserve-result"><span>Available for your plan</span><strong>${fmt(available)}</strong></div>
-      <p>The bills reserve is set in Weekly. ${mismatch ? `Your tracked unpaid bills total ${fmt(trackedBills)}; they do not automatically change this reserve.` : 'Your tracked unpaid bills match this reserve.'} Allowances use the days left in this month.</p>
+      <p>${tracked ? 'The reserve follows this month’s unpaid bills and updates when you mark them paid.' : 'The bills reserve is set manually in Weekly.'} ${!tracked && mismatch ? `Your tracked unpaid bills total ${fmt(trackedBills)}; they do not automatically change this reserve.` : tracked ? '' : 'Your tracked unpaid bills match this reserve.'} Allowances use the days left in this month.</p>
       <button type="button" class="btn-secondary" data-plan-review>Review spending plan</button>
     </div>
   </details>`;
@@ -4305,25 +4483,23 @@ function getSpendingInsights(monthStr) {
     ? new Date(parseInt(monthStr.slice(0,4)), parseInt(monthStr.slice(5,7)) - 1, 1)
     : new Date();
   const thisM = monthStr || localMonthKey(refDate);
-  const lastM = localMonthKey(new Date(refDate.getFullYear(), refDate.getMonth() - 1, 1));
-  const cur  = monthTotals(thisM);
-  const prev = monthTotals(lastM);
+  const cur = recordedCashflow(state.transactions, thisM + '-01', thisM === localMonthKey() ? today() : _monthEndDate(thisM));
   const insights = [];
 
   // Savings rate this month
   if (cur.income > 0) {
     const rate  = ((cur.income - cur.expense) / cur.income * 100).toFixed(0);
     const saved = cur.income - cur.expense;
-    if (saved > 0) insights.push(`💰 You've kept ${rate}% of income this month — ${fmt(saved)} saved`);
+    if (saved > 0) insights.push(`💰 You've kept ${rate}% of income this month — ${fmt(saved)} recorded surplus`);
     else insights.push(`⚠️ Spending exceeds income by ${fmt(-saved)} this month`);
   }
 
-  // Month over month total spending
-  if (prev.expense > 0 && cur.expense > 0) {
-    const diff = cur.expense - prev.expense;
-    const pct  = Math.abs(diff / prev.expense * 100).toFixed(0);
-    if (diff > 0) insights.push(`📈 Spending up ${pct}% from last month (+${fmt(diff)})`);
-    else insights.push(`📉 Spending down ${pct}% from last month (${fmt(diff)})`);
+  // Use the same days and discretionary exclusions as the dashboard comparison.
+  const comparison = calculateMonthComparison(state.transactions, thisM);
+  if (comparison.current.count && comparison.prior.count && comparison.prior.expense > 0) {
+    const diff = comparison.current.expense - comparison.prior.expense;
+    const pct = Math.abs(diff / comparison.prior.expense * 100).toFixed(0);
+    insights.push(`Discretionary spending ${diff > 0 ? 'up' : 'down'} ${pct}% versus the comparable period last month (${fmt(Math.abs(diff))})`);
   }
 
   // Biggest category this month
@@ -5953,7 +6129,7 @@ function renderDashboardDawg() {
   // Plan settings
   const { income: _dashTotalInc, expense: _dashTotalExp } = totals();
   const _dashLiveBal = (state.startingBalance || 0) + _dashTotalInc - _dashTotalExp;
-  const _dashBills   = parseFloat(_wp?.bills   || 0) || 0;
+  const _dashBills   = weeklyBillsReserve(_wp);
   const _dashStopAt  = parseFloat(_wp?.stop_at || 0) || 0;
   // Month-based window — same math as the Weekly Planner so the per-week / per-day tiles match.
   const { daysLeft: _dashDays, weeksLeft: _dashWeeks } = monthWindow(_wkNow, _wkMon);
@@ -5983,6 +6159,7 @@ function renderDashboardDawg() {
     return { week: 0, day: 0 };
   };
   const { week: _livePerWeek, day: _livePerDay } = _getLimit(_dashWeeks, _dashDays);
+  const _weeklySummary = weeklySpendingSummary(dynamicSpendingLimit(_dashLiveBal, _dashStopAt, _dashBills, _dashWeeks), weekSpent, _wp.smart_target_weekly);
   _latestDashboardLimitMath = {
     balance: _dashLiveBal,
     stopAt: _dashStopAt,
@@ -6109,7 +6286,7 @@ function renderDashboardDawg() {
     const _sk = {
       balance, balColor, mInc, mExp, monthDelta, deltaPct, isPastDash,
       dashMonthLabel, acctName: _acctName,
-      weekSpent, perWeek: _livePerWeek, daySpent,
+      weekSpent, perWeek: _weeklySummary.limit, daySpent, weeklySummary: _weeklySummary,
       billsLeft: _dashBills, daysLeft: _dashDays, stopAt: _dashStopAt,
       // Uncapped on purpose: catEntries is the top-8 *preview* for the stock
       // dashboard's category list, which has a "Details" link to see the rest.
@@ -6122,6 +6299,7 @@ function renderDashboardDawg() {
   }
 
   return `<div class="dawg-page">
+    ${gettingStartedHtml()}
     ${backupBannerHtml()}
     <div class="dawg-hero">
       <div class="dawg-hero-glow"></div>
@@ -6144,8 +6322,8 @@ function renderDashboardDawg() {
       ${!_isDebt && !isPastDash ? `<div class="dashboard-decisions">
         <button type="button" id="dash-open-weekly" class="dashboard-decision">
           <span>Left to spend this week</span>
-          <strong>${fmt(_belowBuffer ? 0 : Math.max(0, _livePerWeek - weekSpent))}</strong>
-          <small>${fmt(weekSpent)} spent this week</small>
+          <strong>${fmt(_weeklySummary.left)}</strong>
+          <small>${fmt(weekSpent)} spent${_weeklySummary.target > 0 ? ` · target ${fmt(_weeklySummary.target)}` : ' · available limit'}</small>
         </button>
         <button type="button" id="dash-open-bills" class="dashboard-decision">
           <span>Unpaid bills</span><strong>${fmt(_trackedBillsDue)}</strong>
@@ -6188,7 +6366,7 @@ function renderDashboardDawg() {
           const wkDash   = (C * (1 - wkPct / 100)).toFixed(1);
           _tileHtml['budget-week'] = `
             <div class="dawg-limit-head">
-              <span class="dawg-card-title">WEEKLY LIMIT</span>
+              <span class="dawg-card-title">AVAILABLE WEEKLY LIMIT</span>
               <button class="limit-info-btn" data-limit-kind="weekly" aria-label="How the weekly limit is calculated">i</button>
             </div>
             <div class="dawg-limit-value" style="color:${wkColor}">${fmt(_livePerWeek)}</div>
@@ -6364,7 +6542,7 @@ function renderDashboardDawg() {
       // Weekly Plan Snapshot — month-based, mirrors the Weekly Planner page
       {
         const _perDay   = _livePerDay;                 // available ÷ days left this month
-        const _billAmt  = parseFloat(_wp?.bills || 0);
+        const _billAmt  = _dashBills;
         if (!isPastDash && (_perDay > 0 || _dashAvail > 0 || _billAmt > 0)) {
           const _monName = _wkNow.toLocaleDateString('en-US', { month: 'long' });
           const _overDay = _perDay > 0 && daySpent > _perDay;
@@ -6671,8 +6849,9 @@ function analyzeSmartBudget(txns, safeWeekly = null, refDate = new Date()) {
 function getSmartSpendingPlan() {
   const { income, expense } = totals();
   const balance = (state.startingBalance || 0) + income - expense;
-  const stopAt = parseFloat(state.weekly_plan?.stop_at || 0) || 0;
-  const bills = parseFloat(state.weekly_plan?.bills || 0) || 0;
+  const settings = weeklyPlanInputs();
+  const stopAt = Math.max(0, Number(settings.stop_at) || 0);
+  const bills = weeklyBillsReserve(settings);
   const now = new Date(); now.setHours(0, 0, 0, 0);
   const monday = new Date(now);
   monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
@@ -6682,6 +6861,7 @@ function getSmartSpendingPlan() {
 }
 
 function showSmartBudgetPlanner() {
+  if (currentTab === 'weekly' && !validateWeeklyPlanForm()) return;
   const plan = getSmartSpendingPlan();
   if (!plan) {
     _toast('Add at least two weeks of spending to build a smart budget.');
@@ -6703,26 +6883,28 @@ function showSmartBudgetPlanner() {
       <div><span>Weekly target</span><strong>${fmt(plan.weeklyTarget)}</strong></div>
       <div><span>Daily target</span><strong>${fmt(plan.dailyTarget)}</strong></div>
     </div>
-    <div class="smart-plan-meta">Based on ${Math.round(plan.observedDays / 7)} weeks of recent spending</div>
+    <div class="smart-plan-meta">Based on ${Math.round(plan.observedDays / 7)} weeks of recent spending. Available weekly limit: ${fmt(plan.safeWeekly)}.</div><p class="code-hint">Apply saves these category budgets and your weekly target, together with the plan settings shown on Weekly.</p>
     <div class="smart-plan-rows">${rows}</div>
     <div class="smart-plan-actions"><button class="btn-secondary" id="smart-plan-cancel">Cancel</button><button class="btn-primary" id="smart-plan-apply">Apply Plan</button></div>
   </div>`;
   document.body.appendChild(ov);
-  const close = () => ov.remove();
+  const close = () => { ov.remove(); releaseFocus(); };
+  const releaseFocus = manageModalFocus(ov, ov.querySelector('#smart-plan-cancel'), close);
   ov.querySelector('.smart-plan-close').addEventListener('click', close);
   ov.querySelector('#smart-plan-cancel').addEventListener('click', close);
   ov.addEventListener('click', e => { if (e.target === ov) close(); });
   ov.querySelector('#smart-plan-apply').addEventListener('click', async () => {
     await api.saveBudgets({ ...state.budgets, ...plan.categoryBudgets });
     await api.saveWeeklyPlan({
-      ...state.weekly_plan,
+      ...weeklyPlanInputs(),
       smart_target_weekly: plan.weeklyTarget,
       smart_target_daily: plan.dailyTarget,
       smart_plan_date: today(),
     });
+    completeGettingStartedStep('plan');
     close();
     render();
-    _toast('Smart budget applied.');
+    _toast('Category budgets and weekly target saved.');
   });
 }
 
@@ -7757,49 +7939,58 @@ function renderWeekly() {
         </div>
       </div>`;
   }
-  const { income, expense } = totals();
   const wp = state.weekly_plan;
-  const defStopAt  = wp.stop_at  ?? '0';
-  const defBills   = wp.bills    ?? '0';
-  const smartWeekly = parseFloat(wp.smart_target_weekly || 0) || 0;
-  const smartDaily = parseFloat(wp.smart_target_daily || 0) || 0;
-  const balance  = (state.startingBalance || 0) + income - expense;
-  const balColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+  const tracked = wp.bills_source === 'tracked';
+  const target = Number(wp.smart_target_weekly) || 0;
   return `
     <div class="page">
       <h1 class="page-title">Weekly Planner</h1>
-      <p class="page-sub">estimate how much you can spend each week</p>
+      <p class="page-sub">${_escHtml(_currentAcct()?.name || 'Account')} · your target and available spending</p>
       <h2 class="wk-sec">This week</h2>
       <div id="wk-live"></div>
+      <div class="wk-plan-heading">
+        <h2 class="wk-sec">Your plan</h2>
+        <button id="smart-budget-btn" class="smart-budget-btn">${target > 0 ? 'Suggest a new target' : 'Suggest my budget'}</button>
+      </div>
+      <div class="form-card">
+        <div class="form-row">
+          <label class="form-label" for="wk-target">Weekly spending target ($, optional)</label>
+          <input type="number" id="wk-target" class="form-input" value="${target || ''}" min="0" step="0.01" inputmode="decimal" placeholder="Use available limit" aria-describedby="wk-target-hint">
+          <p id="wk-target-hint" class="code-hint">Your preferred pace. Spending remaining uses the lower of your target and available limit.</p>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="wk-reserve-source">Bills reserve</label>
+          <select id="wk-reserve-source" class="form-input form-select">
+            <option value="manual"${!tracked ? ' selected' : ''}>Set an amount manually</option>
+            <option value="tracked"${tracked ? ' selected' : ''}>Use this month's unpaid bills</option>
+          </select>
+          <p class="code-hint" id="wk-reserve-hint">${tracked ? 'Updates as you mark bills paid. Your manual amount is kept for switching back.' : 'Your saved amount stays independent of Bills. Switch above to keep them in sync.'}</p>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="wk-bills">Manual bills reserve ($)</label>
+          <input type="number" id="wk-bills" class="form-input" value="${_escHtml(String(wp.bills ?? 0))}" min="0" step="0.01" inputmode="decimal"${tracked ? ' disabled' : ''}>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="wk-stop-at">Protected minimum balance ($)</label>
+          <input type="number" id="wk-stop-at" class="form-input" value="${_escHtml(String(wp.stop_at ?? 0))}" min="0" step="0.01" inputmode="decimal">
+        </div>
+        <p class="code-hint" id="wk-plan-note"></p>
+        <div id="wk-plan-error" class="form-status" role="status"></div>
+        <div class="btn-row">
+          <button id="wk-save" class="btn-primary">Save plan</button>
+          <span id="wk-save-status" class="status-inline" role="status"></span>
+        </div>
+      </div>
       <h2 class="wk-sec">History</h2>
       <div id="wk-hist-card" class="form-card" style="display:none">
         <div class="wk-hist-head">
           <h2 class="section-title" style="margin:0">Spending History</h2>
           <div class="wk-seg" id="wk-hist-seg" role="tablist">
-            <button class="wk-seg-btn" data-view="day"  role="tab">Per Day</button>
+            <button class="wk-seg-btn" data-view="day" role="tab">Per Day</button>
             <button class="wk-seg-btn" data-view="week" role="tab">Per Week</button>
           </div>
         </div>
         <div id="wk-dh-body"></div>
-      </div>
-      <div class="wk-plan-heading">
-        <h2 class="wk-sec">Your plan</h2>
-        <button id="smart-budget-btn" class="smart-budget-btn">${smartWeekly > 0 ? 'Refresh suggestion' : 'Suggest my budget'}</button>
-      </div>
-      ${smartWeekly > 0 ? `<div class="smart-target-strip"><span>SMART SPENDING TARGET</span><strong>${fmt(smartWeekly)}/week</strong><i>${fmt(smartDaily)}/day</i></div>` : ''}
-      <div class="form-card">
-        <div class="form-row">
-          <label class="form-label">Fixed bills still due ($)</label>
-          <input type="number" id="wk-bills" class="form-input" value="${defBills}" step="0.01" inputmode="decimal">
-        </div>
-        <div class="form-row">
-          <label class="form-label">Stop at — minimum balance ($)</label>
-          <input type="number" id="wk-stop-at" class="form-input" value="${defStopAt}" step="0.01" inputmode="decimal" placeholder="0">
-        </div>
-        <div class="btn-row">
-          <button id="wk-save" class="btn-primary">Save</button>
-          <span id="wk-save-status" class="status-inline"></span>
-        </div>
       </div>
     </div>`;
 }
@@ -7836,6 +8027,35 @@ function billsStillDueTotal(month = localMonthKey(), bills = state.bills) {
   return (bills || [])
     .filter(b => !isBillPaidFor(b, month))
     .reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+}
+
+function weeklyBillsReserve(plan = state.weekly_plan, bills = state.bills, month = localMonthKey()) {
+  return plan?.bills_source === 'tracked'
+    ? billsStillDueTotal(month, bills)
+    : Math.max(0, Number(plan?.bills) || 0);
+}
+
+function weeklySpendingSummary(ceiling, spent, target = 0) {
+  ceiling = Math.max(0, Number(ceiling) || 0);
+  spent = Math.max(0, Number(spent) || 0);
+  target = Math.max(0, Number(target) || 0);
+  const limit = target > 0 ? Math.min(target, ceiling) : ceiling;
+  return { ceiling, spent, target, limit, left: Math.max(0, limit - spent), over: Math.max(0, spent - limit) };
+}
+
+function calculateBillHealth(bills, month, asOf = today()) {
+  const dueDate = b => `${month}-${String(billDueDay(b.dueDay, month)).padStart(2, '0')}`;
+  const eligible = bills.filter(b => dueDate(b) < asOf);
+  const overdue = eligible.filter(b => !isBillPaidFor(b, month));
+  const dueToday = bills.filter(b => dueDate(b) === asOf && !isBillPaidFor(b, month));
+  const upcoming = bills.filter(b => dueDate(b) > asOf && !isBillPaidFor(b, month));
+  const score = eligible.length ? Math.round(25 * (1 - overdue.length / eligible.length)) : 25;
+  const label = overdue.length ? `${overdue.length} overdue bill${overdue.length === 1 ? '' : 's'} — review Bills`
+    : !bills.length ? 'No bills tracked'
+    : dueToday.length ? `No overdue bills · ${dueToday.length} due today`
+    : upcoming.length ? `No overdue bills · ${upcoming.length} upcoming`
+    : 'All bills paid for this month';
+  return { score, label, overdue: overdue.length, dueToday: dueToday.length, upcoming: upcoming.length };
 }
 
 // A "bill" transaction is one logged from the Bills tab's "Mark Paid" action.
@@ -8101,8 +8321,9 @@ function buildDailyHistoryHTML(todayPerDay, buffer, bills) {
 function calcWeekly() {
   const { income: _wkInc, expense: _wkExp } = totals();
   const liveBalance = (state.startingBalance || 0) + _wkInc - _wkExp;
-  const bills      = parseFloat(document.getElementById('wk-bills')?.value)   || 0;
-  const stopAt     = parseFloat(document.getElementById('wk-stop-at')?.value) || 0;
+  const preview = weeklyPlanInputs();
+  const bills = weeklyBillsReserve(preview);
+  const stopAt = Math.max(0, Number(preview.stop_at) || 0);
   const now    = new Date(); now.setHours(0,0,0,0);
   const monday = new Date(now);
   monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
@@ -8143,8 +8364,10 @@ function calcWeekly() {
     }
   }
   // weekBudget = the fixed limit for display (denominator)
-  const weekBudget  = _effectivePerWeek > 0 ? _effectivePerWeek : (weekNet > 0 ? weekNet : 0);
-  const _wkFailed   = _effectivePerWeek > 0 && weekNet > _effectivePerWeek;
+  const summary = weeklySpendingSummary(perWeek, weekNet, preview.smart_target_weekly);
+  _effectivePerWeek = summary.limit;
+  const weekBudget = summary.limit;
+  const _wkFailed = summary.over > 0;
   // Bar goes past 100% when over limit (capped at 150% visually), turns red
   const weekPct     = weekBudget > 0 ? Math.min(weekNet / weekBudget, 1.5) : 0;
   const barColor    = _wkFailed ? 'var(--danger)' : weekPct >= 0.8 ? 'var(--warn)' : 'var(--success)';
@@ -8297,9 +8520,11 @@ function calcWeekly() {
   // dashboard already uses. Replaces four visually identical cards, one of which
   // repeated the balance already shown at the top of the page, and another of
   // which showed the same number as THIS MONTH whenever a single week remained.
-  const _left = Math.max(0, weekBudget - weekNet);
+  const _left = summary.left;
+  const planNote = document.getElementById('wk-plan-note');
+  if (planNote) planNote.textContent = `${fmt(liveBalance)} balance − ${fmt(stopAt)} protected − ${fmt(bills)} bills = ${fmt(available)} for the month. Available weekly limit: ${fmt(perWeek)}. Your target can lower this limit; it never raises it.`;
   const _stats = [
-    ['Dynamic daily', fmt(perDay)],
+    ['Available daily', fmt(perDay)],
     ['This month', fmt(available)],
     ['Balance',    fmt(liveBalance)],
   ].map(([l, v]) => `<div class="wk-stat"><span class="wk-stat-l">${l}</span><span class="wk-stat-v">${v}</span></div>`).join('');
@@ -8313,6 +8538,11 @@ function calcWeekly() {
         <span class="wt-spent wk-hero-val" style="color:${barColor}">${_wkFailed ? '+' + fmt(weekNet - _effectivePerWeek) : fmt(_left)}</span>
       </div>
       <div class="wk-hero-sub">${fmt(weekNet)} spent of ${fmt(weekBudget)}${_wkFailed ? ' · over limit' : ''}</div>
+      <div class="plan-facts">
+        <div><span>Your weekly target</span><strong>${summary.target > 0 ? fmt(summary.target) : 'Not set'}</strong></div>
+        <div><span>Available weekly limit</span><strong>${fmt(summary.ceiling)}</strong></div>
+      </div>
+      <p class="code-hint">${summary.target > summary.ceiling ? 'Your target is above the available limit. Remaining spending uses the available limit.' : summary.target > 0 ? 'Remaining spending follows your target while protecting your bills and minimum balance.' : 'No target set. Remaining spending uses your available limit.'}</p>
       <div class="progress-bar-bg">
         <div class="progress-bar-fill" style="width:${Math.min(weekPct*100, 100).toFixed(1)}%;background:${barColor}"></div>
       </div>
@@ -8860,14 +9090,71 @@ function _acctOwed(acctId) {
   return { owed: Math.max(0, startingBal + exp - inc), startingBal };
 }
 
+function recordedCashflow(transactions, start, end) {
+  const result = { income:0, expense:0, count:0, bycat:{} };
+  for (const transaction of transactions || []) {
+    if (!transaction.date || transaction.date < start || transaction.date > end || transaction._xfer ||
+        (transaction.category === 'Adjustment' && transaction.excludeFromBudget)) continue;
+    const amount = Number(transaction.amount);
+    if (!Number.isFinite(amount) || amount < 0) continue;
+    if (transaction.type === 'income') result.income += amount;
+    else if (transaction.type === 'expense') {
+      result.expense += amount;
+      result.bycat[transaction.category || 'Other'] = (result.bycat[transaction.category || 'Other'] || 0) + amount;
+    } else continue;
+    result.count++;
+  }
+  return result;
+}
+
+function financialReviewHtml(month) {
+  const comparison = calculateMonthComparison(state.transactions, month);
+  const cashflow = recordedCashflow(state.transactions, `${month}-01`, comparison.end);
+  const overdue = month === localMonthKey() ? calculateBillHealth(state.bills, month).overdue : 0;
+  let title, detail, action, tab;
+  if (overdue) {
+    title = `${overdue} overdue bill${overdue === 1 ? '' : 's'} to review`;
+    detail = 'Check the due dates and record payments so your bill status and spending plan stay current.';
+    action = 'Review Bills'; tab = 'bills';
+  } else if (comparison.prior.count && comparison.current.count) {
+    const delta = comparison.current.expense - comparison.prior.expense;
+    title = Math.abs(delta) < 0.005 ? 'Spending is unchanged' : `${fmt(Math.abs(delta))} ${delta > 0 ? 'more' : 'less'} discretionary spending`;
+    detail = `${comparison.currentMonth ? 'Compared with the same calendar days last month.' : 'Compared with the previous complete month.'} Review the transactions, then adjust a category budget if your priorities have changed.`;
+    action = 'Review transactions'; tab = 'ledger';
+  } else if (cashflow.income > cashflow.expense) {
+    title = `${fmt(cashflow.income - cashflow.expense)} recorded surplus`;
+    detail = 'This is income minus recorded spending, not a savings deposit. Cover upcoming bills before deciding what to put toward a goal.';
+    action = 'Review savings goals'; tab = 'goals';
+  } else {
+    title = 'Choose a spending pace';
+    detail = 'Your weekly target can stay below your available limit while protecting bills and your minimum balance.';
+    action = 'Review your plan'; tab = 'weekly';
+  }
+  return `<section class="review-card" aria-label="Next useful step"><span class="review-eyebrow">NEXT USEFUL STEP</span>
+    <h2>${title}</h2><p>${detail}</p><button type="button" class="btn-secondary" data-review-go="${tab}" data-review-month="${month}">${action}</button></section>`;
+}
+
+function attachFinancialReview() {
+  document.querySelectorAll('[data-review-go]').forEach(button => button.addEventListener('click', () => {
+    if (button.dataset.reviewGo === 'ledger') {
+      ledgerFilter = ''; ledgerCatFilter = ''; ledgerTypeFilter = 'all'; ledgerAllAccounts = false;
+      ledgerDateFrom = button.dataset.reviewMonth + '-01';
+      ledgerDateTo = calculateMonthComparison(state.transactions, button.dataset.reviewMonth).end;
+      ledgerView = 'transactions'; ledgerFiltersOpen = true;
+    }
+    showTab(button.dataset.reviewGo);
+  }));
+}
+
 function renderInsights() {
   const curM    = localMonthKey();
   const prevM   = shiftMonthKey(curM, -1);
-  const cur     = monthTotals(curM);
-  const prev    = monthTotals(prevM);
+  const comparison = calculateMonthComparison(state.transactions, curM);
+  const cur = recordedCashflow(state.transactions, curM + '-01', today());
+  const prev = recordedCashflow(state.transactions, prevM + '-01', comparison.previousEnd);
   const net     = cur.income - cur.expense;
   const rate    = cur.income > 0 ? (net / cur.income * 100) : 0;
-  const expDelta = prev.expense > 0 ? ((cur.expense - prev.expense) / prev.expense * 100) : null;
+
 
   // 6-month expense trend
   const labels = [], data = [];
@@ -8875,13 +9162,14 @@ function renderInsights() {
     const d  = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
     const mk = localMonthKey(d);
     labels.push(d.toLocaleDateString('en-US', { month: 'short' }));
-    data.push(+monthTotals(mk).expense.toFixed(2));
+    data.push(+recordedCashflow(state.transactions, mk + '-01', mk === curM ? today() : _monthEndDate(mk)).expense.toFixed(2));
   }
   _insTrend = { labels, data };
   const maxExp = Math.max(...data, 1);
 
   // Top categories this month, with month-over-month change
-  const cd = getMonthCatData(curM);
+  const categories = Object.entries(cur.bycat).sort((a,b) => b[1] - a[1]);
+  const cd = {labels:categories.map(([name]) => name), data:categories.map(([,amount]) => amount), colors:categories.map(([name]) => catColor(name, '#9896a4'))};
   const prevByCat = prev.bycat || {};
   const topCats = cd.labels.map((lbl, idx) => ({
     name: lbl, amt: cd.data[idx], color: cd.colors[idx] || '#9896a4', prev: prevByCat[lbl] || 0,
@@ -8905,29 +9193,30 @@ function renderInsights() {
   });
 
   const rateColor = rate >= 20 ? 'var(--success)' : rate >= 0 ? 'var(--warn)' : 'var(--danger)';
-  const deltaStr  = expDelta == null ? '' :
-    `<span style="color:${expDelta > 0 ? 'var(--danger)' : 'var(--success)'};font-weight:600">${expDelta > 0 ? '▲' : '▼'} ${Math.abs(expDelta).toFixed(0)}%</span> vs ${monthKeyLabel(prevM).split(' ')[0]}`;
+
 
   return `
     <div class="page">
       <h1 class="page-title">Insights</h1>
-      <p class="page-sub">${monthKeyLabel(curM)}</p>
+      <p class="page-sub">${_escHtml(_currentAcct()?.name || 'Account')} · ${monthKeyLabel(curM)} through today</p>
+      ${financialReviewHtml(curM)}
+      ${renderMonthComparison(false, curM)}
 
-      <div class="cards-grid" style="margin-bottom:12px">
+      <div class="cards-grid summary-cards" style="margin-bottom:12px">
         <div class="card">
           <div class="card-title">NET WORTH</div>
           <div class="card-value" style="color:${netWorth >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(netWorth)}</div>
-          <div class="card-sub">${fmt(assets)} assets − ${fmt(debts)} debt</div>
+          <div class="card-sub">All accounts · ${fmt(assets)} assets − ${fmt(debts)} debt</div>
         </div>
         <div class="card">
-          <div class="card-title">SAVINGS RATE</div>
+          <div class="card-title">RECORDED SURPLUS RATE</div>
           <div class="card-value" style="color:${rateColor}">${rate.toFixed(0)}%</div>
-          <div class="card-sub">${fmt(net)} kept this month</div>
+          <div class="card-sub">${fmt(net)} income minus spending</div>
         </div>
       </div>
 
       <div class="ins-section">
-        <div class="ins-section-hdr">This month</div>
+        <div class="ins-section-hdr">Recorded cashflow · this account</div><p class="code-hint">Includes bill payments. Transfers and balance adjustments are excluded. Surplus is not money deposited into savings.</p>
         <div class="ins-row"><span>Income</span><span style="color:var(--success);font-weight:700">${fmt(cur.income)}</span></div>
         <div class="ins-row"><span>Expenses</span><span style="color:var(--danger);font-weight:700">${fmt(cur.expense)}</span></div>
         <div class="ins-row ins-row-net"><span>Net</span><span style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:700">${fmt(net)}</span></div>
@@ -8935,7 +9224,7 @@ function renderInsights() {
 
       <div class="ins-section">
         <div class="ins-section-hdr">Spending — last 6 months</div>
-        <p class="code-hint" style="margin:6px 0 10px">${fmt(cur.expense)} this month · ${deltaStr}</p>
+        <p class="code-hint" style="margin:6px 0 10px">${fmt(cur.expense)} recorded this month through today. Earlier bars show complete months.</p>
         <div style="height:170px"><canvas id="insights-trend"></canvas></div>
       </div>
 
@@ -8956,12 +9245,12 @@ function renderInsights() {
       })()}
 
       <div class="ins-section">
-        <div class="ins-section-hdr">Top categories</div>
+        <div class="ins-section-hdr">Top categories</div><p class="code-hint">Recorded spending, including bills. Changes compare the same calendar days last month.</p>
         ${topCats.length ? topCats.map(c => {
           const chg = c.amt - c.prev;
           const chgStr = c.prev > 0 ? `<span style="color:${chg > 0 ? 'var(--danger)' : 'var(--success)'};font-size:.7rem">${chg > 0 ? '▲' : '▼'} ${fmt(Math.abs(chg))}</span>` : '<span style="color:var(--muted);font-size:.7rem">new</span>';
           return `<div class="ins-cat">
-            <div class="ins-cat-top"><span><span class="cat-dot" style="background:${c.color}"></span>${c.name}</span><span>${fmt(c.amt)} ${chgStr}</span></div>
+            <div class="ins-cat-top"><span><span class="cat-dot" style="background:${c.color}"></span>${_escHtml(c.name)}</span><span>${fmt(c.amt)} ${chgStr}</span></div>
             <div class="ins-bar-bg"><div class="ins-bar-fill" style="width:${(c.amt / topMax * 100).toFixed(1)}%;background:${c.color}"></div></div>
           </div>`;
         }).join('') : '<p class="code-hint" style="margin:0">No spending recorded this month yet.</p>'}
@@ -8984,11 +9273,11 @@ function renderInsights() {
         <p class="code-hint" style="margin:10px 0 10px">Pick a start and end date to total your spending by category.</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
           <div>
-            <label class="form-label" style="font-size:.7rem">From</label>
+            <label class="form-label" for="range-start" style="font-size:.7rem">From</label>
             <input type="date" id="range-start" class="form-input" value="${curM}-01" max="${today()}">
           </div>
           <div>
-            <label class="form-label" style="font-size:.7rem">To</label>
+            <label class="form-label" for="range-end" style="font-size:.7rem">To</label>
             <input type="date" id="range-end" class="form-input" value="${today()}" max="${today()}">
           </div>
         </div>
@@ -8997,13 +9286,14 @@ function renderInsights() {
       </div>
 
       <div class="ins-actions">
-        <button class="btn-primary" id="insights-goto-report" style="width:100%">📊 Monthly savings report ›</button>
+        <button class="btn-primary" id="insights-goto-report" style="width:100%">📊 Monthly cashflow report ›</button>
         <button class="btn-secondary" id="insights-goto-ledger" style="width:100%">View full ledger ›</button>
       </div>
     </div>`;
 }
 
 function attachInsights() {
+  attachFinancialReview();
   if (_insightsChart) { _insightsChart.destroy(); _insightsChart = null; }
   const el = document.getElementById('insights-trend');
   if (el) _withChart(() => {
@@ -9122,7 +9412,7 @@ function renderReport() {
   const m = _reportMonth;
   const isCur  = m === curMonthKey();
   const isLast = m === shiftMonthKey(curMonthKey(), -1);
-  const { cats, income } = rangeCategoryTotals(m + '-01', _monthEndDate(m));
+  const { cats, income } = rangeCategoryTotals(m + '-01', isCur ? today() : _monthEndDate(m));
   const included = cats.filter(c => !_reportExcluded.has(c.name));
   const excluded = cats.filter(c => _reportExcluded.has(c.name));
   const spent = included.reduce((s, c) => s + c.amt, 0);
@@ -9149,7 +9439,8 @@ function renderReport() {
   return `
     <div class="page">
       <h1 class="page-title">Monthly Report</h1>
-      <p class="page-sub">spending summary &amp; savings</p>
+      <p class="page-sub">${_escHtml(_currentAcct()?.name || 'Account')} · recorded spending &amp; scenarios</p>
+      ${financialReviewHtml(m)}
 
       <div class="bills-month-nav">
         <button class="bills-month-arrow" id="report-prev" aria-label="Previous month">‹</button>
@@ -9157,24 +9448,25 @@ function renderReport() {
         <button class="bills-month-arrow" id="report-next" aria-label="Next month"${isCur ? ' disabled style="opacity:.35"' : ''}>›</button>
       </div>
 
-      <div class="cards-grid" style="margin-bottom:14px">
+      <div class="cards-grid summary-cards" style="margin-bottom:14px">
         <div class="card">
           <div class="card-title">SPENT</div>
           <div class="card-value" style="color:var(--danger)">${fmt(spent)}</div>
           <div class="card-sub">${txns} transaction${txns === 1 ? '' : 's'} · ${included.length} categor${included.length === 1 ? 'y' : 'ies'}</div>
         </div>
         <div class="card">
-          <div class="card-title">${net >= 0 ? 'COULD SAVE' : 'OVERSPENT'}</div>
-          <div class="card-value" style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(Math.abs(net))}</div>
-          <div class="card-sub">${income > 0 ? `${rate.toFixed(0)}% of ${fmt(income)} income` : 'no income logged'}</div>
+          <div class="card-title">${excluded.length ? 'SCENARIO SURPLUS' : 'RECORDED SURPLUS'}</div>
+          <div class="card-value" style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmt(net)}</div>
+          <div class="card-sub">${income > 0 ? `${rate.toFixed(0)}% of recorded income` : 'no income logged'}</div>
         </div>
       </div>
 
+      <p class="code-hint">${excluded.length ? 'Scenario only: excluded categories remain in your ledger.' : 'Surplus is recorded income minus spending, not a savings deposit.'} ${isCur ? 'This month is through today.' : 'This is a complete month.'}</p>
       <div class="form-card">
         <div class="ins-row"><span>Income</span><span style="color:var(--success);font-weight:700">${fmt(income)}</span></div>
         <div class="ins-row"><span>Spending${excluded.length ? ' (included)' : ''}</span><span style="color:var(--danger);font-weight:700">${fmt(spent)}</span></div>
-        <div class="ins-row ins-row-net"><span>${net >= 0 ? 'Left to save' : 'Shortfall'}</span><span style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:800">${fmt(net)}</span></div>
-        ${excluded.length ? `<p class="code-hint" style="margin:8px 0 0">Excluding ${excluded.length} categor${excluded.length === 1 ? 'y' : 'ies'} (${fmt(excludedTotal)}). ${net >= 0 ? `Cutting them is worth ${fmt(excludedTotal)}/mo.` : ''} <button class="report-reset-btn" id="report-reset">Include all</button></p>` : ''}
+        <div class="ins-row ins-row-net"><span>${excluded.length ? 'Hypothetical surplus' : 'Income minus spending'}</span><span style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:800">${fmt(net)}</span></div>
+        ${excluded.length ? `<p class="code-hint" style="margin:8px 0 0">Excluding ${excluded.length} categor${excluded.length === 1 ? 'y' : 'ies'} (${fmt(excludedTotal)}). ${net >= 0 ? `Scenario removes ${fmt(excludedTotal)} of recorded spending.` : ''} <button class="report-reset-btn" id="report-reset">Include all</button></p>` : ''}
       </div>
 
       <div class="form-card">
@@ -9188,6 +9480,7 @@ function renderReport() {
 }
 
 function attachReport() {
+  attachFinancialReview();
   document.getElementById('report-back')?.addEventListener('click', () => showTab('insights'));
   document.getElementById('report-prev')?.addEventListener('click', () => { _reportMonth = shiftMonthKey(_reportMonth, -1); render(); });
   document.getElementById('report-next')?.addEventListener('click', () => {
@@ -9219,7 +9512,7 @@ function renderGoals() {
           <span class="health-bar-score">${score}/${max}</span>
         </div>
         <div class="breakdown-bar-bg"><div class="breakdown-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
-        ${desc ? `<span style="font-size:11px;color:var(--muted);display:block;margin-top:3px">${desc}</span>` : ''}
+        ${desc ? `<p class="health-metric-detail">${desc}</p>` : ''}
       </div>`;
   };
 
@@ -9259,20 +9552,22 @@ function renderGoals() {
             <div class="health-grade" style="color:${health.color}">${health.grade}</div>
           </div>
         </div>
+        <p class="code-hint">Based on recorded income, spending, and bills already due. Surplus is not a savings deposit.</p>
         <div class="health-bars">
-          ${hBar(health.savingsScore, 50, 'Savings Rate',    health.savingsLabel)}
+          ${hBar(health.savingsScore, 50, 'Recorded Surplus',    health.savingsLabel)}
           ${hBar(health.balanceScore, 25, 'Balance Buffer',  health.balanceLabel)}
           ${hBar(health.billScore,    25, 'Bills',           health.billLabel)}
         </div>
+        <button type="button" id="health-review-bills" class="btn-secondary">Review bill status</button>
       </div>
       <div class="form-card" style="margin-top:16px">
         <h2 class="section-title" style="margin:0 0 8px">Add Savings Goal</h2>
         <div class="form-row">
-          <label class="form-label">Goal name</label>
+          <label class="form-label" for="goal-name">Goal name</label>
           <input type="text" id="goal-name" class="form-input" placeholder="e.g. Emergency Fund">
         </div>
         <div class="form-row">
-          <label class="form-label">Target amount ($)</label>
+          <label class="form-label" for="goal-target">Target amount ($)</label>
           <input type="number" id="goal-target" class="form-input" placeholder="5000.00" step="0.01" min="0" inputmode="decimal">
         </div>
         <div id="goal-status" class="form-status"></div>
@@ -9295,6 +9590,7 @@ function renderGoals() {
 }
 
 function attachGoals() {
+  document.getElementById('health-review-bills')?.addEventListener('click', () => showTab('bills'));
   document.getElementById('goal-add-btn')?.addEventListener('click', async () => {
     const name   = document.getElementById('goal-name').value.trim();
     const target = parseFloat(document.getElementById('goal-target').value);
@@ -9339,7 +9635,7 @@ function autoBackupCardHtml() {
       <h2 class="section-title" style="margin-bottom:6px">${ICONS.download} Daily auto-backup</h2>
       <p class="code-hint">This browser can't write to a file on its own, so auto-backup isn't
         available here. It works in Edge and Chrome on a computer. On this device, use
-        <strong>Download Budget DAWGs Backup (JSON)</strong> below now and then.</p>
+        <strong>Download backup (JSON)</strong> above now and then.</p>
     </div>`;
   }
   const on   = !!s.autoBackup;
@@ -9369,23 +9665,43 @@ function autoBackupCardHtml() {
 }
 
 // ── import ─────────────────────────────────────────────────────────────────
+let _dataToolsView = 'backup';
+
 function renderImport() {
   return `
-    <div class="page">
-      <h1 class="page-title">Import / Export</h1>
-      <p class="page-sub">Excel &amp; spreadsheet friendly</p>
-
-      ${autoBackupCardHtml()}
-
-      <div class="form-card" id="backup-section">
+    <div class="page data-page">
+      <h1 class="page-title">Data &amp; backups</h1>
+      <p class="page-sub">Protect your data or work with spreadsheets</p>
+      <div class="data-tabs" role="group" aria-label="Data tools">
+        <button type="button" id="data-backup-tab" aria-pressed="${_dataToolsView === 'backup'}">Backup &amp; Recovery</button>
+        <button type="button" id="data-spreadsheets-tab" aria-pressed="${_dataToolsView === 'spreadsheets'}">Spreadsheets</button>
+      </div>
+      <section id="data-backup-panel"${_dataToolsView !== 'backup' ? ' hidden' : ''} aria-label="Backup and recovery">
+        <div class="form-card" id="backup-section">
+          <h2 class="section-title">Your backup file</h2>
+          <p class="code-hint">A complete copy of all accounts, transactions, bills, plans, goals, and settings. Keep the file somewhere you can find it if browser data is cleared.</p>
+          <button id="export-json-btn" class="btn-primary">${ICONS.download} Download backup (JSON)</button>
+          ${backupStatusHtml()}
+        </div>
+        ${autoBackupCardHtml()}
+        <div class="form-card">
+          <h2 class="section-title">Restore a backup file</h2>
+          <p class="code-hint">Preview the accounts and balances before replacing your current data. An undo point must be saved on this device before restore can proceed.</p>
+          <div id="json-import-status" class="form-status" role="status"></div>
+          <button type="button" id="choose-json-backup" class="btn-secondary">Preview backup file…</button>
+          <input type="file" id="import-json-file" accept=".json" hidden>
+        </div>
+        ${_restorePointsHtml()}
+      </section>
+      <section id="data-spreadsheets-panel"${_dataToolsView !== 'spreadsheets' ? ' hidden' : ''} aria-label="Spreadsheet tools">
+        <p class="code-hint">CSV files contain transactions. Use Backup &amp; Recovery for a complete app backup.</p>
+      <div class="form-card">
         <h2 class="section-title" style="margin-bottom:6px">${ICONS.download} Export to Excel / CSV</h2>
         <p class="code-hint" style="margin-bottom:12px">Opens directly in Excel. Includes Date, Type, Category, Description, Amount, Signed Amount, Running Balance, Account, and Recurring columns.</p>
         <div style="display:flex;flex-direction:column;gap:8px">
           <button id="export-csv-btn" class="btn-primary">${ICONS.download} Export This Account (CSV)</button>
           <button id="export-csv-all-btn" class="btn-primary" style="background:var(--surface2);border:1px solid var(--border);color:var(--text)">${ICONS.download} Export All Accounts (CSV)</button>
-          <button id="export-json-btn" class="btn-primary" style="background:var(--surface2);border:1px solid var(--border);color:var(--text)">${ICONS.download} Download Budget DAWGs Backup (JSON)</button>
         </div>
-        ${backupStatusHtml()}
       </div>
 
       <div class="form-card">
@@ -9406,24 +9722,12 @@ function renderImport() {
         </div>
         <p id="import-mode-hint" class="code-hint" style="margin-top:4px;margin-bottom:0">Adds new transactions on top of existing ones.</p>
         <div id="import-status" class="form-status" style="margin-top:8px"></div>
-        <label class="btn-primary" style="display:inline-block;margin-top:8px;cursor:pointer;text-align:center;width:100%;box-sizing:border-box">
-          Choose CSV or Excel File…
-          <input type="file" id="import-file" accept=".csv,.xlsx,.xls,.txt" style="display:none">
-        </label>
+        <button type="button" id="choose-csv-file" class="btn-primary">Choose CSV or Excel File…</button>
+        <input type="file" id="import-file" accept=".csv,.xlsx,.xls,.txt" hidden>
         <div id="import-preview" style="display:none;margin-top:12px;padding:12px;background:var(--surface2);border-radius:14px;border:1px solid var(--border)"></div>
       </div>
 
-      <div class="form-card">
-        <h2 class="section-title" style="margin-bottom:6px">${ICONS.upload} Restore from Backup</h2>
-        <p class="code-hint">Restores everything from a Budget DAWGs JSON backup file.</p>
-        <div id="json-import-status" class="form-status" style="margin-top:6px"></div>
-        <label class="btn-primary" style="display:inline-block;margin-top:8px;cursor:pointer;text-align:center;width:100%;box-sizing:border-box">
-          ${ICONS.upload} Load Backup File
-          <input type="file" id="import-json-file" accept=".json" style="display:none">
-        </label>
-      </div>
-
-      ${_restorePointsHtml()}
+      </section>
     </div>`;
 }
 
@@ -9455,7 +9759,7 @@ function _restorePointsHtml() {
     : '<p class="code-hint" style="margin:0">No restore points yet — one is saved automatically each day you open the app, and before any bulk delete, import, or restore.</p>';
   return `<div class="form-card">
     <h2 class="section-title" style="margin-bottom:6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 3"/></svg>Restore points</h2>
-    <p class="code-hint" style="margin-bottom:10px">Automatic on-device snapshots — undo an accidental bulk delete, import, or restore. Keeps the last ${MAX_SNAPSHOTS}.</p>
+    <p class="code-hint" style="margin-bottom:10px">Automatic on-device snapshots — undo a bulk delete, import, or restore. Keeps the last ${MAX_SNAPSHOTS}. Clearing browser data removes these; a backup file protects you separately.</p>
     <div id="restore-pt-status" class="form-status" style="margin-bottom:6px"></div>
     <div class="restore-pt-list">${rows}</div>
   </div>`;
@@ -10947,6 +11251,7 @@ function attachAccounts() {
     const val = parseFloat(raw);
     state.startingBalance = isNaN(val) ? 0 : val;
     _save();
+    completeGettingStartedStep('balance');
     showStatus('starting-bal-settings-status', '✓ Saved', 'success', 2000);
     if (val < 0) { _shownNegativePopup = true; showNegativeBalancePopup(); }
   });
@@ -11655,6 +11960,7 @@ function showDashboardLimitMath(kind = 'daily') {
 }
 
 function attachDashboardDawg() {
+  attachGettingStarted();
   document.getElementById('dash-open-weekly')?.addEventListener('click', () => showTab('weekly'));
   document.getElementById('dash-open-bills')?.addEventListener('click', () => showTab('bills'));
   document.querySelectorAll('[data-plan-review]').forEach(btn => btn.addEventListener('click', () => showTab('weekly')));
@@ -11666,6 +11972,7 @@ function attachDashboardDawg() {
     document.getElementById('backup-banner')?.remove();
   });
   document.getElementById('backup-banner-go')?.addEventListener('click', () => {
+    _dataToolsView = 'backup';
     showTab('import');
     setTimeout(() => document.getElementById('backup-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
   });
@@ -12225,7 +12532,7 @@ async function autoUpdateWeeklyPlan() {
   if (!wp) return;
   const { income, expense } = totals();
   const liveBalance = (state.startingBalance || 0) + income - expense;
-  const bills    = parseFloat(wp.bills   || 0) || 0;
+  const bills    = weeklyBillsReserve(wp);
   const stopAt   = parseFloat(wp.stop_at || 0) || 0;
   const now      = new Date(); now.setHours(0,0,0,0);
   const monday   = new Date(now); monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
@@ -12860,17 +13167,54 @@ async function _onLedgerListClick(e) {
   }
 }
 
+function weeklyPlanInputs() {
+  if (currentTab !== 'weekly' || !document.getElementById('wk-bills')) return state.weekly_plan;
+  return {
+    ...state.weekly_plan,
+    bills: document.getElementById('wk-bills').value,
+    stop_at: document.getElementById('wk-stop-at').value,
+    bills_source: document.getElementById('wk-reserve-source').value,
+    smart_target_weekly: document.getElementById('wk-target').value,
+  };
+}
+
+function validateWeeklyPlanForm() {
+  for (const id of ['wk-bills', 'wk-stop-at', 'wk-target']) {
+    const field = document.getElementById(id);
+    if (!field || field.disabled) continue;
+    if (!Number.isFinite(Number(field.value)) || Number(field.value) < 0 || field.validity.badInput) {
+      showStatus('wk-plan-error', 'Use an amount of zero or more.', 'error', 0);
+      field.focus(); return false;
+    }
+  }
+  const error = document.getElementById('wk-plan-error');
+  if (error) error.textContent = '';
+  return true;
+}
+
 function attachWeekly() {
   const _debouncedCalc = () => { clearTimeout(_wkCalcTimer); _wkCalcTimer = setTimeout(calcWeekly, 300); };
-  ['wk-bills','wk-stop-at'].forEach(id => {
+  ['wk-bills','wk-stop-at','wk-target'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', _debouncedCalc);
     document.getElementById(id)?.addEventListener('input',  _debouncedCalc);
   });
+  document.getElementById('wk-reserve-source')?.addEventListener('change', e => {
+    const tracked = e.target.value === 'tracked';
+    document.getElementById('wk-bills').disabled = tracked;
+    document.getElementById('wk-reserve-hint').textContent = tracked
+      ? 'Updates as you mark bills paid. Your manual amount is kept for switching back.'
+      : 'Your saved amount stays independent of Bills. Switch above to keep them in sync.';
+    calcWeekly();
+  });
   document.getElementById('smart-budget-btn')?.addEventListener('click', showSmartBudgetPlanner);
   document.getElementById('wk-save')?.addEventListener('click', async () => {
+    if (!validateWeeklyPlanForm()) return;
+    calcWeekly();
     const plan = {
       ...state.weekly_plan,
-      bills:           document.getElementById('wk-bills').value,
+      ...weeklyPlanInputs(),
+      smart_target_weekly: Number(document.getElementById('wk-target').value) || 0,
+      smart_target_daily: (Number(document.getElementById('wk-target').value) || 0) / 7,
       stop_at:         document.getElementById('wk-stop-at').value,
       per_week:        lastCalcPerWeek,
       per_day:         lastCalcPerDay,
@@ -12879,6 +13223,7 @@ function attachWeekly() {
       saved_date:      today(),
     };
     await api.saveWeeklyPlan(plan);
+    completeGettingStartedStep('plan');
     const el = document.getElementById('wk-save-status');
     if (el) { el.textContent = '✓ Saved'; setTimeout(() => { el.textContent = ''; }, 3000); }
   });
@@ -12901,6 +13246,19 @@ function attachWeekly() {
 }
 
 function attachImport() {
+  const selectView = view => {
+    _dataToolsView = view;
+    document.getElementById('data-backup-panel').hidden = view !== 'backup';
+    document.getElementById('data-spreadsheets-panel').hidden = view !== 'spreadsheets';
+    document.getElementById('data-backup-tab').setAttribute('aria-pressed', String(view === 'backup'));
+    document.getElementById('data-spreadsheets-tab').setAttribute('aria-pressed', String(view === 'spreadsheets'));
+  };
+  document.getElementById('data-backup-tab')?.addEventListener('click', () => selectView('backup'));
+  document.getElementById('data-spreadsheets-tab')?.addEventListener('click', () => selectView('spreadsheets'));
+  document.getElementById('choose-json-backup')?.addEventListener('click', () => {
+    const input = document.getElementById('import-json-file'); input.value = ''; input.click();
+  });
+  document.getElementById('choose-csv-file')?.addEventListener('click', () => document.getElementById('import-file').click());
   // ── daily auto-backup ─────────────────────────────────────────────────────
   const abStatus = (msg, kind) => {
     const el = document.getElementById('autobk-status');
@@ -12967,24 +13325,8 @@ function attachImport() {
     reader.onload = ev => {
       try {
         const data = JSON.parse(ev.target.result);
-        const isMulti = data._multiAccount && data.accountData && typeof data.accountData === 'object';
-        if (!isMulti && !data.transactions) throw new Error('Invalid backup file');
-        const acctList  = data.accounts || defaultAccounts();
-        const acctCount = acctList.length;
-        const txnCount  = isMulti
-          ? Object.values(data.accountData).reduce((s, d) => s + ((d.transactions || []).length), 0)
-          : (data.transactions || []).length;
-        showConfirmModal({
-          title: 'Restore Backup?',
-          message: `This will replace ALL current data with the backup (${txnCount} transaction${txnCount !== 1 ? 's' : ''} across ${acctCount} account${acctCount !== 1 ? 's' : ''}). This cannot be undone.`,
-          confirmText: 'Restore', danger: true,
-          onConfirm: () => {
-            takeSnapshot('before-restore');   // so a restore is itself undoable
-            _applyBackupPayload(data);
-            showStatus('json-import-status', `✓ Restored ${txnCount} transaction${txnCount !== 1 ? 's' : ''} from backup.`, 'success', 0);
-            render();
-          },
-        });
+        showBackupRestorePreview(data, file.name);
+
       } catch(err) {
         showStatus('json-import-status', `Error: ${err.message}`, 'error', 0);
       }
@@ -13009,8 +13351,12 @@ function attachImport() {
         message: `Replace all current data with the snapshot from ${when} (${snap.txnCount} transaction${snap.txnCount !== 1 ? 's' : ''})? Your current data is saved as a new restore point first, so this is reversible.`,
         confirmText: 'Restore',
         onConfirm: () => {
-          takeSnapshot('before-restore');
-          _applyBackupPayload(snap.payload);
+          try { restoreBackupWithUndo(snap.payload); }
+          catch (error) {
+            showStatus('restore-pt-status', `Restore stopped: ${error.message}`, 'error', 0);
+            return;
+          }
+          applySettings();
           render();
           showStatus('restore-pt-status', `✓ Restored snapshot from ${when}.`, 'success', 0);
         },
@@ -13820,7 +14166,12 @@ document.querySelectorAll('.dawg-drawer-item').forEach(btn =>
     const icon = btn.querySelector('.dawg-di-icon');
     if (icon) triggerIconGlitch(icon);
     closeDawgDrawer();
-    if (btn.dataset.tab === '__accounts__') { _navPush(); showingAccountPicker = true; render(); }
+    if (btn.dataset.tab === '__setup__') {
+      const settings = loadSettings();
+      settings.gettingStarted = { ...(settings.gettingStarted || {steps:{}}), dismissed:false };
+      saveSettings(settings); showTab('dashboard');
+    }
+    else if (btn.dataset.tab === '__accounts__') { _navPush(); showingAccountPicker = true; render(); }
     else showTab(btn.dataset.tab);
   }));
 
@@ -13957,6 +14308,7 @@ window.addEventListener('popstate', () => {
   // Before anything reads storage: if the last session ended while screenshot
   // mode was on, the real data is still in the backup entry. Put it back.
   recoverFromDemoMode();
+  const _freshInstall = !localStorage.getItem(ACCOUNTS_KEY) && !localStorage.getItem(STORAGE_KEY);
   const _loadStarted = api.load();
   // Don't let a load failure surface as an unhandled rejection while we wait on
   // the splash; the await below re-throws it into the existing try/catch.
@@ -13967,6 +14319,9 @@ window.addEventListener('popstate', () => {
     _earlyBlocker?.remove();
     try {
     await _loadStarted;
+    if (_freshInstall && !loadSettings().gettingStarted) {
+      const settings = loadSettings(); settings.gettingStarted = { steps: {} }; saveSettings(settings);
+    }
     await processRecurring();
     initSoundsToggle();
     initTapHaptics();
