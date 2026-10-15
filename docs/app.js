@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.65.0';
+const VERSION = '5.66.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -2799,18 +2799,60 @@ function calculateMonthComparison(transactions, month, asOf = today()) {
   return { month, previous, end, previousEnd, currentMonth, current: total(month, end), prior: total(previous, previousEnd) };
 }
 
+// Monthly pace uses the whole prior month as its baseline. Matching-day totals
+// remain available separately for category reports; neither view uses weeks.
+function calculateMonthlyPace(transactions, month, asOf = today()) {
+  const comparison = calculateMonthComparison(transactions, month, asOf);
+  const prior = calculateMonthComparison(transactions, comparison.previous, asOf).current;
+  const [year, number] = month.split('-').map(Number);
+  const daysInMonth = new Date(year, number, 0).getDate();
+  const future = month > asOf.slice(0, 7);
+  const daysElapsed = future ? 0 : comparison.currentMonth ? Number(asOf.slice(8, 10)) : daysInMonth;
+  const round = amount => Math.round(amount * 100) / 100;
+  const spent = round(comparison.current.expense);
+  const baseline = round(prior.expense);
+  const projected = daysElapsed > 0 && comparison.current.count > 0 ? round(spent / daysElapsed * daysInMonth) : null;
+  const delta = projected === null ? null : round(projected - baseline);
+  // Five percent prevents tiny changes from constantly flipping the live label.
+  // Finished months show exact recorded differences instead of a forecast.
+  const tolerance = comparison.currentMonth ? baseline * 0.05 : 0;
+  const status = future ? 'future' : !prior.count ? 'no-baseline' : projected === null ? 'empty'
+    : Math.abs(delta) <= tolerance + 0.005 ? 'on' : delta < 0 ? 'under' : 'over';
+  return { ...comparison, prior, daysInMonth, daysElapsed, spent, baseline, projected, delta, status,
+    expectedByNow: round(baseline * daysElapsed / daysInMonth) };
+}
+
+function monthlyPaceSummary(pace) {
+  const {status, currentMonth, delta} = pace;
+  if (status === 'future') return {headline:'Pace starts when the month begins', detail:'Future entries are not used to estimate your current spending pace.', tone:''};
+  if (status === 'no-baseline') return {headline:'No comparison yet', detail:'Record last month’s discretionary spending to establish a baseline.', tone:''};
+  if (status === 'empty') return {headline:'No spending recorded yet', detail:'Add this month’s spending to estimate your pace.', tone:''};
+  const difference = Math.abs(delta) < 0.005 ? 'the same as last month' : `${fmt(Math.abs(delta))} ${delta < 0 ? 'less' : 'more'} than last month`;
+  if (!currentMonth) return {
+    headline: delta === 0 ? 'Spending is unchanged' : `${fmt(Math.abs(delta))} ${delta < 0 ? 'less' : 'more'} spent`,
+    detail:`${monthKeyLabel(pace.month)} vs ${monthKeyLabel(pace.previous)} · complete months.`,
+    tone:status === 'under' ? ' comparison-better' : status === 'over' ? ' comparison-worse' : '',
+  };
+  return {
+    headline:status === 'on' ? 'On pace' : status === 'under' ? 'Under pace' : 'Over pace',
+    detail:`At this rate, you’ll finish ${difference}.`,
+    tone:status === 'over' ? ' comparison-worse' : ' comparison-better',
+  };
+}
+
 function renderMonthComparison(skinned = false, month = dashMonth) {
-  const c = calculateMonthComparison(state.transactions, month);
-  const delta = Math.round((c.current.expense - c.prior.expense) * 100) / 100;
-  const comparable = c.current.count > 0 && c.prior.count > 0;
-  const tone = !comparable || delta === 0 ? '' : delta < 0 ? ' comparison-better' : ' comparison-worse';
-  const headline = !c.prior.count ? 'No comparison yet' : !c.current.count ? 'No spending recorded yet'
-    : delta === 0 ? 'Spending is unchanged' : fmt(Math.abs(delta)) + (delta < 0 ? ' less spent' : ' more spent');
-  const shortDate = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const period = c.currentMonth ? 'Through ' + shortDate(c.end) + ' vs ' + shortDate(c.previousEnd)
-    : monthKeyLabel(c.month) + ' vs ' + monthKeyLabel(c.previous);
-  const note = (!c.prior.count ? 'Add last month’s transactions to compare.' : !c.current.count ? 'Add transactions to start comparing.' : period);
-  return '<section class="' + (skinned ? 'sk-card' : 'dawg-section-card') + ' month-comparison" aria-label="Spending comparison"><div class="comparison-summary"><span class="' + (skinned ? 'sk-eyebrow' : 'dawg-card-title') + '">Spending vs last month</span><span class="comparison-amount comparison-value' + tone + '">' + headline + '</span></div><div class="' + (skinned ? 'sk-mof' : 'dawg-tile-sub') + ' comparison-caption">' + note + '</div></section>';
+  const pace = calculateMonthlyPace(state.transactions, month);
+  const summary = monthlyPaceSummary(pace);
+  const current = pace.currentMonth;
+  const title = current ? 'Monthly spending pace' : 'Spending vs last month';
+  const shortDate = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  return `<section class="${skinned ? 'sk-card' : 'dawg-section-card'} month-comparison" aria-label="${title}">
+    <div class="comparison-summary"><span class="${skinned ? 'sk-eyebrow' : 'dawg-card-title'}">${title}</span><span class="comparison-amount${!current ? ' comparison-value' : ''}${summary.tone}">${summary.headline}</span></div>
+    ${current ? `<div class="pace-estimate"><span>Estimated month-end</span><strong class="comparison-value">${pace.projected === null ? '—' : fmt(pace.projected)}</strong></div>` : ''}
+    <p class="comparison-caption${pace.delta !== null && !['no-baseline','future'].includes(pace.status) ? ' comparison-value' : ''}">${summary.detail}</p>
+    ${pace.status !== 'future' ? `<dl class="pace-totals"><div><dt>${current ? 'Spent so far' : monthKeyLabel(month)}</dt><dd class="comparison-value">${fmt(pace.spent)}</dd></div><div><dt>Last month · full month</dt><dd class="comparison-value">${pace.prior.count ? fmt(pace.baseline) : '—'}</dd></div></dl>` : ''}
+    ${current ? `<details class="pace-method"><summary>How pace works · through ${shortDate(pace.end)}</summary><p>${pace.daysElapsed} of ${pace.daysInMonth} days. The estimate extends your daily average across this month; large purchases or missing entries can change it. ${pace.prior.count ? `<span class="comparison-value">Last month’s total spread across this month would be ${fmt(pace.expectedByNow)} by today.</span> ` : ''}On pace means within 5% of last month’s full total. Bills, transfers, and excluded entries are omitted; refunds reduce spending.</p></details>` : ''}
+  </section>`;
 }
 
 
@@ -4494,29 +4536,16 @@ function getSpendingInsights(monthStr) {
     else insights.push(`⚠️ Spending exceeds income by ${fmt(-saved)} this month`);
   }
 
-  // Use the same days and discretionary exclusions as the dashboard comparison.
-  const comparison = calculateMonthComparison(state.transactions, thisM);
-  if (comparison.current.count && comparison.prior.count && comparison.prior.expense > 0) {
-    const diff = comparison.current.expense - comparison.prior.expense;
-    const pct = Math.abs(diff / comparison.prior.expense * 100).toFixed(0);
-    insights.push(`Discretionary spending ${diff > 0 ? 'up' : 'down'} ${pct}% versus the comparable period last month (${fmt(Math.abs(diff))})`);
+  // Use the same monthly forecast and full-month baseline as Home.
+  const pace = calculateMonthlyPace(state.transactions, thisM);
+  if (['on', 'under', 'over'].includes(pace.status)) {
+    const summary = monthlyPaceSummary(pace);
+    insights.push(`${summary.headline}: ${summary.detail}${pace.currentMonth ? ` Estimated discretionary month-end: ${fmt(pace.projected)}.` : ''}`);
   }
 
   // Biggest category this month
   const cats = Object.entries(cur.bycat).sort((a, b) => b[1] - a[1]);
   if (cats.length > 0) insights.push(`🔺 Top spend: ${cats[0][0]} at ${fmt(cats[0][1])}`);
-
-  // Monthly pace — only meaningful for the current month
-  const currentM = localMonthKey();
-  if (thisM === currentM) {
-    const now2 = new Date();
-    const day = now2.getDate();
-    const daysInMonth = new Date(now2.getFullYear(), now2.getMonth() + 1, 0).getDate();
-    if (cur.expense > 0 && day < daysInMonth) {
-      const pace = (cur.expense / day * daysInMonth).toFixed(2);
-      insights.push(`📅 At this pace, you'll spend ${fmt(parseFloat(pace))} this month`);
-    }
-  }
 
   return insights;
 }
@@ -9108,18 +9137,18 @@ function recordedCashflow(transactions, start, end) {
 }
 
 function financialReviewHtml(month) {
-  const comparison = calculateMonthComparison(state.transactions, month);
-  const cashflow = recordedCashflow(state.transactions, `${month}-01`, comparison.end);
+  const pace = calculateMonthlyPace(state.transactions, month);
+  const cashflow = recordedCashflow(state.transactions, `${month}-01`, pace.end);
   const overdue = month === localMonthKey() ? calculateBillHealth(state.bills, month).overdue : 0;
   let title, detail, action, tab;
   if (overdue) {
     title = `${overdue} overdue bill${overdue === 1 ? '' : 's'} to review`;
     detail = 'Check the due dates and record payments so your bill status and spending plan stay current.';
     action = 'Review Bills'; tab = 'bills';
-  } else if (comparison.prior.count && comparison.current.count) {
-    const delta = comparison.current.expense - comparison.prior.expense;
-    title = Math.abs(delta) < 0.005 ? 'Spending is unchanged' : `${fmt(Math.abs(delta))} ${delta > 0 ? 'more' : 'less'} discretionary spending`;
-    detail = `${comparison.currentMonth ? 'Compared with the same calendar days last month.' : 'Compared with the previous complete month.'} Review the transactions, then adjust a category budget if your priorities have changed.`;
+  } else if (['on', 'under', 'over'].includes(pace.status)) {
+    const summary = monthlyPaceSummary(pace);
+    title = pace.currentMonth ? `Monthly spending: ${summary.headline.toLowerCase()}` : summary.headline;
+    detail = `${summary.detail} ${pace.currentMonth ? 'This estimate uses your daily average and last month’s full discretionary total. ' : ''}Review the transactions, then adjust your plan if needed.`;
     action = 'Review transactions'; tab = 'ledger';
   } else if (cashflow.income > cashflow.expense) {
     title = `${fmt(cashflow.income - cashflow.expense)} recorded surplus`;

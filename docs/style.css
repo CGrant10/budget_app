@@ -8865,15 +8865,25 @@ body.skin-grid .splash-boot-ready { text-transform: uppercase; letter-spacing: .
    accent slab on the title; keep a slim accent tick on section labels. */
 .page-title { font-size: 22px; font-weight: 700; letter-spacing: -.2px; padding-left: 0; border-left: none; }
 
-/* Compact spending comparison retains the native card surface. */
-.month-comparison { gap: 4px; padding: 12px 15px; }
+/* Monthly pace retains the active theme's native card surface. */
+.month-comparison { gap: 8px; padding: 15px; }
 .comparison-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; }
 .comparison-amount { font-size: .95rem; font-weight: 600; }
-.month-comparison .comparison-caption { margin-top: 0; }
+.month-comparison .comparison-caption { margin: 6px 0; font-size: .8rem; color: var(--muted); line-height: 1.5; }
 .month-comparison .comparison-better { color: var(--success); }
 .month-comparison .comparison-worse { color: var(--danger); }
 .comparison-value { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 body.amounts-hidden .comparison-value { filter: blur(6px); user-select: none; }
+.pace-estimate { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-top: 10px; }
+.pace-estimate > span, .pace-totals dt { color: var(--muted); font-size: .75rem; }
+.pace-estimate strong { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+.pace-totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 12px 0 0; }
+.pace-totals > div { min-width: 0; }
+.pace-totals dd { margin: 4px 0 0; color: var(--text); font-size: .95rem; font-weight: 600; }
+.pace-method { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: .75rem; color: var(--muted); line-height: 1.5; }
+.pace-method summary { cursor: pointer; }
+.pace-method summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 2px; }
+.pace-method p { margin: 8px 0 0; }
 
 /* Shared everyday layouts. Colors remain owned by the active theme/skin. */
 .dawg-page > .dawg-hero,

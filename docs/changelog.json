@@ -1,5 +1,14 @@
 [
  {
+  "version": "5.66.0",
+  "date": "2026-10-15",
+  "changes": [
+   "Home and Insights now show monthly spending pace: an estimated month-end total compared with last month’s full discretionary spending, with clear On pace, Under pace, and Over pace labels.",
+   "Pace uses your daily average and this month’s calendar length. Expand How pace works to see the assumptions; On pace means within 5% of last month. Bills, transfers, and excluded entries stay out, and refunds reduce spending.",
+   "Months with missing history do not receive a misleading pace rating. Completed months show actual totals, and Home and Insights share the same forecast."
+  ]
+ },
+ {
   "version": "5.65.0",
   "date": "2026-10-12",
   "changes": [
