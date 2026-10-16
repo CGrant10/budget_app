@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.66.0';
+const VERSION = '5.66.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -2845,9 +2845,11 @@ function renderMonthComparison(skinned = false, month = dashMonth) {
   const summary = monthlyPaceSummary(pace);
   const current = pace.currentMonth;
   const title = current ? 'Monthly spending pace' : 'Spending vs last month';
+  const showDifference = current && ['on', 'under', 'over'].includes(pace.status);
+  const difference = showDifference ? `${fmt(Math.abs(pace.delta))} ${pace.delta < 0 ? 'under' : pace.delta > 0 ? 'over' : 'difference'}` : '';
   const shortDate = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
   return `<section class="${skinned ? 'sk-card' : 'dawg-section-card'} month-comparison" aria-label="${title}">
-    <div class="comparison-summary"><span class="${skinned ? 'sk-eyebrow' : 'dawg-card-title'}">${title}</span><span class="comparison-amount${!current ? ' comparison-value' : ''}${summary.tone}">${summary.headline}</span></div>
+    <div class="comparison-summary"><span class="${skinned ? 'sk-eyebrow' : 'dawg-card-title'}">${title}</span><span class="comparison-amount${!current ? ' comparison-value' : ''}${summary.tone}">${summary.headline}${showDifference ? `<strong class="pace-difference comparison-value">${difference}</strong>` : ''}</span></div>
     ${current ? `<div class="pace-estimate"><span>Estimated month-end</span><strong class="comparison-value">${pace.projected === null ? '—' : fmt(pace.projected)}</strong></div>` : ''}
     <p class="comparison-caption${pace.delta !== null && !['no-baseline','future'].includes(pace.status) ? ' comparison-value' : ''}">${summary.detail}</p>
     ${pace.status !== 'future' ? `<dl class="pace-totals"><div><dt>${current ? 'Spent so far' : monthKeyLabel(month)}</dt><dd class="comparison-value">${fmt(pace.spent)}</dd></div><div><dt>Last month · full month</dt><dd class="comparison-value">${pace.prior.count ? fmt(pace.baseline) : '—'}</dd></div></dl>` : ''}
@@ -12224,7 +12226,7 @@ function attachDashboardDawg() {
         // Dot at the current draw tip
         const total = pts.length - 1;
         const pos   = phase * total;
-        const i0    = Math.min(Math.floor(pos), total - 1);
+        const i0    = Math.max(0, Math.min(Math.floor(pos), total - 1));
         const frac  = pos - i0;
         const p0    = pts[i0].getProps(['x','y'], true);
         const p1    = pts[Math.min(i0+1, total)].getProps(['x','y'], true);

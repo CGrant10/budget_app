@@ -8869,6 +8869,7 @@ body.skin-grid .splash-boot-ready { text-transform: uppercase; letter-spacing: .
 .month-comparison { gap: 8px; padding: 15px; }
 .comparison-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; }
 .comparison-amount { font-size: .95rem; font-weight: 600; }
+.pace-difference { display: block; margin-top: 4px; font-size: 1.1rem; }
 .month-comparison .comparison-caption { margin: 6px 0; font-size: .8rem; color: var(--muted); line-height: 1.5; }
 .month-comparison .comparison-better { color: var(--success); }
 .month-comparison .comparison-worse { color: var(--danger); }

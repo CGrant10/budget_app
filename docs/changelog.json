@@ -1,5 +1,14 @@
 [
  {
+  "version": "5.66.1",
+  "date": "2026-10-16",
+  "changes": [
+   "Monthly spending pace now shows the exact projected dollar amount under or over last month directly beneath the pace label on Home and Insights, including small differences within the On pace range.",
+   "An exact match shows $0.00 difference. The amount follows balance privacy, and months without enough history stay unrated.",
+   "Fixed a Home chart crash when the displayed history contains only one point."
+  ]
+ },
+ {
   "version": "5.66.0",
   "date": "2026-10-15",
   "changes": [
