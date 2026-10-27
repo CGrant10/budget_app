@@ -1,5 +1,14 @@
 [
  {
+  "version": "5.67.0",
+  "date": "2026-10-27",
+  "changes": [
+   "Home now shows Before next payday for cash accounts with an active paycheck schedule: an estimated spending allowance, daily amount, unpaid bills through payday, and the lowest scheduled balance.",
+   "Expand the payday timeline to review dated entries, overdue and upcoming bills, your expected paycheck, and the buffer/reserve calculation. Expected pay stays separate from your recorded balance and spending allowance.",
+   "The forecast follows paid bills across month boundaries, holds payday expenses before deposits, and preserves a manual bill reserve without subtracting the same bills twice. Missing or due paycheck dates link to Accounts for review."
+  ]
+ },
+ {
   "version": "5.66.1",
   "date": "2026-10-16",
   "changes": [

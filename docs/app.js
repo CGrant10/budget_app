@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.66.1';
+const VERSION = '5.67.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -1551,6 +1551,7 @@ function renderDashboardSkinned(sk) {
       <button class="dawg-mnav-btn dawg-mnav-next${!sk.isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
     </div>
 
+    ${dashMonth === localMonthKey() ? renderPaydayForecast(true) : ''}
     ${renderMonthComparison(true)}
 
     ${_skBills(sk)}
@@ -2854,6 +2855,89 @@ function renderMonthComparison(skinned = false, month = dashMonth) {
     <p class="comparison-caption${pace.delta !== null && !['no-baseline','future'].includes(pace.status) ? ' comparison-value' : ''}">${summary.detail}</p>
     ${pace.status !== 'future' ? `<dl class="pace-totals"><div><dt>${current ? 'Spent so far' : monthKeyLabel(month)}</dt><dd class="comparison-value">${fmt(pace.spent)}</dd></div><div><dt>Last month · full month</dt><dd class="comparison-value">${pace.prior.count ? fmt(pace.baseline) : '—'}</dd></div></dl>` : ''}
     ${current ? `<details class="pace-method"><summary>How pace works · through ${shortDate(pace.end)}</summary><p>${pace.daysElapsed} of ${pace.daysInMonth} days. The estimate extends your daily average across this month; large purchases or missing entries can change it. ${pace.prior.count ? `<span class="comparison-value">Last month’s total spread across this month would be ${fmt(pace.expectedByNow)} by today.</span> ` : ''}On pace means within 5% of last month’s full total. Bills, transfers, and excluded entries are omitted; refunds reduce spending.</p></details>` : ''}
+  </section>`;
+}
+
+// Read-only forecast for one cash account. Scheduled pay is shown separately;
+// it never enters the recorded balance or the allowance before it arrives.
+function calculatePaydayForecast({account, transactions = [], bills = [], plan = {}, startingBalance = 0}, asOf = today()) {
+  const schedule = account?.paySchedule;
+  if (!account || ['credit', 'loan', 'roth_ira', 'traditional_ira', '401k', 'hsa'].includes(account.type) || !schedule?.enabled) return null;
+  const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    Number.isFinite(Date.parse(value + 'T12:00:00Z')) && new Date(value + 'T12:00:00Z').toISOString().slice(0, 10) === value;
+  const paycheck = Number(schedule.amount);
+  const payDate = schedule.nextPayDate;
+  const dayNumber = value => Date.parse(value + 'T12:00:00Z') / 86400000;
+  if (!validDate(payDate) || !validDate(asOf) || !Number.isFinite(paycheck) || paycheck <= 0 || payDate <= asOf || dayNumber(payDate) - dayNumber(asOf) > 366) return {status:'review'};
+  const round = value => Math.round(value * 100) / 100;
+  const days = dayNumber(payDate) - dayNumber(asOf);
+  let balance = Number(startingBalance) || 0;
+  const events = [];
+  for (const t of transactions) {
+    const amount = Number(t.amount);
+    if (!validDate(t.date) || !Number.isFinite(amount) || amount < 0 || !['income', 'expense'].includes(t.type)) continue;
+    const change = t.type === 'income' ? amount : -amount;
+    if (t.date <= asOf) balance += change;
+    // The horizon ends before payday's deposits. Payday expenses are held first.
+    else if (t.date <= payDate && (t.type === 'expense' || t.date < payDate)) events.push({date:t.date, dueDate:t.date, label:t.description || t.category || 'Recorded entry', change, kind:'recorded'});
+  }
+  let month = asOf.slice(0, 7);
+  let billsTotal = 0;
+  while (month <= payDate.slice(0, 7)) {
+    for (const bill of bills) {
+      const amount = Number(bill.amount);
+      const paid = Array.isArray(bill.paidMonths) ? bill.paidMonths : bill.paidMonth ? [bill.paidMonth] : [];
+      const dueDate = `${month}-${String(billDueDay(bill.dueDay, month)).padStart(2, '0')}`;
+      if (paid.includes(month) || dueDate > payDate || !Number.isFinite(amount) || amount <= 0) continue;
+      // Current-month overdue bills remain due today; earlier months aren't
+      // invented as arrears when the bill has no historical schedule data.
+      events.push({date:dueDate < asOf ? asOf : dueDate, dueDate, label:bill.name || 'Bill', change:-amount, kind:'bill'});
+      billsTotal += amount;
+    }
+    month = shiftMonthKey(month, 1);
+  }
+  events.sort((a, b) => a.date.localeCompare(b.date) || a.change - b.change);
+  balance = round(balance);
+  let running = balance, lowest = balance, lowestDate = asOf;
+  for (const event of events) {
+    running = round(running + event.change);
+    event.balance = running;
+    if (running < lowest) { lowest = running; lowestDate = event.date; }
+  }
+  const buffer = Math.max(0, Number(plan.stop_at) || 0);
+  // Preserve a manually chosen reserve without subtracting the same bills twice.
+  const extraReserve = plan.bills_source === 'tracked' ? 0 : Math.max(0, (Number(plan.bills) || 0) - billsTotal);
+  const protectedAmount = round(buffer + extraReserve);
+  const allowance = round(Math.max(0, lowest - protectedAmount));
+  return {status:'ready', payDate, paycheck:round(paycheck), days, balance, billsTotal:round(billsTotal), buffer,
+    extraReserve:round(extraReserve), lowest, lowestDate, allowance, gap:round(Math.max(0, protectedAmount - lowest)),
+    perDay:Math.floor(allowance / days * 100) / 100, beforePay:running, events};
+}
+
+function renderPaydayForecast(skinned = false) {
+  const forecast = calculatePaydayForecast({account:_currentAcct(), transactions:state.transactions, bills:state.bills,
+    plan:state.weekly_plan || {}, startingBalance:state.startingBalance});
+  if (!forecast) return '';
+  const cardClass = skinned ? 'sk-card' : 'dawg-section-card';
+  const titleClass = skinned ? 'sk-eyebrow' : 'dawg-card-title';
+  if (forecast.status !== 'ready') return `<section class="${cardClass} payday-card" aria-label="Before next payday"><span class="${titleClass}">Before next payday</span><p class="code-hint">Review your paycheck amount and next date in Accounts. A payment due today must be recorded before forecasting the next payday.</p><button type="button" class="btn-secondary" data-payday-go="accounts">Review paycheck</button></section>`;
+  const f = forecast;
+  const date = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  return `<section class="${cardClass} payday-card" aria-label="Before next payday">
+    <div class="comparison-summary"><span class="${titleClass}">Before next payday</span><span class="payday-date">${date(f.payDate)}</span></div>
+    <div class="payday-allowance"><strong class="comparison-value">${fmt(f.allowance)}</strong><span>estimated spending allowance</span></div>
+    <p class="comparison-caption"><span class="comparison-value">${fmt(f.perDay)} per day</span> across ${f.days} day${f.days === 1 ? '' : 's'}, until payday.</p>
+    ${f.gap > 0 ? `<p class="payday-warning comparison-value">${fmt(f.gap)} gap after bills, your buffer, and any extra reserve. Review before spending.</p>` : ''}
+    <dl class="pace-totals"><div><dt>Unpaid bills through payday</dt><dd class="comparison-value">${fmt(f.billsTotal)}</dd></div><div><dt>Lowest scheduled balance</dt><dd class="comparison-value">${fmt(f.lowest)} · ${date(f.lowestDate)}</dd></div></dl>
+    <details class="pace-method payday-details"><summary>Payday timeline &amp; calculation</summary>
+      <p>Only this account. Includes this month’s overdue bills and bills due through payday; review earlier unpaid months separately in Bills. Balances below include dated entries before everyday spending. Payday expenses are held before any deposits.</p>
+      <ol class="payday-timeline"><li><span>Today · recorded balance</span><strong class="comparison-value">${fmt(f.balance)}</strong></li>
+      ${f.events.map(event => `<li><span>${date(event.date)} · ${_escHtml(event.label)}${event.dueDate < today() ? ' (overdue)' : ''}<small>${event.kind === 'bill' ? 'Unpaid bill' : 'Dated entry'} · <span class="comparison-value">${event.change < 0 ? '−' : '+'}${fmt(Math.abs(event.change))}</span></small></span><strong class="comparison-value">${fmt(event.balance)}</strong></li>`).join('')}
+      <li><span>${date(f.payDate)} · expected paycheck<small>Not yet included in your recorded balance or allowance</small></span><strong class="comparison-value">+${fmt(f.paycheck)}</strong></li></ol>
+      <p class="comparison-value">Allowance = lowest scheduled balance ${fmt(f.lowest)} − buffer ${fmt(f.buffer)} − additional manual reserve ${fmt(f.extraReserve)}, with a minimum of $0. Bills are deducted once. A manual reserve is held only for the amount above the bills shown here.</p>
+      <p>The daily amount divides this allowance across today through the day before payday. Earlier income can increase later balances; the allowance conservatively protects the lowest balance. Unrecorded spending and other recurring entries can change the result. Weekly limits use a separate monthly window.</p>
+      <div class="payday-actions"><button type="button" class="btn-secondary" data-payday-go="bills">Review bills</button><button type="button" class="btn-secondary" data-payday-go="weekly">Buffer &amp; reserve</button><button type="button" class="btn-secondary" data-payday-go="accounts">Paycheck schedule</button></div>
+    </details>
   </section>`;
 }
 
@@ -6380,6 +6464,7 @@ function renderDashboardDawg() {
       <button class="dawg-mnav-btn dawg-mnav-next${!isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
     </div>
 
+    ${!_isDebt && dashMonth === localMonthKey() ? renderPaydayForecast() : ''}
     ${!_isDebt ? renderMonthComparison() : ''}
 
     ${(() => {
@@ -11992,6 +12077,7 @@ function showDashboardLimitMath(kind = 'daily') {
 
 function attachDashboardDawg() {
   attachGettingStarted();
+  document.querySelectorAll('[data-payday-go]').forEach(button => button.addEventListener('click', () => showTab(button.dataset.paydayGo)));
   document.getElementById('dash-open-weekly')?.addEventListener('click', () => showTab('weekly'));
   document.getElementById('dash-open-bills')?.addEventListener('click', () => showTab('bills'));
   document.querySelectorAll('[data-plan-review]').forEach(btn => btn.addEventListener('click', () => showTab('weekly')));

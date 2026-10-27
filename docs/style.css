@@ -8885,6 +8885,17 @@ body.amounts-hidden .comparison-value { filter: blur(6px); user-select: none; }
 .pace-method summary { cursor: pointer; }
 .pace-method summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 2px; }
 .pace-method p { margin: 8px 0 0; }
+.payday-card .comparison-caption { margin: 4px 0; color: var(--muted); font-size: .8rem; line-height: 1.5; }
+.payday-date { color: var(--text); font-size: .85rem; }
+.payday-allowance { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-top: 6px; }
+.payday-allowance > strong { font-size: 1.6rem; color: var(--text); }
+.payday-allowance > span { color: var(--muted); font-size: .8rem; }
+.payday-warning { color: var(--danger); font-size: .8rem; line-height: 1.5; }
+.payday-timeline { list-style: none; padding: 0; margin: 10px 0; }
+.payday-timeline li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, auto); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.payday-timeline small { display: block; margin-top: 3px; }
+.payday-timeline strong { color: var(--text); text-align: right; }
+.payday-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
 /* Shared everyday layouts. Colors remain owned by the active theme/skin. */
 .dawg-page > .dawg-hero,
