@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.67.0';
+const VERSION = '5.68.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -1520,7 +1520,7 @@ function renderDashboardSkinned(sk) {
     </div>`;
   }).join('') : '<div class="sk-empty">No transactions yet.</div>';
 
-  return `<div class="dawg-page sk-page">
+  return `<div class="dawg-page sk-page${!sk.isPastDash ? ' home-current' : ''}">
     ${gettingStartedHtml()}
     ${backupBannerHtml()}
     <div class="sk-topbar">
@@ -1528,10 +1528,20 @@ function renderDashboardSkinned(sk) {
       <span class="sk-acct" data-sk-go="accounts">${_escHtml(sk.acctName)}</span>
     </div>
 
+    ${!sk.isPastDash ? renderHomeSpending(sk.homeSpendingInputs, true) : ''}
+
+    <div class="dawg-month-nav sk-mnav">
+      <button class="dawg-mnav-btn" id="dash-month-prev">‹</button>
+      <span class="dawg-mnav-label">${sk.dashMonthLabel}${sk.isPastDash ? '' : ' · Now'}</span>
+      <button class="dawg-mnav-btn dawg-mnav-next${!sk.isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
+    </div>
+
+    ${renderMonthComparison(true, dashMonth, !sk.isPastDash)}
+
     <div class="sk-hero">
       <button class="dash-privacy-btn sk-eye${_amountsHidden() ? ' is-hidden' : ''}" id="dash-privacy-btn"
         aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden() ? 'true' : 'false'}">${_eyeIconSvg(_amountsHidden())}</button>
-      <div class="sk-eyebrow">${sk.isPastDash ? _escHtml(sk.dashMonthLabel) + ' balance' : 'Available balance'}</div>
+      <div class="sk-eyebrow">${sk.isPastDash ? _escHtml(sk.dashMonthLabel) + ' balance' : 'Account balance'}</div>
       <div class="sk-amt money" style="color:${sk.balColor}">
         <!-- Kept in the markup but never shown under a skin (see .sk-ghost in the
              stylesheet). It used to hold the mascot that appeared while balances
@@ -1541,18 +1551,8 @@ function renderDashboardSkinned(sk) {
         <span class="sk-ghost" aria-hidden="true"></span>
         <span class="sk-cur">${bal.cur}</span>${bal.whole}<span class="sk-cents">.${bal.cents}</span>
       </div>
-      ${_skRunway(sk)}
-      ${!sk.isPastDash ? budgetReserveHtml(sk.balance, sk.stopAt, sk.billsLeft, billsStillDueTotal()) : ''}
+      ${!sk.isPastDash ? `<details class="home-chart"><summary>Balance runway</summary>${_skRunway(sk)}</details>` : _skRunway(sk)}
     </div>
-
-    <div class="dawg-month-nav sk-mnav">
-      <button class="dawg-mnav-btn" id="dash-month-prev">‹</button>
-      <span class="dawg-mnav-label">${sk.dashMonthLabel}${sk.isPastDash ? '' : ' · Now'}</span>
-      <button class="dawg-mnav-btn dawg-mnav-next${!sk.isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
-    </div>
-
-    ${dashMonth === localMonthKey() ? renderPaydayForecast(true) : ''}
-    ${renderMonthComparison(true)}
 
     ${_skBills(sk)}
 
@@ -1560,16 +1560,6 @@ function renderDashboardSkinned(sk) {
       <div class="sk-shead"><span class="sk-eyebrow">Gambling · ${_escHtml(sk.dashMonthLabel)}</span></div>
       ${_gamblingTrackerBody(sk.gamblingMonth, sk.gamblingAll)}
     </div>
-
-    ${sk.perWeek > 0 ? `<div class="sk-card">
-      <div class="sk-mtop">
-        <div><div class="sk-eyebrow">Left to spend this week</div>
-          <div class="sk-mamt money">${fmt(left)}</div></div>
-        <span class="sk-mof">of ${fmt(sk.perWeek)}</span>
-      </div>
-      <div class="sk-track${over ? ' over' : ''}"><i style="width:${wkPct}%"></i></div>
-      <div class="sk-mfoot"><span>${fmt(sk.daySpent)} spent today</span><span>${sk.daysLeft} days left</span></div>
-    </div>` : ''}
 
     ${donut}
 
@@ -2486,7 +2476,7 @@ function _demoDataset() {
           { id: 'db4', name: 'Insurance', amount:  118, dueDay: 24, category: 'Car' },
         ],
         budgets: { Food: 400, Gas: 200, Entertainment: 120 },
-        goals: [{ id: 'dg1', name: 'New outboard', target: 4000, saved: 1450 }],
+        goals: [{ id: 'dg1', name: 'New outboard', target: 4000, current: 1450 }],
         challenges: [],
       },
       savings: {
@@ -2841,7 +2831,7 @@ function monthlyPaceSummary(pace) {
   };
 }
 
-function renderMonthComparison(skinned = false, month = dashMonth) {
+function renderMonthComparison(skinned = false, month = dashMonth, compact = false) {
   const pace = calculateMonthlyPace(state.transactions, month);
   const summary = monthlyPaceSummary(pace);
   const current = pace.currentMonth;
@@ -2851,10 +2841,12 @@ function renderMonthComparison(skinned = false, month = dashMonth) {
   const shortDate = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
   return `<section class="${skinned ? 'sk-card' : 'dawg-section-card'} month-comparison" aria-label="${title}">
     <div class="comparison-summary"><span class="${skinned ? 'sk-eyebrow' : 'dawg-card-title'}">${title}</span><span class="comparison-amount${!current ? ' comparison-value' : ''}${summary.tone}">${summary.headline}${showDifference ? `<strong class="pace-difference comparison-value">${difference}</strong>` : ''}</span></div>
+    ${compact ? '<details class="month-pace-details"><summary>View monthly totals and method</summary>' : ''}
     ${current ? `<div class="pace-estimate"><span>Estimated month-end</span><strong class="comparison-value">${pace.projected === null ? '—' : fmt(pace.projected)}</strong></div>` : ''}
     <p class="comparison-caption${pace.delta !== null && !['no-baseline','future'].includes(pace.status) ? ' comparison-value' : ''}">${summary.detail}</p>
     ${pace.status !== 'future' ? `<dl class="pace-totals"><div><dt>${current ? 'Spent so far' : monthKeyLabel(month)}</dt><dd class="comparison-value">${fmt(pace.spent)}</dd></div><div><dt>Last month · full month</dt><dd class="comparison-value">${pace.prior.count ? fmt(pace.baseline) : '—'}</dd></div></dl>` : ''}
-    ${current ? `<details class="pace-method"><summary>How pace works · through ${shortDate(pace.end)}</summary><p>${pace.daysElapsed} of ${pace.daysInMonth} days. The estimate extends your daily average across this month; large purchases or missing entries can change it. ${pace.prior.count ? `<span class="comparison-value">Last month’s total spread across this month would be ${fmt(pace.expectedByNow)} by today.</span> ` : ''}On pace means within 5% of last month’s full total. Bills, transfers, and excluded entries are omitted; refunds reduce spending.</p></details>` : ''}
+    ${current ? `<${compact ? 'div' : 'details'} class="pace-method">${compact ? `<h3>How pace works · through ${shortDate(pace.end)}</h3>` : `<summary>How pace works · through ${shortDate(pace.end)}</summary>`}<p>${pace.daysElapsed} of ${pace.daysInMonth} days. The estimate extends your daily average across this month; large purchases or missing entries can change it. ${pace.prior.count ? `<span class="comparison-value">Last month’s total spread across this month would be ${fmt(pace.expectedByNow)} by today.</span> ` : ''}On pace means within 5% of last month’s full total. Bills, transfers, and excluded entries are omitted; refunds reduce spending.</p></${compact ? 'div' : 'details'}>` : ''}
+    ${compact ? '</details>' : ''}
   </section>`;
 }
 
@@ -2914,6 +2906,19 @@ function calculatePaydayForecast({account, transactions = [], bills = [], plan =
     perDay:Math.floor(allowance / days * 100) / 100, beforePay:running, events};
 }
 
+function renderPaydayTimeline(f) {
+  const date = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  return `<details class="pace-method payday-details"><summary>Payday timeline &amp; calculation</summary>
+      <p>Only this account. Includes this month’s overdue bills and bills due through payday; review earlier unpaid months separately in Bills. Balances below include dated entries before everyday spending. Payday expenses are held before any deposits.</p>
+      <ol class="payday-timeline"><li><span>Today · recorded balance</span><strong class="comparison-value">${fmt(f.balance)}</strong></li>
+      ${f.events.map(event => `<li><span>${date(event.date)} · ${_escHtml(event.label)}${event.dueDate < today() ? ' (overdue)' : ''}<small>${event.kind === 'bill' ? 'Unpaid bill' : 'Dated entry'} · <span class="comparison-value">${event.change < 0 ? '−' : '+'}${fmt(Math.abs(event.change))}</span></small></span><strong class="comparison-value">${fmt(event.balance)}</strong></li>`).join('')}
+      <li><span>${date(f.payDate)} · expected paycheck<small>Not yet included in your recorded balance or allowance</small></span><strong class="comparison-value">+${fmt(f.paycheck)}</strong></li></ol>
+      <p class="comparison-value">Allowance = lowest scheduled balance ${fmt(f.lowest)} − buffer ${fmt(f.buffer)} − additional manual reserve ${fmt(f.extraReserve)}, with a minimum of $0. Bills are deducted once. A manual reserve is held only for the amount above the bills shown here.</p>
+      <p>The daily amount divides this allowance across today through the day before payday. Earlier income can increase later balances; the allowance conservatively protects the lowest balance. Unrecorded spending and other recurring entries can change the result. Weekly limits use a separate monthly window.</p>
+      <div class="payday-actions"><button type="button" class="btn-secondary" data-payday-go="bills">Review bills</button><button type="button" class="btn-secondary" data-payday-go="weekly">Buffer &amp; reserve</button><button type="button" class="btn-secondary" data-payday-go="accounts">Paycheck schedule</button></div>
+    </details>`;
+}
+
 function renderPaydayForecast(skinned = false) {
   const forecast = calculatePaydayForecast({account:_currentAcct(), transactions:state.transactions, bills:state.bills,
     plan:state.weekly_plan || {}, startingBalance:state.startingBalance});
@@ -2929,18 +2934,58 @@ function renderPaydayForecast(skinned = false) {
     <p class="comparison-caption"><span class="comparison-value">${fmt(f.perDay)} per day</span> across ${f.days} day${f.days === 1 ? '' : 's'}, until payday.</p>
     ${f.gap > 0 ? `<p class="payday-warning comparison-value">${fmt(f.gap)} gap after bills, your buffer, and any extra reserve. Review before spending.</p>` : ''}
     <dl class="pace-totals"><div><dt>Unpaid bills through payday</dt><dd class="comparison-value">${fmt(f.billsTotal)}</dd></div><div><dt>Lowest scheduled balance</dt><dd class="comparison-value">${fmt(f.lowest)} · ${date(f.lowestDate)}</dd></div></dl>
-    <details class="pace-method payday-details"><summary>Payday timeline &amp; calculation</summary>
-      <p>Only this account. Includes this month’s overdue bills and bills due through payday; review earlier unpaid months separately in Bills. Balances below include dated entries before everyday spending. Payday expenses are held before any deposits.</p>
-      <ol class="payday-timeline"><li><span>Today · recorded balance</span><strong class="comparison-value">${fmt(f.balance)}</strong></li>
-      ${f.events.map(event => `<li><span>${date(event.date)} · ${_escHtml(event.label)}${event.dueDate < today() ? ' (overdue)' : ''}<small>${event.kind === 'bill' ? 'Unpaid bill' : 'Dated entry'} · <span class="comparison-value">${event.change < 0 ? '−' : '+'}${fmt(Math.abs(event.change))}</span></small></span><strong class="comparison-value">${fmt(event.balance)}</strong></li>`).join('')}
-      <li><span>${date(f.payDate)} · expected paycheck<small>Not yet included in your recorded balance or allowance</small></span><strong class="comparison-value">+${fmt(f.paycheck)}</strong></li></ol>
-      <p class="comparison-value">Allowance = lowest scheduled balance ${fmt(f.lowest)} − buffer ${fmt(f.buffer)} − additional manual reserve ${fmt(f.extraReserve)}, with a minimum of $0. Bills are deducted once. A manual reserve is held only for the amount above the bills shown here.</p>
-      <p>The daily amount divides this allowance across today through the day before payday. Earlier income can increase later balances; the allowance conservatively protects the lowest balance. Unrecorded spending and other recurring entries can change the result. Weekly limits use a separate monthly window.</p>
-      <div class="payday-actions"><button type="button" class="btn-secondary" data-payday-go="bills">Review bills</button><button type="button" class="btn-secondary" data-payday-go="weekly">Buffer &amp; reserve</button><button type="button" class="btn-secondary" data-payday-go="accounts">Paycheck schedule</button></div>
-    </details>
+    ${renderPaydayTimeline(f)}
   </section>`;
 }
 
+
+// The selector changes the displayed period, never the saved spending plan.
+// Reuse plan/forecast amounts; today's amount also stays within the weekly remainder.
+function homeSpendingView(period, dailyLimit, weeklySummary, forecast) {
+  const canForecast = forecast?.status === 'ready';
+  const selected = period === 'day' ? 'day' : period === 'payday' && canForecast ? 'payday' : 'week';
+  return {period:selected, amount:selected === 'day' ? Math.min(Math.max(0, dailyLimit || 0), weeklySummary.left) : selected === 'payday' ? forecast.allowance : weeklySummary.left};
+}
+
+function renderHomeSpending(inputs, skinned = false) {
+  const {dailyLimit, weeklySummary, daySpent, weekSpent, math} = inputs;
+  const forecast = calculatePaydayForecast({account:_currentAcct(), transactions:state.transactions, bills:state.bills,
+    plan:state.weekly_plan || {}, startingBalance:state.startingBalance});
+  const savedPeriod = loadSettings().homeSpendPeriod || (forecast?.status === 'ready' ? 'payday' : 'week');
+  const view = homeSpendingView(savedPeriod, dailyLimit, weeklySummary, forecast);
+  const payday = view.period === 'payday';
+  const label = view.period === 'day' ? 'Available today' : payday ? 'Cash available until payday' : 'Left to spend this week';
+  const date = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  const explanation = view.period === 'day' ? 'Daily allowance, capped by what’s left this week' : payday
+    ? `Cash forecast through ${date(forecast.payDate)} · bills and buffer reserved`
+    : weeklySummary.target > 0 ? 'Your weekly target, capped by the available limit' : 'Weekly allowance from your monthly plan';
+  return `<section class="${skinned ? 'sk-card' : 'dawg-section-card'} home-spending" aria-label="Available to spend">
+    <h2 class="${skinned ? 'sk-eyebrow' : 'dawg-card-title'}">Available to spend</h2>
+    <div class="home-periods" role="group" aria-label="Spending period">
+      ${[['day','Today'],['week','This week'],['payday','Until payday']].map(([key,text]) => `<button type="button" data-home-period="${key}" aria-pressed="${view.period === key}"${key === 'payday' && forecast?.status !== 'ready' ? ' disabled title="Set a future paycheck date in Accounts"' : ''}>${text}</button>`).join('')}
+    </div>
+    <div class="home-spend-result" aria-live="polite"><span class="home-spend-label">${label}</span><strong class="comparison-value">${fmt(view.amount)}</strong><p>${explanation}</p>
+      <p class="comparison-value">${payday ? `${fmt(forecast.perDay)} per day across ${forecast.days} days${weeklySummary.target > 0 ? ' · weekly target shown in This week' : ''}` : `${fmt(view.period === 'day' ? daySpent : weekSpent)} spent ${view.period === 'day' ? 'today' : 'this week'}`}</p>
+    </div>
+    ${payday && forecast.gap > 0 ? `<p class="home-spend-warning comparison-value">${fmt(forecast.gap)} gap after bills and your protected balance. Review before spending.</p>` : ''}
+    ${payday ? renderPaydayTimeline(forecast) : `<details class="pace-method"><summary>How this amount is calculated</summary>
+      <dl class="home-math"><div><dt>Balance used by your plan</dt><dd class="comparison-value">${fmt(math.balance)}</dd></div><div><dt>Protected buffer</dt><dd class="comparison-value">${fmt(math.stopAt)}</dd></div><div><dt>${state.weekly_plan?.bills_source === 'tracked' ? 'Unpaid monthly bills' : 'Manual monthly bills reserve'}</dt><dd class="comparison-value">${fmt(math.bills)}</dd></div></dl>
+      <p>${view.period === 'day' ? `The remaining balance is spread over ${math.days} calendar days left in this month, including today, then capped by the amount left this week. Recorded purchases already reduce this balance.` : 'The available weekly limit comes from the remaining monthly balance. The amount left uses the lower of your preferred weekly target and that limit, minus this week’s discretionary spending.'} Bills, transfers, and excluded entries are outside discretionary spending. Refunds reduce spending.</p>
+      <p>Payday uses dated bills through the next paycheck, so its window can differ from the monthly plan.</p><button type="button" class="btn-secondary" data-payday-go="weekly">Review spending plan</button></details>`}
+    ${forecast?.status !== 'ready' ? `<p class="home-schedule-note">${forecast?.status === 'review' ? 'Review your next paycheck date and amount.' : 'Set a paycheck schedule to unlock the payday view.'} <button type="button" data-payday-go="accounts">Accounts</button></p>` : ''}
+    <button type="button" class="home-review-bills" data-payday-go="bills">Review bills · ${state.bills.filter(b => !isBillPaidFor(b, localMonthKey())).length} unpaid this month</button>
+  </section>`;
+}
+
+function goalSavedAmount(goal) {
+  const current = Number(goal.current ?? goal.saved ?? 0);
+  return Number.isFinite(current) ? Math.max(0, current) : 0;
+}
+
+function goalTargetAmount(goal) {
+  const target = Number(goal.target);
+  return Number.isFinite(target) ? Math.max(0, target) : 0;
+}
 
 function monthTotals(monthStr) {
   const key = monthStr + '|' + _calcVer;
@@ -5911,7 +5956,7 @@ function enterDashEditMode() {
 
   // ── Build / rebuild the sheet contents ───────────────────────────────────
   function rebuild() {
-    const tilesHtml = layout.map(t => {
+    const tilesHtml = layout.filter(t => !(!_isDebtAcct(_currentAcct()) && dashMonth === localMonthKey() && ['budget-week','budget-day'].includes(t.id))).map(t => {
       const meta   = DASH_TILE_META[t.id] || { label: t.id, icon: '' };
       const isFull = t.size === 'full';
       return `
@@ -6288,6 +6333,8 @@ function renderDashboardDawg() {
     weeklyFromSaved: _dashAvail <= 0 && _livePerWeek > 0,
   };
 
+  const homeSpendingInputs = {dailyLimit:_latestDashboardLimitMath.perDay, weeklySummary:_weeklySummary, daySpent, weekSpent, math:_latestDashboardLimitMath};
+
   // Is the live balance already below the buffer floor?
   // When true, both budget tiles should show FAILED regardless of this week's spending.
   const _belowBuffer   = _dashLiveBal < (_dashStopAt + _dashBills);
@@ -6352,12 +6399,12 @@ function renderDashboardDawg() {
 
   const goals = state.goals || [];
   const goalsHtml = goals.slice(0,3).map(g => {
-    const pct = g.target > 0 ? Math.min(g.current/g.target*100,100) : 0;
+    const pct = goalTargetAmount(g) > 0 ? Math.min(goalSavedAmount(g)/goalTargetAmount(g)*100,100) : 0;
     return `<div class="dawg-goal-row">
       <div class="dawg-goal-icon">🎯</div>
       <div class="dawg-goal-info">
         <div class="dawg-goal-name">${_escHtml(g.name)}</div>
-        <div class="dawg-goal-sub">${fmt(g.current)} / ${fmt(g.target)}</div>
+        <div class="dawg-goal-sub">${fmt(goalSavedAmount(g))} / ${fmt(goalTargetAmount(g))}</div>
       </div>
       <div class="dawg-goal-right">
         <div class="dawg-goal-bar-wrap"><div class="dawg-goal-bar" style="width:${pct.toFixed(1)}%"></div></div>
@@ -6399,7 +6446,7 @@ function renderDashboardDawg() {
   // skinned dashboard is built here from the same numbers computed above.
   if (activeSkin() && !_isDebt) {
     const _sk = {
-      balance, balColor, mInc, mExp, monthDelta, deltaPct, isPastDash,
+      balance, balColor, mInc, mExp, monthDelta, deltaPct, isPastDash, homeSpendingInputs,
       dashMonthLabel, acctName: _acctName,
       weekSpent, perWeek: _weeklySummary.limit, daySpent, weeklySummary: _weeklySummary,
       billsLeft: _dashBills, daysLeft: _dashDays, stopAt: _dashStopAt,
@@ -6413,7 +6460,7 @@ function renderDashboardDawg() {
     return renderDashboardSkinned(_sk);
   }
 
-  return `<div class="dawg-page">
+  return `<div class="dawg-page${!_isDebt && !isPastDash ? ' home-current' : ''}">
     ${gettingStartedHtml()}
     ${backupBannerHtml()}
     <div class="dawg-hero">
@@ -6424,28 +6471,27 @@ function renderDashboardDawg() {
       </div>
     </div>
 
+    ${!_isDebt && !isPastDash ? renderHomeSpending(homeSpendingInputs) : ''}
+
+    <div class="dawg-month-nav">
+      <button class="dawg-mnav-btn" id="dash-month-prev">‹</button>
+      <span class="dawg-mnav-label">${dashMonthLabel}${isPastDash ? '' : ' · Now'}</span>
+      <button class="dawg-mnav-btn dawg-mnav-next${!isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
+    </div>
+
+    ${!_isDebt ? renderMonthComparison(false, dashMonth, !isPastDash) : ''}
+
     <div class="dawg-balance-card" style="position:relative">
       <button class="dash-privacy-btn${_amountsHidden() ? ' is-hidden' : ''}" id="dash-privacy-btn" title="${_amountsHidden() ? 'Show amounts' : 'Hide amounts'}" aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden() ? 'true' : 'false'}">${_eyeIconSvg(_amountsHidden())}</button>
       <button class="dash-acct-edit-btn" id="dash-acct-edit" title="Edit account settings">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
-      <div class="dawg-balance-label">${_isDebt ? (_curAcctD?.type==='loan' ? 'LOAN BALANCE' : 'BALANCE OWED') : 'TOTAL BALANCE'}</div>
+      <div class="dawg-balance-label">${_isDebt ? (_curAcctD?.type==='loan' ? 'LOAN BALANCE' : 'BALANCE OWED') : 'ACCOUNT BALANCE'}</div>
       <div class="dawg-balance-amt" style="color:${balColor}" data-countup="${balance}" data-countup-key="balance-${currentAccountId}">${fmt(balance)}</div>
       ${paymentDueStr ? `<div class="dawg-balance-due" style="color:${parseInt(_curAcctD?.payment_due_day)>0&&Math.round((new Date(new Date().getFullYear(),new Date().getMonth(),parseInt(_curAcctD.payment_due_day))-new Date())/86400000)<=3?'var(--warn)':'var(--muted)'}">${paymentDueStr}</div>` : ''}
       ${_isDebt ? `<div class="dawg-balance-delta" style="color:${deltaColor}">${deltaStr}</div>` : ''}
       ${isPastDash ? '' : '<button id="dash-reconcile" class="dash-reconcile-btn"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Reconcile to bank</button>'}
-      ${!_isDebt && !isPastDash ? `<div class="dashboard-decisions">
-        <button type="button" id="dash-open-weekly" class="dashboard-decision">
-          <span>Left to spend this week</span>
-          <strong>${fmt(_weeklySummary.left)}</strong>
-          <small>${fmt(weekSpent)} spent${_weeklySummary.target > 0 ? ` · target ${fmt(_weeklySummary.target)}` : ' · available limit'}</small>
-        </button>
-        <button type="button" id="dash-open-bills" class="dashboard-decision">
-          <span>Unpaid bills</span><strong>${fmt(_trackedBillsDue)}</strong>
-          <small>${state.bills.some(b => !isBillPaidFor(b, localMonthKey()) && getDaysUntilDue(b.dueDay) < 0) ? 'Includes overdue bills' : 'This month'}</small>
-        </button>
-      </div>
-      ${budgetReserveHtml(_dashLiveBal, _dashStopAt, _dashBills, _trackedBillsDue)}` : ''}
+      ${!_isDebt && !isPastDash ? '<details class="home-chart" id="home-chart"><summary>Balance history</summary>' : ''}
       <div class="dawg-sparkline-wrap"><canvas id="dawg-sparkline"></canvas></div>
       <div class="dawg-time-btns">
         <span class="dawg-tbtn-pill"></span>
@@ -6456,16 +6502,8 @@ function renderDashboardDawg() {
         <button class="dawg-tbtn" data-range="1y">1Y</button>
         <button class="dawg-tbtn" data-range="all">ALL</button>
       </div>
+      ${!_isDebt && !isPastDash ? '</details>' : ''}
     </div>
-
-    <div class="dawg-month-nav">
-      <button class="dawg-mnav-btn" id="dash-month-prev">‹</button>
-      <span class="dawg-mnav-label">${dashMonthLabel}${isPastDash ? '' : ' · Now'}</span>
-      <button class="dawg-mnav-btn dawg-mnav-next${!isPastDash ? ' dawg-mnav-disabled' : ''}" id="dash-month-next">›</button>
-    </div>
-
-    ${!_isDebt && dashMonth === localMonthKey() ? renderPaydayForecast() : ''}
-    ${!_isDebt ? renderMonthComparison() : ''}
 
     ${(() => {
       // Build tile HTML map — only tiles that have content get included
@@ -6503,8 +6541,8 @@ function renderDashboardDawg() {
           const dayDash   = (C * (1 - dayPct / 100)).toFixed(1);
           _tileHtml['budget-day'] = `
             <div class="dawg-limit-head">
-              <span class="dawg-card-title">DYNAMIC DAILY LIMIT</span>
-              <button class="limit-info-btn" data-limit-kind="daily" aria-label="How the dynamic daily limit is calculated">i</button>
+              <span class="dawg-card-title">DAILY ALLOWANCE</span>
+              <button class="limit-info-btn" data-limit-kind="daily" aria-label="How the daily allowance is calculated">i</button>
             </div>
             <div class="dawg-limit-value" style="color:${dayColor}">${fmt(_perDayLimit)}</div>
             <div class="dawg-limit-row"><span>Spent today</span><strong>${fmt(daySpent)}</strong></div>
@@ -6771,7 +6809,7 @@ function renderDashboardDawg() {
 
       // Build the tile grid from layout
       const layout = loadDashLayout();
-      const visibleTiles = layout.filter(t => t.visible && _tileHtml[t.id]);
+      const visibleTiles = layout.filter(t => t.visible && _tileHtml[t.id] && !(!_isDebt && !isPastDash && ['budget-week','budget-day'].includes(t.id)));
       const tileHtml = t => {
         const isTile = (t.id === 'budget-week' || t.id === 'budget-day');
         const cls = isTile ? 'dawg-budget-tile' : 'dawg-section-card';
@@ -8687,7 +8725,7 @@ function calcWeekly() {
       : '';
 
     const _dailyRows = buildDailyHistoryHTML(perDay, stopAt, bills);
-    const _dailyHtml  = _dailyRows  ? _statHtml(_todaySpent, perDay, 'spent today · dynamic daily limit') + _dailyRows : '';
+    const _dailyHtml  = _dailyRows  ? _statHtml(_todaySpent, perDay, 'spent today · daily allowance') + _dailyRows : '';
     const _weeklyHtml = breakdownHtml ? _statHtml(weekNet, _effectivePerWeek, 'this week · per-week limit') + breakdownHtml : '';
 
     const card = document.getElementById('wk-hist-card');
@@ -8745,7 +8783,7 @@ function renderBills() {
           <span class="cat-dot" style="background:${catColor(b.category, '#9896a4')}"></span>
           <div class="bill-card-info">
             <div class="bill-card-name">${_escHtml(b.name)}</div>
-            <div class="bill-card-meta">${_escHtml(b.category)} · due day ${b.dueDay}${linkName ? ` · ${ICONS.link} ${_escHtml(linkName)}` : ''}</div>
+            <div class="bill-card-meta">${_escHtml(b.category || 'Other')} · due day ${b.dueDay}${linkName ? ` · ${ICONS.link} ${_escHtml(linkName)}` : ''}</div>
           </div>
           <div class="bill-card-right">
             <div class="bill-card-amt">${fmt(b.amount)}</div>
@@ -8755,8 +8793,7 @@ function renderBills() {
         <div class="bill-card-actions">
           <button class="btn-xs bill-paid-btn${paid ? ' bill-unpaid-btn' : ''}" data-idx="${i}" data-paid="${paid}">${paid ? '↩ Mark Unpaid' : '✓ Mark Paid'}</button>
           ${paid && !deducted ? `<button class="btn-xs bill-deduct-btn" data-idx="${i}">${ICONS.dollar} Deduct cash</button>` : ''}
-          <button class="btn-xs bill-edit-btn" data-idx="${i}">Edit</button>
-          <button class="btn-xs btn-danger bill-delete-btn" data-idx="${i}">Delete</button>
+          <details class="row-actions"><summary aria-label="Actions for ${_escHtml(b.name)}">⋯</summary><div><button type="button" class="btn-xs bill-edit-btn" data-idx="${i}">Edit</button><button type="button" class="btn-xs btn-danger bill-delete-btn" data-idx="${i}">Delete</button></div></details>
         </div>
         ${paid ? `<div class="bill-deduct-note ${deducted ? 'is-deducted' : 'not-deducted'}">${deducted ? `✓ ${fmt(b.amount)} deducted from cash` : 'Not deducted from your cash balance'}</div>` : ''}
         ${debtAccts.length ? `<div class="bill-link-row"><span class="bill-link-lbl">Pays loan</span><select class="bill-link-select form-input" data-idx="${i}">${linkOpts(b.linkedAccountId)}</select></div>` : ''}
@@ -9633,30 +9670,60 @@ function renderGoals() {
   };
 
   const goalsHtml = state.goals.length ? state.goals.map((g, i) => {
-    const pct      = g.target > 0 ? Math.min(g.current / g.target * 100, 100) : 0;
+    const pct      = goalTargetAmount(g) > 0 ? Math.min(goalSavedAmount(g) / goalTargetAmount(g) * 100, 100) : 0;
     const barColor = pct >= 100 ? 'var(--success)' : pct >= 60 ? 'var(--accent)' : 'var(--accent2)';
     return `
       <div class="goal-card">
         <div class="goal-header">
           <span class="goal-name">${_escHtml(g.name)}</span>
-          <button class="btn-xs btn-danger goal-delete-btn" data-idx="${i}">✕</button>
+          <details class="row-actions"><summary aria-label="Actions for ${_escHtml(g.name)}">⋯</summary><div><button type="button" class="btn-xs btn-danger goal-delete-btn" data-idx="${i}" aria-label="Delete ${_escHtml(g.name)}">Delete goal</button></div></details>
         </div>
-        <div class="goal-amounts">${fmt(g.current)} <span class="goal-of">of</span> ${fmt(g.target)}</div>
+        <div class="goal-amounts">${fmt(goalSavedAmount(g))} <span class="goal-of">of</span> ${fmt(goalTargetAmount(g))}</div>
         <div class="breakdown-bar-bg" style="margin:8px 0">
           <div class="breakdown-bar-fill" style="width:${pct.toFixed(1)}%;background:${barColor}"></div>
         </div>
         <div class="goal-pct">${pct.toFixed(0)}% complete${pct >= 100 ? ' 🎉' : ''}</div>
+        <p class="code-hint">Track money you’ve already saved.</p>
         <div class="goal-add-row">
-          <input type="number" class="form-input goal-add-input" placeholder="Add $" step="0.01" min="0" inputmode="decimal" style="flex:1;padding:8px 10px;font-size:13px">
-          <button class="btn-sm goal-add-btn" data-idx="${i}">Add</button>
+          <label class="sr-only" for="goal-progress-${i}">Saved amount to add to ${_escHtml(g.name)}</label><input id="goal-progress-${i}" type="number" class="form-input goal-add-input" placeholder="Amount to add" step="0.01" min="0" inputmode="decimal" style="flex:1;padding:8px 10px;font-size:13px">
+          <button class="btn-sm goal-add-btn" data-idx="${i}">Record</button>
         </div>
       </div>`;
-  }).join('') : emptyState('No savings goals yet', 'Add a goal below to start tracking');
+  }).join('') : emptyState('No savings goals yet', 'Choose Add goal to start tracking');
 
   return `
     <div class="page">
-      <h1 class="page-title">Goals</h1>
-      <p class="page-sub">health score &amp; savings targets</p>
+      <div class="goals-heading"><h1 class="page-title">Goals</h1><button type="button" class="btn-secondary" id="goal-create-open">Add goal</button></div>
+      <p class="page-sub">Track what you’ve saved and what you’re working toward</p>
+      <h2 class="section-title">Savings Goals</h2>
+      ${state.goals.length ? (() => {
+        const saved  = state.goals.reduce((s, g) => s + (goalSavedAmount(g) || 0), 0);
+        const target = state.goals.reduce((s, g) => s + (goalTargetAmount(g)  || 0), 0);
+        const pct    = target > 0 ? Math.min(saved / target * 100, 100) : 0;
+        return `<div class="goals-total-card">
+          <div class="goals-total-row"><span>Total saved</span><span style="color:var(--success);font-weight:700">${fmt(saved)}</span></div>
+          <div class="goals-total-row"><span>Total target</span><span style="font-weight:700">${fmt(target)}</span></div>
+          <div class="breakdown-bar-bg" style="margin-top:6px"><div class="breakdown-bar-fill" style="width:${pct.toFixed(1)}%;background:var(--accent)"></div></div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${pct.toFixed(0)}% of all goals · ${fmt(Math.max(0, target - saved))} to go</div>
+        </div>`;
+      })() : ''}
+      <div class="goals-list">${goalsHtml}</div>
+      <details class="goals-create" id="goal-create"${state.goals.length ? '' : ' open'}><summary>Add a savings goal</summary>
+      <div class="form-card" style="margin-top:16px">
+        <h2 class="section-title" style="margin:0 0 8px">Add Savings Goal</h2>
+        <div class="form-row">
+          <label class="form-label" for="goal-name">Goal name</label>
+          <input type="text" id="goal-name" class="form-input" placeholder="e.g. Emergency Fund">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="goal-target">Target amount ($)</label>
+          <input type="number" id="goal-target" class="form-input" placeholder="5000.00" step="0.01" min="0" inputmode="decimal">
+        </div>
+        <div id="goal-status" class="form-status"></div>
+        <button id="goal-add-btn" class="btn-primary">Add Goal</button>
+      </div>
+      </details>
+      <details class="goals-health"><summary>Financial health · ${health.total}/100</summary>
       <div class="health-card" style="border-color:${health.color}">
         <div class="health-header">
           <div>
@@ -9676,36 +9743,15 @@ function renderGoals() {
         </div>
         <button type="button" id="health-review-bills" class="btn-secondary">Review bill status</button>
       </div>
-      <div class="form-card" style="margin-top:16px">
-        <h2 class="section-title" style="margin:0 0 8px">Add Savings Goal</h2>
-        <div class="form-row">
-          <label class="form-label" for="goal-name">Goal name</label>
-          <input type="text" id="goal-name" class="form-input" placeholder="e.g. Emergency Fund">
-        </div>
-        <div class="form-row">
-          <label class="form-label" for="goal-target">Target amount ($)</label>
-          <input type="number" id="goal-target" class="form-input" placeholder="5000.00" step="0.01" min="0" inputmode="decimal">
-        </div>
-        <div id="goal-status" class="form-status"></div>
-        <button id="goal-add-btn" class="btn-primary">Add Goal</button>
-      </div>
-      <h2 class="section-title">Savings Goals</h2>
-      ${state.goals.length ? (() => {
-        const saved  = state.goals.reduce((s, g) => s + (g.current || 0), 0);
-        const target = state.goals.reduce((s, g) => s + (g.target  || 0), 0);
-        const pct    = target > 0 ? Math.min(saved / target * 100, 100) : 0;
-        return `<div class="goals-total-card">
-          <div class="goals-total-row"><span>Total saved</span><span style="color:var(--success);font-weight:700">${fmt(saved)}</span></div>
-          <div class="goals-total-row"><span>Total target</span><span style="font-weight:700">${fmt(target)}</span></div>
-          <div class="breakdown-bar-bg" style="margin-top:6px"><div class="breakdown-bar-fill" style="width:${pct.toFixed(1)}%;background:var(--accent)"></div></div>
-          <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${pct.toFixed(0)}% of all goals · ${fmt(Math.max(0, target - saved))} to go</div>
-        </div>`;
-      })() : ''}
-      <div class="goals-list">${goalsHtml}</div>
+      </details>
     </div>`;
 }
 
 function attachGoals() {
+  document.getElementById('goal-create-open')?.addEventListener('click', () => {
+    const section = document.getElementById('goal-create'); section.open = true;
+    document.getElementById('goal-name').focus();
+  });
   document.getElementById('health-review-bills')?.addEventListener('click', () => showTab('bills'));
   document.getElementById('goal-add-btn')?.addEventListener('click', async () => {
     const name   = document.getElementById('goal-name').value.trim();
@@ -9723,7 +9769,7 @@ function attachGoals() {
       const input  = btn.closest('.goal-add-row').querySelector('.goal-add-input');
       const amount = parseFloat(input.value);
       if (isNaN(amount) || amount <= 0) return;
-      state.goals[i].current = (state.goals[i].current || 0) + amount;
+      state.goals[i].current = goalSavedAmount(state.goals[i]) + amount;
       await api.saveGoals(state.goals);
       render();
     });
@@ -10655,7 +10701,7 @@ function renderSettings() {
             <span class="set-g-caret">›</span>
           </button>
         </div>
-        <div class="set-row" data-keys="about version update changelog whats new">
+        <div class="set-row" data-keys="about version update changelog whats new diagnostics startup performance">
           <button class="set-link" type="button" onclick="showTab('about')">
             <span class="set-link-t">About<span class="set-g-sub">v${VERSION}</span></span>
             <span class="set-g-caret">›</span>
@@ -10665,7 +10711,6 @@ function renderSettings() {
       </section>
       <p class="set-nores" id="set-nores" hidden>Nothing matches that.</p>
 
-      ${bootTimingHtml()}
     </div>`;
 }
 
@@ -11775,6 +11820,7 @@ function renderAbout() {
         <button id="force-update-btn" class="btn-primary" style="width:100%">${ICONS.refresh} Force Update</button>
         <div id="force-update-status" class="form-status" style="margin-top:8px"></div>
       </div>
+      <details class="about-diagnostics"><summary>Diagnostics</summary>${bootTimingHtml()}</details>
       <p style="text-align:center;font-size:.75rem;color:var(--muted);margin-top:8px">© ${built} SlawMinYaw's Budget DAWGs. All rights reserved.</p>
     </div>`;
 }
@@ -12067,7 +12113,7 @@ function showDashboardLimitMath(kind = 'daily') {
     ? `<br><br><span style="color:var(--warn);font-weight:700">Bills reserve differs:</span> the plan reserves ${fmt(m.bills)}, while the Bills page has ${fmt(m.trackedBills)} still due.`
     : '';
   showConfirmModal({
-    title: daily ? 'Dynamic daily limit' : 'Weekly limit',
+    title: daily ? 'Daily allowance' : 'Weekly limit',
     message: `${fmt(m.balance)} balance<br>− ${fmt(m.stopAt)} minimum balance<br>− ${fmt(m.bills)} bills still due<br><strong style="color:var(--text)">= ${fmt(available)} available</strong><br><br>${resultLine}${mismatch}`,
     confirmText: 'Open Planner',
     cancelText: 'Close',
@@ -12076,6 +12122,11 @@ function showDashboardLimitMath(kind = 'daily') {
 }
 
 function attachDashboardDawg() {
+  document.querySelectorAll('[data-home-period]').forEach(button => button.addEventListener('click', () => {
+    const period = button.dataset.homePeriod; const settings = loadSettings();
+    settings.homeSpendPeriod = period; saveSettings(settings); render();
+    document.querySelector(`[data-home-period="${period}"]`)?.focus({preventScroll:true});
+  }));
   attachGettingStarted();
   document.querySelectorAll('[data-payday-go]').forEach(button => button.addEventListener('click', () => showTab(button.dataset.paydayGo)));
   document.getElementById('dash-open-weekly')?.addEventListener('click', () => showTab('weekly'));
@@ -12362,7 +12413,12 @@ function attachDashboardDawg() {
   document.querySelectorAll('.dawg-tbtn').forEach(b =>
     b.classList.toggle('dawg-tbtn-active', b.dataset.range === 'all'));
   requestAnimationFrame(_moveTbtnPill);
-  buildSparkline('all');
+  const history = document.getElementById('home-chart');
+  if (history) history.addEventListener('toggle', () => {
+    if (history.open) buildSparkline(document.querySelector('.dawg-tbtn-active')?.dataset.range || 'all');
+    else if (_dawgSpark) { _dawgSpark.destroy(); _dawgSpark = null; _dawgSparkGlobal = null; }
+  });
+  else buildSparkline('all');
 
 }
 

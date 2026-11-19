@@ -1,5 +1,16 @@
 [
  {
+  "version": "5.68.0",
+  "date": "2026-11-19",
+  "changes": [
+   "Home has one Available to spend card with Today, This week, and Until payday views. Your selected view is remembered, its explanation identifies the calculation and protected bills/buffer, and Today stays within the amount left this week.",
+   "Your balance is smaller, its history chart expands on demand, and monthly pace keeps its dollar difference visible with totals and the method under a disclosure. Daily and weekly limits now live in the main card.",
+   "Bills and Goals use consistent action menus, payment actions stay visible, and Ledger Edit text is readable across dark themes. Cards, controls, spacing, and focus styles follow the active theme and skin.",
+   "Goals shows existing goals first. Add goal and financial health expand when needed, progress fields have clearer labels, and legacy saved amounts—including the demo goal—display correctly.",
+   "Startup timings moved from Settings into About → Diagnostics."
+  ]
+ },
+ {
   "version": "5.67.0",
   "date": "2026-10-27",
   "changes": [

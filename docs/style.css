@@ -6947,8 +6947,8 @@ body.theme-ubuntu .section-title::before {
    and the rich debt cards (with progress bars) keep their card treatment.
    ══════════════════════════════════════════════════════════════════════════ */
 .bills-list, .goals-list { display: flex; flex-direction: column; gap: 0; }
-.bill-card,
-.goal-card {
+body.skinned .bill-card,
+body.skinned .goal-card {
   background: transparent !important;
   box-shadow: none !important;
   border: none !important;
@@ -6959,8 +6959,8 @@ body.theme-ubuntu .section-title::before {
 }
 .bill-card::after,
 .goal-card::after { display: none !important; }
-.bills-list .bill-card:last-child,
-.goals-list .goal-card:last-child { border-bottom: none !important; }
+body.skinned .bills-list .bill-card:last-child,
+body.skinned .goals-list .goal-card:last-child { border-bottom: none !important; }
 
 /* Dashboard budget tiles — meter style (replaces the rings).
    The budget tile is a centered flex column, so these MUST be full width or they
@@ -8885,6 +8885,65 @@ body.amounts-hidden .comparison-value { filter: blur(6px); user-select: none; }
 .pace-method summary { cursor: pointer; }
 .pace-method summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 2px; }
 .pace-method p { margin: 8px 0 0; }
+
+/* Everyday surfaces share spacing and readable controls in every theme/skin. */
+:is(.page > .form-card, .bill-card, .goal-card, .month-comparison, .home-spending) {
+  padding: var(--sk-card-pad, 16px);
+  border-radius: var(--sk-card-r, var(--radius-card, 16px));
+}
+.home-spending h2 { margin: 0; font-size: .78rem; line-height: 1.5; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.home-periods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
+.home-periods button { min-width: 0; min-height: 44px; padding: 8px 4px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 10px; font: inherit; font-size: .8rem; cursor: pointer; }
+.home-periods button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+.home-periods button:disabled { color: var(--muted); cursor: default; border-style: dashed; }
+.home-spend-result { margin-top: 10px; min-width: 0; }
+.home-spend-label { display: block; color: var(--muted); font-size: .8rem; }
+.home-spend-result > strong { display: block; color: var(--text); font-size: 2.25rem; font-weight: 750; line-height: 1.3; margin-top: 4px; }
+.home-spend-result p, .home-schedule-note { color: var(--muted); font-size: .78rem; line-height: 1.5; margin: 6px 0 0; }
+.home-spend-warning { color: var(--text); border-left: 3px solid var(--danger); padding-left: 10px; font-size: .8rem; line-height: 1.5; }
+.home-math { margin: 10px 0; }
+.home-math > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, auto); gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.home-math dd { margin: 0; color: var(--text); text-align: right; }
+.home-review-bills, .home-schedule-note button { background: none; border: none; color: var(--text); font: inherit; font-size: .8rem; text-align: left; cursor: pointer; min-height: 44px; padding: 8px 0; }
+.home-review-bills { border-top: 1px solid var(--border); }
+.home-current .dawg-hero, .home-current .dawg-hero-inner { min-height: 56px; }
+.home-current .dawg-hero-inner { padding-top: 6px; padding-bottom: 6px; }
+.home-current .dawg-hero-tagline { font-size: 1rem; }
+.home-current .dawg-balance-card .dawg-balance-amt { font-size: 1.6rem; margin-top: 4px; line-height: 1.4; }
+.home-current .dawg-balance-card { padding: 16px; }
+.home-current .sk-hero { padding: 16px 0; }
+.home-current .sk-hero .sk-amt { font-size: 1.7rem; }
+.home-current .sk-amt .sk-cur, .home-current .sk-amt .sk-cents { font-size: .85rem; }
+.home-chart { border-top: 1px solid var(--border); margin-top: 10px; }
+.home-chart > summary, .month-pace-details > summary, .goals-create > summary, .goals-health > summary, .about-diagnostics > summary { color: var(--text); cursor: pointer; min-height: 44px; box-sizing: border-box; padding: 12px 0; font-size: .82rem; line-height: 1.5; }
+.month-pace-details .pace-method { font-size: .78rem; }
+.month-pace-details h3 { font: inherit; font-weight: 600; }
+.home-current .month-comparison .comparison-amount { font-size: .85rem; }
+.home-current .month-comparison .pace-difference { font-size: .95rem; }
+.home-current .month-comparison { margin-top: 12px; }
+.ledger-edit-btn { color: var(--text); opacity: 1; margin: 0; }
+.row-actions { margin-left: auto; min-width: 44px; color: var(--text); }
+.row-actions > summary { list-style: none; display: flex; align-items: center; justify-content: center; cursor: pointer; min-width: 44px; min-height: 44px; font-size: 1.3rem; color: var(--text); }
+.row-actions > summary::-webkit-details-marker { display: none; }
+.row-actions > div { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0; }
+.row-actions button { min-height: 44px; font-size: .8rem; }
+.row-actions button:not(.btn-danger) { color: var(--text); background: var(--surface); border: 1px solid var(--border); }
+.bill-card-actions { align-items: flex-start; gap: 8px; }
+.bill-card-name, .goal-name { overflow-wrap: anywhere; min-width: 0; }
+body:not(.skinned) :is(.bill-card, .goal-card) { background: var(--card); border: 1px solid var(--border); margin: 8px 0; }
+.goal-header { align-items: flex-start; gap: 12px; }
+.goal-add-row .goal-add-input, .goal-add-row .goal-add-btn { min-height: 44px; box-sizing: border-box; }
+.goal-add-row .goal-add-input { min-width: 0; }
+.goal-add-row .goal-add-btn { padding: 8px 14px; }
+.goals-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.goals-heading .page-title { margin-bottom: 0; }
+.goals-heading button { min-height: 44px; flex-shrink: 0; }
+.goals-create, .goals-health, .about-diagnostics { margin-top: 16px; border-top: 1px solid var(--border); }
+.goals-create > .form-card { margin-top: 0 !important; padding: var(--sk-card-pad, 16px); }
+.about-diagnostics .form-card { margin: 0; border: 0; box-shadow: none; }
+.home-spending .pace-method > summary { min-height: 44px; box-sizing: border-box; padding: 12px 0; color: var(--text); }
+.home-spending .pace-method { margin-top: 6px; padding-top: 0; }
 .payday-card .comparison-caption { margin: 4px 0; color: var(--muted); font-size: .8rem; line-height: 1.5; }
 .payday-date { color: var(--text); font-size: .85rem; }
 .payday-allowance { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-top: 6px; }
