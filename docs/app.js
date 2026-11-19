@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.71.0';
+const VERSION = '5.71.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -3037,7 +3037,7 @@ function renderEverydayDashboard(balance, inputs, gamblingMonth, gamblingAll) {
   const overdue = bills.filter(b => b.days < 0).length;
   const recent = (state.transactions || []).map((t,index) => ({...t,index}))
     .filter(t => t.date && t.date <= today() && ['income','expense'].includes(t.type))
-    .sort((a,b) => b.date.localeCompare(a.date) || (b.ts || 0) - (a.ts || 0) || b.index - a.index).slice(0,2);
+    .sort((a,b) => b.date.localeCompare(a.date) || (b.ts || 0) - (a.ts || 0) || b.index - a.index).slice(0,4);
   const shortDate = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
   const date = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const history = dashboardBalanceHistory(state.transactions, state.startingBalance);

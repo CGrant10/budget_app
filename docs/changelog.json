@@ -1,5 +1,12 @@
 [
  {
+  "version": "5.71.1",
+  "date": "2026-11-19",
+  "changes": [
+   "The dashboard now shows your four latest recorded Ledger entries, with each row opening its matching Ledger view."
+  ]
+ },
+ {
   "version": "5.71.0",
   "date": "2026-11-19",
   "changes": [
