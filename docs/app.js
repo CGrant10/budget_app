@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.68.0';
+const VERSION = '5.68.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -2838,10 +2838,10 @@ function renderMonthComparison(skinned = false, month = dashMonth, compact = fal
   const title = current ? 'Monthly spending pace' : 'Spending vs last month';
   const showDifference = current && ['on', 'under', 'over'].includes(pace.status);
   const difference = showDifference ? `${fmt(Math.abs(pace.delta))} ${pace.delta < 0 ? 'under' : pace.delta > 0 ? 'over' : 'difference'}` : '';
+  const compactAmount = showDifference ? ` · ${fmt(Math.abs(pace.delta))}${pace.status === 'on' ? pace.delta < 0 ? ' under' : pace.delta > 0 ? ' over' : ' difference' : ''}` : '';
   const shortDate = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
-  return `<section class="${skinned ? 'sk-card' : 'dawg-section-card'} month-comparison" aria-label="${title}">
-    <div class="comparison-summary"><span class="${skinned ? 'sk-eyebrow' : 'dawg-card-title'}">${title}</span><span class="comparison-amount${!current ? ' comparison-value' : ''}${summary.tone}">${summary.headline}${showDifference ? `<strong class="pace-difference comparison-value">${difference}</strong>` : ''}</span></div>
-    ${compact ? '<details class="month-pace-details"><summary>View monthly totals and method</summary>' : ''}
+  return `<section class="${skinned ? 'sk-card' : 'dawg-section-card'} month-comparison${compact ? ' month-comparison-compact' : ''}" aria-label="${title}">
+    ${compact ? `<details class="month-pace-details"><summary><span>Monthly pace</span><span class="pace-compact-status${summary.tone}">${summary.headline}<strong class="comparison-value">${compactAmount}</strong></span></summary>` : `<div class="comparison-summary"><span class="${skinned ? 'sk-eyebrow' : 'dawg-card-title'}">${title}</span><span class="comparison-amount${!current ? ' comparison-value' : ''}${summary.tone}">${summary.headline}${showDifference ? `<strong class="pace-difference comparison-value">${difference}</strong>` : ''}</span></div>`}
     ${current ? `<div class="pace-estimate"><span>Estimated month-end</span><strong class="comparison-value">${pace.projected === null ? '—' : fmt(pace.projected)}</strong></div>` : ''}
     <p class="comparison-caption${pace.delta !== null && !['no-baseline','future'].includes(pace.status) ? ' comparison-value' : ''}">${summary.detail}</p>
     ${pace.status !== 'future' ? `<dl class="pace-totals"><div><dt>${current ? 'Spent so far' : monthKeyLabel(month)}</dt><dd class="comparison-value">${fmt(pace.spent)}</dd></div><div><dt>Last month · full month</dt><dd class="comparison-value">${pace.prior.count ? fmt(pace.baseline) : '—'}</dd></div></dl>` : ''}
@@ -8102,6 +8102,8 @@ function renderWeekly() {
       <p class="page-sub">${_escHtml(_currentAcct()?.name || 'Account')} · your target and available spending</p>
       <h2 class="wk-sec">This week</h2>
       <div id="wk-live"></div>
+      <details class="wk-plan-details" id="wk-plan-details">
+        <summary>Budget setup <span>Target, bills &amp; suggestions</span></summary>
       <div class="wk-plan-heading">
         <h2 class="wk-sec">Your plan</h2>
         <button id="smart-budget-btn" class="smart-budget-btn">${target > 0 ? 'Suggest a new target' : 'Suggest my budget'}</button>
@@ -8135,6 +8137,7 @@ function renderWeekly() {
           <span id="wk-save-status" class="status-inline" role="status"></span>
         </div>
       </div>
+      </details>
       <h2 class="wk-sec">History</h2>
       <div id="wk-hist-card" class="form-card" style="display:none">
         <div class="wk-hist-head">
@@ -11332,7 +11335,7 @@ function _buildAccountCards() {
 function renderAccounts() {
   const accountCards = _buildAccountCards();
   return `
-    <div class="page">
+    <div class="page accounts-page">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
         <button id="accounts-back-btn" style="background:none;border:none;color:var(--accent);font-size:.85rem;font-weight:700;cursor:pointer;padding:4px 0;font-family:var(--font-body);display:flex;align-items:center;gap:4px;letter-spacing:.04em">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="15 18 9 12 15 6"/></svg>Settings

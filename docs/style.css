@@ -8944,6 +8944,37 @@ body:not(.skinned) :is(.bill-card, .goal-card) { background: var(--card); border
 .about-diagnostics .form-card { margin: 0; border: 0; box-shadow: none; }
 .home-spending .pace-method > summary { min-height: 44px; box-sizing: border-box; padding: 12px 0; color: var(--text); }
 .home-spending .pace-method { margin-top: 6px; padding-top: 0; }
+
+/* Low-frequency setup stays out of the daily spending/history flow. */
+.wk-plan-details { margin: 16px 0; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--sk-card-r, 12px); background: var(--card); }
+.wk-plan-details > summary { cursor: pointer; min-height: 48px; padding: 12px 0; box-sizing: border-box; color: var(--text); font-size: .85rem; line-height: 1.5; }
+.wk-plan-details > summary span { color: var(--muted); font-size: .75rem; margin-left: 8px; }
+.wk-plan-details > .form-card { margin: 0 0 12px; border: 0; box-shadow: none; padding: 12px 0; }
+.wk-plan-details .wk-plan-heading { margin-top: 4px; }
+.dawg-page .month-comparison.month-comparison-compact { padding: 0 12px; }
+.month-comparison-compact .month-pace-details > summary { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; min-height: 48px; padding: 12px 0; list-style: none; font-size: .8rem; }
+.month-comparison-compact .month-pace-details > summary::-webkit-details-marker { display: none; }
+.month-comparison-compact .month-pace-details > summary > span:first-child::before { content: '▸'; display: inline-block; margin-right: 7px; }
+.month-comparison-compact .month-pace-details[open] > summary > span:first-child::before { content: '▾'; }
+.pace-compact-status { font-size: .8rem; overflow-wrap: anywhere; }
+.pace-compact-status strong { font: inherit; font-variant-numeric: tabular-nums; }
+.month-comparison-compact .month-pace-details[open] { padding-bottom: 12px; }
+
+/* Account cards include their side margins in the space allotted by the list. */
+.acct-picker-page .acct-row.acct-card { width: calc(100% - 28px); max-width: calc(100% - 28px); box-sizing: border-box; min-width: 0; flex-shrink: 0; }
+.acct-picker-page .acct-grp { flex-shrink: 0; }
+.acct-picker-page .acct-list, .acct-picker-page .acct-list-scroll { min-width: 0; max-width: 100%; }
+.acct-card-name { overflow-wrap: anywhere; }
+.accounts-page, .accounts-page .accounts-list, .accounts-page .acct-settings-card, .accounts-page .acct-card-body { min-width: 0; max-width: 100%; }
+.accounts-page .form-input { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.accounts-page .acct-settings-debt, .accounts-page .est-row2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.accounts-page .est-field, .accounts-page .est-input-wrap { min-width: 0; }
+.accounts-page .acct-card-header { flex-wrap: wrap; }
+.accounts-page .acct-card-header > div:first-child { flex: 1 1 160px; flex-wrap: wrap; }
+
+/* Both dog frames share one bounded grid cell above the net-worth meter. */
+.acct-hero2-mark { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+.acct-hero2-mark img { min-height: 0; min-width: 0; max-height: 100%; max-width: 100%; object-fit: contain; }
 .payday-card .comparison-caption { margin: 4px 0; color: var(--muted); font-size: .8rem; line-height: 1.5; }
 .payday-date { color: var(--text); font-size: .85rem; }
 .payday-allowance { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-top: 6px; }

@@ -1,5 +1,15 @@
 [
  {
+  "version": "5.68.1",
+  "date": "2026-11-19",
+  "changes": [
+   "Weekly's budget setup and suggestions now stay collapsed until needed, keeping current spending and history in view. Closing the section preserves any edits in progress.",
+   "Home's monthly spending pace is a compact expandable row, with the status and dollar difference still visible.",
+   "Account-picker cards fit their available width without sideways scrolling, and long lists scroll vertically with balances visible. Account forms and estimator grids also adapt to narrow screens.",
+   "The default dog mascot stays within its header above the account balance meter, including in dark and light themes."
+  ]
+ },
+ {
   "version": "5.68.0",
   "date": "2026-11-19",
   "changes": [
