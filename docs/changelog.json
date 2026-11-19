@@ -1,5 +1,15 @@
 [
  {
+  "version": "5.70.0",
+  "date": "2026-11-19",
+  "changes": [
+   "Home follows the selected Today, at a glance design: a flat layout, balance beside a small seven-day graph, full-width daily and weekly bars, and compact activity and bills lists.",
+   "The small graph uses recorded daily cash balances and works offline without loading a chart library. Tap it to expand the larger balance history.",
+   "Recent activity and upcoming bills show two entries each, with quick Add, Ledger, and View all actions. More insights keeps monthly pace, payday, and secondary tools out of the way.",
+   "The layout follows all themes and skins, preserves privacy and existing spending calculations, and adapts to narrow phones and desktop."
+  ]
+ },
+ {
   "version": "5.69.0",
   "date": "2026-11-19",
   "changes": [

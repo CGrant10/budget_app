@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.69.0';
+const VERSION = '5.70.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -2330,6 +2330,7 @@ function applyTheme(theme) {
   document.getElementById('app')?.classList.add('dawg-mode');
   // Beta skin gets the last word: it overrides body.light + theme-color above.
   applySkin(activeSkin());
+  _overviewSparkCleanup?.redraw?.();
 }
 
 function _save() {
@@ -2863,7 +2864,7 @@ function calculatePaydayForecast({account, transactions = [], bills = [], plan =
   if (!validDate(payDate) || !validDate(asOf) || !Number.isFinite(paycheck) || paycheck <= 0 || payDate <= asOf || dayNumber(payDate) - dayNumber(asOf) > 366) return {status:'review'};
   const round = value => Math.round(value * 100) / 100;
   const days = dayNumber(payDate) - dayNumber(asOf);
-  let balance = Number(startingBalance) || 0;
+  let balance = Number.isFinite(Number(startingBalance)) ? Number(startingBalance) : 0;
   const events = [];
   for (const t of transactions) {
     const amount = Number(t.amount);
@@ -3013,54 +3014,110 @@ function dashboardUpcomingBills(bills, asOf = today(), days = 7) {
   return rows.sort((a,b) => a.date.localeCompare(b.date) || a.index - b.index);
 }
 
+// Seven calendar days of recorded cash balances, including today. UTC date
+// arithmetic keeps the window stable through month/year and DST changes.
+function dashboardBalanceHistory(transactions, startingBalance, asOf = today()) {
+  const end = Date.parse(asOf + 'T12:00:00Z');
+  const dates = Array.from({length:7}, (_, i) => new Date(end - (6 - i) * 86400000).toISOString().slice(0,10));
+  let balance = Number.isFinite(Number(startingBalance)) ? Number(startingBalance) : 0;
+  const changes = new Map(dates.map(date => [date, 0]));
+  for (const transaction of transactions || []) {
+    const amount = Number(transaction.amount);
+    if (!transaction.date || transaction.date > asOf || !Number.isFinite(amount) || !['income','expense'].includes(transaction.type)) continue;
+    const change = transaction.type === 'income' ? amount : -amount;
+    if (transaction.date < dates[0]) balance += change;
+    else if (changes.has(transaction.date)) changes.set(transaction.date, changes.get(transaction.date) + change);
+  }
+  return dates.map(date => { balance += changes.get(date); return {date, balance:+balance.toFixed(2)}; });
+}
+
 function renderEverydayDashboard(balance, inputs, gamblingMonth, gamblingAll) {
-  const account = _currentAcct();
   const stats = dashboardLimitStats(inputs);
   const bills = dashboardUpcomingBills(state.bills);
   const overdue = bills.filter(b => b.days < 0).length;
   const recent = (state.transactions || []).map((t,index) => ({...t,index}))
     .filter(t => t.date && t.date <= today() && ['income','expense'].includes(t.type))
-    .sort((a,b) => b.date.localeCompare(a.date) || (b.ts || 0) - (a.ts || 0) || b.index - a.index).slice(0,3);
+    .sort((a,b) => b.date.localeCompare(a.date) || (b.ts || 0) - (a.ts || 0) || b.index - a.index).slice(0,2);
   const shortDate = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  const date = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-  const arrow = _svg('<path d="M5 12h14m-5-5 5 5-5 5"/>',16);
-  const add = _svg('<path d="M12 5v14M5 12h14"/>',16);
-  const movement = income => _svg(income ? '<path d="M17 7 7 17M7 7v10h10"/>' : '<path d="M7 17 17 7M7 7h10v10"/>',17);
+  const date = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const history = dashboardBalanceHistory(state.transactions, state.startingBalance);
+  const icon = name => `<span class="overview-icon overview-icon-${name}" aria-hidden="true"></span>`;
+  const arrow = icon('arrow-right'), add = icon('plus');
   return `<div class="dawg-page overview-page${activeSkin() ? ' sk-page' : ''}">
     ${gettingStartedHtml()}${backupBannerHtml()}
-    <header class="overview-heading"><div class="overview-identity"><img class="overview-mark" src="${mascotSrc()}" alt=""><div><h1>Overview</h1><p>${date}</p></div></div>
-      <button type="button" class="overview-add" data-overview-go="add">${add}<span>Add</span></button></header>
-    <section class="overview-summary overview-panel" aria-label="Account balance and spending limits">
-      <div class="overview-balance"><div class="overview-balance-main"><span class="overview-eyebrow">${_escHtml(account?.name || 'Account')} balance</span><strong class="overview-balance-amount comparison-value${balance < 0 ? ' is-negative' : ''}">${fmt(balance)}</strong></div>
-        <button type="button" class="overview-privacy dash-privacy-btn" id="dash-privacy-btn" aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden()}">${_eyeIconSvg(_amountsHidden())}</button></div>
-      <h2 class="sr-only">Spending limits</h2>
-      <div class="overview-quickbar" aria-label="Daily and weekly limits">
-      ${stats.map(s => `<div class="overview-limit${s.over > 0 ? ' is-over' : ''}" data-overview-limit="${s.key}"><span class="overview-limit-label">${s.label}</span>
-        <div class="overview-limit-value"><strong class="comparison-value">${fmt(s.over > 0 ? s.over : s.left)}</strong><span>${s.over > 0 ? 'over limit' : 'left'}</span></div>
-        <div class="overview-meter" role="progressbar" aria-label="${s.label}: ${fmt(s.spent)} spent, ${fmt(s.left)} remaining${s.over > 0 ? ', '+fmt(s.over)+' over limit' : ''}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(s.percent)}"><i style="width:${s.percent.toFixed(2)}%"></i></div>
-        <span class="overview-limit-spent comparison-value">${fmt(s.spent)} spent</span></div>`).join('')}
-      </div>
-      <div class="overview-summary-footer"><p class="overview-summary-note">${inputs.math.balance <= inputs.math.stopAt + inputs.math.bills ? 'Bills and buffer use your balance.' : 'Bills &amp; buffer reserved.'}</p><button type="button" class="overview-link" data-overview-go="weekly">Weekly plan ${arrow}</button></div>
+    <header class="overview-heading"><div class="overview-identity"><img class="overview-mark" src="${mascotSrc()}" alt=""><div><h1>Today, at a glance</h1><p>${date}</p></div></div><button type="button" class="overview-privacy dash-privacy-btn" id="dash-privacy-btn" aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden()}">${_eyeIconSvg(_amountsHidden())}</button></header>
+    <section class="overview-balance" aria-label="Account balance and seven-day history">
+      <div class="overview-balance-main"><span class="overview-eyebrow">Account balance</span><strong class="overview-balance-amount comparison-value${balance < 0 ? ' is-negative' : ''}">${fmt(balance)}</strong></div>
+      <button type="button" class="overview-spark" id="overview-history-preview" aria-label="View balance history for the last 7 days"><span class="overview-spark-label">7 days</span><span class="overview-spark-plot"><canvas id="overview-sparkline" aria-hidden="true"></canvas></span><span class="overview-spark-dates"><span>${shortDate(history[0].date)}</span><span>${shortDate(history[6].date)}</span></span></button>
+    </section>
+    <section class="overview-spending" aria-labelledby="overview-spending-title"><h2 id="overview-spending-title">Spending room</h2><div class="overview-quickbar" aria-label="Daily and weekly limits">
+      ${stats.map(s => `<button type="button" class="overview-limit${s.over > 0 ? ' is-over' : ''}" data-overview-limit="${s.key}" data-overview-go="weekly" aria-label="${s.label}: ${fmt(s.over > 0 ? s.over : s.left)} ${s.over > 0 ? 'over limit' : 'left'}. Open weekly plan."><span class="overview-limit-heading"><span class="overview-limit-label">${s.label}</span><span class="overview-limit-value"><strong class="comparison-value">${fmt(s.over > 0 ? s.over : s.left)}</strong><span>${s.over > 0 ? 'over limit' : 'left'}</span></span></span>
+        <span class="overview-meter" role="progressbar" aria-label="${s.label}: ${fmt(s.spent)} spent, ${fmt(s.left)} remaining${s.over > 0 ? ', '+fmt(s.over)+' over limit' : ''}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(s.percent)}"><i style="width:${s.percent.toFixed(2)}%"></i></span>
+        <span class="overview-limit-spent comparison-value">${fmt(s.spent)}${s.key === 'week' ? ' of '+fmt(inputs.weeklySummary.limit) : ''} spent</span></button>`).join('')}
+      </div>${inputs.math.balance <= inputs.math.stopAt + inputs.math.bills ? '<p class="overview-reserve-note">Bills and buffer use your balance.</p>' : ''}
     </section>
     <div class="overview-columns">
-      <section class="overview-panel overview-activity" aria-labelledby="overview-activity-title"><div class="overview-section-heading"><div><h2 id="overview-activity-title">Recent activity</h2><p>Your latest recorded entries</p></div><button type="button" class="overview-link" data-overview-go="ledger">Ledger ${arrow}</button></div>
+      <section class="overview-activity" aria-labelledby="overview-activity-title"><div class="overview-section-heading"><h2 id="overview-activity-title">Recent activity</h2><div class="overview-activity-actions"><button type="button" class="overview-add" data-overview-go="add"><span class="overview-add-face">${add}<span>Add</span></span></button><button type="button" class="overview-link" data-overview-go="ledger">Ledger ${arrow}</button></div></div>
         ${recent.length ? `<div class="overview-list">${recent.map(t => `<button type="button" class="overview-activity-row" data-overview-txn="${t.index}">
-          <span class="overview-entry-icon" aria-hidden="true">${movement(t.type === 'income')}</span><span class="overview-entry-main"><strong>${_escHtml(t.description || t.category || 'Entry')}</strong><small>${_escHtml(t.category || 'Other')} · ${t.date === today() ? 'Today' : shortDate(t.date)}</small></span>
-          <span class="overview-entry-amount comparison-value${t.type === 'income' ? ' is-income' : ''}">${t.type === 'income' ? '+' : '−'}${fmt(Number(t.amount) || 0)}</span></button>`).join('')}</div>` : `<div class="overview-empty"><p>Your first entry starts here.</p><button type="button" class="overview-link" data-overview-go="add">Add an entry ${arrow}</button></div>`}
+          <span class="overview-entry-icon" aria-hidden="true">${icon(t.type === 'income' ? 'arrow-down-left' : 'arrow-up-right')}</span><span class="overview-entry-main"><strong>${_escHtml(t.description || t.category || 'Entry')}</strong><small>${t.date === today() ? 'Today' : shortDate(t.date)}</small></span><span class="overview-entry-amount comparison-value${t.type === 'income' ? ' is-income' : ''}">${t.type === 'income' ? '+' : '−'}${fmt(Number(t.amount) || 0)}</span></button>`).join('')}</div>` : '<div class="overview-empty"><p>Your first entry starts here.</p><span>Tap Add to record a purchase or income.</span></div>'}
       </section>
-      <section class="overview-panel overview-bills" aria-labelledby="overview-bills-title"><div class="overview-section-heading"><div><h2 id="overview-bills-title">Upcoming bills</h2><p>${overdue ? 'Overdue & next 7 days' : 'Next 7 days'}</p></div><button type="button" class="overview-link" data-overview-go="bills">View all ${arrow}</button></div>
-        ${bills.length ? `<div class="overview-list">${bills.slice(0,3).map(b => `<button type="button" class="overview-bill-row" data-overview-bill="${b.index}" data-overview-month="${b.date.slice(0,7)}"><span class="overview-bill-date${b.days < 0 ? ' is-overdue' : ''}"><b>${Number(b.date.slice(8))}</b><small>${new Date(b.date+'T12:00:00').toLocaleDateString('en-US',{month:'short'})}</small></span>
-          <span class="overview-entry-main"><strong>${_escHtml(b.name)}</strong><small${b.days < 0 ? ' class="overview-overdue"' : ''}>${b.days < 0 ? 'Overdue' : b.days === 0 ? 'Due today' : b.days === 1 ? 'Tomorrow' : 'Due '+shortDate(b.date)}</small></span><span class="overview-entry-amount comparison-value">${fmt(b.amount)}</span></button>`).join('')}</div>${bills.length > 3 ? `<p class="overview-list-note">${bills.length - 3} more in Bills</p>` : ''}` : '<div class="overview-empty"><p>No unpaid bills due in the next 7 days.</p><span>Review your full schedule in Bills.</span></div>'}
+      <section class="overview-bills" aria-labelledby="overview-bills-title"><div class="overview-section-heading"><div><h2 id="overview-bills-title">Upcoming bills</h2>${overdue ? `<p class="overview-overdue">${overdue} overdue</p>` : ''}</div><button type="button" class="overview-link" data-overview-go="bills">View all ${arrow}</button></div>
+        ${bills.length ? `<div class="overview-list">${bills.slice(0,2).map(b => `<button type="button" class="overview-bill-row" data-overview-bill="${b.index}" data-overview-month="${b.date.slice(0,7)}"><span class="overview-entry-icon${b.days < 0 ? ' is-overdue' : ''}" aria-hidden="true">${icon('calendar-blank')}</span><span class="overview-entry-main"><strong>${_escHtml(b.name)}</strong><small${b.days < 0 ? ' class="overview-overdue"' : ''}>${b.days < 0 ? 'Overdue · '+shortDate(b.date) : b.days === 0 ? 'Due today' : b.days === 1 ? 'Tomorrow · '+shortDate(b.date) : new Date(b.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'})+' · '+shortDate(b.date)}</small></span><span class="overview-entry-amount comparison-value">${fmt(b.amount)}</span></button>`).join('')}</div>` : '<div class="overview-empty"><p>No unpaid bills due in the next 7 days.</p><span>Review your full schedule in Bills.</span></div>'}
       </section>
     </div>
-    <details class="overview-more"><summary>More insights <span>Monthly pace, payday &amp; history</span></summary><div class="overview-more-body">
+    <details class="overview-more"><summary>More insights</summary><div class="overview-more-body">
       ${renderMonthComparison(!!activeSkin(), dashMonth, true)}${renderPaydayForecast(!!activeSkin())}
-      <details class="home-chart overview-history" id="home-chart"><summary>Balance history</summary><div class="dawg-sparkline-wrap"><canvas id="dawg-sparkline"></canvas></div>
-        <div class="dawg-time-btns"><span class="dawg-tbtn-pill"></span>${[['1w','1W'],['1m','1M'],['3m','3M'],['6m','6M'],['1y','1Y'],['all','ALL']].map(([range,label]) => `<button type="button" class="dawg-tbtn${range === 'all' ? ' dawg-tbtn-active' : ''}" data-range="${range}">${label}</button>`).join('')}</div></details>
+      <details class="home-chart overview-history" id="home-chart"><summary>Balance history</summary><div class="dawg-sparkline-wrap"><canvas id="dawg-sparkline"></canvas></div><div class="dawg-time-btns"><span class="dawg-tbtn-pill"></span>${[['1w','1W'],['1m','1M'],['3m','3M'],['6m','6M'],['1y','1Y'],['all','ALL']].map(([range,label]) => `<button type="button" class="dawg-tbtn${range === 'all' ? ' dawg-tbtn-active' : ''}" data-range="${range}">${label}</button>`).join('')}</div></details>
       <details class="overview-gambling"><summary>Gambling summary</summary><div class="gambling-card">${_gamblingTrackerBody(gamblingMonth,gamblingAll)}</div></details>
       <div class="overview-secondary-actions"><button type="button" class="overview-link" data-overview-go="insights">Open Insights ${arrow}</button><button type="button" class="overview-link" id="dash-reconcile">Reconcile balance</button><button type="button" class="overview-link" id="dash-month-prev">Previous month</button></div>
     </div></details>
   </div>`;
+}
+
+// The tiny graph is drawn locally: it stays available offline without loading
+// the interactive chart library. Its observer is disconnected on every render.
+function attachOverviewSparkline() {
+  const canvas = document.getElementById('overview-sparkline');
+  if (!canvas) return;
+  const history = dashboardBalanceHistory(state.transactions, state.startingBalance);
+  const draw = () => {
+    if (!canvas.isConnected) return;
+    const width = canvas.clientWidth, height = canvas.clientHeight;
+    const context = canvas.getContext('2d');
+    if (!context || !width || !height) return;
+    const scale = window.devicePixelRatio || 1;
+    canvas.width = Math.round(width * scale); canvas.height = Math.round(height * scale);
+    context.scale(scale, scale);
+    const palette = getComputedStyle(canvas);
+    const color = palette.getPropertyValue(balanceAsOf(today()) < 0 ? '--danger' : '--accent').trim();
+    const values = history.map(point => point.balance);
+    const low = Math.min(...values), high = Math.max(...values);
+    const points = values.map((value,index) => ({x:4 + index / 6 * (width - 8), y:high === low ? height / 2 : 5 + (high - value) / (high - low) * (height - 14)}));
+    const trace = () => {
+      context.beginPath(); context.moveTo(points[0].x,points[0].y);
+      points.slice(1).forEach((point,index) => {
+        const previous = points[index], mid = (previous.x + point.x) / 2;
+        context.bezierCurveTo(mid,previous.y,mid,point.y,point.x,point.y);
+      });
+    };
+    trace();
+    context.lineTo(points[6].x,height); context.lineTo(points[0].x,height); context.closePath();
+    context.fillStyle = color; context.globalAlpha = .22; context.fill(); context.globalAlpha = 1;
+    trace();
+    context.strokeStyle = color; context.lineWidth = 2; context.lineJoin = 'round'; context.stroke();
+    context.beginPath(); context.arc(points[6].x,points[6].y,3,0,Math.PI*2); context.fillStyle = color; context.fill();
+  };
+  draw();
+  const observer = new ResizeObserver(draw); observer.observe(canvas);
+  _overviewSparkCleanup = () => observer.disconnect();
+  _overviewSparkCleanup.redraw = draw;
+  document.getElementById('overview-history-preview')?.addEventListener('click', () => {
+    const more = document.querySelector('.overview-more'), history = document.getElementById('home-chart');
+    if (!more || !history) return;
+    more.open = true; history.open = true;
+    history.querySelector('summary')?.focus({preventScroll:true});
+    history.scrollIntoView({behavior:_reduceMotion() ? 'instant' : 'smooth',block:'center'});
+  });
 }
 
 function goalTargetAmount(goal) {
@@ -4204,6 +4261,7 @@ let ledgerAllAccounts = false;       // when true, the ledger searches across ev
 let _ledgerSelectMode = false;       // multi-select mode in the transactions ledger
 let _ledgerSelected = new Set();     // real indices (_i) into state.transactions
 let _insightTimer = null;
+let _overviewSparkCleanup = null;
 let _dawgSparkGlobal = null; // module-level ref so tab switches can destroy it
 let _splitRows    = []; // [{cat, amount}] for split-transaction mode
 
@@ -5627,6 +5685,7 @@ function rerenderKeepScroll() {
 }
 
 function render() {
+  if (_overviewSparkCleanup) { _overviewSparkCleanup(); _overviewSparkCleanup = null; }
   if (spendingChart) { spendingChart.destroy(); spendingChart = null; }
   if (_insightsChart) { _insightsChart.destroy(); _insightsChart = null; }
   const main = document.getElementById('main-content');
@@ -12205,6 +12264,7 @@ function showDashboardLimitMath(kind = 'daily') {
 }
 
 function attachDashboardDawg() {
+  attachOverviewSparkline();
   const resetLedger = () => { ledgerFilter = ''; ledgerCatFilter = ''; ledgerTypeFilter = 'all'; ledgerAllAccounts = false; ledgerDateFrom = ''; ledgerDateTo = ''; ledgerView = 'transactions'; };
   document.querySelectorAll('[data-overview-go]').forEach(button => button.addEventListener('click', () => {
     if (button.dataset.overviewGo === 'ledger') resetLedger();
