@@ -1,5 +1,15 @@
 [
  {
+  "version": "5.71.0",
+  "date": "2026-11-19",
+  "changes": [
+   "The Daily Snapshot style now continues across entry forms, Ledger, Weekly, Bills, Goals, Insights, reports, budgets, challenges, notes, backup tools, Settings, and About: flat sections, quiet dividers, clearer headings, and consistent controls.",
+   "The accounts overview is a compact grouped list with balances aligned on the right, a clear net-worth summary, and a Manage shortcut. Account switching and quick transaction entry remain available.",
+   "Debt and retirement views use the same layout language, with compact summaries and their existing charts, projections, and contribution tools.",
+   "Existing financial calculations, saved data, account types, themes, and skins are preserved. Controls and forms adapt to narrow screens and use larger touch targets."
+  ]
+ },
+ {
   "version": "5.70.0",
   "date": "2026-11-19",
   "changes": [

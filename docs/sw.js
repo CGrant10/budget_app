@@ -1,4 +1,4 @@
-const CACHE      = "slawminyaw-v5700";
+const CACHE      = "slawminyaw-v5710";
 const FONT_CACHE = "slawminyaw-fonts-v1";
 const CDN_CACHE  = "slawminyaw-cdn-v1";
 const ASSETS = [
@@ -19,7 +19,13 @@ const ASSETS = [
   "./icons/phosphor/arrow-up-right.svg",
   "./icons/phosphor/arrow-down-left.svg",
   "./icons/phosphor/plus.svg",
-  "./icons/phosphor/calendar-blank.svg"
+  "./icons/phosphor/calendar-blank.svg",
+  "./icons/phosphor/bank.svg",
+  "./icons/phosphor/vault.svg",
+  "./icons/phosphor/credit-card.svg",
+  "./icons/phosphor/money.svg",
+  "./icons/phosphor/chart-line-up.svg",
+  "./icons/phosphor/wallet.svg"
 ];
 
 self.addEventListener("install", e => {

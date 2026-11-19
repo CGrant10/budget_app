@@ -9239,3 +9239,187 @@ body.amounts-hidden .overview-spark-plot { filter: blur(6px); }
   .overview-activity-actions > .overview-link { padding-left: 7px; }
   .overview-link { font-size: .75rem; }
 }
+
+/* Daily UI: the approved Home language extended to every working page. */
+#app.daily-ui { --glass-bg: var(--card); --glass-border: var(--border); --shadow-card: none; }
+#app.daily-ui #main-content > .daily-page:not(.daily-wallet) { width: 100%; max-width: 960px; margin-inline: auto; padding: 14px 18px 24px; }
+#app.daily-ui .daily-page { min-width: 0; }
+#app.daily-ui .daily-page .page-title { margin: 0 0 6px; padding: 0; border: 0; border-radius: 0; font-family: var(--font-body); font-size: 1.25rem; font-weight: 750; line-height: 1.35; letter-spacing: -.035em; color: var(--text); }
+#app.daily-ui .daily-page .page-title::after { display: none; }
+#app.daily-ui .daily-page .page-sub { margin: 0 0 20px; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+#app.daily-ui .daily-page :is(.section-title,.wk-sec,.dawg-card-title,.ret-section-hdr,.ret-dash-card-title,.ins-section-hdr) { padding-left: 0; font-family: var(--font-body); font-size: .875rem; font-weight: 650; line-height: 1.4; letter-spacing: -.015em; text-transform: none; color: var(--text); }
+#app.daily-ui .daily-page :is(.section-title,.wk-sec)::before { display: none; }
+#app.daily-ui .daily-page :is(.form-card,.card,.week-tracker,.goal-card,.health-card,.net-worth-card,.insight-item,.bill-card,.bill-item,.debt-acct-card,.debt-dash-card,.debt-summary-card,.debt-calc-card,.dawg-section-card,.dawg-balance-card,.gambling-card,.goals-total-card,.acct-settings-card,.review-card,.setup-card,.ret-hero,.ret-acct-card,.ret-proj-card,.ret-dash-hero,.ret-dash-card,.ret-dash-stat,.wrap-stat,.sh-card,.spending-history,.ins-section,.bcal-wrap,.budget-suggestions) {
+  min-width: 0; background: transparent !important; background-image: none !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+}
+#app.daily-ui .daily-page :is(.form-card,.card,.week-tracker,.goal-card,.health-card,.net-worth-card,.insight-item,.bill-card,.bill-item,.debt-acct-card,.debt-dash-card,.debt-summary-card,.acct-settings-card,.dawg-balance-card)::after { display: none !important; }
+#app.daily-ui .daily-page :is(.form-card,.goal-card,.health-card,.bill-card,.debt-acct-card,.debt-dash-card,.debt-summary-card,.debt-calc-card,.dawg-section-card,.dawg-balance-card,.gambling-card,.goals-total-card,.review-card,.setup-card,.ret-hero,.ret-acct-card,.ret-proj-card,.ret-dash-hero,.ret-dash-card,.ins-section) { padding: 16px 0; margin: 0 0 12px; border-bottom: 1px solid var(--border) !important; }
+#app.daily-ui .daily-page .form-card .form-card { margin: 0; border: 0 !important; }
+#app.daily-ui .daily-page :is(.entry-card,.data-page > .form-card) { padding-top: 0; }
+#app.daily-ui .daily-page .code-hint { font-size: .75rem; line-height: 1.55; }
+#app.daily-ui .daily-page :is(.form-label,.reserve-explanation,.plan-facts span) { font-size: .78rem; line-height: 1.5; }
+#app.daily-ui .daily-page :is(input.form-input,select.form-input,textarea.form-input) { min-height: 44px; min-width: 0; max-width: 100%; border: 1px solid var(--border); border-radius: var(--sk-card-r,10px); background: var(--surface); color: var(--text); font-size: 1rem !important; box-shadow: none; }
+#app.daily-ui .daily-page :is(.form-input,.set-search):focus { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: none; }
+#app.daily-ui .daily-page button { min-height: 44px; font-family: var(--font-body); }
+#app.daily-ui :is(.btn-primary,.acct-qa-btn) { background: var(--accent) !important; color: var(--on-accent) !important; border-color: var(--accent); box-shadow: none !important; }
+#app.daily-ui .daily-page :is(.btn-primary,.btn-secondary,.btn-sm,.btn-xs) { font-size: .78rem; line-height: 1.4; border-radius: var(--sk-card-r,9px); }
+#app.daily-ui .daily-page :is(.btn-secondary,.btn-sm,.btn-xs):not(.btn-danger):not(.active):not(.btn-xs-active) { background: transparent; border: 1px solid var(--border); box-shadow: none; color: var(--text); }
+#app.daily-ui .daily-page :is(.btn-danger,.bill-unpaid-btn) { color: var(--danger); }
+#app.daily-ui .daily-page .cards-grid { gap: 0 20px; margin: 8px 0 18px; border-bottom: 1px solid var(--border); }
+#app.daily-ui .daily-page .cards-grid .card { min-width: 0; padding: 12px 0; grid-column: auto; }
+#app.daily-ui .daily-page .cards-grid .card:first-child { grid-column: auto; background: transparent; }
+#app.daily-ui .daily-page .cards-grid .card .card-title { font-size: .72rem; line-height: 1.5; letter-spacing: 0; font-weight: 500; text-transform: none; color: var(--muted); }
+#app.daily-ui .daily-page .cards-grid .card .card-value { font-size: clamp(1.1rem,5vw,1.5rem); font-weight: 700; line-height: 1.25; letter-spacing: -.03em; overflow-wrap: anywhere; }
+#app.daily-ui .daily-page .cards-grid .card .card-sub { font-size: .73rem; line-height: 1.5; }
+#app.daily-ui .daily-page :is(.ledger-filter-bar,.ledger-options) { padding-inline: 0; background: transparent; border-radius: 0; box-shadow: none; }
+#app.daily-ui .daily-page .ledger-filter-bar { border: 0; border-bottom: 1px solid var(--border); }
+#app.daily-ui .daily-page .ledger-options > summary { min-height: 44px; font-size: .78rem; }
+#app.daily-ui .daily-page .ledger-row-inner { padding-inline: 0; }
+#app.daily-ui .daily-page .ledger-amt.expense { color: var(--text); }
+#app.daily-ui .daily-page :is(.bill-card-amt,.goal-amounts) { color: var(--text); }
+#app.daily-ui .daily-page .bill-card-info { min-width: 0; }
+#app.daily-ui .daily-page :is(.bill-card-name,.goal-name) { font-size: .875rem; line-height: 1.4; overflow-wrap: anywhere; }
+#app.daily-ui .daily-page .bill-card-main { gap: 10px; }
+#app.daily-ui .daily-page .bill-card-actions { margin-top: 10px; }
+#app.daily-ui .daily-page .bill-link-row { padding: 8px 0 0; }
+#app.daily-ui .daily-page :is(.wk-plan-details,.bcal,.daily-history,.dh-wrap,.sh-wrap,.budget-suggest-box) { border-inline: 0; border-radius: 0; box-shadow: none; background: transparent; }
+#app.daily-ui .daily-page .wk-plan-details { padding: 0; border: 0; border-bottom: 1px solid var(--border); }
+#app.daily-ui .daily-page .wk-plan-details > summary { padding: 16px 0; }
+#app.daily-ui .daily-page .wk-hero { padding: 10px 0 16px; border-bottom: 1px solid var(--border) !important; }
+#app.daily-ui .daily-page .wk-hero-val { font-family: var(--sk-num,var(--font-body)); font-size: 2rem; line-height: 1.2; letter-spacing: -.04em; }
+#app.daily-ui .daily-page .wk-hero-sub { font-size: .78rem; line-height: 1.5; }
+#app.daily-ui .daily-page .wk-statrow { margin-top: 16px; }
+#app.daily-ui .daily-page .acct-settings-card { padding: 0; margin: 0; border: 0 !important; border-bottom: 1px solid var(--border) !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; }
+#app.daily-ui .daily-page .acct-card-header { min-height: 62px; padding: 10px 0; }
+#app.daily-ui .daily-page .acct-card-body { padding: 8px 0 16px; }
+#app.daily-ui .daily-page .acct-card-name { font-size: .875rem; }
+#app.daily-ui .daily-page .acct-card-type-lbl { white-space: normal !important; }
+#app.daily-ui .daily-page .acct-card-toggle { width: 44px; }
+#app.daily-ui .daily-page .acct-pay-section { padding: 12px 0 0; border-radius: 0; background: transparent; }
+#app.daily-ui .daily-page .set-g { margin: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; }
+#app.daily-ui .daily-page .set-g-head { min-height: 68px; padding: 12px 0; }
+#app.daily-ui .daily-page .set-g-t { font-size: .875rem; font-weight: 650; }
+#app.daily-ui .daily-page .set-g-sub { font-size: .75rem; line-height: 1.4; }
+#app.daily-ui .daily-page .set-g-ico { color: var(--muted); background: var(--surface); }
+#app.daily-ui .daily-page .set-g-body { padding-inline: 0; }
+#app.daily-ui .daily-page :is(.ret-hero,.ret-dash-hero,.debt-summary-card) { text-align: left; }
+#app.daily-ui .daily-page :is(.ret-hero-glow,.ret-dash-hero-glow,.dawg-hero) { display: none; }
+#app.daily-ui .daily-page :is(.ret-hero-total,.ret-dash-balance,.dawg-balance-amt) { font-family: var(--sk-num,var(--font-body)); font-size: 2rem; font-weight: 750; line-height: 1.25; letter-spacing: -.04em; }
+#app.daily-ui .daily-page :is(.ret-hero-lbl,.ret-dash-acct-type,.dawg-balance-label) { font-size: .78rem; font-weight: 500; letter-spacing: 0; text-transform: none; }
+#app.daily-ui .daily-page .ret-dash-grid { gap: 0 20px; border-bottom: 1px solid var(--border); }
+#app.daily-ui .daily-page .ret-dash-stat { padding: 12px 0; }
+#app.daily-ui .daily-page .dawg-sparkline-wrap { height: 104px; margin-inline: 0; }
+#app.daily-ui .daily-page .ret-proj-result { padding: 16px 0; border-inline: 0; border-radius: 0; background: transparent; }
+#app.daily-ui .daily-page .empty-state { padding-block: 28px; }
+#app.daily-ui .daily-page .empty-state img { max-height: 64px; object-fit: contain; }
+#app.daily-ui .daily-page .wrap-hero { padding: 16px 0 24px; text-align: left; }
+#app.daily-ui .daily-page .wrap-hero-title { font-size: 2rem; line-height: 1.1; }
+#app.daily-ui .daily-page .wrap-stat { padding: 16px 0; border-bottom: 1px solid var(--border) !important; }
+#app.daily-ui .daily-page .about-intro { text-align: left !important; }
+#app.daily-ui .daily-page .about-intro > img { width: 72px !important; height: 72px !important; object-fit: contain; margin: 0 0 16px !important; filter: none !important; }
+#app.daily-ui .daily-page .about-intro hr { display: none; }
+
+/* Accounts overview uses the same quiet, grouped rows as Home. */
+#app.daily-ui .daily-wallet { padding: 16px 18px 0; height: 100%; width: 100%; max-width: 960px; margin: auto; gap: 0; }
+.daily-wallet-heading { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.daily-wallet-heading h1 { margin: 0; font-size: 1.25rem; font-weight: 750; line-height: 1.3; letter-spacing: -.035em; }
+.daily-wallet-heading p { margin: 5px 0 0; font-size: .75rem; color: var(--muted); }
+#app.daily-ui .daily-wallet-summary { flex: 0 0 auto; padding: 10px 0 16px; margin: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; box-shadow: none; background: transparent; }
+.daily-wallet-label { display: block; font-size: .81rem; color: var(--muted); }
+#app.daily-ui .daily-wallet-value { display: block; margin: 8px 0 6px; font-family: var(--sk-num,var(--font-body)); font-size: 2rem; font-weight: 750; line-height: 1.2; letter-spacing: -.04em; color: var(--text); overflow-wrap: anywhere; }
+.daily-wallet-change { display: block; color: var(--muted); font-size: .75rem; line-height: 1.5; }
+#app.daily-ui .daily-wallet .acct-nw2-meter { height: 4px; margin: 16px 0 12px; border: 0; border-radius: 6px; }
+#app.daily-ui .daily-wallet .acct-nw2-meter .seg-a { background: var(--accent); }
+#app.daily-ui .daily-wallet .acct-nw2-meter .seg-d { background: var(--danger); }
+.daily-wallet-facts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
+.daily-wallet-facts span { display: block; margin-bottom: 4px; color: var(--muted); font-size: .75rem; }
+.daily-wallet-facts strong { display: block; font-family: var(--sk-num,var(--font-body)); font-size: .875rem; font-weight: 650; overflow-wrap: anywhere; }
+#app.daily-ui .daily-wallet .acct-list-scroll { flex: 1 1 0; min-height: 0; padding: 0; margin: 0; width: 100%; overflow-x: hidden; }
+#app.daily-ui .daily-wallet .acct-grp { flex: 0 0 auto; margin: 20px 0 0 !important; padding: 0 0 8px; font-size: .81rem; font-weight: 650; text-transform: none; letter-spacing: -.01em; }
+#app.daily-ui .daily-wallet .acct-grp:first-child { margin-top: 16px !important; }
+#app.daily-ui .daily-wallet .daily-account-row { display: flex !important; flex: 0 0 auto; align-items: center; gap: 10px; width: 100% !important; max-width: 100%; min-width: 0; min-height: 76px; padding: 12px 0 !important; margin: 0 !important; border: 0 !important; border-bottom: 1px solid var(--border) !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; text-align: left; }
+#app.daily-ui .daily-wallet .daily-account-row::before, #app.daily-ui .daily-wallet .daily-account-row::after { display: none !important; }
+.daily-account-icon { display: flex; align-items: center; justify-content: center; flex: 0 0 32px; height: 32px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--muted); }
+.daily-account-info { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+#app.daily-ui .daily-account-info .acct-row-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .875rem; font-weight: 600; line-height: 1.4; }
+.daily-account-info small { font-size: .7rem; line-height: 1.4; color: var(--muted); }
+.daily-account-figures { max-width: 48%; min-width: 0; text-align: right; }
+#app.daily-ui .daily-wallet .acct-row-bal { display: block; font-family: var(--sk-num,var(--font-body)); font-size: .9375rem; font-weight: 650; line-height: 1.4; color: var(--text); overflow-wrap: anywhere; }
+.daily-account-figures .acct-row-bal > small { font-family: var(--font-body); font-size: .7rem; font-weight: 500; color: var(--muted); }
+.daily-account-movement { display: block; margin-top: 5px; font-size: .65rem; line-height: 1.4; color: var(--muted); overflow-wrap: anywhere; }
+#app.daily-ui .daily-account-movement .acct-card-move { color: inherit !important; font-weight: 500; }
+.daily-account-arrow { flex: 0 0 14px; width: 14px; height: 14px; color: var(--muted); }
+#app.daily-ui .daily-wallet .daily-owed { color: var(--danger) !important; }
+.daily-wallet-status { flex-shrink: 0; padding: 4px 0 12px; border-bottom: 1px solid var(--border); }
+.daily-wallet-status > summary { padding: 16px 0; min-height: 44px; color: var(--muted); font-size: .75rem; cursor: pointer; }
+.daily-wallet-status-body { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+#app.daily-ui .daily-wallet .acct-picker-ver { margin: 0; letter-spacing: 0; opacity: 1; }
+#app.daily-ui .daily-wallet .acct-qa-bar { flex: 0 0 auto; padding: 12px 0 max(12px,var(--safe-bottom)); background: var(--bg); border-top: 1px solid var(--border); box-shadow: none; }
+#app.daily-ui .daily-wallet .acct-qa-btn { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; font-family: var(--font-body); font-size: .81rem; border-radius: var(--sk-card-r,10px); }
+.daily-icon-bank { --overview-icon: url('./icons/phosphor/bank.svg'); }
+.daily-icon-vault { --overview-icon: url('./icons/phosphor/vault.svg'); }
+.daily-icon-credit-card { --overview-icon: url('./icons/phosphor/credit-card.svg'); }
+.daily-icon-money { --overview-icon: url('./icons/phosphor/money.svg'); }
+.daily-icon-wallet { --overview-icon: url('./icons/phosphor/wallet.svg'); }
+.daily-icon-chart-line-up { --overview-icon: url('./icons/phosphor/chart-line-up.svg'); }
+@media (min-width: 760px) {
+  #app.daily-ui #main-content > .daily-page:not(.daily-wallet) { padding: 28px 28px 24px; }
+  #app.daily-ui .daily-page .page-title { font-size: 1.5rem; }
+  #app.daily-ui .daily-wallet { padding: 28px 28px 0; }
+  #app.daily-ui .daily-page .cards-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+}
+@media (max-width: 359px) {
+  #app.daily-ui #main-content > .daily-page:not(.daily-wallet) { padding-inline: 14px; }
+  #app.daily-ui .daily-wallet { padding-inline: 14px; }
+  .daily-account-row { gap: 8px; }
+  .daily-account-icon { flex-basis: 28px; width: 28px; height: 28px; }
+  #app.daily-ui .daily-wallet .acct-row-bal { font-size: .875rem; }
+}
+/* Older secondary widgets follow the same section boundaries. */
+#app.daily-ui .daily-page :is(.bill-cal,.bills-sum3,.budget-suggest-banner,.challenge-add-form,.challenge-card,.ibp-card) { min-width: 0; padding: 16px 0; margin: 0 0 12px; border: 0 !important; border-bottom: 1px solid var(--border) !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
+#app.daily-ui .daily-page :is(.dawg-section-card,.acct-settings-card)::before,
+#app.daily-ui .daily-page :is(.dawg-section-card,.acct-settings-card)::after { display: none !important; }
+#app.daily-ui .daily-page :is(.form-card,.goal-card,.bill-card,.acct-settings-card) { overflow: visible; }
+#app.daily-ui .daily-page .budget-suggest-hdr { font-size: .81rem; color: var(--text); letter-spacing: 0; text-transform: none; flex-wrap: wrap; }
+#app.daily-ui .daily-page .budget-suggest-chips { gap: 0; }
+#app.daily-ui .daily-page .budget-suggest-chip { padding: 8px 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; }
+#app.daily-ui .daily-page .budget-suggest-cat { font-size: .81rem; }
+#app.daily-ui .daily-page .challenge-type-btn { background: transparent; border-radius: var(--sk-card-r,10px); }
+#app.daily-ui .daily-page .challenge-type-btn.selected { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 8%,var(--bg)); }
+#app.daily-ui .daily-page .challenge-type-name { font-size: .81rem; }
+#app.daily-ui .daily-page .challenge-type-desc { font-size: .72rem; line-height: 1.5; }
+#app.daily-ui .daily-page .bills-sum3 { gap: 8px; }
+#app.daily-ui .daily-page .bsum-v { font-size: clamp(.875rem,4.2vw,1.25rem); overflow-wrap: anywhere; }
+#app.daily-ui .daily-page .bsum-k { font-size: .72rem; letter-spacing: 0; text-transform: none; }
+#app.daily-ui .daily-wallet .acct-list-scroll { gap: 0; padding-right: 8px; scrollbar-width: thin; }
+#app.daily-ui .daily-page :is(.note-card,.est-panel) { min-width: 0; background: transparent; border-inline: 0; border-radius: 0; box-shadow: none; }
+#app.daily-ui .daily-page .note-card { padding: 14px 0; margin: 0; border: 0; border-bottom: 1px solid var(--border); }
+#app.daily-ui .daily-page .ret-proj-bk { display: flex; flex-direction: column; gap: 0; }
+#app.daily-ui .daily-page .ret-proj-bk-item { display: flex; flex-direction: row-reverse; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; padding: 8px 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; text-align: left; }
+#app.daily-ui .daily-page .ret-proj-bk-val { max-width: 65%; font-size: .875rem; line-height: 1.4; text-align: right; overflow-wrap: anywhere; }
+#app.daily-ui .daily-page .ret-proj-bk-lbl { font-size: .75rem; text-transform: none; letter-spacing: 0; }
+@media (min-width: 760px) {
+  #app.daily-ui .daily-page .cards-grid { grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); }
+  #app.daily-ui .daily-wallet .acct-qa-btn { width: auto; min-width: 180px; margin-left: auto; padding-inline: 20px; }
+}
+/* Let labels and amounts reflow when the user enlarges text. */
+#app.daily-ui .daily-page :is(.ledger-view-tabs,.data-tabs) { flex-wrap: wrap; }
+#app.daily-ui .daily-page :is(.lv-tab,.data-tabs button) { flex: 1 1 8.5em; min-width: 0; flex-wrap: wrap; overflow-wrap: anywhere; }
+#app.daily-ui .daily-page :is(.ret-hero-total,.ret-dash-balance,.ret-proj-total,.wrap-stat-value,.dawg-balance-amt) { overflow-wrap: anywhere; }
+#app.daily-ui .daily-page .ret-proj-row2 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+#app.daily-ui .daily-page .ret-proj-field { min-width: 0; }
+#app.daily-ui .daily-page .ret-proj-lbl { overflow-wrap: anywhere; }
+#app.daily-ui .daily-page .ret-proj-input { min-width: 0; max-width: 100%; }
+#app.daily-ui .daily-page .dh-row { grid-template-columns: minmax(0,1fr) minmax(0,1.6fr); gap: 6px 8px; padding: 8px 0; }
+#app.daily-ui .daily-page .dh-day { grid-column: 1; grid-row: 1; white-space: normal; }
+#app.daily-ui .daily-page .dh-amt { grid-column: 2; grid-row: 1; white-space: normal; overflow-wrap: anywhere; }
+#app.daily-ui .daily-page .dh-bar-wrap { grid-column: 1 / -1; grid-row: 2; width: 100%; height: 4px; }
+@media (min-width: 760px) { .daily-wallet-heading h1 { font-size: 1.5rem; } }
+#app.daily-ui .daily-page :is(.wk-hist-head,.wt-amounts,.wk-stat:first-child) { flex-wrap: wrap; }
+#app.daily-ui .daily-page :is(.wk-hero-val,.wk-stat-v,.wk-hist-stat-val,.wk-hist-stat-of) { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+#app.daily-ui .daily-page .dh-week-hdr { flex-wrap: wrap; }
+#app.daily-ui .daily-page .dh-week-name { max-width: 100%; flex-shrink: 1; overflow-wrap: anywhere; }
+@media (min-width: 700px) {
+  #app.daily-ui.picker-mode { grid-template-rows: minmax(0,1fr); }
+  #app.daily-ui.picker-mode #main-content { min-height: 0; }
+}

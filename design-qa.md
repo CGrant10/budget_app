@@ -1,57 +1,63 @@
-# Daily Snapshot dashboard design QA
+# Shared Daily UI design QA — v5.71.0
 
 final result: passed
 
-## Target and evidence
+## Visual target and state
 
-Source visual truth: `/workspace/generated_images/exec-ba64c3f3-9a90-42b2-b314-a23f324a8712.png` — the third displayed Image Gen result selected by the user.
+The user approved Daily Snapshot Home and requested that style across the app and accounts overview. The source is the current Home captured freshly at `/workspace/setup-audit/style-rollout-5710/before-01-dashboard.png`, backed by the previously selected third mock. This is a style transfer across existing functional screens, not a claim that different page layouts are pixel copies of Home.
 
-Implementation: the existing app's current cash-account Home, Gengar theme, November 19, 2026, disclosures closed. This modifies the production app and retains its runtime and navigation; no prototype scaffold or device chrome was added.
+Mobile source and implementation captures use 390 × 844 CSS pixels at deviceScaleFactor 1, Gengar, November 19, 2026, and the same isolated demo-account fixture. No density normalization was required for these browser captures. Desktop captures use 1440 × 1000 in a separate desktop context. The original 852 × 1846 selected mock remains at `/workspace/generated_images/exec-ba64c3f3-9a90-42b2-b314-a23f324a8712.png`; it was normalized and verified in the previous Home task.
 
-- CSS viewport: 390 × 844, mobile/touch context, deviceScaleFactor 1.
-- Source pixels: 852 × 1846. Density normalized to 390 × 844 (less than 0.1% aspect-ratio difference).
-- Implementation pixels: 390 × 844.
-- Normalized source: `/workspace/setup-audit/daily-snapshot-5700/source-normalized.png`.
-- Final browser capture: `/workspace/setup-audit/daily-snapshot-5700/final-gengar.png`.
-- Full-view comparison with both artifacts in one input: `/workspace/setup-audit/daily-snapshot-5700/comparison-final.png`.
-- Focused combined comparisons: `/workspace/setup-audit/daily-snapshot-5700/focus-balance-limits.png` and `focus-lists.png`.
-- Desktop browser capture: `/workspace/setup-audit/daily-snapshot-5700/final-desktop.png` (1440 × 1000, desktop context, completed setup).
+## Evidence reviewed
+
+- Full shared-style comparison, with source and destinations together: `/workspace/setup-audit/style-rollout-5710/style-comparison-final.png`.
+- Direct before/after comparisons: `accounts-comparison.png`, `bills-comparison.png`, `settings-comparison.png` in the same folder.
+- Final account captures: `final-wallet-gengar.png`, `final-wallet-light.png`, `final-manage-accounts.png`.
+- Final Weekly and Retirement captures: `final-weekly.png`, `final-retirement.png`.
+- All 22 main views were captured and inspected as before/after boards, with larger individual captures inspected for the account list, forms, bills, Weekly, Retirement, and desktop.
+- Focused comparisons are covered by the readable individual 390px captures and paired bills/account comparisons, which make typography, fields, row spacing, and controls legible without reducing them to thumbnails.
+
+Full numbered scope and evidence paths: `/workspace/setup-audit/style-rollout-5710/audit.md`.
 
 ## Findings and comparison history
 
 No actionable P0/P1/P2 findings remain.
 
-Initial comparison (`comparison-initial.png`, `initial-gengar.png`) found a P2 spacing issue: balance, spending, and list padding accumulated enough height to push More insights below the initial viewport. Reduced section padding and gaps while preserving 44px controls; the revised and final captures restore the compact hierarchy and keep the secondary disclosure label visible. A P3 angular/faint graph treatment was also corrected with smooth segments through the real data and stronger area fill. The Add pill now has a compact painted surface inside its 44px hit area.
+1. Initial views mixed raised cards, gradients, corner decorations, large summaries, and boxed account cards. Added one shared scoped style layer and compact account-row markup. Subsequent captures exposed remaining legacy calendar, suggestion, and corner treatments; these were flattened to match Home.
+2. [P2, fixed] Terminal-theme retirement projection breakdown exceeded narrow columns. Replaced the nested metric cards with label/value rows. The full normal-size matrix then passed.
+3. [P2, fixed] Enlarged text overflowed tab rows, fixed history grids, and large projection values. Added content-based tab wrapping, flexible history rows, wrapping totals, and reflowing weekly group summaries. Ten key views subsequently passed at 200% text and 320px width.
+4. [P1, fixed] Desktop picker grid could leave the inner accounts list with no usable height. Defined the picker grid's remaining-height track and verified the visible, scrollable list with an explicit height assertion and a new desktop capture.
+5. [P2, fixed] Overlay scrollbar overlapped account arrows. Added an inner list gutter and checked both list and outer horizontal bounds. Final account captures show clear arrow and amount alignment.
 
-Post-fix evidence: `comparison-revised.png`, `comparison-final.png`, and both focused comparisons were opened and reviewed. These comparisons show the selected flat layout, balance/graph split, two full-width spending rows, two-entry lists, understated separators, and collapsed secondary content. No additional visual corrections were needed after the final comparison.
+Post-fix browser captures and combined comparisons were opened and reviewed after these corrections. Existing Home hierarchy and graph behavior remain intact.
 
 ## Required fidelity surfaces
 
-- **Fonts/typography:** existing Plus Jakarta Sans matches the brief's product font. The compact title, tabular balance, section labels, row weights, and clear hierarchy follow the target. Entry titles remain 14px and metadata 12px. Terminal fonts and skin number families remain user-selected. Long labels, large amounts, and 200% text were checked without horizontal overflow.
-- **Spacing/layout:** the mobile frame, grouping, order, padding, thin separators, and lack of stacked cards follow the target. Touch targets stay at least 44px. The compact disclosure remains reachable above/through normal scrolling around the fixed navigation. Desktop adapts to two list columns and two spending columns; narrow phones retain stacked rows.
-- **Colors/tokens:** existing Gengar background, lavender, text, and semantic colors are preserved; other themes and skins supply their own tokens. Flat surfaces replace the old overview cards. System auto-theme changes repaint the graph. Actual weekly overages have both a dollar value and a text label.
-- **Image quality/assets:** the user's existing Gengar mascot, custom-mascot support, and persistent navigation are retained. New standard icons are vendored Phosphor regular SVG assets with their MIT license. The miniature graph is a live canvas data visualization, with proper display-density scaling; no screenshot or illustration substitutes for functional UI.
-- **Copy/content:** static headings follow the mock. Dates are real and consistent. Dynamic values intentionally use the existing financial calculations: this source-like fixture has a $314.40 available weekly limit and $111.85 remaining, rather than the mock's illustrative $400/$197.45. The graph's seven closing balances also follow the actual ledger. Calculations were not changed to reproduce invented mock numbers.
+- **Fonts and typography:** Plus Jakarta Sans, compact page headings, legible body text, and tabular amounts follow Home. Existing terminal-font preferences and skin number families are retained. Account types use the app's existing labels. Fields use readable text sizes; headings and figures wrap at larger text sizes.
+- **Spacing and layout rhythm:** shared page padding, flat sections, quiet separators, aligned list values, compact summaries, and grouped controls replace heavy surfaces. The overview has cash/investing/debt groups and a clear Manage route. Desktop keeps an appropriate readable content width and a usable inner account list.
+- **Colors and tokens:** themes and skins still own palettes. No hardcoded replacement palette was introduced. Ordinary Ledger expenses use neutral text, while debt and actual warning states retain semantic labels/colors. Primary controls use the active accent and computed readable ink.
+- **Image quality and assets:** existing mascots and user-provided mascot support remain. Six account icons are unmodified, licensed Phosphor regular SVG assets matching Home's icon family. Illustrations were not replaced with CSS drawings or fake UI screenshots. Charts continue to render live data.
+- **Copy and content:** financial content and computations are preserved. Account management is explicitly titled Manage accounts. Version/update controls remain in App status, and existing secondary settings/disclosures remain available.
 
-## Functional and responsive verification
+## Verification
 
-- Ten Node test files passed, including seven-day cash history checks: opening cash, bills, refunds, transfers, future exclusion, flat/empty/negative accounts, numeric strings, invalid values, no mutation, and DST/leap/year boundaries.
-- Existing browser suite: **30/30 passed**.
-- Browser interactions passed: real Add/save and balance updates; daily/weekly routes; Ledger and filtered activity; bill/month navigation; privacy for values and graph; keyboard graph expansion; larger history ranges, close/reopen, and chart lifecycle; historical month return; future-dated entries; empty/over-limit states; Tracker/debt/retirement views; account isolation; reload persistence.
-- All 28 themes and 3 skins at 320px and 390px: **62 combinations**, no horizontal overflow, visible overview buttons at least 44px tall, small graph visible and drawn. Six representative themes/skins with expanded details at 320px also passed.
-- Tablet at 834px, actual desktop at 1440px, long labels/large amounts at 320px, and 200% text were checked. Representative Gengar, light, desktop, and focused comparison screenshots were visually reviewed.
-- Native graph draws without downloading Chart.js. A separate context with real service workers cached the app and all five icon assets, then disabled all network interception and went offline: reload, graph rendering, and a real transaction save passed.
-- Auto-theme graph repaint passed. Zero uncaught page errors in the functional, theme, desktop, and offline runs.
-- Source syntax, release metadata, vendored assets, and diff whitespace checks passed.
+- Ten Node suites passed; existing browser suite **30/30 passed**.
+- Functional checks: real transaction save and search, edit-menu access, plan save, goal record/create, notes, budgets, settings search, account edit/switch/Manage, quick add, bill edit/payment/deduction/reversal, challenge create, contribution save, projection updates, backup download, and persistence after reload.
+- Responsive matrix: **1,550** normal-size page/theme/viewport states plus **248** affected-page rechecks. All 28 themes and 3 skins at 320px and 390px; expanded account/setup/settings views included. No horizontal overflow or undersized visible native buttons in successful runs.
+- Desktop: nine working pages plus the accounts overview at 1440px; usable wallet-list height verified.
+- Enlarged text: ten key views at 200% on a 320px viewport passed.
+- Offline: cached shell reload, account icons, wallet, and Manage navigation passed with external interception removed and network disabled.
+- Zero uncaught page errors in successful functional, matrix, desktop, final-capture, and offline runs.
+- Source syntax, diff whitespace, and release metadata checked.
 
 ## Implementation checklist
 
-- [x] Selected visual hierarchy implemented.
-- [x] Initial spacing finding fixed and recaptured.
-- [x] Full and focused combined comparisons reviewed.
-- [x] Core flows, edge states, persistence, and offline behavior checked.
-- [x] Themes, skins, mobile/tablet/desktop, and enlarged text checked.
+- [x] Fresh review and captures across all 22 views.
+- [x] Shared style and compact accounts overview implemented.
+- [x] Functional and responsive findings fixed and rechecked.
+- [x] Final source/destination comparisons and individual captures reviewed.
+- [x] Themes, skins, desktop, enlarged text, offline, and persistence checked.
 
-## Follow-up polish and limits
+## Limits and follow-up polish
 
-The app retains its supplied pixel-art mascot and existing navigation rather than changing the user's branding to match Image Gen's redrawn mascot exactly. Real data produces a different graph contour and weekly limit from the illustrative mock. These are intentional product constraints, not unresolved visual defects. Checks use isolated fixtures and browser emulation; physical-device and screen-reader testing were not performed.
+These are browser-emulator checks with isolated fixtures, not physical-device or screen-reader certification. Compact calendar cells keep their existing dense interaction layout. Wrapped retains its branded title, while forms and summaries share the new style. Modals retain appropriate overlay surfaces. Financial algorithms and saved-data formats are unchanged.

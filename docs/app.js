@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.70.0';
+const VERSION = '5.71.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -5173,13 +5173,11 @@ function renderAccountPicker() {
     else        { _assets += balance; _nwDelta += move; }
     return { acct, isDebt, balance, move, last };
   });
-  // Wallet cards. The .acct-row class stays on them: it carries the tap handler,
-  // the tap-glitch classes and the entrance stagger, so keeping it means none of
-  // that has to be rewired. .acct-card supplies the card layout on top.
+  // Retain the existing account selectors for switching and entrance effects;
+  // the shared Daily UI layer presents them as compact, grouped rows.
   const rowHtml = ({ acct, isDebt, balance, move, last }) => {
-    const balColor = isDebt ? 'var(--danger)' : (balance >= 0 ? 'var(--success)' : 'var(--danger)');
     const balLabel = isDebt ? `Owes ${fmt(balance)}` : fmt(balance);
-    const typeLbl  = acct.type.charAt(0).toUpperCase() + acct.type.slice(1).replace('_', ' ');
+    const typeLbl = ACCT_TYPE_META.find(type => type.key === acct.type)?.label || 'Account';
     const stripe   = TYPE_COLORS[acct.type] || 'var(--accent)';
     // On a debt account a falling balance is the good direction, so the colour is
     // keyed to whether the movement helps you, not to its raw sign.
@@ -5187,17 +5185,13 @@ function renderAccountPicker() {
     const moveHtml = move
       ? `<span class="acct-card-move" style="color:${helps ? 'var(--success)' : 'var(--danger)'}">${move >= 0 ? '+' : '−'}${fmt(Math.abs(move))}</span>`
       : '<span class="acct-card-move acct-card-move--flat">no change</span>';
+    const typeIcon = ({checking:'bank',savings:'vault',credit:'credit-card',loan:'money',cash:'wallet'})[acct.type] || 'chart-line-up';
     return `
-      <button type="button" class="acct-row acct-card" data-id="${acct.id}" style="--acct-c:${stripe}" aria-label="${_escHtml(acct.name)}, ${_escHtml(balLabel)}">
-        <div class="acct-card-top">
-          <span class="acct-card-name"><span class="acct-card-dot"></span>${_escHtml(acct.name)}</span>
-          <span class="acct-row-type acct-card-type">${typeLbl}</span>
-        </div>
-        <span class="acct-row-bal acct-card-bal" style="color:${balColor}">${balLabel}</span>
-        <div class="acct-card-foot">
-          <span>${last ? _relDayLabel(last) : 'no activity yet'}</span>
-          ${moveHtml}
-        </div>
+      <button type="button" class="acct-row acct-card daily-account-row" data-id="${acct.id}" style="--acct-c:${stripe}" aria-label="${_escHtml(acct.name)}, ${_escHtml(typeLbl)}, ${_escHtml(balLabel)}${acct.id === currentAccountId ? ', active account' : ''}" aria-current="${acct.id === currentAccountId ? 'true' : 'false'}">
+        <span class="daily-account-icon" aria-hidden="true"><span class="overview-icon daily-icon-${typeIcon}"></span></span>
+        <span class="daily-account-info"><strong class="acct-row-name">${_escHtml(acct.name)}</strong><small>${_escHtml(typeLbl)}${acct.id === currentAccountId ? ' · Active' : ''}${last ? ' · '+_relDayLabel(last) : ''}</small></span>
+        <span class="daily-account-figures"><strong class="acct-row-bal comparison-value${isDebt || balance < 0 ? ' daily-owed' : ''}">${isDebt ? '<small>Owes </small>' : ''}${fmt(balance)}</strong><small class="daily-account-movement comparison-value">${move ? moveHtml+' this month' : 'No change this month'}</small></span>
+        <span class="overview-icon overview-icon-arrow-right daily-account-arrow" aria-hidden="true"></span>
       </button>`;
   };
   const GROUPS = [
@@ -5222,48 +5216,15 @@ function renderAccountPicker() {
   // sitting in a hero of its own — one block fewer before the first account, which
   // matters because the cards are taller than the rows they replaced.
   return `
-    <div class="dawg-page acct-picker-page">
-      <div class="acct-nw2 acct-hero2">
-        <div class="acct-hero2-row">
-          <div class="dawg-hero-dob acct-hero-dob acct-hero2-mark">
-            <img src="${mascotSrc()}" class="dawg-dob-idle" alt="">
-            <img src="./maddawg.webp" class="dawg-dob-bark" alt="">
-          </div>
-          <div class="acct-hero2-figs">
-            <span class="acct-nw2-label">NET WORTH</span>
-            <span class="acct-nw2-value acct-hero2-val" style="color:${nw >= 0 ? 'var(--success)' : 'var(--danger)'}" data-countup="${nw}" data-countup-key="networth">${fmt(nw)}</span>
-            ${count ? `<span class="acct-hero2-delta" style="color:${_nwDelta >= 0 ? 'var(--success)' : 'var(--danger)'}">${_nwDelta >= 0 ? '+' : '−'}${fmt(Math.abs(_nwDelta))} this month</span>` : ''}
-          </div>
-        </div>
-        ${count ? `
-        <div class="acct-nw2-meter">
-          <i class="seg-a" style="width:${assetPct.toFixed(1)}%"></i>
-          <i class="seg-d" style="width:${(100 - assetPct).toFixed(1)}%"></i>
-        </div>
-        <div class="acct-nw2-legend">
-          <span style="color:var(--success)">${fmt(_assets)} assets</span>
-          ${_debts > 0 ? `<span style="color:var(--danger)">${fmt(_debts)} debt</span>` : ''}
-        </div>` : ''}
-        <div class="acct-hero-foot acct-hero2-foot">
-          <div class="acct-picker-ver">
-            <span class="acct-ver-dot${_stale ? ' stale' : ''}"></span>v${VERSION}${
-              _stale ? ` · <span style="color:var(--danger)">out of date</span>`
-                     : _upToDate ? ` · <span style="color:var(--success)">up to date</span>` : ''
-            }
-          </div>
-          ${_stale
-            ? `<button id="acct-force-update-btn" class="acct-update-pill">↑ v${_latestVersion} — update</button>`
-            : `<button id="acct-force-update-btn" class="acct-update-pill acct-update-pill--subtle">⟳ Check for update</button>`
-          }
-        </div>
-      </div>
-      <div class="acct-list acct-list-scroll">${rows}</div>
-      <div class="acct-qa-bar">
-        <button class="acct-qa-btn" id="acct-qa-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
-          Track a Transaction
-        </button>
-      </div>
+    <div class="dawg-page acct-picker-page daily-wallet">
+      <header class="daily-wallet-heading"><div class="overview-identity"><img class="overview-mark" src="${mascotSrc()}" alt=""><div><h1>Accounts</h1><p>${count} account${count === 1 ? '' : 's'}</p></div></div><button type="button" class="overview-link" id="wallet-manage-btn">Manage <span class="overview-icon overview-icon-arrow-right" aria-hidden="true"></span></button></header>
+      <section class="acct-nw2 daily-wallet-summary" aria-label="Net worth across accounts"><span class="daily-wallet-label">Net worth</span><strong class="acct-nw2-value daily-wallet-value comparison-value${nw < 0 ? ' daily-owed' : ''}" data-countup="${nw}" data-countup-key="networth">${fmt(nw)}</strong>
+        <span class="daily-wallet-change comparison-value">${_nwDelta >= 0 ? '+' : '−'}${fmt(Math.abs(_nwDelta))} this month</span>
+        <div class="acct-nw2-meter" aria-hidden="true"><i class="seg-a" style="width:${assetPct.toFixed(1)}%"></i><i class="seg-d" style="width:${(100 - assetPct).toFixed(1)}%"></i></div>
+        <div class="daily-wallet-facts"><div><span>Assets</span><strong class="comparison-value">${fmt(_assets)}</strong></div><div><span>Debt</span><strong class="comparison-value${_debts > 0 ? ' daily-owed' : ''}">${fmt(_debts)}</strong></div></div>
+      </section>
+      <div class="acct-list acct-list-scroll">${rows}<details class="daily-wallet-status"><summary>App status${_stale ? ' · Update available' : ''}</summary><div class="daily-wallet-status-body"><span class="acct-picker-ver">v${VERSION}${_stale ? ' · Out of date' : _upToDate ? ' · Up to date' : ''}</span><button id="acct-force-update-btn" class="overview-link">${_stale ? 'Update to v'+_latestVersion : 'Check for update'}</button></div></details></div>
+      <div class="acct-qa-bar"><button class="acct-qa-btn" id="acct-qa-btn"><span class="overview-icon overview-icon-plus" aria-hidden="true"></span>Add transaction</button></div>
     </div>`;
 }
 
@@ -5690,6 +5651,8 @@ function render() {
   if (_insightsChart) { _insightsChart.destroy(); _insightsChart = null; }
   const main = document.getElementById('main-content');
   const appEl = document.getElementById('app');
+  appEl?.classList.add('daily-ui');
+  main.dataset.page = showingAccountPicker ? 'wallet' : currentTab;
 
   // Capture old content + transition type BEFORE overwriting innerHTML
   const _oldHTML   = main ? main.innerHTML : '';
@@ -5698,6 +5661,7 @@ function render() {
   if (showingAccountPicker) {
     appEl?.classList.add('picker-mode');
     main.innerHTML = renderAccountPicker();
+    main.firstElementChild?.classList.add('daily-page');
     _applyPageTransition(main, _oldHTML, _transType);
     document.querySelectorAll('.acct-row').forEach(tile => {
       tile.addEventListener('click', async () => {
@@ -5712,6 +5676,7 @@ function render() {
         await api.switchAccount(tile.dataset.id); // internally calls render() — no extra call needed
       });
     });
+    document.getElementById('wallet-manage-btn')?.addEventListener('click', () => { showingAccountPicker = false; showTab('accounts'); });
     document.getElementById('acct-force-update-btn')?.addEventListener('click', () => _showUpdateTerminal());
     document.getElementById('acct-qa-btn')?.addEventListener('click', _showFastAdd);
     document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="date"])').forEach(el => el.setAttribute('enterkeyhint', 'done'));
@@ -5746,6 +5711,20 @@ function render() {
     case 'wrapped':   main.innerHTML = renderWrapped();   break;
     case 'settings':  main.innerHTML = renderSettings();  break;
     case 'about':     main.innerHTML = renderAbout();     break;
+  }
+  const surface = main.firstElementChild;
+  if (surface && !surface.classList.contains('overview-page')) {
+    surface.classList.add('daily-page');
+    if (!surface.querySelector('h1')) {
+      const title = currentTab === 'retirement' ? 'Retirement'
+        : currentTab === 'wrapped' ? 'Year in review'
+        : _currentAcct()?.name || 'Overview';
+      const subtitle = currentTab === 'retirement' ? 'Accounts and contributions'
+        : currentTab === 'wrapped' ? 'Your recorded money, in perspective'
+        : _isDebtAcct(_currentAcct()) ? 'Balance and payoff'
+        : RETIRE_TYPES.includes(_currentAcct()?.type) ? 'Portfolio and contributions' : 'Monthly overview';
+      surface.insertAdjacentHTML('afterbegin', `<header class="daily-page-heading"><h1 class="page-title">${_escHtml(title)}</h1><p class="page-sub">${subtitle}</p></header>`);
+    }
   }
   _applyPageTransition(main, _oldHTML, _transType);
   if (!_slidePendingHTML) attachHandlers(); // slide transition calls attachHandlers() in its own cleanup; skip here to avoid attaching twice
@@ -11480,7 +11459,7 @@ function renderAccounts() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="15 18 9 12 15 6"/></svg>Settings
         </button>
       </div>
-      <h1 class="page-title" style="margin-top:0">Accounts</h1>
+      <h1 class="page-title" style="margin-top:0">Manage accounts</h1>
 
       <div class="form-card">
         <h2 class="section-title" style="margin-bottom:4px">Starting Balance</h2>
@@ -11943,7 +11922,7 @@ function renderAbout() {
   return `
     <div class="page">
       <h1 class="page-title">About</h1>
-      <div class="form-card" style="text-align:center;padding:24px 20px">
+      <div class="form-card about-intro" style="text-align:center;padding:24px 20px">
         <img src="${mascotSrc()}" alt="Budget DAWGs"
              style="width:100%;height:auto;display:block;margin:0 auto 16px;filter:drop-shadow(0 4px 24px rgba(0,0,0,0.7))">
         <div style="font-size:.75rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Version</div>
