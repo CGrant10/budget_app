@@ -1,5 +1,16 @@
 [
  {
+  "version": "5.69.0",
+  "date": "2026-11-19",
+  "changes": [
+   "Home now opens with a compact account balance and daily/weekly spending bars visible together, followed by recent Ledger entries and upcoming bills.",
+   "Recent entries open their filtered Ledger view. Upcoming bills include current-month overdue bills and the next seven days, including next month, with paid occurrences excluded.",
+   "Monthly pace, payday forecasts, balance history, and secondary tools sit under More insights. History charts load only when expanded.",
+   "Current Home and Weekly spending figures use entries recorded through today, keeping future-dated income and purchases out of today’s available money.",
+   "The new overview adapts to all themes, skins, narrow phones, and desktop, with privacy controls, keyboard focus, and clear overspending states."
+  ]
+ },
+ {
   "version": "5.68.1",
   "date": "2026-11-19",
   "changes": [

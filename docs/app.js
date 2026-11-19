@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.68.1';
+const VERSION = '5.69.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -2980,6 +2980,87 @@ function renderHomeSpending(inputs, skinned = false) {
 function goalSavedAmount(goal) {
   const current = Number(goal.current ?? goal.saved ?? 0);
   return Number.isFinite(current) ? Math.max(0, current) : 0;
+}
+
+function dashboardLimitStats(inputs) {
+  const amount = value => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0;
+  const weekly = inputs.weeklySummary;
+  const dayLeft = homeSpendingView('day', inputs.dailyLimit, weekly, null).amount;
+  const daySpent = amount(inputs.daySpent), weekSpent = amount(inputs.weekSpent);
+  return [
+    {key:'day', label:'Today', left:amount(dayLeft), spent:daySpent, over:0,
+      percent:daySpent + dayLeft > 0 ? Math.min(100, daySpent / (daySpent + dayLeft) * 100) : 0},
+    {key:'week', label:'This week', left:amount(weekly.left), spent:weekSpent, over:amount(weekly.over),
+      percent:weekly.limit > 0 ? Math.min(100, weekSpent / weekly.limit * 100) : weekSpent > 0 ? 100 : 0},
+  ];
+}
+
+// Current-month overdue bills plus dated obligations within the next seven days.
+// Paid status is scoped to the occurrence's month, including prepayments.
+function dashboardUpcomingBills(bills, asOf = today(), days = 7) {
+  const dayNumber = value => Date.parse(value + 'T12:00:00Z') / 86400000;
+  const end = new Date((dayNumber(asOf) + days) * 86400000).toISOString().slice(0, 10);
+  const rows = [];
+  for (let month = asOf.slice(0, 7); month <= end.slice(0, 7); month = shiftMonthKey(month, 1)) {
+    (bills || []).forEach((bill, index) => {
+      const paid = Array.isArray(bill.paidMonths) ? bill.paidMonths : bill.paidMonth ? [bill.paidMonth] : [];
+      const date = `${month}-${String(Math.trunc(billDueDay(bill.dueDay, month))).padStart(2, '0')}`;
+      const amount = Number(bill.amount);
+      if (paid.includes(month) || date > end || !Number.isFinite(amount) || amount < 0) return;
+      rows.push({index, name:bill.name || 'Bill', amount, date, days:dayNumber(date) - dayNumber(asOf)});
+    });
+  }
+  return rows.sort((a,b) => a.date.localeCompare(b.date) || a.index - b.index);
+}
+
+function renderEverydayDashboard(balance, inputs, gamblingMonth, gamblingAll) {
+  const account = _currentAcct();
+  const stats = dashboardLimitStats(inputs);
+  const bills = dashboardUpcomingBills(state.bills);
+  const overdue = bills.filter(b => b.days < 0).length;
+  const recent = (state.transactions || []).map((t,index) => ({...t,index}))
+    .filter(t => t.date && t.date <= today() && ['income','expense'].includes(t.type))
+    .sort((a,b) => b.date.localeCompare(a.date) || (b.ts || 0) - (a.ts || 0) || b.index - a.index).slice(0,3);
+  const shortDate = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const date = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  const arrow = _svg('<path d="M5 12h14m-5-5 5 5-5 5"/>',16);
+  const add = _svg('<path d="M12 5v14M5 12h14"/>',16);
+  const movement = income => _svg(income ? '<path d="M17 7 7 17M7 7v10h10"/>' : '<path d="M7 17 17 7M7 7h10v10"/>',17);
+  return `<div class="dawg-page overview-page${activeSkin() ? ' sk-page' : ''}">
+    ${gettingStartedHtml()}${backupBannerHtml()}
+    <header class="overview-heading"><div class="overview-identity"><img class="overview-mark" src="${mascotSrc()}" alt=""><div><h1>Overview</h1><p>${date}</p></div></div>
+      <button type="button" class="overview-add" data-overview-go="add">${add}<span>Add</span></button></header>
+    <section class="overview-summary overview-panel" aria-label="Account balance and spending limits">
+      <div class="overview-balance"><div class="overview-balance-main"><span class="overview-eyebrow">${_escHtml(account?.name || 'Account')} balance</span><strong class="overview-balance-amount comparison-value${balance < 0 ? ' is-negative' : ''}">${fmt(balance)}</strong></div>
+        <button type="button" class="overview-privacy dash-privacy-btn" id="dash-privacy-btn" aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden()}">${_eyeIconSvg(_amountsHidden())}</button></div>
+      <h2 class="sr-only">Spending limits</h2>
+      <div class="overview-quickbar" aria-label="Daily and weekly limits">
+      ${stats.map(s => `<div class="overview-limit${s.over > 0 ? ' is-over' : ''}" data-overview-limit="${s.key}"><span class="overview-limit-label">${s.label}</span>
+        <div class="overview-limit-value"><strong class="comparison-value">${fmt(s.over > 0 ? s.over : s.left)}</strong><span>${s.over > 0 ? 'over limit' : 'left'}</span></div>
+        <div class="overview-meter" role="progressbar" aria-label="${s.label}: ${fmt(s.spent)} spent, ${fmt(s.left)} remaining${s.over > 0 ? ', '+fmt(s.over)+' over limit' : ''}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(s.percent)}"><i style="width:${s.percent.toFixed(2)}%"></i></div>
+        <span class="overview-limit-spent comparison-value">${fmt(s.spent)} spent</span></div>`).join('')}
+      </div>
+      <div class="overview-summary-footer"><p class="overview-summary-note">${inputs.math.balance <= inputs.math.stopAt + inputs.math.bills ? 'Bills and buffer use your balance.' : 'Bills &amp; buffer reserved.'}</p><button type="button" class="overview-link" data-overview-go="weekly">Weekly plan ${arrow}</button></div>
+    </section>
+    <div class="overview-columns">
+      <section class="overview-panel overview-activity" aria-labelledby="overview-activity-title"><div class="overview-section-heading"><div><h2 id="overview-activity-title">Recent activity</h2><p>Your latest recorded entries</p></div><button type="button" class="overview-link" data-overview-go="ledger">Ledger ${arrow}</button></div>
+        ${recent.length ? `<div class="overview-list">${recent.map(t => `<button type="button" class="overview-activity-row" data-overview-txn="${t.index}">
+          <span class="overview-entry-icon" aria-hidden="true">${movement(t.type === 'income')}</span><span class="overview-entry-main"><strong>${_escHtml(t.description || t.category || 'Entry')}</strong><small>${_escHtml(t.category || 'Other')} · ${t.date === today() ? 'Today' : shortDate(t.date)}</small></span>
+          <span class="overview-entry-amount comparison-value${t.type === 'income' ? ' is-income' : ''}">${t.type === 'income' ? '+' : '−'}${fmt(Number(t.amount) || 0)}</span></button>`).join('')}</div>` : `<div class="overview-empty"><p>Your first entry starts here.</p><button type="button" class="overview-link" data-overview-go="add">Add an entry ${arrow}</button></div>`}
+      </section>
+      <section class="overview-panel overview-bills" aria-labelledby="overview-bills-title"><div class="overview-section-heading"><div><h2 id="overview-bills-title">Upcoming bills</h2><p>${overdue ? 'Overdue & next 7 days' : 'Next 7 days'}</p></div><button type="button" class="overview-link" data-overview-go="bills">View all ${arrow}</button></div>
+        ${bills.length ? `<div class="overview-list">${bills.slice(0,3).map(b => `<button type="button" class="overview-bill-row" data-overview-bill="${b.index}" data-overview-month="${b.date.slice(0,7)}"><span class="overview-bill-date${b.days < 0 ? ' is-overdue' : ''}"><b>${Number(b.date.slice(8))}</b><small>${new Date(b.date+'T12:00:00').toLocaleDateString('en-US',{month:'short'})}</small></span>
+          <span class="overview-entry-main"><strong>${_escHtml(b.name)}</strong><small${b.days < 0 ? ' class="overview-overdue"' : ''}>${b.days < 0 ? 'Overdue' : b.days === 0 ? 'Due today' : b.days === 1 ? 'Tomorrow' : 'Due '+shortDate(b.date)}</small></span><span class="overview-entry-amount comparison-value">${fmt(b.amount)}</span></button>`).join('')}</div>${bills.length > 3 ? `<p class="overview-list-note">${bills.length - 3} more in Bills</p>` : ''}` : '<div class="overview-empty"><p>No unpaid bills due in the next 7 days.</p><span>Review your full schedule in Bills.</span></div>'}
+      </section>
+    </div>
+    <details class="overview-more"><summary>More insights <span>Monthly pace, payday &amp; history</span></summary><div class="overview-more-body">
+      ${renderMonthComparison(!!activeSkin(), dashMonth, true)}${renderPaydayForecast(!!activeSkin())}
+      <details class="home-chart overview-history" id="home-chart"><summary>Balance history</summary><div class="dawg-sparkline-wrap"><canvas id="dawg-sparkline"></canvas></div>
+        <div class="dawg-time-btns"><span class="dawg-tbtn-pill"></span>${[['1w','1W'],['1m','1M'],['3m','3M'],['6m','6M'],['1y','1Y'],['all','ALL']].map(([range,label]) => `<button type="button" class="dawg-tbtn${range === 'all' ? ' dawg-tbtn-active' : ''}" data-range="${range}">${label}</button>`).join('')}</div></details>
+      <details class="overview-gambling"><summary>Gambling summary</summary><div class="gambling-card">${_gamblingTrackerBody(gamblingMonth,gamblingAll)}</div></details>
+      <div class="overview-secondary-actions"><button type="button" class="overview-link" data-overview-go="insights">Open Insights ${arrow}</button><button type="button" class="overview-link" id="dash-reconcile">Reconcile balance</button><button type="button" class="overview-link" id="dash-month-prev">Previous month</button></div>
+    </div></details>
+  </div>`;
 }
 
 function goalTargetAmount(goal) {
@@ -6276,7 +6357,7 @@ function renderDashboardDawg() {
   const _todayStr2 = today();
   let _wkExp = 0, _wkRefund = 0, _dayExp = 0, _dayRefund = 0;
   for (const t of state.transactions) {
-    if (t.date >= _monStr) {
+    if (t.date >= _monStr && t.date <= _todayStr2) {
       // Bills + user-flagged items are excluded from discretionary spend (matches planner).
       if (t.type === 'expense') { if (!isExcludedFromSpend(t)) { _wkExp += t.amount; if (t.date === _todayStr2) _dayExp += t.amount; } }
       else if (isRefundIncome(t)) { _wkRefund += t.amount; if (t.date === _todayStr2) _dayRefund += t.amount; }
@@ -6287,8 +6368,7 @@ function renderDashboardDawg() {
   const daySpent  = Math.max(0, _dayExp - _dayRefund);
 
   // Plan settings
-  const { income: _dashTotalInc, expense: _dashTotalExp } = totals();
-  const _dashLiveBal = (state.startingBalance || 0) + _dashTotalInc - _dashTotalExp;
+  const _dashLiveBal = balanceAsOf(today());
   const _dashBills   = weeklyBillsReserve(_wp);
   const _dashStopAt  = parseFloat(_wp?.stop_at || 0) || 0;
   // Month-based window — same math as the Weekly Planner so the per-week / per-day tiles match.
@@ -6334,6 +6414,7 @@ function renderDashboardDawg() {
   };
 
   const homeSpendingInputs = {dailyLimit:_latestDashboardLimitMath.perDay, weeklySummary:_weeklySummary, daySpent, weekSpent, math:_latestDashboardLimitMath};
+  if (!_isDebt && !isSimpleMode() && dashMonth === currentM) return renderEverydayDashboard(balance, homeSpendingInputs, gamblingMonth, gamblingAll);
 
   // Is the live balance already below the buffer floor?
   // When true, both budget tiles should show FAILED regardless of this week's spending.
@@ -8476,8 +8557,7 @@ function buildDailyHistoryHTML(todayPerDay, buffer, bills) {
 }
 
 function calcWeekly() {
-  const { income: _wkInc, expense: _wkExp } = totals();
-  const liveBalance = (state.startingBalance || 0) + _wkInc - _wkExp;
+  const liveBalance = balanceAsOf(today());
   const preview = weeklyPlanInputs();
   const bills = weeklyBillsReserve(preview);
   const stopAt = Math.max(0, Number(preview.stop_at) || 0);
@@ -8502,7 +8582,7 @@ function calcWeekly() {
   // so they must NOT count toward discretionary weekly/daily spending.
   // Paychecks and ordinary income do not cancel spending. Refund income reverses the
   // purchase it belongs to, so it reduces the amount used from this week's limit.
-  const weekNet = discretionarySpend(state.transactions.filter(t => t.date >= mondayStr));
+  const weekNet = discretionarySpend(state.transactions.filter(t => t.date >= mondayStr && t.date <= today()));
   // Effective weekly limit. Prefer the live monthly figure; only fall back to a saved or
   // reconstructed value when the spendable balance has hit 0 (user dipped into the buffer).
   let _effectivePerWeek;
@@ -12125,6 +12205,21 @@ function showDashboardLimitMath(kind = 'daily') {
 }
 
 function attachDashboardDawg() {
+  const resetLedger = () => { ledgerFilter = ''; ledgerCatFilter = ''; ledgerTypeFilter = 'all'; ledgerAllAccounts = false; ledgerDateFrom = ''; ledgerDateTo = ''; ledgerView = 'transactions'; };
+  document.querySelectorAll('[data-overview-go]').forEach(button => button.addEventListener('click', () => {
+    if (button.dataset.overviewGo === 'ledger') resetLedger();
+    if (button.dataset.overviewGo === 'bills') billsMonth = localMonthKey();
+    showTab(button.dataset.overviewGo);
+  }));
+  document.querySelectorAll('[data-overview-txn]').forEach(button => button.addEventListener('click', () => {
+    const transaction = state.transactions[Number(button.dataset.overviewTxn)];
+    if (!transaction) return;
+    resetLedger(); ledgerFilter = String(transaction.description || '').toLowerCase(); ledgerDateFrom = transaction.date; ledgerDateTo = transaction.date;
+    ledgerView = isBillTxn(transaction) ? 'bills' : 'transactions'; ledgerFiltersOpen = true; showTab('ledger');
+  }));
+  document.querySelectorAll('[data-overview-bill]').forEach(button => button.addEventListener('click', () => {
+    billsMonth = button.dataset.overviewMonth; showTab('bills');
+  }));
   document.querySelectorAll('[data-home-period]').forEach(button => button.addEventListener('click', () => {
     const period = button.dataset.homePeriod; const settings = loadSettings();
     settings.homeSpendPeriod = period; saveSettings(settings); render();
@@ -12386,7 +12481,7 @@ function attachDashboardDawg() {
       }
     };
     _withChart(() => {
-    if (!document.body.contains(canvas)) return;
+    if (!document.body.contains(canvas) || (document.getElementById('home-chart') && !document.getElementById('home-chart').open) || document.querySelector('.overview-more:not([open])')) return;
     if (!canvas.getContext || !canvas.getContext('2d')) return;  // canvas can't yield a 2D context yet
     Chart.getChart(canvas)?.destroy();   // clear any chart left on this canvas before reusing it
     _dawgSpark = _dawgSparkGlobal = new Chart(canvas, {
@@ -12418,10 +12513,18 @@ function attachDashboardDawg() {
   requestAnimationFrame(_moveTbtnPill);
   const history = document.getElementById('home-chart');
   if (history) history.addEventListener('toggle', () => {
-    if (history.open) buildSparkline(document.querySelector('.dawg-tbtn-active')?.dataset.range || 'all');
+    if (history.open) { buildSparkline(document.querySelector('.dawg-tbtn-active')?.dataset.range || 'all'); requestAnimationFrame(_moveTbtnPill); }
     else if (_dawgSpark) { _dawgSpark.destroy(); _dawgSpark = null; _dawgSparkGlobal = null; }
   });
   else buildSparkline('all');
+  document.querySelector('.overview-more')?.addEventListener('toggle', event => {
+    if (event.currentTarget.open && history?.open) {
+      buildSparkline(document.querySelector('.dawg-tbtn-active')?.dataset.range || 'all');
+      requestAnimationFrame(_moveTbtnPill);
+    } else if (!event.currentTarget.open && _dawgSpark) {
+      _dawgSpark.destroy(); _dawgSpark = null; _dawgSparkGlobal = null;
+    }
+  });
 
 }
 
@@ -12706,8 +12809,7 @@ function attachHandlers() {
 async function autoUpdateWeeklyPlan() {
   const wp = state.weekly_plan;
   if (!wp) return;
-  const { income, expense } = totals();
-  const liveBalance = (state.startingBalance || 0) + income - expense;
+  const liveBalance = balanceAsOf(today());
   const bills    = weeklyBillsReserve(wp);
   const stopAt   = parseFloat(wp.stop_at || 0) || 0;
   const now      = new Date(); now.setHours(0,0,0,0);
