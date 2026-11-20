@@ -1,5 +1,15 @@
 [
  {
+  "version": "5.72.0",
+  "date": "2026-11-20",
+  "changes": [
+   "Bears now uses a softer navy palette, neutral dividers, warm orange highlights, and deeper orange action buttons. Sports themes use clean system typography.",
+   "Balanced saturated sports, terminal, and Pokémon palettes, with readable accent and status colors across page and panel surfaces in every theme and skin.",
+   "New Theme font option follows each theme immediately. Choose App font, System, or Terminal to keep your preferred typeface when switching themes or reopening the app.",
+   "Theme mascots are cached with the app so sports and Pokémon artwork stays available offline."
+  ]
+ },
+ {
   "version": "5.71.1",
   "date": "2026-11-19",
   "changes": [

@@ -1,4 +1,4 @@
-const CACHE      = "slawminyaw-v5711";
+const CACHE      = "slawminyaw-v5720";
 const FONT_CACHE = "slawminyaw-fonts-v1";
 const CDN_CACHE  = "slawminyaw-cdn-v1";
 const ASSETS = [
@@ -15,6 +15,15 @@ const ASSETS = [
   "./apple-touch-icon.png",
   "./favicon.ico",
   "./doberman.webp",
+  "./poke-gastly.gif",
+  "./poke-haunter.gif",
+  "./poke-gengar.gif",
+  "./poke-charizard.gif",
+  "./poke-squirtle.gif",
+  "./team-bears.png",
+  "./team-dodgers.png",
+  "./team-knights.png",
+  "./team-celtics.png",
   "./icons/phosphor/arrow-right.svg",
   "./icons/phosphor/arrow-up-right.svg",
   "./icons/phosphor/arrow-down-left.svg",

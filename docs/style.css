@@ -505,12 +505,12 @@ html, body {
 .btn-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 .btn-primary {
-  /* --btn-fill is an accent-to-accent gradient computed in _stampButtonFill(); the
+  /* --btn-fill is an action-color gradient computed in _stampButtonFill(); the
      old --accent-gradient ran dark-stop to light-stop, so no single text colour
      cleared AA at both ends on 23 of the 28 themes. Falls back to a flat accent
      before JS runs. */
-  background: var(--btn-fill, var(--accent));
-  color: var(--on-accent);
+  background: var(--btn-fill, var(--action, var(--accent)));
+  color: var(--on-action, var(--on-accent));
   border: none;
   border-radius: 11px;
   padding: 13px 24px;
@@ -7736,11 +7736,11 @@ body.skinned .lf-density-btn {
   backdrop-filter: none !important;
 }
 body.skinned .btn-primary {
-  background: var(--accent) !important;
+  background: var(--action, var(--accent)) !important;
   border: 0 !important;
   border-radius: var(--skin-radius-sm) !important;
   box-shadow: none !important;
-  color: var(--on-accent) !important;
+  color: var(--on-action, var(--on-accent)) !important;
 }
 /* Save and Delete keep their solid fills under a skin. A tinted, outline-only
    Delete was tried first and read better against the skins' flatness, but it puts
@@ -9177,8 +9177,8 @@ body.amounts-hidden .overview-spark-plot { filter: blur(6px); }
 .overview-section-heading > div { min-width: 0; }
 .overview-section-heading p { margin: 4px 0 0; font-size: .73rem; line-height: 1.4; }
 .overview-activity-actions { flex-shrink: 0; gap: 10px; }
-.overview-add { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0; border: 0; border-radius: var(--sk-card-r, 8px); background: transparent; color: var(--on-accent); font-size: .75rem; font-weight: 700; flex-shrink: 0; }
-.overview-add-face { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 10px; border-radius: inherit; background: var(--accent); }
+.overview-add { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0; border: 0; border-radius: var(--sk-card-r, 8px); background: transparent; color: var(--on-action,var(--on-accent)); font-size: .75rem; font-weight: 700; flex-shrink: 0; }
+.overview-add-face { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 10px; border-radius: inherit; background: var(--action,var(--accent)); }
 .overview-link { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; padding: 4px 0; border: 0; background: transparent; color: var(--accent); font-size: .81rem; font-weight: 650; text-align: left; flex-shrink: 0; }
 .overview-activity-actions > .overview-link { padding-left: 10px; border-left: 1px solid var(--border); }
 .overview-icon { display: inline-block; flex: 0 0 18px; width: 18px; height: 18px; background: currentColor; -webkit-mask: var(--overview-icon) center / contain no-repeat; mask: var(--overview-icon) center / contain no-repeat; }
@@ -9261,7 +9261,7 @@ body.amounts-hidden .overview-spark-plot { filter: blur(6px); }
 #app.daily-ui .daily-page :is(input.form-input,select.form-input,textarea.form-input) { min-height: 44px; min-width: 0; max-width: 100%; border: 1px solid var(--border); border-radius: var(--sk-card-r,10px); background: var(--surface); color: var(--text); font-size: 1rem !important; box-shadow: none; }
 #app.daily-ui .daily-page :is(.form-input,.set-search):focus { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: none; }
 #app.daily-ui .daily-page button { min-height: 44px; font-family: var(--font-body); }
-#app.daily-ui :is(.btn-primary,.acct-qa-btn) { background: var(--accent) !important; color: var(--on-accent) !important; border-color: var(--accent); box-shadow: none !important; }
+#app.daily-ui :is(.btn-primary,.acct-qa-btn) { background: var(--action,var(--accent)) !important; color: var(--on-action,var(--on-accent)) !important; border-color: var(--action,var(--accent)); box-shadow: none !important; }
 #app.daily-ui .daily-page :is(.btn-primary,.btn-secondary,.btn-sm,.btn-xs) { font-size: .78rem; line-height: 1.4; border-radius: var(--sk-card-r,9px); }
 #app.daily-ui .daily-page :is(.btn-secondary,.btn-sm,.btn-xs):not(.btn-danger):not(.active):not(.btn-xs-active) { background: transparent; border: 1px solid var(--border); box-shadow: none; color: var(--text); }
 #app.daily-ui .daily-page :is(.btn-danger,.bill-unpaid-btn) { color: var(--danger); }
@@ -9406,6 +9406,8 @@ body.amounts-hidden .overview-spark-plot { filter: blur(6px); }
 #app.daily-ui .daily-page :is(.ledger-view-tabs,.data-tabs) { flex-wrap: wrap; }
 #app.daily-ui .daily-page :is(.lv-tab,.data-tabs button) { flex: 1 1 8.5em; min-width: 0; flex-wrap: wrap; overflow-wrap: anywhere; }
 #app.daily-ui .daily-page :is(.ret-hero-total,.ret-dash-balance,.ret-proj-total,.wrap-stat-value,.dawg-balance-amt) { overflow-wrap: anywhere; }
+#app.daily-ui .daily-page .ret-contrib-row { flex-wrap: wrap; gap: .35em 12px; }
+#app.daily-ui .daily-page .ret-contrib-val { max-width: 100%; overflow-wrap: anywhere; }
 #app.daily-ui .daily-page .ret-proj-row2 { grid-template-columns: repeat(2,minmax(0,1fr)); }
 #app.daily-ui .daily-page .ret-proj-field { min-width: 0; }
 #app.daily-ui .daily-page .ret-proj-lbl { overflow-wrap: anywhere; }
@@ -9423,3 +9425,9 @@ body.amounts-hidden .overview-spark-plot { filter: blur(6px); }
   #app.daily-ui.picker-mode { grid-template-rows: minmax(0,1fr); }
   #app.daily-ui.picker-mode #main-content { min-height: 0; }
 }
+
+/* Calm theme roles: readable accents for content, a separate fill for actions. */
+body:not(.skinned) #app.daily-ui :is(.lv-tab.active,.type-pill.active,.wk-seg-btn.active,.data-tabs button[aria-pressed="true"]) { background: var(--action,var(--accent)); color: var(--on-action,var(--on-accent)); border-color: var(--action,var(--accent)); }
+#app.daily-ui .daily-page .theme-font-options { grid-template-columns: repeat(2,minmax(0,1fr)); }
+body.theme-team .overview-heading h1, body.theme-team .daily-wallet-heading h1 { font-weight: 700; letter-spacing: -.025em; }
+body.theme-team :is(.overview-balance-amount,.daily-wallet-value) { font-weight: 700; }

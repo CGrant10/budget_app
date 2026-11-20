@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.71.1';
+const VERSION = '5.72.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -164,30 +164,33 @@ const THEMES = {
   },
   powershell: {
     label:'PowerShell',
-    bg:'#012456', surface:'#063070', surface2:'#0a3a80', card:'#073268',
-    text:'#eeedf0', muted:'#8ab8d0', border:'#1255a0',
-    accent:'#26c6da', accent2:'#f1e05a', success:'#4caf50', warn:'#f1e05a', danger:'#ef5350',
-    grad:'linear-gradient(135deg, #012456 0%, #26c6da 100%)',
+    bg:'#101d30', surface:'#192a41', surface2:'#243a54', card:'#1e3048',
+    text:'#eaf0f6', muted:'#a3b6ca', border:'#334d68',
+    accent:'#83c7db', accent2:'#d8c88f', success:'#8ac8a6', warn:'#d8c88f', danger:'#ee9b9d',
+    grad:'linear-gradient(135deg, #192a41 0%, #25637e 100%)',
     font:'powershell',
     cats:{ Food:'#26c6da', Gas:'#ef5350', Car:'#42a5f5', Boat:'#29b6f6', Tools:'#ffa726', Home:'#66bb6a', Entertainment:'#ab47bc', Health:'#26c6da', Other:'#8ab8d0' },
+    action:'#25637e',
   },
   cmd: {
     label:'CMD',
-    bg:'#0c0c0c', surface:'#0f1a0f', surface2:'#162416', card:'#111a11',
-    text:'#00c300', muted:'#2d9a2d', border:'#1e4a1e',
-    accent:'#00c300', accent2:'#00ff41', success:'#00ff41', warn:'#ffff00', danger:'#ff3333',
-    grad:'linear-gradient(135deg, #000000 0%, #003300 60%, #00c300 100%)',
+    bg:'#101612', surface:'#19221c', surface2:'#243028', card:'#1d2821',
+    text:'#e0eae2', muted:'#a0b5a5', border:'#35473b',
+    accent:'#97cba6', accent2:'#c2d8b0', success:'#97cba6', warn:'#d4c28c', danger:'#e79e9c',
+    grad:'linear-gradient(135deg, #19221c 0%, #315f3b 100%)',
     font:'cmd',
     cats:{ Food:'#00c300', Gas:'#ff3333', Car:'#00aaff', Boat:'#00ffff', Tools:'#ffaa00', Home:'#aaff00', Entertainment:'#ff55ff', Health:'#00aaff', Other:'#888888' },
+    action:'#315f3b',
   },
   kali: {
     label: 'Kali Linux',
-    bg: '#1a1a2e', surface: '#16213e', surface2: '#0f3460', card: '#16213e',
-    text: '#e0e0e0', muted: '#7a9aae', border: '#1e3a5e',
-    accent: '#00d4ff', accent2: '#267bf0', success: '#00ff88', warn: '#f1c40f', danger: '#e74c3c',
-    grad: 'linear-gradient(135deg, #0f3460 0%, #00d4ff 100%)',
+    bg: '#141b27', surface: '#1c2737', surface2: '#28384c', card: '#213044',
+    text: '#e8eef5', muted: '#a3b4c7', border: '#35495f',
+    accent: '#81c8dc', accent2: '#9eb7e1', success: '#89c7aa', warn: '#d9c18c', danger: '#ec9b9b',
+    grad: 'linear-gradient(135deg, #1c2737 0%, #27647c 100%)',
     font: 'kali',
     cats: { Food:'#00ff88', Gas:'#e74c3c', Car:'#267bf0', Boat:'#00d4ff', Tools:'#f39c12', Home:'#2ecc71', Entertainment:'#9b59b6', Health:'#00d4ff', Other:'#4a6a7a' },
+    action:'#27647c',
   },
   mintlinux: {
     label: 'Linux Mint',
@@ -200,12 +203,13 @@ const THEMES = {
   },
   ubuntu: {
     label: 'Ubuntu',
-    bg: '#300a24', surface: '#2c0a20', surface2: '#3a1035', card: '#350c28',
-    text: '#eeeeee', muted: '#c0a8b8', border: '#5a1a40',
-    accent: '#e95420', accent2: '#77216f', success: '#6cc644', warn: '#f1c40f', danger: '#e74c3c',
-    grad: 'linear-gradient(135deg, #300a24 0%, #e95420 100%)',
+    bg: '#21171f', surface: '#2b2029', surface2: '#3a2b36', card: '#31242e',
+    text: '#f0ebef', muted: '#bdabb8', border: '#513d4c',
+    accent: '#e9a17c', accent2: '#c8a0c5', success: '#a6c596', warn: '#dfc18c', danger: '#ed9b9f',
+    grad: 'linear-gradient(135deg, #2b2029 0%, #a34f2f 100%)',
     font: 'ubuntu',
     cats: { Food:'#6cc644', Gas:'#e95420', Car:'#4284f3', Boat:'#6cc644', Tools:'#f39c12', Home:'#6cc644', Entertainment:'#77216f', Health:'#4284f3', Other:'#a08898' },
+    action:'#a34f2f',
   },
   light: {
     label:'Light', shortLabel:'Mint',
@@ -309,63 +313,69 @@ const THEMES = {
   charizard: {
     label:'Charizard', shortLabel:'Charizard', pokemon:true, mascot:'./poke-charizard.gif',
     tagline:'REDUCE IT<br>TO ASH.', splashTagline:'Burn through debt.',
-    bg:'#160f0c', surface:'#221712', surface2:'#33241b', card:'#2c1d15',
-    text:'#f8efe8', muted:'#b29a8c', border:'rgba(255,122,60,.18)',
-    accent:'#ff7a3c', accent2:'#ffb14d', success:'#5ec98a', warn:'#ffb14d', danger:'#ff5a3c',
+    bg:'#1b1410', surface:'#291e17', surface2:'#39291f', card:'#30231b',
+    text:'#f4eee8', muted:'#bdaa9c', border:'#513d2e',
+    accent:'#f0ac7b', accent2:'#dec08d', success:'#93c4a3', warn:'#dec08d', danger:'#ed9999',
     gl1:'rgba(255,90,40,.95)', gl2:'rgba(255,200,70,.85)',
-    grad:'linear-gradient(135deg, #33241b 0%, #ff7a3c 100%)', font:'default',
+    grad:'linear-gradient(135deg, #291e17 0%, #a8542c 100%)', font:'default',
     cats:{ Food:'#ffb14d', Gas:'#ff5a3c', Car:'#ff7a3c', Boat:'#5fc0d6', Tools:'#e0a020', Home:'#ff9a52', Entertainment:'#e07cd0', Health:'#5fb6e0', Other:'#b29a8c' },
+    action:'#a8542c',
   },
   squirtle: {
     label:'Squirtle', shortLabel:'Squirtle', pokemon:true, mascot:'./poke-squirtle.gif',
     tagline:'WASH AWAY<br>YOUR DEBT.', splashTagline:'Make it rain.',
-    bg:'#0b1117', surface:'#121d25', surface2:'#1b2c37', card:'#16242e',
-    text:'#e9f3f8', muted:'#8aa4b1', border:'rgba(70,166,236,.18)',
-    accent:'#46a6ec', accent2:'#76d6e0', success:'#43c98a', warn:'#e0c14a', danger:'#ff6b6b',
+    bg:'#111a22', surface:'#192731', surface2:'#243744', card:'#1e2e3a',
+    text:'#eaf2f6', muted:'#a4b8c4', border:'#354e5e',
+    accent:'#8ac7e2', accent2:'#a0d4d6', success:'#92c8ad', warn:'#ddc58d', danger:'#ed9b9b',
     gl1:'rgba(70,166,236,.95)', gl2:'rgba(120,235,235,.85)',
-    grad:'linear-gradient(135deg, #1b2c37 0%, #46a6ec 100%)', font:'default',
+    grad:'linear-gradient(135deg, #192731 0%, #286682 100%)', font:'default',
     cats:{ Food:'#46a6ec', Gas:'#ff6b6b', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#e0a020', Home:'#52c0a0', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#8aa4b1' },
+    action:'#286682',
   },
   // ── Sports team themes ──────────────────────────────────────────────────
   bears: {
     label:'Chicago Bears', shortLabel:'Bears', team:true, mascot:'./team-bears.png',
     tagline:'BEAR DOWN<br>ON YOUR BUDGET.', splashTagline:'Bear Down, Chicago.',
-    bg:'#0b162a', surface:'#11203c', surface2:'#16284a', card:'#16284a',
-    text:'#f3f4f6', muted:'#8b97ad', border:'rgba(227,90,35,.26)',
-    accent:'#e35a23', accent2:'#0b162a', success:'#43c98a', warn:'#e0a14a', danger:'#ff6b6b',
+    bg:'#101925', surface:'#172333', surface2:'#213044', card:'#1b293a',
+    text:'#edf0f4', muted:'#a3afbf', border:'#304054',
+    accent:'#eca27b', accent2:'#93abc7', success:'#83c7a5', warn:'#dcbb7c', danger:'#ef9494',
     gl1:'rgba(227,90,35,.95)', gl2:'rgba(95,150,235,.85)',
-    grad:'linear-gradient(135deg, #11203c 0%, #e35a23 100%)', font:'default',
+    grad:'linear-gradient(135deg, #172333 0%, #b6532e 100%)', font:'system',
     cats:{ Food:'#e35a23', Gas:'#ff6b6b', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#e0a020', Home:'#e8852a', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#8b97ad' },
+    action:'#b6532e',
   },
   dodgers: {
     label:'LA Dodgers', shortLabel:'Dodgers', team:true, mascot:'./team-dodgers.png',
     tagline:'THINK BLUE,<br>SPEND LESS.', splashTagline:'It’s time for Dodger baseball.',
-    bg:'#0a1c34', surface:'#0e2748', surface2:'#123158', card:'#123158',
-    text:'#eef3f9', muted:'#8ba0bd', border:'rgba(58,134,214,.28)',
-    accent:'#3a86d6', accent2:'#ef3e42', success:'#43c98a', warn:'#e0c14a', danger:'#ef3e42',
+    bg:'#101b29', surface:'#172638', surface2:'#213349', card:'#1c2d40',
+    text:'#edf2f7', muted:'#a0b0c4', border:'#30455a',
+    accent:'#8ab9e8', accent2:'#e4a1a4', success:'#83c7a5', warn:'#dcc18a', danger:'#ef9494',
     gl1:'rgba(58,134,214,.95)', gl2:'rgba(239,62,66,.85)',
-    grad:'linear-gradient(135deg, #0e2748 0%, #3a86d6 100%)', font:'default',
+    grad:'linear-gradient(135deg, #172638 0%, #285e99 100%)', font:'system',
     cats:{ Food:'#3a86d6', Gas:'#ef3e42', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#e0a020', Home:'#52a0d6', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#8ba0bd' },
+    action:'#285e99',
   },
   knights: {
     label:'Vegas Golden Knights', shortLabel:'Knights', team:true, mascot:'./team-knights.png',
     tagline:'GO KNIGHT<br>OR GO HOME.', splashTagline:'Knights of the realm.',
-    bg:'#16191b', surface:'#20262a', surface2:'#272f33', card:'#272f33',
-    text:'#f1f3f4', muted:'#99a1a6', border:'rgba(193,164,99,.3)',
-    accent:'#c1a463', accent2:'#c8102e', success:'#43c98a', warn:'#c1a463', danger:'#c8102e',
+    bg:'#171a1e', surface:'#20252c', surface2:'#2a3038', card:'#242a32',
+    text:'#eff0ee', muted:'#a7afb7', border:'#373e48',
+    accent:'#d3bb87', accent2:'#d993a0', success:'#87c2a3', warn:'#d3bb87', danger:'#e69aa5',
     gl1:'rgba(193,164,99,.98)', gl2:'rgba(200,16,46,.85)',
-    grad:'linear-gradient(135deg, #20262a 0%, #c1a463 100%)', font:'default',
+    grad:'linear-gradient(135deg, #20252c 0%, #796132 100%)', font:'system',
     cats:{ Food:'#c1a463', Gas:'#c8102e', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#d8b66a', Home:'#a0894f', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#99a1a6' },
+    action:'#796132',
   },
   celtics: {
     label:'Boston Celtics', shortLabel:'Celtics', team:true, mascot:'./team-celtics.png',
     tagline:'BUDGET<br>DIFFERENT HERE.', splashTagline:'Banner 18.',
-    bg:'#07150d', surface:'#0c2014', surface2:'#0f2a19', card:'#0f2a19',
-    text:'#eef3ee', muted:'#87a492', border:'rgba(33,176,102,.28)',
-    accent:'#21b066', accent2:'#ba9653', success:'#21b066', warn:'#ba9653', danger:'#ff6b6b',
+    bg:'#111b17', surface:'#19271f', surface2:'#23352c', card:'#1d2e25',
+    text:'#eef2ef', muted:'#a0b5a8', border:'#34493d',
+    accent:'#88c7a9', accent2:'#d5bb87', success:'#88c7a9', warn:'#d5bb87', danger:'#ec9999',
     gl1:'rgba(33,176,102,.95)', gl2:'rgba(186,150,83,.85)',
-    grad:'linear-gradient(135deg, #0c2014 0%, #21b066 100%)', font:'default',
+    grad:'linear-gradient(135deg, #19271f 0%, #256747 100%)', font:'system',
     cats:{ Food:'#21b066', Gas:'#ff6b6b', Car:'#5a7cf0', Boat:'#46c0ec', Tools:'#ba9653', Home:'#2bbf74', Entertainment:'#9a7cff', Health:'#46a6ec', Other:'#87a492' },
+    action:'#256747',
   },
 };
 
@@ -1685,6 +1695,10 @@ function _shiftToContrast(hex, against, target = _AA_SMALL) {
   }
   return best;
 }
+function readableThemeColor(color, backgrounds) {
+  return backgrounds.reduce((value, background) => _shiftToContrast(value, background), color);
+}
+
 // Stamps --on-accent / --on-danger from whatever palette is currently resolved on
 // <body>. Must run after BOTH applyTheme and applySkin, since a skin changes --bg
 // (which is the preferred ink) without touching --accent.
@@ -1692,6 +1706,9 @@ function _stampInkTokens() {
   const cs   = getComputedStyle(document.body);
   const get  = p => cs.getPropertyValue(p).trim();
   const bg   = get('--bg') || '#101216';
+  const action = get('--action-base') || get('--accent');
+  document.documentElement.style.setProperty('--action', action);
+  document.documentElement.style.setProperty('--on-action', _inkOn(action, _inkOn(get('--accent'), bg)));
   const pairs = [['--on-accent', get('--accent'), bg],
                  ['--on-danger', get('--danger'), '#ffffff']];
   for (const [token, fill, preferred] of pairs) {
@@ -1701,37 +1718,20 @@ function _stampInkTokens() {
   _stampButtonFill();
 }
 
-// ── Skin-safe accent / warn / danger / success ──────────────────────────────
-// A skin swaps the page to a new background but deliberately keeps the theme's
-// accent, so your theme still shows through. The catch: those accents were chosen
-// against a near-black page. All 28 of them fail on Ledger's #fbfaf7 and 27 fail on
-// Grid's #ffffff — so anywhere the accent was used as TEXT rather than as a fill it
-// came out around 2.3:1. That was ~41 places: the "All" / "Details" links, income
-// amounts, the active ledger tab, the Weekly hero figure, budget suggestions,
-// settings icons. Same story for --warn on the health score and bill badges.
-//
-// Rather than restyle those 41 rules, the colour itself is deepened until it reads
-// on the skin's background — hue and saturation held, so it is recognisably the same
-// accent. Fills deepen along with the text, which keeps the page in one family, and
-// --on-accent / --on-danger recompute afterwards so filled buttons follow.
-//
-// Derived from _rawPalette (what the theme actually specified) rather than from
-// whatever is currently on :root, so applying a skin twice can't compound the shift.
-// The rule is the same whether the light background came from a skin or from one of
-// the six light THEMES, which have the identical problem unskinned — theme `light`
-// puts its own #2fa56f accent on its own #f5f5f7 page at 2.86:1. So this keys off the
-// page background actually in effect, not off whether a skin is active. On the 22
-// dark themes every colour already reads and _shiftToContrast returns it untouched,
-// so their palettes are byte-identical to before.
+// Theme foregrounds must read on both the page and its raised surfaces.
+// Always start from the authored palette so applying a skin repeatedly cannot
+// compound the lightness adjustment. Theme hue is preserved on light and dark.
 let _rawPalette = null;
 
 function _stampSkinSafeColors(pageBg) {
   if (!_rawPalette || !pageBg) return;
   const root = document.documentElement;
+  const css = getComputedStyle(document.body);
+  const surfaces = [pageBg, ...['--surface', '--surface2', '--card'].map(token => css.getPropertyValue(token).trim())].filter(Boolean);
   const adj = {};
   for (const [name, raw] of Object.entries(_rawPalette)) {
     if (!raw || name === 'gradient') continue;   // gradient is rebuilt below, not shifted
-    adj[name] = _shiftToContrast(raw, pageBg);
+    adj[name] = readableThemeColor(raw, surfaces);
     root.style.setProperty('--' + name, adj[name]);
   }
   // Rebuild the gradient ONLY when --accent itself moved.
@@ -1751,22 +1751,12 @@ function _stampSkinSafeColors(pageBg) {
   }
 }
 
-// ── Primary button fill ─────────────────────────────────────────────────────
-// .btn-primary painted --accent-gradient with a literal white. Those gradients run
-// from a dark stop to a light one, so on 23 of the 28 themes NEITHER black nor white
-// clears AA at both ends — white measured 1.8–3.8 on most of them, including the
-// default dark theme. No single ink can fix a gradient that spans that much
-// lightness, so the fill has to change, not the text.
-//
-// It stays a gradient — that's the app's look — but both stops are now the accent,
-// and the second one is shifted AWAY from the chosen ink (lighter when the ink is
-// dark, darker when it's light) so the far end is strictly more legible than the
-// near end, not less. If a palette somehow still can't carry it, this falls back to
-// a flat accent fill, which _inkOn guarantees.
+// Legacy controls retain a subtle gradient using the same action color and ink
+// as Daily UI controls, including sheets rendered outside the main app.
 function _stampButtonFill() {
   const cs     = getComputedStyle(document.body);
-  const accent = cs.getPropertyValue('--accent').trim();
-  const ink    = cs.getPropertyValue('--on-accent').trim() || '#ffffff';
+  const accent = cs.getPropertyValue('--action').trim() || cs.getPropertyValue('--accent').trim();
+  const ink    = cs.getPropertyValue('--on-action').trim() || cs.getPropertyValue('--on-accent').trim() || '#ffffff';
   if (!accent) return;
   const inkRgb = _rgb(ink);
   const dir    = inkRgb && _relLum(inkRgb) < .5 ? +1 : -1;   // dark ink → lighten the far stop
@@ -1780,10 +1770,8 @@ function _stampButtonFill() {
 // theme-color from the theme — the skin gets the last word on both.
 function _stampMutedContrast() {
   const css = getComputedStyle(document.body);
-  let muted = css.getPropertyValue('--muted').trim();
-  for (const token of ['--bg', '--surface', '--surface2', '--card']) {
-    muted = _shiftToContrast(muted, css.getPropertyValue(token).trim());
-  }
+  const muted = readableThemeColor(css.getPropertyValue('--muted').trim(),
+    ['--bg', '--surface', '--surface2', '--card'].map(token => css.getPropertyValue(token).trim()));
   document.documentElement.style.setProperty('--muted', muted);
   document.body.style.setProperty('--muted', muted);
 }
@@ -1872,7 +1860,6 @@ function applySettings() {
   applyNavPosition(s.navPosition || 'bottom');
   applyNavItems(s.hiddenTabs || []);
   applyTheme(s.theme || 'dark');
-  applyFontStyle(s.fontStyle || 'default');
   // "Reduce motion & effects" — freezes the infinite idle glitch loops to save
   // battery and calm the UI. CSS handles the rest via body.fx-reduced.
   document.body.classList.toggle('fx-reduced', !!s.reduceFx);
@@ -1883,6 +1870,18 @@ function applySettings() {
   _applyAmountsHidden();
 }
 
+
+function themeFontPreference(settings = {}) {
+  if (['theme', 'default', 'system', 'terminal'].includes(settings.fontPreference)) return settings.fontPreference;
+  // System/Terminal were explicit choices in older versions. Other stored
+  // values were also auto-written by applyTheme, so they follow the theme.
+  return ['system', 'terminal'].includes(settings.fontStyle) ? settings.fontStyle : 'theme';
+}
+
+function resolveThemeFont(theme, settings = {}) {
+  const preference = themeFontPreference(settings);
+  return preference === 'theme' ? (THEMES[theme]?.font || 'default') : preference;
+}
 
 function applyFontStyle(style) {
   const map = {
@@ -2255,6 +2254,7 @@ function applyTheme(theme) {
   root.style.setProperty('--surface2', t.surface2);
   root.style.setProperty('--card',     t.card);
   root.style.setProperty('--accent',   t.accent);
+  root.style.setProperty('--action-base', t.action || '');
   root.style.setProperty('--accent2',  t.accent2);
   root.style.setProperty('--accent-gradient', t.grad || `linear-gradient(135deg, ${t.accent} 0%, ${t.accent2} 100%)`);
   root.style.setProperty('--success',  t.success);
@@ -2319,13 +2319,8 @@ function applyTheme(theme) {
   };
   // Update category colors to match theme
   if (t.cats) Object.assign(CAT_COLORS, t.cats);
-  // Auto-apply bundled font for terminal-style themes
-  if (t.font) {
-    applyFontStyle(t.font);
-    const _fs = loadSettings();
-    _fs.fontStyle = t.font;
-    saveSettings(_fs);
-  }
+  // Theme changes never save over a font preference.
+  applyFontStyle(resolveThemeFont(theme, loadSettings()));
   // All themes use the DAWG layout — always enable dawg-mode
   document.getElementById('app')?.classList.add('dawg-mode');
   // Beta skin gets the last word: it overrides body.light + theme-color above.
@@ -10476,15 +10471,16 @@ function renderSettings() {
   const s            = loadSettings();
   const theme        = s.theme || 'dark';
   const customCats   = s.customCategories || [];
-  const fontStyle    = s.fontStyle || 'default';
+  const fontStyle    = themeFontPreference(s);
   const customAccent = s.customAccent || '';
   const bioEnabled   = !!localStorage.getItem('slawminyaw_biometric_cred');
 
   const fontBtns = [
-    { key:'default',  label:'Default',  sub:'Plus Jakarta Sans' },
+    { key:'theme',    label:'Theme font', sub:'Follows your theme' },
+    { key:'default',  label:'App font',  sub:'Plus Jakarta Sans' },
     { key:'system',   label:'System',   sub:'iOS / Segoe UI' },
     { key:'terminal', label:'Terminal', sub:'Consolas / Menlo' },
-  ].map(f => `<button class="nav-pos-btn${fontStyle === f.key ? ' active' : ''}" data-font-style="${f.key}" style="line-height:1.3"><span style="display:block">${f.label}</span><span style="font-size:.65rem;opacity:.55;font-weight:400;font-family:'Plus Jakarta Sans',sans-serif">${f.sub}</span></button>`).join('');
+  ].map(f => `<button class="nav-pos-btn${fontStyle === f.key ? ' active' : ''}" data-font-style="${f.key}" aria-pressed="${fontStyle === f.key}" style="line-height:1.3"><span style="display:block">${f.label}</span><span style="font-size:.72rem;color:var(--muted);font-weight:400;font-family:'Plus Jakarta Sans',sans-serif">${f.sub}</span></button>`).join('');
 
   const customCatRows = customCats.length ? customCats.map((c, i) => `
     <div class="custom-cat-row">
@@ -10660,8 +10656,8 @@ function renderSettings() {
 
         <div class="set-row" data-keys="font typeface text style cascadia mono system terminal">
           <label class="form-label" style="margin-bottom:8px">Font</label>
-          <p class="code-hint" style="margin-bottom:10px">Changes text style throughout the entire app.</p>
-          <div class="nav-pos-grid">${fontBtns}</div>
+          <p class="code-hint" style="margin-bottom:10px">Theme font follows your theme. Choose another font to keep it across theme changes.</p>
+          <div class="nav-pos-grid theme-font-options">${fontBtns}</div>
         </div>
 
         <div class="set-row" data-keys="animation animations motion glitch splash haptics vibrate battery reduce effects still">
@@ -10896,9 +10892,10 @@ function attachSettings() {
   document.querySelectorAll('[data-font-style]').forEach(btn => {
     btn.addEventListener('click', () => {
       const s = loadSettings();
+      s.fontPreference = btn.dataset.fontStyle;
       s.fontStyle = btn.dataset.fontStyle;
       saveSettings(s);
-      applyFontStyle(s.fontStyle);
+      applyFontStyle(resolveThemeFont(s.theme || 'dark', s));
       render();
     });
   });
