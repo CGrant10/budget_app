@@ -10,7 +10,7 @@ function extract(name) {
   return source.slice(start, end);
 }
 const context = vm.createContext({Date, localMonthKey:()=> '2026-10', today:()=> '2026-10-12', state:{bills:[],weekly_plan:{}}, defaultAccounts:()=>[{id:'main',name:'Main',type:'checking'}], _demoMode:false, _buildBackupPayload:()=>({transactions:[{amount:5}]}), loadSnapshots:()=>[], _writeSnapshots:()=>true, MAX_SNAPSHOTS:4, _payloadTxnCount:()=>1});
-for (const fn of ['billDueDay','billPaidMonths','isBillPaidFor','billsStillDueTotal','weeklyBillsReserve','weeklySpendingSummary','calculateBillHealth','recordedCashflow','backupPreviewData','takeSnapshot']) vm.runInContext(extract(fn),context);
+for (const fn of ['billOccurrenceDate','billOccurrenceAmount','billDaysUntil','billDueDay','billPaidMonths','isBillPaidFor','billsStillDueTotal','weeklyBillsReserve','weeklySpendingSummary','calculateBillHealth','recordedCashflow','backupPreviewData','takeSnapshot']) vm.runInContext(extract(fn),context);
 const bills=[{amount:100,dueDay:1,paidMonths:[]},{amount:45,dueDay:19,paidMonths:[]}];
 assert.equal(context.weeklyBillsReserve({bills:'340'},bills),340);
 assert.equal(context.weeklyBillsReserve({bills:'340',bills_source:'tracked'},bills),145);

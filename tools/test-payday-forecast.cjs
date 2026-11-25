@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../docs/app.js'), 'utf8');
 const context = vm.createContext({Date});
-for (const name of ['calculatePaydayForecast', 'billDueDay', 'shiftMonthKey']) {
+for (const name of ['billOccurrenceDate','billOccurrenceAmount','calculatePaydayForecast', 'billDueDay', 'shiftMonthKey']) {
   const start = source.indexOf(`function ${name}(`);
   assert(start >= 0);
   vm.runInContext(source.slice(start, source.indexOf('\n}', start) + 2), context);

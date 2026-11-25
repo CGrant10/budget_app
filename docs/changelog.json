@@ -1,5 +1,18 @@
 [
  {
+  "version": "5.74.0",
+  "date": "2026-11-25",
+  "changes": [
+   "Bank reviews keep an on-device draft, including statement date, balance, and checked entries. Add a missing transaction and return to the same review; saved matches clear the draft.",
+   "Bills opens as a compact list with a saved calendar toggle. Payment linking lives in Edit, and paid occurrences keep their original dates and amounts after schedule changes.",
+   "Bills now supports monthly, quarterly, yearly, and one-time due dates. Home, reserves, reminders, health, and payday forecasts use the same schedule rules, including short and leap-year months.",
+   "Add Entry uses larger type/status controls, shortcuts to splitting and recurrence, and a reachable Save action. Purchases can be Pending or Posted; pending money is reserved on its entry date and posting updates the same entry.",
+   "Ledger labels and filters pending purchases and offers immediate Undo for transaction deletion, edits, posting, and bulk category/delete actions. Existing restore-point recovery remains.",
+   "Archive closed accounts at a zero balance while keeping their full history and backups. Archived accounts leave everyday pickers and pause schedules; restore them from Manage accounts.",
+   "All improvements work with on-device data. Pending status is retained in JSON backups and spreadsheet exports/imports."
+  ]
+ },
+ {
   "version": "5.73.0",
   "date": "2026-11-25",
   "changes": [

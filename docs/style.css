@@ -9484,3 +9484,60 @@ body.theme-team :is(.overview-balance-amount,.daily-wallet-value) { font-weight:
 
 .bank-match-card input[type="date"] { color-scheme: dark; }
 body.light .bank-match-card input[type="date"] { color-scheme: light; }
+
+/* Everyday entry: native semantics, generous segments, a reachable save action. */
+.entry-type-segments, .entry-status-segments { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; width: 100%; }
+.entry-status-segments { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.entry-type-segments label, .entry-status-segments label { position: relative; display: flex; align-items: center; justify-content: center; min-height: 44px; min-width: 0; padding: 10px 8px; border: 1px solid var(--border); border-radius: var(--sk-card-r,9px); color: var(--muted); background: var(--surface); font-size: .82rem; cursor: pointer; overflow-wrap: anywhere; }
+.entry-type-segments label:has(input:checked), .entry-status-segments label:has(input:checked) { background: var(--action,var(--accent)); color: var(--on-action,var(--on-accent)); border-color: var(--action,var(--accent)); }
+.entry-type-segments input, .entry-status-segments input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.entry-type-segments label:has(input:focus-visible), .entry-status-segments label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.entry-purchase-status { min-width: 0; margin: 0 0 18px; padding: 0; border: 0; }
+.entry-purchase-status legend { margin: 0 0 8px; color: var(--muted); font-size: .78rem; }
+.entry-purchase-status .code-hint { margin: 8px 0 0; }
+.entry-shortcuts { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 0 0 10px; }
+.entry-shortcuts button { min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--accent); font: inherit; font-size: .78rem; cursor: pointer; }
+#app.daily-ui .entry-save-bar { position: sticky; bottom: 0; z-index: 5; margin: 16px 0 -1px; padding: 10px 0 max(12px,env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--bg); }
+#app.daily-ui .entry-save-bar .btn-primary { width: 100%; min-height: 48px; }
+.entry-save-bar .form-status:empty { display: none; }
+.entry-review-return { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0 12px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.entry-review-return > span { color: var(--muted); font-size: .78rem; }
+.fas-pending { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 8px 0; color: var(--muted); font-size: .8rem; }
+.fas-pending input { width: 20px; height: 20px; accent-color: var(--action,var(--accent)); }
+.purchase-pending { display: inline-block; padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; color: var(--warn); font-size: .7rem; }
+.ledger-status-filter { display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; color: var(--muted); font-size: .78rem; }
+.ledger-status-filter select { flex: 1; min-width: 0; }
+.ie-status-label { display: flex; align-items: center; gap: 10px; margin: 10px 0; color: var(--muted); font-size: .78rem; }
+.ie-status-label select { flex: 1; min-width: 0; }
+.ledger-undo { position: sticky; top: 0; z-index: 4; display: flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
+.ledger-undo > span { flex: 1; min-width: 0; font-size: .8rem; overflow-wrap: anywhere; }
+#app.daily-ui .ledger-undo button { flex-shrink: 0; min-height: 44px; min-width: 44px; padding: 8px; border: 0; background: transparent; color: var(--accent); font-family: inherit; cursor: pointer; }
+.bills-view-options { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.bills-view-options button { flex: 1 1 80px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text); font-family: inherit; font-size: .8rem; cursor: pointer; }
+.bills-view-options button[aria-pressed="true"] { background: var(--action,var(--accent)); color: var(--on-action,var(--on-accent)); border-color: var(--action,var(--accent)); }
+.bills-page .bills-sum3 { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
+.bills-page .bsum-blk { min-width: 0; }
+.bills-page .bsum-blk :is(span,strong) { display: block; overflow-wrap: anywhere; }
+.bills-page .bill-card-meta { font-size: .75rem; line-height: 1.5; }
+.bills-page .bill-card-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.bills-page .bill-edit-form { padding: 16px 0; }
+.bills-page .bill-edit-form .form-label, .bills-page .bill-create .form-label { display: block; margin-top: 14px; }
+.bills-page .bill-edit-form :is(input,select), .bills-page .bill-create :is(input,select) { width: 100%; min-width: 0; }
+.bills-page :is(.bill-schedule-day,.bill-schedule-date) { margin-top: 14px; color: var(--muted); font-size: .78rem; }
+.bills-page :is(.bill-schedule-day,.bill-schedule-date):not([hidden]) { display: block; }
+.bills-page :is(.bill-schedule-day,.bill-schedule-date) input { margin-top: 8px; }
+.bills-page :is(.bill-create,.bill-other-schedules) { margin-top: 16px; border-top: 1px solid var(--border); }
+.bills-page :is(.bill-create,.bill-other-schedules) > summary { min-height: 48px; padding: 16px 0; color: var(--text); font-size: .85rem; cursor: pointer; }
+.bills-page input[type="date"] { color-scheme: dark; }
+body.light .bills-page input[type="date"] { color-scheme: light; }
+.archived-accounts > summary { min-height: 48px; padding: 14px 0; color: var(--muted); cursor: pointer; }
+.archived-account { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 0; border-top: 1px solid var(--border); }
+.archived-account > span { flex: 1 1 150px; min-width: 0; }
+.archived-account strong { display: block; font-size: .85rem; overflow-wrap: anywhere; }
+.archived-account small { display: block; margin-top: 4px; color: var(--muted); font-size: .74rem; }
+@media (max-width: 359px) { .entry-type-segments { gap: 5px; } .entry-type-segments label { padding-inline: 5px; font-size: .76rem; } }
+.bills-page .bill-edit-actions { flex-wrap: wrap; }
+.bills-page .bill-edit-actions button { flex: 1 1 8em; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+/* Keep scrolled form content out of the reserved space beneath the save bar. */
+#app.daily-ui .entry-save-bar::after { content: ''; position: absolute; top: 100%; left: 0; right: 0; height: calc(110px + env(safe-area-inset-bottom)); background: var(--bg); }
+#app.daily-ui #main-content:has(.entry-page) { scroll-padding-bottom: 180px; }

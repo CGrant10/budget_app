@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname, '../docs/app.js'), 'utf8');
-const names = ['_showFastAdd', 'isGamblingTransaction', 'calculateGamblingTotals', '_gamblingTrackerBody', 'isRefundIncome'];
+const names = ['activeAccounts', '_showFastAdd', 'isGamblingTransaction', 'calculateGamblingTotals', '_gamblingTrackerBody', 'isRefundIncome'];
 const functions = names.map(name => {
   const start = source.indexOf('function ' + name + '(');
   assert(start >= 0, name);
@@ -20,7 +20,7 @@ function element(dataset = {}) {
 }
 
 async function saveEntry(type, category, description = '') {
-  const nodes = Object.fromEntries(['amount', 'desc', 'submit', 'cat-field', 'from-label']
+  const nodes = Object.fromEntries(['amount', 'desc', 'submit', 'cat-field', 'from-label', 'pending-row', 'pending']
     .map(id => ['#fas-' + id, element()]));
   nodes['#fas-amount'].value = '100';
   nodes['#fas-desc'].value = description;
@@ -37,7 +37,7 @@ async function saveEntry(type, category, description = '') {
     getCategoriesByUsage: () => categories.map(c => c.dataset.cat),
     getCommonTemplates: () => [], today: () => '2026-10-02', _escHtml: s => s,
     setTimeout() {}, _debounce: fn => fn, history: { pushState() {}, back() {} },
-    _postTxnToAccount: (id, t) => txns.push(t), autoUpdateWeeklyPlan: async () => {},
+    _postTxnToAccount: (id, t) => txns.push(t), appendAccountTransactions:(id, entries)=>txns.push(...entries), autoUpdateWeeklyPlan: async () => {},
     isExcludedFromSpend: () => false, haptic() {}, showPayday() {}, showRobbery() {},
     checkRoast() {}, checkSpendingAlert() {}, render() {}, fmt: n => '$' + n.toFixed(2),
   });
@@ -45,7 +45,7 @@ async function saveEntry(type, category, description = '') {
   context._showFastAdd();
   types.find(t => t.dataset.type === type).handlers.click();
   categories.find(c => c.dataset.cat === category).handlers.click();
-  await nodes['#fas-submit'].handlers.click();
+  await nodes['#fas-submit'].handlers.click({currentTarget:nodes['#fas-submit']});
   assert.equal(txns.length, 1);
   return { transaction: txns[0], context };
 }

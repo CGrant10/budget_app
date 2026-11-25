@@ -14,8 +14,8 @@ let clock = '2026-10-08T12:00:00';
 class TestDate extends Date {
   constructor(...args) { super(...(args.length ? args : [clock])); }
 }
-const context = vm.createContext({Date:TestDate, state:{bills:[]},localMonthKey:()=>clock.slice(0,7)});
-for (const name of ['billDueDay','getDaysUntilDue','billDueLabel','billPaidMonths','isBillPaidFor','getUpcomingBills','billBadgeHtml']) {
+const context = vm.createContext({Date:TestDate, state:{bills:[]},localMonthKey:()=>clock.slice(0,7),today:()=>clock.slice(0,10)});
+for (const name of ['billOccurrenceDate','billOccurrenceAmount','billDaysUntil','billDueDay','getDaysUntilDue','billDueLabel','billPaidMonths','isBillPaidFor','getUpcomingBills','billBadgeHtml']) {
   vm.runInContext(extract(name), context);
 }
 assert.equal(context.getDaysUntilDue(1), -7, 'unpaid October rent stays overdue');

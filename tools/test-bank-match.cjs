@@ -4,7 +4,7 @@ const vm = require('node:vm');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../docs/app.js'), 'utf8');
 const values = new Map(); let fail = false;
 const ctx = vm.createContext({ console, Date, localStorage:{setItem:(k,v)=>{if(fail)throw new Error('Quota');values.set(k,v)},getItem:k=>values.get(k)||null},_calcVer:0,_showSaveError:()=>{},currentAccountId:'main',accountDataKey:id=>'data_'+id,today:()=> '2026-11-25',fmt:n=>'$'+Number(n).toFixed(2),state:{accounts:[{id:'main',type:'checking'}],transactions:[],startingBalance:100,weekly_plan:{daily_limit:30},bills:[],budgets:{Food:100},goals:[],challenges:[],reconciliation:null}});
-for(const name of ['bankMatchCents','bankMatchDate','bankMatchKey','bankMatchRows','bankMatchSelection','bankMatchSummary','bankLedgerStamp','bankMatchStatus','saveBankMatch','_save','_loadAccountData']){
+for(const name of ['isPendingPurchase','bankReviewStorageStamp','bankMatchCents','bankMatchDate','bankMatchKey','bankMatchRows','bankMatchSelection','bankMatchSummary','bankLedgerStamp','bankMatchStatus','saveBankMatch','_save','_loadAccountData']){
  const start=source.indexOf(`function ${name}(`);assert(start>=0,name);vm.runInContext(source.slice(start,source.indexOf('\n}',start)+2),ctx);
 }
 const tx=[{date:'2026-11-20',type:'expense',amount:'20.10',description:'Groceries',ts:1},{date:'2026-11-21',type:'income',amount:30.2,description:'Refund',ts:2},{date:'2026-11-22',type:'expense',amount:5.15,description:'Pending',ts:3},{date:'2026-12-01',type:'expense',amount:999,description:'Future',ts:4}];

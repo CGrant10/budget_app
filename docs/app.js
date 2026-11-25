@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.73.0';
+const VERSION = '5.74.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -791,6 +791,7 @@ async function _checkPaychecks() {
   const todayStr = localDateStr(today);
   let changed = false;
   for (const acct of state.accounts) {
+    if (acct.archived) continue;
     const ps = acct.paySchedule;
     if (!ps?.enabled || !ps.amount || !ps.nextPayDate) continue;
     // Process all missed pay dates up to and including today. Guard caps catch-up at
@@ -811,7 +812,7 @@ async function _checkPaychecks() {
       _loadAccountData(prevId);
       // Auto-contribute to linked retirement accounts
       const linkedRetire = state.accounts.filter(ra =>
-        RETIRE_TYPES.includes(ra.type) && ra.linkedPaycheckAcctId === acct.id
+        !ra.archived && RETIRE_TYPES.includes(ra.type) && ra.linkedPaycheckAcctId === acct.id
       );
       for (const retAcct of linkedRetire) {
         const gross     = ps.grossAmount || 0;
@@ -854,6 +855,7 @@ async function _checkContributions() {
   const todayStr = today();
   let changed = false;
   for (const acct of state.accounts) {
+    if (acct.archived) continue;
     if (!RETIRE_TYPES.includes(acct.type)) continue;
     const cs = acct.contribSchedule;
     if (!cs?.enabled || !cs.amount || !cs.nextDate) continue;
@@ -874,6 +876,7 @@ async function _checkContributions() {
 
 // ── Add Contribution modal ─────────────────────────────────────────────────
 function showAddContribModal(acctId) {
+  if (state.accounts.find(a=>a.id===acctId)?.archived) { _toast('Restore this account before recording a contribution.'); return; }
   const acct    = state.accounts.find(a => a.id === acctId);
   const typeName = (RETIRE_LIMITS[acct?.type] || {}).label || 'Retirement';
   const todayStr = today();
@@ -1459,7 +1462,7 @@ function _skBills(sk) {
 
   const total = upcoming.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
   const rows = upcoming.slice(0, SK_BILLS_SHOWN).map(b => {
-    const d    = getDaysUntilDue(b.dueDay);
+    const d    = billDaysUntil(b);
     const when = billDueLabel(d);
     // Only the genuinely imminent ones get colour; everything else stays neutral
     // so the row doesn't read as a wall of warnings.
@@ -2343,6 +2346,7 @@ function _save() {
       challenges:      state.challenges,
       startingBalance: state.startingBalance,
       ...(state.reconciliation ? { reconciliation: state.reconciliation } : {}),
+      ...(state.reconciliationDraft ? { reconciliationDraft: state.reconciliationDraft } : {}),
     }));
     return true;
   } catch(e) { _showSaveError(); return false; }
@@ -2568,6 +2572,7 @@ function recoverFromDemoMode() {
 }
 
 function _loadAccountData(id) {
+  if ((state.accounts || []).find(a=>a.id===id)?.archived) { id=activeAccounts()[0]?.id || id; currentAccountId=id; }
   let d = {};
   try { d = JSON.parse(localStorage.getItem(accountDataKey(id)) || '{}'); } catch(e) { d = {}; }
   state.transactions    = d.transactions    || [];
@@ -2578,6 +2583,7 @@ function _loadAccountData(id) {
   state.challenges      = d.challenges      || [];
   state.startingBalance = parseFloat(d.startingBalance) || 0;
   state.reconciliation = d.reconciliation || null;
+  state.reconciliationDraft = d.reconciliationDraft || null;
   // Every load replaces the calculation inputs, including direct Accounts-page
   // switches, browser-back navigation, and restores of the same account ID.
   _calcVer++;
@@ -2619,6 +2625,7 @@ const api = {
       state.accounts.unshift({ id: 'main', name: 'Main', type: 'checking' });
       _saveAccounts();
     }
+    if (!state.accounts.some(a => a.id === currentAccountId && !a.archived)) currentAccountId = activeAccounts()[0]?.id || 'main';
     _loadAccountData(currentAccountId);
   },
   async switchAccount(id, useSkeleton = false) {
@@ -2665,8 +2672,11 @@ const api = {
     if (acct) { acct.name = name; _saveAccounts(); updateAccountSwitcher(); }
   },
   async addTransaction(t)          { state.transactions.push(t); _save(); },
-  async deleteTransaction(idx)     { state.transactions.splice(idx, 1); _save(); },
-  async patchTransaction(idx, upd) { Object.assign(state.transactions[idx], upd); _save(); },
+  async deleteTransaction(idx, { undo = true } = {}) {
+    if (undo) changeLedgerWithUndo('Transaction deleted', () => state.transactions.splice(idx,1));
+    else { state.transactions.splice(idx,1); _save(); }
+  },
+  async patchTransaction(idx, upd) { changeLedgerWithUndo('Transaction updated', () => { Object.assign(state.transactions[idx],upd); if (state.transactions[idx].type !== 'expense' || state.transactions[idx]._xfer || state.transactions[idx]._billTxnId) delete state.transactions[idx].status; }); },
   async saveWeeklyPlan(plan)       { state.weekly_plan = plan; _save(); },
   async saveBudgets(b)             { state.budgets = b; _save(); },
   async saveBills(bills)           { state.bills = bills; _save(); },
@@ -2879,10 +2889,10 @@ function calculatePaydayForecast({account, transactions = [], bills = [], plan =
   let billsTotal = 0;
   while (month <= payDate.slice(0, 7)) {
     for (const bill of bills) {
-      const amount = Number(bill.amount);
+      const amount = billOccurrenceAmount(bill,month);
       const paid = Array.isArray(bill.paidMonths) ? bill.paidMonths : bill.paidMonth ? [bill.paidMonth] : [];
-      const dueDate = `${month}-${String(billDueDay(bill.dueDay, month)).padStart(2, '0')}`;
-      if (paid.includes(month) || dueDate > payDate || !Number.isFinite(amount) || amount <= 0) continue;
+      const dueDate = billOccurrenceDate(bill,month);
+      if (!dueDate || paid.includes(month) || dueDate > payDate || !Number.isFinite(amount) || amount <= 0) continue;
       // Current-month overdue bills remain due today; earlier months aren't
       // invented as arrears when the bill has no historical schedule data.
       events.push({date:dueDate < asOf ? asOf : dueDate, dueDate, label:bill.name || 'Bill', change:-amount, kind:'bill'});
@@ -2975,7 +2985,7 @@ function renderHomeSpending(inputs, skinned = false) {
       <p>${view.period === 'day' ? `The remaining balance is spread over ${math.days} calendar days left in this month, including today, then capped by the amount left this week. Recorded purchases already reduce this balance.` : 'The available weekly limit comes from the remaining monthly balance. The amount left uses the lower of your preferred weekly target and that limit, minus this week’s discretionary spending.'} Bills, transfers, and excluded entries are outside discretionary spending. Refunds reduce spending.</p>
       <p>Payday uses dated bills through the next paycheck, so its window can differ from the monthly plan.</p><button type="button" class="btn-secondary" data-payday-go="weekly">Review spending plan</button></details>`}
     ${forecast?.status !== 'ready' ? `<p class="home-schedule-note">${forecast?.status === 'review' ? 'Review your next paycheck date and amount.' : 'Set a paycheck schedule to unlock the payday view.'} <button type="button" data-payday-go="accounts">Accounts</button></p>` : ''}
-    <button type="button" class="home-review-bills" data-payday-go="bills">Review bills · ${state.bills.filter(b => !isBillPaidFor(b, localMonthKey())).length} unpaid this month</button>
+    <button type="button" class="home-review-bills" data-payday-go="bills">Review bills · ${state.bills.filter(b => billOccurrenceDate(b,localMonthKey()) && !isBillPaidFor(b, localMonthKey())).length} unpaid this month</button>
   </section>`;
 }
 
@@ -3006,9 +3016,9 @@ function dashboardUpcomingBills(bills, asOf = today(), days = 7) {
   for (let month = asOf.slice(0, 7); month <= end.slice(0, 7); month = shiftMonthKey(month, 1)) {
     (bills || []).forEach((bill, index) => {
       const paid = Array.isArray(bill.paidMonths) ? bill.paidMonths : bill.paidMonth ? [bill.paidMonth] : [];
-      const date = `${month}-${String(Math.trunc(billDueDay(bill.dueDay, month))).padStart(2, '0')}`;
-      const amount = Number(bill.amount);
-      if (paid.includes(month) || date > end || !Number.isFinite(amount) || amount < 0) return;
+      const date = billOccurrenceDate(bill,month);
+      const amount = billOccurrenceAmount(bill,month);
+      if (!date || paid.includes(month) || date > end || !Number.isFinite(amount) || amount < 0) return;
       rows.push({index, name:bill.name || 'Bill', amount, date, days:dayNumber(date) - dayNumber(asOf)});
     });
   }
@@ -3048,7 +3058,7 @@ function renderEverydayDashboard(balance, inputs, gamblingMonth, gamblingAll) {
     ${gettingStartedHtml()}${backupBannerHtml()}
     <header class="overview-heading"><div class="overview-identity"><img class="overview-mark" src="${mascotSrc()}" alt=""><div><h1>Today, at a glance</h1><p>${date}</p></div></div><button type="button" class="overview-privacy dash-privacy-btn" id="dash-privacy-btn" aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden()}">${_eyeIconSvg(_amountsHidden())}</button></header>
     <section class="overview-balance" aria-label="Account balance and seven-day history">
-      <div class="overview-balance-main"><span class="overview-eyebrow">Account balance</span><strong class="overview-balance-amount comparison-value${balance < 0 ? ' is-negative' : ''}">${fmt(balance)}</strong></div>
+      <div class="overview-balance-main"><span class="overview-eyebrow">${state.transactions.some(isPendingPurchase) ? 'Available balance' : 'Account balance'}</span><strong class="overview-balance-amount comparison-value${balance < 0 ? ' is-negative' : ''}">${fmt(balance)}</strong></div>
       <button type="button" class="overview-spark" id="overview-history-preview" aria-label="View balance history for the last 7 days"><span class="overview-spark-label">7 days</span><span class="overview-spark-plot"><canvas id="overview-sparkline" aria-hidden="true"></canvas></span><span class="overview-spark-dates"><span>${shortDate(history[0].date)}</span><span>${shortDate(history[6].date)}</span></span></button>
     </section>
     <section class="overview-spending" aria-labelledby="overview-spending-title"><h2 id="overview-spending-title">Spending room</h2><div class="overview-quickbar" aria-label="Daily and weekly limits">
@@ -3750,6 +3760,7 @@ function _buildBackupPayload() {
     challenges:     state.challenges,
     startingBalance: state.startingBalance,
     ...(state.reconciliation ? { reconciliation: state.reconciliation } : {}),
+      ...(state.reconciliationDraft ? { reconciliationDraft: state.reconciliationDraft } : {}),
   };
 }
 
@@ -3762,6 +3773,8 @@ function backupPreviewData(data) {
   if (!multi && !Array.isArray(data.transactions)) throw new Error('Missing transactions');
   const accounts = data.accounts || defaultAccounts();
   if (!Array.isArray(accounts) || !accounts.length) throw new Error('No accounts in backup');
+  if (accounts.every(a=>a?.archived)) throw new Error('A backup must include at least one active account.');
+  if (!multi && accounts.find(a=>a?.id===data.currentAccountId)?.archived) throw new Error('The legacy backup’s selected account is archived.');
   const ids = new Set();
   const legacyId = accounts.find(a => a?.id === data.currentAccountId)?.id || accounts.find(a => a?.id === 'main')?.id || accounts[0]?.id;
   const rows = accounts.map(account => {
@@ -3805,7 +3818,7 @@ function restoreBackupWithUndo(raw) {
     const expected = new Map([[ACCOUNTS_KEY, JSON.stringify(accounts)], [NOTES_KEY, JSON.stringify(data.notes || [])]]);
     if (data.settings) expected.set(SETTINGS_KEY, JSON.stringify(data.settings));
     if (data._multiAccount) accounts.forEach(account => expected.set(accountDataKey(account.id), JSON.stringify(data.accountData[account.id] || {})));
-    else expected.set(accountDataKey(currentAccountId), JSON.stringify({transactions:data.transactions || [], weekly_plan:data.weekly_plan || {}, budgets:data.budgets || {}, bills:data.bills || [], goals:data.goals || [], challenges:data.challenges || [], startingBalance:Number(data.startingBalance) || 0, ...(data.reconciliation ? {reconciliation:data.reconciliation} : {})}));
+    else expected.set(accountDataKey(currentAccountId), JSON.stringify({transactions:data.transactions || [], weekly_plan:data.weekly_plan || {}, budgets:data.budgets || {}, bills:data.bills || [], goals:data.goals || [], challenges:data.challenges || [], startingBalance:Number(data.startingBalance) || 0, ...(data.reconciliation ? {reconciliation:data.reconciliation} : {}), ...(data.reconciliationDraft ? {reconciliationDraft:data.reconciliationDraft} : {})}));
     if ([...expected].some(([key, value]) => localStorage.getItem(key) !== value)) throw new Error('Backup could not be saved completely');
   } catch (error) {
     // Remove newly written values first, freeing space for the original values.
@@ -3886,6 +3899,7 @@ function _applyBackupPayload(data) {
     state.challenges   = data.challenges   || [];
     state.startingBalance = Number(data.startingBalance) || 0;
     state.reconciliation = data.reconciliation || null;
+    state.reconciliationDraft = data.reconciliationDraft || null;
     state.accounts = acctList.length ? acctList : defaultAccounts();
     currentAccountId = state.accounts.find(a => a.id === data.currentAccountId)?.id || state.accounts.find(a => a.id === 'main')?.id || state.accounts[0].id;
     state.accounts.filter(account => account.id !== currentAccountId).forEach(account => localStorage.setItem(accountDataKey(account.id), '{}'));
@@ -4103,6 +4117,34 @@ function openCalcKeypad(target) {
   refresh();
 }
 
+let _returnToBankReview = null;
+function bankReviewStorageStamp(raw) {
+  if (!raw) return raw;
+  try { const data = JSON.parse(raw); delete data.reconciliationDraft; return JSON.stringify(data); }
+  catch { return raw; }
+}
+function persistBankReviewDraft(accountId, draft) {
+  const key = accountDataKey(accountId);
+  const data = JSON.parse(localStorage.getItem(key) || '{}');
+  data.reconciliationDraft = draft;
+  localStorage.setItem(key, JSON.stringify(data));
+  if (accountId === currentAccountId) state.reconciliationDraft = draft;
+}
+async function returnToBankReview() {
+  const back = _returnToBankReview;
+  if (!back) return false;
+  _returnToBankReview = null;
+  if (currentAccountId !== back.accountId) await api.switchAccount(back.accountId);
+  showingAccountPicker = false;
+  _pageTransition = 'none'; showTab('ledger'); showReconcileModal();
+  return true;
+}
+function refreshLedgerUndoStorage() {
+  if (_ledgerUndo?.accountId === currentAccountId && _ledgerUndo.after === JSON.stringify(state.transactions)) {
+    _ledgerUndo.stored = localStorage.getItem(accountDataKey(currentAccountId));
+  }
+}
+
 // ── Match bank statements without changing recorded money ───────────────────
 function bankMatchCents(value) {
   if (!['number', 'string'].includes(typeof value) || String(value).trim() === '') return null;
@@ -4124,7 +4166,7 @@ function bankMatchKey(transaction, duplicate = false) {
 function bankMatchRows(transactions, asOf) {
   if (!bankMatchDate(asOf)) return [];
   return (transactions || []).flatMap((transaction, index) => {
-    if (!bankMatchDate(transaction.date) || transaction.date > asOf ||
+    if (isPendingPurchase(transaction) || !bankMatchDate(transaction.date) || transaction.date > asOf ||
         !['income', 'expense'].includes(transaction.type)) return [];
     const cents = bankMatchCents(transaction.amount);
     return cents !== null && cents >= 0 ? [{ transaction, index, cents }] : [];
@@ -4136,6 +4178,7 @@ function bankMatchSelection(transactions, checkpoint) {
   for (const key of Array.isArray(checkpoint?.matched) ? checkpoint.matched : []) remaining.set(key, (remaining.get(key) || 0) + 1);
   const selected = new Set();
   (transactions || []).forEach((transaction, index) => {
+    if (isPendingPurchase(transaction)) return;
     const key = bankMatchKey(transaction), count = remaining.get(key) || 0;
     if (count > 0) { selected.add(index); remaining.set(key, count - 1); }
   });
@@ -4159,7 +4202,7 @@ function bankMatchSummary(transactions, opening, debt, asOf, target, selected) {
   const difference = targetCents - cleared;
   if (![recorded, cleared, difference].every(Number.isSafeInteger)) return null;
   return { cleared: cleared / 100, recorded: recorded / 100, difference: difference / 100,
-    matched: count, unchecked: rows.length - count, future: (transactions || []).length - rows.length };
+    matched: count, unchecked: rows.length - count, future: (transactions || []).filter(t => t.date > asOf).length, pending: (transactions || []).filter(t => t.date <= asOf && isPendingPurchase(t)).length };
 }
 
 function bankLedgerStamp(transactions, opening, asOf) {
@@ -4167,6 +4210,7 @@ function bankLedgerStamp(transactions, opening, asOf) {
 }
 
 function bankMatchStatus() {
+  if (state.reconciliationDraft) return 'Unfinished bank review saved on this device.';
   const checkpoint = state.reconciliation;
   if (!checkpoint || !bankMatchDate(checkpoint.asOf) || bankMatchCents(checkpoint.balance) === null) return 'Check posted transactions against your bank.';
   const changed = checkpoint.stamp !== bankLedgerStamp(state.transactions, state.startingBalance || 0, checkpoint.asOf);
@@ -4179,7 +4223,7 @@ function saveBankMatch({ accountId, transactions, opening, asOf, target, selecte
   }
   const storedRaw = localStorage.getItem(accountDataKey(accountId));
   const stored = storedRaw ? JSON.parse(storedRaw) : null;
-  if ((expectedStorage !== undefined && storedRaw !== expectedStorage) || (stored &&
+  if ((expectedStorage !== undefined && bankReviewStorageStamp(storedRaw) !== bankReviewStorageStamp(expectedStorage)) || (stored &&
       (JSON.stringify(stored.transactions || []) !== JSON.stringify(transactions) || Number(stored.startingBalance || 0) !== Number(opening || 0)))) {
     throw new Error('Your Ledger changed in storage. Reload the app and start this review again.');
   }
@@ -4187,11 +4231,12 @@ function saveBankMatch({ accountId, transactions, opening, asOf, target, selecte
   const account = state.accounts.find(a => a.id === accountId);
   const result = bankMatchSummary(transactions, opening || 0, ['credit','loan'].includes(account?.type), asOf, target, selected);
   if (!result || result.difference !== 0) throw new Error('The checked balance must match your bank before saving.');
-  const previous = state.reconciliation;
+  const previous = state.reconciliation, previousDraft = state.reconciliationDraft;
+  state.reconciliationDraft = null;
   state.reconciliation = { asOf, balance: bankMatchCents(target) / 100, savedAt: new Date().toISOString(),
     matched: bankMatchRows(transactions, asOf).filter(row => selected.has(row.index)).map(row => bankMatchKey(row.transaction)),
     stamp: bankLedgerStamp(transactions, opening || 0, asOf) };
-  if (!_save()) { state.reconciliation = previous; throw new Error('The match could not be saved. Your previous match has been kept.'); }
+  if (!_save()) { state.reconciliation = previous; state.reconciliationDraft = previousDraft; throw new Error('The match could not be saved. Your previous match has been kept.'); }
   return result;
 }
 
@@ -4201,15 +4246,17 @@ function showReconcileModal() {
   const transactions = JSON.parse(JSON.stringify(state.transactions)), opening = state.startingBalance;
   const expectedStorage = localStorage.getItem(accountDataKey(accountId));
   const debt = ['credit','loan'].includes(account?.type);
-  const selected = bankMatchSelection(transactions, state.reconciliation);
+  const draft = state.reconciliationDraft;
+  const selected = bankMatchSelection(transactions, draft ? {matched:draft.selected} : state.reconciliation);
+  const draftDate = draft && bankMatchDate(draft.asOf) && draft.asOf <= today() ? draft.asOf : today();
   const overlay = document.createElement('div');
   overlay.id = 'reconcile-overlay';
   overlay.className = 'bank-match-overlay';
   overlay.innerHTML = `<section class="reconcile-card bank-match-card" role="dialog" aria-modal="true" aria-labelledby="bank-match-title">
     <header class="bank-match-heading"><div><h2 id="bank-match-title">Match my bank</h2><p>${_escHtml(account?.name || 'Account')}</p></div><button type="button" id="reconcile-cancel" class="bank-match-close" aria-label="Close bank review">×</button></header>
     <div class="bank-match-body">
-      <p class="bank-match-help">Use your bank’s posted ${debt ? 'balance owed' : 'balance'}, excluding pending purchases. Check each entry that appears on your statement.</p>
-      <div class="bank-match-fields"><label>Statement date<input type="date" id="reconcile-date" class="form-input" value="${today()}" max="${today()}" required></label><label>${debt ? 'Balance owed' : 'Posted balance'} ($)<input type="number" id="reconcile-input" class="form-input" inputmode="decimal" step="0.01" placeholder="0.00" required></label></div>
+      <p class="bank-match-help">Check entries against your bank’s posted ${debt ? 'balance owed' : 'balance'}. Pending purchases are excluded here and still reserve money in your budget.</p>
+      <div class="bank-match-fields"><label>Statement date<input type="date" id="reconcile-date" class="form-input" value="${draftDate}" max="${today()}" required></label><label>${debt ? 'Balance owed' : 'Posted balance'} ($)<input type="number" id="reconcile-input" class="form-input" inputmode="decimal" step="0.01" placeholder="0.00" value="${_escHtml(String(draft?.target || ''))}" required></label></div>
       ${debt ? '<p class="bank-match-help">A negative balance owed represents a credit on your account.</p>' : ''}
       <div id="reconcile-diff" class="bank-match-summary" aria-live="polite"></div>
       <div class="bank-match-list-heading"><h3>Statement entries</h3><span id="reconcile-count"></span></div>
@@ -4218,8 +4265,8 @@ function showReconcileModal() {
       <div id="reconcile-entries" class="bank-match-entries"></div>
       <button type="button" id="reconcile-more" class="bank-match-more" hidden>Show more entries</button>
       <p class="bank-match-help">Opening balance: ${fmt(opening || 0)}${debt ? ' owed' : ''}. Bills and transfers are included once as recorded. Unchecked entries stay in your Ledger and budget.</p>
-      <p class="bank-match-help">Missing an entry? Close this review and add or edit it in Ledger, then return here. No balance adjustment is added by this review.</p>
-      <p id="reconcile-error" role="alert" class="bank-match-error"></p>
+      <p class="bank-match-help">Your unfinished review saves on this device. Add a missing entry and return to the same review.</p><button type="button" id="reconcile-add-entry" class="bank-match-more">Add missing transaction</button><button type="button" id="reconcile-discard" class="bank-match-more">Discard this draft</button>
+      <p id="reconcile-error" role="alert" class="bank-match-error"></p><button type="button" id="reconcile-close-unsaved" class="bank-match-more" hidden>Close without saving draft</button>
     </div>
     <footer class="bank-match-footer"><p id="reconcile-result">Enter a balance to compare.</p><button type="button" id="reconcile-save" class="btn-primary" disabled>Save match</button></footer>
   </section>`;
@@ -4227,19 +4274,31 @@ function showReconcileModal() {
   const input = overlay.querySelector('#reconcile-input'), date = overlay.querySelector('#reconcile-date');
   const search = overlay.querySelector('#reconcile-search'), save = overlay.querySelector('#reconcile-save');
   const error = overlay.querySelector('#reconcile-error');
-  let visible = [], limit = 100;
-  const close = () => { overlay.remove(); releaseFocus(); };
+  let visible = [], limit = 100, completed = false, draftTimer = null, dirty = !!draft;
+  function saveDraft() {
+    clearTimeout(draftTimer);
+    if (completed || !dirty) return true;
+    const saved = {asOf:date.value, target:input.value, selected:[...selected].map(i => bankMatchKey(transactions[i])), savedAt:new Date().toISOString()};
+    try { persistBankReviewDraft(accountId,saved); return true; }
+    catch { error.textContent = 'This draft could not be saved. You can keep reviewing or close without saving it.'; overlay.querySelector('#reconcile-close-unsaved').hidden=false; return false; }
+  }
+  const queueDraft = () => { if(!dirty)return; clearTimeout(draftTimer); draftTimer = setTimeout(saveDraft,200); };
+  const hidden = () => { if(document.visibilityState==='hidden')saveDraft(); };
+  const close = () => { if(!saveDraft())return false; window.removeEventListener('pagehide',saveDraft); document.removeEventListener('visibilitychange',hidden); overlay.remove(); releaseFocus(); return true; };
+  window.addEventListener('pagehide',saveDraft);
+  document.addEventListener('visibilitychange',hidden);
   const releaseFocus = manageModalFocus(overlay, input, close);
   function refreshSummary() {
     const result = bankMatchSummary(transactions, opening || 0, debt, date.value, input.value, selected);
     const valid = !!result && date.value <= today();
     save.disabled = !valid || result.difference !== 0;
+    queueDraft();
     const rows = bankMatchRows(transactions, date.value), checked = rows.filter(row => selected.has(row.index)).length;
     overlay.querySelector('#reconcile-count').textContent = `${checked} of ${rows.length} checked`;
     overlay.querySelector('#reconcile-diff').innerHTML = `<div><span>Checked balance${debt ? ' owed' : ''}</span><strong>${result ? fmt(result.cleared) : '—'}</strong></div><div><span>Bank balance${debt ? ' owed' : ''}</span><strong>${result ? fmt(Number(input.value)) : '—'}</strong></div><div class="bank-match-difference"><span>Difference</span><strong>${result ? fmt(Math.abs(result.difference)) : '—'}</strong></div>`;
     const message = !bankMatchDate(date.value) || date.value > today() ? 'Choose today or an earlier statement date.'
       : !result ? (input.value === '' ? 'Enter a balance to compare.' : 'Check your balance and any invalid Ledger entries.')
-      : result.difference === 0 ? `Ready to save · ${result.unchecked} unchecked${result.future ? ` · ${result.future} later entries excluded` : ''}`
+      : result.difference === 0 ? `Ready to save · ${result.unchecked} unchecked${result.pending ? ` · ${result.pending} pending excluded` : ''}${result.future ? ` · ${result.future} later entries excluded` : ''}`
       : `Your bank is ${fmt(Math.abs(result.difference))} ${result.difference > 0 ? (debt ? 'more owed' : 'higher') : (debt ? 'less owed' : 'lower')} than the checked balance.`;
     overlay.querySelector('#reconcile-result').textContent = message;
     overlay.querySelector('#reconcile-diff').classList.toggle('is-matched', valid && result.difference === 0);
@@ -4255,25 +4314,36 @@ function showReconcileModal() {
     overlay.querySelector('#reconcile-entries').innerHTML = visible.length ? visible.map(({ transaction: t, index }) => `<label class="bank-match-row"><input type="checkbox" data-bank-index="${index}"${selected.has(index) ? ' checked' : ''}><span class="bank-match-description"><strong>${_escHtml(t.description || t.category || 'Transaction')}</strong><small>${_escHtml(t.date)} · ${_escHtml(t.category || 'Other')}${duplicates.get(bankMatchKey(t, true)) > 1 ? '<span class="bank-match-duplicate">Possible duplicate — review both</span>' : ''}</small></span><span class="bank-match-amount">${t.type === 'income' ? '+' : '−'}${fmt(t.amount)}</span></label>`).join('') : '<p class="bank-match-help">No entries for this date or search.</p>';
     refreshSummary();
   }
-  input.addEventListener('input', refreshSummary);
-  date.addEventListener('input', () => { limit = 100; refreshEntries(); });
+  input.addEventListener('input', () => { dirty=true; refreshSummary(); });
+  date.addEventListener('input', () => { dirty=true; limit = 100; refreshEntries(); });
   search.addEventListener('input', () => { limit = 100; refreshEntries(); });
   overlay.querySelector('#reconcile-more').addEventListener('click', () => { limit += 100; refreshEntries(); });
   overlay.querySelector('#reconcile-entries').addEventListener('change', event => {
     const index = Number(event.target.dataset.bankIndex);
     if (!Number.isInteger(index) || !event.target.matches('[data-bank-index]')) return;
+    dirty=true;
     if (event.target.checked) selected.add(index); else selected.delete(index);
     refreshSummary();
   });
-  overlay.querySelector('#reconcile-select').addEventListener('click', () => { visible.forEach(row => selected.add(row.index)); refreshEntries(); });
-  overlay.querySelector('#reconcile-clear').addEventListener('click', () => { visible.forEach(row => selected.delete(row.index)); refreshEntries(); });
+  overlay.querySelector('#reconcile-select').addEventListener('click', () => { dirty=true; visible.forEach(row => selected.add(row.index)); refreshEntries(); });
+  overlay.querySelector('#reconcile-clear').addEventListener('click', () => { dirty=true; visible.forEach(row => selected.delete(row.index)); refreshEntries(); });
+  overlay.querySelector('#reconcile-add-entry').addEventListener('click', () => {
+    dirty=true; if(!close())return; _returnToBankReview = {accountId, date:date.value}; showTab('add');
+  });
+  overlay.querySelector('#reconcile-discard').addEventListener('click', () => {
+    completed = true; clearTimeout(draftTimer);
+    try { const key=accountDataKey(accountId), data=JSON.parse(localStorage.getItem(key)||'{}'); delete data.reconciliationDraft; localStorage.setItem(key,JSON.stringify(data)); state.reconciliationDraft=null; }
+    catch { completed=false; error.textContent='The draft could not be cleared. Try again.'; return; }
+    close(); render();
+  });
+  overlay.querySelector('#reconcile-close-unsaved').addEventListener('click',()=>{completed=true;clearTimeout(draftTimer);close();});
   overlay.querySelector('#reconcile-cancel').addEventListener('click', close);
   overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
   save.addEventListener('click', () => {
     save.disabled = true;
     try { saveBankMatch({ accountId, transactions, opening, asOf: date.value, target: input.value, selected, expectedStorage }); }
     catch (e) { error.textContent = e.message; return; }
-    close(); render(); _toast('✓ Bank match saved. Your transactions are unchanged.');
+    completed = true; clearTimeout(draftTimer); close(); render(); _toast('✓ Bank match saved. Your transactions are unchanged.');
   });
   refreshEntries();
 }
@@ -4384,6 +4454,7 @@ let selectedLedgerIdx = null;
 let ledgerFilter = '';
 let ledgerSort = 'date-desc';
 let ledgerTypeFilter = 'all';
+let ledgerStatusFilter = 'all';
 let ledgerView = 'transactions';   // 'transactions' (non-bill) | 'bills'
 let billsMonth = localMonthKey();   // YYYY-MM shown on the Bills page
 let ledgerCatFilter = '';
@@ -4411,7 +4482,7 @@ function showTab(key) {
   if (key === 'weekly' && _isDebtAcct(_currentAcct())) key = 'debt';
   _navPush();
   if (currentTab === 'ledger' && key !== 'ledger') {
-    ledgerFilter = ''; ledgerSort = 'date-desc'; ledgerTypeFilter = 'all';
+    ledgerFilter = ''; ledgerSort = 'date-desc'; ledgerTypeFilter = 'all'; ledgerStatusFilter = 'all';
     ledgerCatFilter = ''; ledgerDateFrom = ''; ledgerDateTo = ''; ledgerView = 'transactions';
   }
   if (currentTab === 'bills' && key !== 'bills') billsMonth = localMonthKey();
@@ -4790,6 +4861,145 @@ function checkWeekMilestone() {
   }
 }
 
+function appendAccountTransactions(accountId, entries) {
+  const account = state.accounts.find(a=>a.id===accountId && !a.archived);
+  if (!account) throw new Error('Choose an active account.');
+  if (accountId === currentAccountId) {
+    const before=state.transactions;
+    state.transactions=[...before,...entries];
+    if (!_save()) { state.transactions=before; throw new Error('The entry could not be saved. Nothing was added.'); }
+  } else {
+    const key=accountDataKey(accountId), data=JSON.parse(localStorage.getItem(key)||'{}');
+    data.transactions=[...(data.transactions || []),...entries];
+    try { localStorage.setItem(key,JSON.stringify(data)); }
+    catch { throw new Error('The entry could not be saved. Nothing was added.'); }
+    _calcVer++;
+  }
+}
+
+// Local purchase state. Older entries are posted; transfers and bill payments
+// remain posted. A pending purchase still reserves its full amount everywhere.
+function isPendingPurchase(transaction) {
+  return transaction?.type === 'expense' && transaction.status === 'pending' && !transaction._xfer && !transaction._billTxnId;
+}
+function purchaseStatus(transaction) { return isPendingPurchase(transaction) ? 'pending' : 'posted'; }
+
+function activeAccounts() { return (state.accounts || []).filter(account => !account.archived); }
+
+// One month has at most one occurrence for the supported bill schedules. Legacy
+// bills stay monthly. Anchors retain day 29/30/31 when shorter months clamp it.
+function billOccurrenceDate(bill, month) {
+  if (!/^\d{4}-\d{2}$/.test(month || '') || Number(month.slice(5)) < 1 || Number(month.slice(5)) > 12) return null;
+  const saved = bill.occurrences?.[month]?.date;
+  if (typeof saved === 'string' && saved.slice(0,7) === month && /^\d{4}-\d{2}-\d{2}$/.test(saved)) {
+    const parsed=new Date(saved+'T12:00:00Z');
+    if (Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0,10)===saved) return saved;
+  }
+  const frequency = bill.frequency || 'monthly';
+  if (!['monthly','quarterly','annual','once'].includes(frequency)) return null;
+  const anchor = bill.startDate;
+  let day = Number(bill.dueDay) || 1;
+  if (anchor) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(anchor)) return null;
+    const parsed = new Date(anchor + 'T12:00:00Z');
+    if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0,10) !== anchor) return null;
+    const distance = (Number(month.slice(0,4))-Number(anchor.slice(0,4)))*12 + Number(month.slice(5))-Number(anchor.slice(5,7));
+    if (distance < 0 || (frequency === 'once' && distance !== 0) ||
+        (frequency === 'quarterly' && distance % 3 !== 0) || (frequency === 'annual' && distance % 12 !== 0)) return null;
+    day = Number(anchor.slice(8));
+  } else if (frequency !== 'monthly') return null;
+  return `${month}-${String(billDueDay(day, month)).padStart(2,'0')}`;
+}
+function billOccurrenceAmount(bill, month) {
+  const amount = Number(bill.occurrences?.[month]?.amount ?? bill.amount);
+  return Number.isFinite(amount) && amount >= 0 ? amount : NaN;
+}
+function billDaysUntil(bill, month = localMonthKey(), asOf = today()) {
+  const date = billOccurrenceDate(bill, month);
+  return date ? (Date.parse(date+'T12:00:00Z')-Date.parse(asOf+'T12:00:00Z'))/86400000 : Infinity;
+}
+function billScheduleLabel(bill) {
+  return ({monthly:'Monthly',quarterly:'Quarterly',annual:'Yearly',once:'One time'})[bill.frequency || 'monthly'] || 'Schedule';
+}
+function rememberBillOccurrence(bill, month) {
+  const date = billOccurrenceDate(bill, month);
+  if (!date) return;
+  if (!bill.occurrences || typeof bill.occurrences !== 'object') bill.occurrences = {};
+  if (!bill.occurrences[month]) bill.occurrences[month] = {date, amount:billOccurrenceAmount(bill,month)};
+}
+
+// A single immediate undo, scoped to its account. Never replace newer data from
+// another tab. Programmatic bill-payment operations explicitly opt out.
+let _ledgerUndo = null;
+function changeLedgerWithUndo(label, change) {
+  const before = JSON.parse(JSON.stringify(state.transactions));
+  const storedBefore = localStorage.getItem(accountDataKey(currentAccountId));
+  if (storedBefore) {
+    const stored = JSON.parse(storedBefore);
+    if (JSON.stringify(stored.transactions || []) !== JSON.stringify(before)) throw new Error('Your Ledger changed in another tab. Reload before editing.');
+  }
+  try {
+    change();
+    if (!_save()) throw new Error('The change could not be saved.');
+  } catch (error) { state.transactions = before; throw error; }
+  _ledgerUndo = {label, accountId:currentAccountId, before,
+    after:JSON.stringify(state.transactions), stored:localStorage.getItem(accountDataKey(currentAccountId))};
+}
+function ledgerUndoHtml() {
+  if (!_ledgerUndo || _ledgerUndo.accountId !== currentAccountId || _ledgerUndo.after !== JSON.stringify(state.transactions)) return '';
+  return `<aside class="ledger-undo" role="status"><span>${_escHtml(_ledgerUndo.label)}</span><button type="button" id="ledger-undo">Undo</button><button type="button" id="ledger-undo-dismiss" aria-label="Dismiss Undo">×</button></aside>`;
+}
+function undoLedgerChange() {
+  const action = _ledgerUndo;
+  if (!action || action.accountId !== currentAccountId || action.after !== JSON.stringify(state.transactions) ||
+      action.stored !== localStorage.getItem(accountDataKey(currentAccountId))) throw new Error('Other changes were saved. Use a restore point to review earlier data.');
+  const after = state.transactions;
+  state.transactions = JSON.parse(JSON.stringify(action.before));
+  if (!_save()) { state.transactions = after; throw new Error('Undo could not be saved.'); }
+  _ledgerUndo = null;
+}
+
+function accountArchiveReason(id) {
+  const account = state.accounts.find(a => a.id === id);
+  if (!account) return 'Account not found.';
+  if (account.archived) return '';
+  if (activeAccounts().length <= 1) return 'Keep at least one active account.';
+  const data = id === currentAccountId ? state : JSON.parse(localStorage.getItem(accountDataKey(id)) || '{}');
+  let balance = Number(data.startingBalance) || 0;
+  const debt = ['credit','loan'].includes(account.type);
+  for (const t of data.transactions || []) balance += (t.type === 'income' ? 1 : -1) * (debt ? -1 : 1) * Number(t.amount);
+  // Zero has the same meaning for assets and debt, including overpaid cards.
+  if (!Number.isFinite(balance) || Math.round(balance*100) !== 0) return 'Bring this account’s balance to $0 before archiving.';
+  if ((data.transactions || []).some(isPendingPurchase)) return 'Post or remove pending purchases before archiving.';
+  if ((data.bills || []).some(b => billOccurrenceDate(b,localMonthKey()) && !isBillPaidFor(b,localMonthKey()))) return 'Resolve or move this month’s unpaid bills before archiving.';
+  for (const owner of state.accounts) {
+    const ownerData = owner.id === currentAccountId ? state : JSON.parse(localStorage.getItem(accountDataKey(owner.id)) || '{}');
+    if ((ownerData.bills || []).some(b => b.linkedAccountId === id)) return 'Unlink bill payments to this account before archiving.';
+  }
+  return '';
+}
+async function setAccountArchived(id, archived) {
+  const account = state.accounts.find(a => a.id === id);
+  if (!account) throw new Error('Account not found.');
+  if (archived) {
+    const reason = accountArchiveReason(id);
+    if (reason) throw new Error(reason);
+  }
+  const before = JSON.parse(JSON.stringify(state.accounts));
+  account.archived = !!archived;
+  if (archived) {
+    account.archivedAt = today();
+    if (account.paySchedule) account.paySchedule.enabled = false;
+    if (account.contribSchedule) account.contribSchedule.enabled = false;
+  } else delete account.archivedAt;
+  try { localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts)); }
+  catch (error) { state.accounts = before; throw new Error('The account change could not be saved.'); }
+  if (archived && currentAccountId === id) {
+    currentAccountId = activeAccounts()[0].id; _loadAccountData(currentAccountId);
+  }
+  updateAccountSwitcher();
+}
+
 // ── bills helpers ──────────────────────────────────────────────────────────
 function billDueDay(dueDay, monthKey = localMonthKey()) {
   const [year, month] = monthKey.split('-').map(Number);
@@ -4828,8 +5038,8 @@ function budgetReserveHtml(balance, buffer, bills, trackedBills) {
 function getUpcomingBills(days = 7) {
   const m = localMonthKey();
   return state.bills
-    .filter(b => !isBillPaidFor(b, m) && getDaysUntilDue(b.dueDay) <= days)
-    .sort((a, b) => getDaysUntilDue(a.dueDay) - getDaysUntilDue(b.dueDay));
+    .filter(b => billOccurrenceDate(b,m) && !isBillPaidFor(b, m) && billDaysUntil(b,m) <= days)
+    .sort((a, b) => billDaysUntil(a,m) - billDaysUntil(b,m));
 }
 
 // ── bill badge ─────────────────────────────────────────────────────────────
@@ -4989,8 +5199,8 @@ function calcDebtPayoff(owed, apr, monthlyPmt) {
 
 // ── debt ───────────────────────────────────────────────────────────────────
 function renderDebt() {
-  const creditAccts = state.accounts.filter(a => a.type === 'credit');
-  const loanAccts   = state.accounts.filter(a => a.type === 'loan');
+  const creditAccts = activeAccounts().filter(a => a.type === 'credit');
+  const loanAccts   = activeAccounts().filter(a => a.type === 'loan');
   const allDebt     = [...creditAccts, ...loanAccts];
 
   if (allDebt.length === 0) {
@@ -5308,7 +5518,7 @@ function renderAccountPicker() {
     if (isDebt) { _debts += balance; _nwDelta -= move; }
     else        { _assets += balance; _nwDelta += move; }
     return { acct, isDebt, balance, move, last };
-  });
+  }).filter(info => !info.acct.archived);
   // Retain the existing account selectors for switching and entrance effects;
   // the shared Daily UI layer presents them as compact, grouped rows.
   const rowHtml = ({ acct, isDebt, balance, move, last }) => {
@@ -5344,7 +5554,7 @@ function renderAccountPicker() {
   const rows = GROUPS.map(g => groupBlock(g.label, acctInfo.filter(x => g.types.includes(x.acct.type)), g.label === 'Debt')).join('')
     + groupBlock('Other', acctInfo.filter(x => !_knownTypes.has(x.acct.type)), false);
 
-  const count = state.accounts.length;
+  const count = activeAccounts().length;
   const nw = _assets - _debts;
   const assetPct = (_assets + _debts) > 0 ? (_assets / (_assets + _debts) * 100) : 100;
   const _stale = _latestVersion && _latestVersion !== VERSION;
@@ -6890,13 +7100,13 @@ function renderDashboardDawg() {
       {
         const _curMonth = localMonthKey();
         const _unpaid   = [...state.bills]
-          .filter(b => !isBillPaidFor(b, _curMonth))
-          .sort((a,b) => getDaysUntilDue(a.dueDay) - getDaysUntilDue(b.dueDay))
+          .filter(b => billOccurrenceDate(b,_curMonth) && !isBillPaidFor(b, _curMonth))
+          .sort((a,b) => billDaysUntil(a) - billDaysUntil(b))
           .slice(0, 5);
         if (_unpaid.length) {
           const _billTotal = _unpaid.reduce((s,b) => s + b.amount, 0);
           const _billRows  = _unpaid.map(b => {
-            const _d    = getDaysUntilDue(b.dueDay);
+            const _d    = billDaysUntil(b);
             const _col  = _d < 0 ? 'var(--danger)' : _d <= 3 ? 'var(--warn)' : 'var(--muted)';
             const _dlbl = _d < 0 ? 'OVERDUE' : _d === 0 ? 'TODAY' : _d === 1 ? 'TOMORROW' : `${_d}d`;
             return `<div class="dawg-bill-row">
@@ -7858,13 +8068,14 @@ function renderAdd() {
     .slice(0, 60)
     .map(d => `<option value="${String(d).replace(/"/g, '&quot;')}"></option>`).join('');
   const catOptions  = getCategories().map(c => `<option>${_escHtml(c)}</option>`).join('');
-  const acctOptions = state.accounts.map(a => `<option value="${a.id}">${_escHtml(a.name)}</option>`).join('');
-  const toAcctOptions = state.accounts.map(a => `<option value="${a.id}">${_escHtml(a.name)}</option>`).join('');
+  const acctOptions = activeAccounts().map(a => `<option value="${a.id}"${a.id === currentAccountId ? ' selected' : ''}>${_escHtml(a.name)}</option>`).join('');
+  const toAcctOptions = activeAccounts().map(a => `<option value="${a.id}"${a.id === currentAccountId ? ' selected' : ''}>${_escHtml(a.name)}</option>`).join('');
   return `
-    <div class="page">
+    <div class="page entry-page">
       <h1 class="page-title">Add Entry</h1>
-      <p class="page-sub">record income or expense</p>
-      <div class="form-card entry-card">
+      <p class="page-sub">Record a purchase, income, or transfer</p>
+      ${_returnToBankReview ? '<div class="entry-review-return"><span>Bank review saved</span><button type="button" class="overview-link" id="add-return-review">Return to review →</button></div>' : ''}
+      <div class="form-card entry-card entry-form">
         ${(() => {
           const tmpls = getCommonTemplates();
           if (!tmpls.length) return '';
@@ -7881,7 +8092,7 @@ function renderAdd() {
         })()}
         <div class="form-row">
           <label class="form-label">Type</label>
-          <div class="radio-group">
+          <div class="radio-group entry-type-segments">
             <label class="radio-label"><input type="radio" name="etype" value="expense" checked> Expense</label>
             <label class="radio-label"><input type="radio" name="etype" value="income"> Income</label>
             <label class="radio-label"><input type="radio" name="etype" value="transfer"> Transfer</label>
@@ -7897,6 +8108,7 @@ function renderAdd() {
           </div>
           <div id="add-amount-error" class="form-status" aria-live="polite"></div>
         </div>
+        <fieldset class="entry-purchase-status" id="add-purchase-status"><legend>Purchase status</legend><div class="entry-status-segments"><label><input type="radio" name="purchase-status" value="posted" checked><span>Posted</span></label><label><input type="radio" name="purchase-status" value="pending"><span>Pending</span></label></div><p class="code-hint">Pending purchases reserve money on their entry date. Posting won’t deduct again.</p></fieldset>
         <div class="form-row" id="add-desc-row">
           <label class="form-label" for="add-desc">Description</label>
           <input type="text" id="add-desc" class="form-input" placeholder="What was this for?" list="desc-suggestions" autocomplete="off">
@@ -7917,12 +8129,13 @@ function renderAdd() {
           <label class="form-label" for="add-to-acct">To / Pay</label>
           <select id="add-to-acct" class="form-input form-select">${toAcctOptions}</select>
         </div>
+        <div class="entry-shortcuts" id="entry-shortcuts"><button type="button" data-entry-option="split-toggle">Split categories</button><button type="button" data-entry-option="add-recurring">Repeat monthly</button></div>
         <details class="entry-options" id="add-options">
           <summary>More options <span>Date, split &amp; recurring</span></summary>
           <div class="entry-options-body">
         <div class="form-row">
           <label class="form-label" for="add-date">Date</label>
-          <input type="date" id="add-date" class="form-input" value="${today()}">
+          <input type="date" id="add-date" class="form-input" value="${_returnToBankReview?.date || today()}">
         </div>
         <div class="form-row" id="add-recurring-row"${_adv}>
           <label class="form-label">Recurring</label>
@@ -7947,8 +8160,7 @@ function renderAdd() {
         </div>
           </div>
         </details>
-        <div id="add-status" class="form-status" role="status"></div>
-        <button id="add-btn" class="btn-primary">Add Transaction</button>
+        <div class="entry-save-bar"><div id="add-status" class="form-status" role="status"></div><button id="add-btn" class="btn-primary">Add transaction</button></div>
       </div>
     </div>`;
 }
@@ -7983,6 +8195,7 @@ function renderLedger() {
       });
     });
   }
+  if (ledgerStatusFilter !== 'all') rows = rows.filter(t => purchaseStatus(t) === ledgerStatusFilter);
   if (ledgerTypeFilter !== 'all') rows = rows.filter(t => t.type === ledgerTypeFilter);
   if (ledgerCatFilter)  rows = rows.filter(t => t.category === ledgerCatFilter);
   if (ledgerDateFrom)   rows = rows.filter(t => t.date >= ledgerDateFrom);
@@ -8028,7 +8241,7 @@ function renderLedger() {
         <div class="ledger-row-inner">
           <div class="ledger-main">
             <div class="ledger-desc"><span class="cat-dot" style="background:${_catCol}"></span>${prefix}${_escHtml(t.description)}</div>
-            <div class="ledger-meta">${t.date} · ${_escHtml(t.category)} <span class="acct-badge">${_escHtml(t._acctName)}</span>${exTag}</div>
+            <div class="ledger-meta">${t.date} · ${_escHtml(t.category)} <span class="acct-badge">${_escHtml(t._acctName)}</span>${exTag}${isPendingPurchase(t) ? ' <span class="purchase-pending">Pending</span>' : ''}</div>
           </div>
           <div class="ledger-right">
             <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
@@ -8041,7 +8254,7 @@ function renderLedger() {
         <div class="ledger-row-inner">
           <div class="ledger-main">
             <div class="ledger-desc"><span class="cat-dot" style="background:${_catCol}"></span>${prefix}${_escHtml(t.description)}</div>
-            <div class="ledger-meta">${t.date} · ${_escHtml(t.category)}${acctBadge}${exTag}</div>
+            <div class="ledger-meta">${t.date} · ${_escHtml(t.category)}${acctBadge}${exTag}${isPendingPurchase(t) ? ' <span class="purchase-pending">Pending</span>' : ''}</div>
           </div>
           <div class="ledger-right">
             <div class="ledger-amt ${cls}">${sign}${fmt(t.amount)}</div>
@@ -8049,6 +8262,7 @@ function renderLedger() {
             <details class="ledger-row-actions">
               <summary aria-label="Actions for ${_escHtml(t.description || 'transaction')}">⋯</summary>
               <div>
+                ${isPendingPurchase(t) ? `<button type="button" class="ledger-post-btn" data-idx="${t._i}">Mark posted</button>` : ''}
                 <button class="ledger-edit-btn" data-idx="${t._i}" aria-label="Edit ${_escHtml(t.description||'transaction')}">Edit</button>
                 <button class="ledger-delete" data-idx="${t._i}" aria-label="Delete ${_escHtml(t.description||'transaction')}">Delete</button>
               </div>
@@ -8066,6 +8280,7 @@ function renderLedger() {
             <input type="text" class="form-input ie-desc" value="${_escHtml(t.description)}" placeholder="Description">
             <input type="number" class="form-input ie-amount" value="${t.amount}" step="0.01" min="0" placeholder="Amount" inputmode="decimal">
           </div>
+          ${t.type === 'expense' && !t._xfer && !isBillTxn(t) ? `<label class="ie-status-label">Purchase status<select class="form-input ie-status" aria-label="Purchase status"><option value="posted"${!isPendingPurchase(t) ? ' selected' : ''}>Posted</option><option value="pending"${isPendingPurchase(t) ? ' selected' : ''}>Pending</option></select></label>` : ''}
           <label class="ie-exclude-label"><input type="checkbox" class="ie-exclude"${t.excludeFromBudget ? ' checked' : ''}> Don't count toward weekly spending</label>
           <div class="ie-btns">
             <button class="btn-sm ie-save" data-idx="${t._i}">Save</button>
@@ -8080,7 +8295,8 @@ function renderLedger() {
     <div class="page">
       <h1 class="page-title">Ledger</h1>
       <p class="page-sub">${rows.length} ${ledgerView === 'bills' ? 'bill' : 'transaction'}${rows.length !== 1 ? 's' : ''}${_crossAcct ? ' · all accounts (read-only)' : ''}</p>
-      <div class="ledger-bank-match"><button type="button" id="ledger-bank-match" class="overview-link">Match my bank ${ICONS.chevronRight || '→'}</button><p>${_escHtml(bankMatchStatus())}</p></div>
+      ${ledgerUndoHtml()}
+      <div class="ledger-bank-match"><button type="button" id="ledger-bank-match" class="overview-link">${state.reconciliationDraft ? 'Resume bank review' : 'Match my bank'} ${ICONS.chevronRight || '→'}</button><p>${_escHtml(bankMatchStatus())}</p></div>
       <div class="ledger-view-tabs">
         <button class="lv-tab${ledgerView === 'transactions' ? ' active' : ''}" data-view="transactions">Transactions${_allTxnRows.length ? ` <span class="lv-count">${_allTxnRows.length}</span>` : ''}</button>
         <button class="lv-tab${ledgerView === 'bills' ? ' active' : ''}" data-view="bills">Bill payments${_allBillRows.length ? ` <span class="lv-count">${_allBillRows.length}</span>` : ''}</button>
@@ -8090,7 +8306,7 @@ function renderLedger() {
           <input type="search" id="ledger-search" class="form-input lf-search" placeholder="Search…" value="${_escHtml(ledgerFilter)}" aria-label="Search transactions">
         </div>
         <details id="ledger-filter-options" class="ledger-options"${ledgerFiltersOpen ? ' open' : ''}>
-          <summary>Filters <span>${[ledgerTypeFilter !== 'all', !!ledgerCatFilter, !!ledgerDateFrom, !!ledgerDateTo, ledgerAllAccounts].filter(Boolean).length || ''}</span></summary>
+          <summary>Filters <span>${[ledgerStatusFilter !== 'all', ledgerTypeFilter !== 'all', !!ledgerCatFilter, !!ledgerDateFrom, !!ledgerDateTo, ledgerAllAccounts].filter(Boolean).length || ''}</span></summary>
           <div class="ledger-options-body">
           <div class="lf-row1">
           <select id="ledger-sort" aria-label="Sort transactions" class="form-input lf-sort">
@@ -8113,6 +8329,7 @@ function renderLedger() {
             ${catOptFilter}
           </select>
         </div>
+        <div class="lf-row3"><label class="ledger-status-filter">Status<select id="ledger-status-filter" class="form-input" aria-label="Filter purchase status"><option value="all"${ledgerStatusFilter === 'all' ? ' selected' : ''}>All statuses</option><option value="posted"${ledgerStatusFilter === 'posted' ? ' selected' : ''}>Posted</option><option value="pending"${ledgerStatusFilter === 'pending' ? ' selected' : ''}>Pending purchases</option></select></label></div>
         <div class="lf-row3">
           <input type="date" id="ledger-date-from" class="form-input lf-date" value="${ledgerDateFrom}" aria-label="From date">
           <span class="lf-dash">—</span>
@@ -8129,7 +8346,7 @@ function renderLedger() {
           ${ledgerView !== 'bills' && !_crossAcct ? `<button id="ledger-select-toggle" class="btn-xs${_ledgerSelectMode ? ' btn-xs-active' : ''}" title="Select multiple to delete or recategorize"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>${_ledgerSelectMode ? 'Cancel' : 'Select'}</button>` : ''}
         </div>
         </details>
-        ${(ledgerFilter || ledgerTypeFilter !== 'all' || ledgerCatFilter || ledgerDateFrom || ledgerDateTo)
+        ${(ledgerFilter || ledgerStatusFilter !== 'all' || ledgerTypeFilter !== 'all' || ledgerCatFilter || ledgerDateFrom || ledgerDateTo)
           ? `<button id="ledger-clear-filters" class="lf-clear-btn">✕ Clear filters</button>` : ''}
       </div>
       <div class="ledger-list${density === 'compact' ? ' compact' : ''}${_ledgerSelectMode ? ' select-mode' : ''}">
@@ -8438,8 +8655,8 @@ function dynamicSpendingLimit(balance, stopAt, bills, periods) {
 
 function billsStillDueTotal(month = localMonthKey(), bills = state.bills) {
   return (bills || [])
-    .filter(b => !isBillPaidFor(b, month))
-    .reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+    .filter(b => billOccurrenceDate(b,month) && !isBillPaidFor(b, month))
+    .reduce((sum, b) => { const amount=billOccurrenceAmount(b,month); return sum+(Number.isFinite(amount)?amount:0); }, 0);
 }
 
 function weeklyBillsReserve(plan = state.weekly_plan, bills = state.bills, month = localMonthKey()) {
@@ -8457,7 +8674,8 @@ function weeklySpendingSummary(ceiling, spent, target = 0) {
 }
 
 function calculateBillHealth(bills, month, asOf = today()) {
-  const dueDate = b => `${month}-${String(billDueDay(b.dueDay, month)).padStart(2, '0')}`;
+  bills = bills.filter(b => billOccurrenceDate(b,month));
+  const dueDate = b => billOccurrenceDate(b,month);
   const eligible = bills.filter(b => dueDate(b) < asOf);
   const overdue = eligible.filter(b => !isBillPaidFor(b, month));
   const dueToday = bills.filter(b => dueDate(b) === asOf && !isBillPaidFor(b, month));
@@ -8514,6 +8732,7 @@ function billLoggedTxns(b) {
 }
 function isBillPaidFor(b, mKey) { return billPaidMonths(b).includes(mKey); }
 function markBillPaid(b, mKey, txnId) {
+  rememberBillOccurrence(b,mKey);
   const arr = billPaidMonths(b);
   if (!arr.includes(mKey)) arr.push(mKey);
   if (txnId) billLoggedTxns(b)[mKey] = txnId;
@@ -8540,13 +8759,13 @@ function monthKeyLabel(mKey) {
 // Badge for a bill card. Urgency (TODAY / in Nd) only shown for the current month.
 function billBadgeHtml(b, mKey, isCurrentMonth) {
   if (isBillPaidFor(b, mKey)) return '<span class="bill-badge paid">PAID</span>';
-  const d = getDaysUntilDue(b.dueDay, mKey);
+  const d = billDaysUntil(b,mKey);
   if (d < 0) return '<span class="bill-badge overdue">OVERDUE</span>';
-  if (!isCurrentMonth) return `<span class="bill-badge upcoming">day ${billDueDay(b.dueDay, mKey)}</span>`;
+  if (!isCurrentMonth) return `<span class="bill-badge upcoming">${billOccurrenceDate(b,mKey) || 'Not scheduled'}</span>`;
   if (d === 0) return '<span class="bill-badge due-today">TODAY</span>';
   if (d <= 3)  return `<span class="bill-badge due-soon">in ${d}d</span>`;
   if (d <= 7)  return `<span class="bill-badge upcoming-soon">in ${d}d</span>`;
-  return `<span class="bill-badge upcoming">day ${b.dueDay}</span>`;
+  return `<span class="bill-badge upcoming">${billOccurrenceDate(b,mKey) || 'Not scheduled'}</span>`;
 }
 
 // ── bill → loan link ─────────────────────────────────────────────────────────
@@ -8580,20 +8799,16 @@ function _removeTxnFromAccount(acctId, payId) {
 // Date a loan payment within the month it pays for (the bill's due day), or today if it's
 // the current month — so it lands in the right month on the loan's history.
 function _billPayDate(bill, mKey) {
-  if (mKey === localMonthKey()) return today();
-  const [y, mo] = mKey.split('-').map(Number);
-  const dim = new Date(y, mo, 0).getDate();
-  const day = Math.min(Math.max(1, parseInt(bill.dueDay) || 1), dim);
-  return `${mKey}-${String(day).padStart(2, '0')}`;
+  return mKey === localMonthKey() ? today() : (billOccurrenceDate(bill,mKey) || `${mKey}-01`);
 }
 // A loan/credit payment is an INCOME txn on that account (reduces "owed").
 function postLoanPayment(bill, mKey) {
   const acctId = bill.linkedAccountId;
-  if (!acctId || !state.accounts.find(a => a.id === acctId)) return;
+  if (!acctId || !state.accounts.find(a => a.id === acctId && !a.archived)) return;
   if (billLinkedTxns(bill)[mKey]) return;   // already posted for this month
   const payId = 'billpay-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
   _postTxnToAccount(acctId, {
-    type: 'income', amount: bill.amount, description: bill.name + ' payment',
+    type: 'income', amount: billOccurrenceAmount(bill,mKey), description: bill.name + ' payment',
     category: 'Payment', date: _billPayDate(bill, mKey), account: acctId, _billPayId: payId,
   });
   billLinkedTxns(bill)[mKey] = payId;
@@ -9023,174 +9238,65 @@ function calcWeekly() {
 
 // ── bills ──────────────────────────────────────────────────────────────────
 function renderBills() {
-  const m = billsMonth;
-  const isCurMonth = m === curMonthKey();
-  const [mY, mM] = m.split('-').map(Number);
-  const catOptions = getCategories().map(c => `<option>${_escHtml(c)}</option>`).join('');
-  const debtAccts = state.accounts.filter(a => a.type === 'credit' || a.type === 'loan');
-  const linkOpts = sel => `<option value="">— not linked —</option>` +
-    debtAccts.map(a => `<option value="${a.id}"${a.id === sel ? ' selected' : ''}>${_escHtml(a.name)}</option>`).join('');
-  const billsHtml = state.bills.length ? state.bills.map((b, i) => {
-    const paid  = isBillPaidFor(b, m);
-    const badge = billBadgeHtml(b, m, isCurMonth);
-    const linkName = b.linkedAccountId ? (state.accounts.find(a => a.id === b.linkedAccountId)?.name) : null;
-    const deducted = paid && !!billLoggedTxns(b)[m];   // was the cash expense logged this month?
-    return `
-      <div class="bill-card${paid ? ' bill-card-paid' : ''}">
-        <div class="bill-card-main">
-          <span class="cat-dot" style="background:${catColor(b.category, '#9896a4')}"></span>
-          <div class="bill-card-info">
-            <div class="bill-card-name">${_escHtml(b.name)}</div>
-            <div class="bill-card-meta">${_escHtml(b.category || 'Other')} · due day ${b.dueDay}${linkName ? ` · ${ICONS.link} ${_escHtml(linkName)}` : ''}</div>
-          </div>
-          <div class="bill-card-right">
-            <div class="bill-card-amt">${fmt(b.amount)}</div>
-            ${badge}
-          </div>
-        </div>
-        <div class="bill-card-actions">
-          <button class="btn-xs bill-paid-btn${paid ? ' bill-unpaid-btn' : ''}" data-idx="${i}" data-paid="${paid}">${paid ? '↩ Mark Unpaid' : '✓ Mark Paid'}</button>
-          ${paid && !deducted ? `<button class="btn-xs bill-deduct-btn" data-idx="${i}">${ICONS.dollar} Deduct cash</button>` : ''}
-          <details class="row-actions"><summary aria-label="Actions for ${_escHtml(b.name)}">⋯</summary><div><button type="button" class="btn-xs bill-edit-btn" data-idx="${i}">Edit</button><button type="button" class="btn-xs btn-danger bill-delete-btn" data-idx="${i}">Delete</button></div></details>
-        </div>
-        ${paid ? `<div class="bill-deduct-note ${deducted ? 'is-deducted' : 'not-deducted'}">${deducted ? `✓ ${fmt(b.amount)} deducted from cash` : 'Not deducted from your cash balance'}</div>` : ''}
-        ${debtAccts.length ? `<div class="bill-link-row"><span class="bill-link-lbl">Pays loan</span><select class="bill-link-select form-input" data-idx="${i}">${linkOpts(b.linkedAccountId)}</select></div>` : ''}
-        <div class="bill-edit-form" id="bill-edit-${i}" style="display:none">
-          <div class="form-row">
-            <label class="form-label">Bill name</label>
-            <input type="text" class="form-input bill-edit-name" value="${_escHtml(b.name)}">
-          </div>
-          <div class="form-row">
-            <label class="form-label">Amount ($)</label>
-            <input type="number" class="form-input bill-edit-amount" value="${b.amount}" step="0.01" min="0" inputmode="decimal">
-          </div>
-          <div class="form-row">
-            <label class="form-label">Due day of month (1–31)</label>
-            <input type="number" class="form-input bill-edit-dueday" value="${b.dueDay}" min="1" max="31" inputmode="numeric">
-          </div>
-          <div class="form-row">
-            <label class="form-label">Category</label>
-            <select class="form-input form-select bill-edit-cat">${getCategories().map(c => `<option${c === b.category ? ' selected' : ''}>${_escHtml(c)}</option>`).join('')}</select>
-          </div>
-          <div class="bill-edit-actions">
-            <button class="btn-xs bill-edit-save" data-idx="${i}">Save changes</button>
-            <button class="btn-xs bill-edit-cancel" data-idx="${i}">Cancel</button>
-          </div>
-        </div>
-      </div>`;
-  }).join('') : emptyState('No bills yet', 'Add a recurring bill below to start tracking');
-
-  const totalMonthly = state.bills.reduce((s, b) => s + b.amount, 0);
-  const totalUnpaid  = state.bills.filter(b => !isBillPaidFor(b, m)).reduce((s, b) => s + b.amount, 0);
-
-  // Month navigator — lets you pay ahead (e.g. mark next month's bills paid early).
-  const monthNavHtml = `
-    <div class="bills-month-nav">
-      <button class="bills-month-arrow" id="bills-month-prev" aria-label="Previous month">‹</button>
-      <div class="bills-month-label">${monthKeyLabel(m)}${isCurMonth ? '' : ' <button class="bills-month-today" id="bills-month-today">Today</button>'}</div>
-      <button class="bills-month-arrow" id="bills-month-next" aria-label="Next month">›</button>
-    </div>`;
-
-  // ── bill calendar (for the selected month) ─────────────────────────────────
-  const billCalHtml = (() => {
-    if (!state.bills.length) return '';
-    const firstDay = new Date(mY, mM - 1, 1).getDay();   // 0=Sun
-    const daysInM  = new Date(mY, mM, 0).getDate();
-    const todayD   = isCurMonth ? new Date().getDate() : -1;
-    // Map dueDay -> bills
-    const billsByDay = {};
-    state.bills.forEach(b => { (billsByDay[billDueDay(b.dueDay, m)] = billsByDay[billDueDay(b.dueDay, m)] || []).push(b); });
-    const dayHdrs = ['S','M','T','W','T','F','S'].map(d => `<div class="bcal-hdr">${d}</div>`).join('');
-    let cells = '';
-    for (let i = 0; i < firstDay; i++) cells += '<div class="bcal-cell"></div>';
-    for (let d = 1; d <= daysInM; d++) {
-      const bs      = billsByDay[d] || [];
-      const hasBill = bs.length > 0;
-      // Three-state dot: all paid → green; unpaid & past its day this month (or a past month)
-      // → red overdue; otherwise amber due.
-      let statusCls = '';
-      if (hasBill) {
-        const allPaid = bs.every(b => isBillPaidFor(b, m));
-        const overdue = (isCurMonth && d < todayD) || (m < curMonthKey());
-        statusCls = allPaid ? 'bill-paid' : overdue ? 'bill-overdue' : 'bill-soon';
-      }
-      const cls     = ['bcal-cell', d === todayD ? 'today' : '', statusCls].filter(Boolean).join(' ');
-      cells += `<div class="${cls}" data-day="${d}"${hasBill ? ' role="button" tabindex="0"' : ''}><span class="bcal-num">${d}</span>${hasBill ? '<span class="bcal-dot"></span>' : ''}</div>`;
-    }
-    return `
-      <div class="bill-cal">
-        <div class="bcal-grid" id="bcal-grid">${dayHdrs}${cells}</div>
-        <div id="bcal-day-detail" class="bcal-day-detail" style="display:none"></div>
-        <div class="bcal-legend3">
-          <span><i class="lg-paid"></i>Paid</span>
-          <span><i class="lg-soon"></i>Due</span>
-          <span><i class="lg-over"></i>Overdue</span>
-        </div>
-      </div>`;
-  })();
-
-  const totalPaid = Math.max(0, totalMonthly - totalUnpaid);
-  const summary3Html = `
-    <div class="bills-sum3">
-      <div class="bsum-blk">
-        <div class="bsum-k">Total</div>
-        <div class="bsum-v">${fmt(totalMonthly)}</div>
-      </div>
-      <div class="bsum-div"></div>
-      <div class="bsum-blk">
-        <div class="bsum-k">Remaining</div>
-        <div id="bills-still-due" class="bsum-v" style="color:${totalUnpaid>0?'var(--warn)':'var(--success)'}">${fmt(totalUnpaid)}</div>
-      </div>
-      <div class="bsum-div"></div>
-      <div class="bsum-blk">
-        <div class="bsum-k">Paid</div>
-        <div id="bills-paid-total" class="bsum-v" style="color:var(--success)">${fmt(totalPaid)}</div>
-      </div>
-    </div>`;
-
-  const addFormHtml = `
-      <div class="form-card">
-        <h2 class="section-title" style="margin:0 0 8px">Add Bill</h2>
-        <div class="form-row">
-          <label class="form-label">Bill name</label>
-          <input type="text" id="bill-name" class="form-input" placeholder="e.g. Netflix">
-        </div>
-        <div class="form-row">
-          <label class="form-label">Amount ($)</label>
-          <input type="number" id="bill-amount" class="form-input" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
-        </div>
-        <div class="form-row">
-          <label class="form-label">Due day of month (1–31)</label>
-          <input type="number" id="bill-dueday" class="form-input" placeholder="e.g. 15" min="1" max="31" inputmode="numeric">
-        </div>
-        <div class="form-row">
-          <label class="form-label">Category</label>
-          <select id="bill-cat" class="form-input form-select">${catOptions}</select>
-        </div>
-        ${debtAccts.length ? `<div class="form-row">
-          <label class="form-label">Pays loan</label>
-          <select id="bill-link" class="form-input form-select">${linkOpts('')}</select>
-        </div>` : ''}
-        <div id="bill-status" class="form-status"></div>
-        <button id="bill-add-btn" class="btn-primary">Add Bill</button>
-      </div>`;
-
-  // Calendar-forward layout: month nav → quick Total/Remaining/Paid summary → the
-  // calendar as hero → the month's bill list → add form at the bottom.
-  return `
-    <div class="page">
-      <h1 class="page-title">Bills</h1>
-      <p class="page-sub">track recurring monthly bills</p>
-      ${state.bills.length ? `
-        ${monthNavHtml}
-        ${summary3Html}
-        ${billCalHtml}
-        <h2 class="section-title">This month</h2>
-        <div class="bills-list">${billsHtml}</div>
-      ` : ''}
-      ${addFormHtml}
-    </div>`;
+  const m = billsMonth, isCurMonth = m === curMonthKey(), [mY,mM] = m.split('-').map(Number);
+  const calendar = loadSettings().billsView === 'calendar';
+  const debtAccts = activeAccounts().filter(a => ['credit','loan'].includes(a.type));
+  const linkOpts = selected => '<option value="">Not linked</option>'+debtAccts.map(a=>`<option value="${_escHtml(a.id)}"${a.id===selected?' selected':''}>${_escHtml(a.name)}</option>`).join('');
+  const frequencies = selected => [['monthly','Monthly'],['quarterly','Every 3 months'],['annual','Yearly'],['once','One time']].map(([key,label])=>`<option value="${key}"${key===selected?' selected':''}>${label}</option>`).join('');
+  const billRow = (b,i) => {
+    const date = billOccurrenceDate(b,m), paid = isBillPaidFor(b,m), amount = billOccurrenceAmount(b,m);
+    const deducted = paid && !!billLoggedTxns(b)[m];
+    const linkName = state.accounts.find(a=>a.id===b.linkedAccountId)?.name;
+    const frequency = b.frequency || 'monthly';
+    const anchor = b.startDate || date || today();
+    return `<article class="bill-card${paid && date ? ' bill-card-paid':''}" data-bill-index="${i}">
+      <div class="bill-card-main"><span class="cat-dot" style="background:${catColor(b.category,'#9896a4')}"></span><div class="bill-card-info"><div class="bill-card-name">${_escHtml(b.name)}</div><div class="bill-card-meta">${_escHtml(billScheduleLabel(b))} · ${date ? date : _escHtml(b.startDate || 'day '+b.dueDay)}${linkName ? ' · '+_escHtml(linkName) : ''}</div></div><div class="bill-card-right"><div class="bill-card-amt">${Number.isFinite(amount)?fmt(amount):'Review amount'}</div>${date ? billBadgeHtml(b,m,isCurMonth) : '<span class="bill-badge">Not due this month</span>'}</div></div>
+      <div class="bill-card-actions">${date ? `<button type="button" class="btn-xs bill-paid-btn${paid?' bill-unpaid-btn':''}" data-idx="${i}" data-paid="${paid}">${paid?'↩ Mark unpaid':'Mark paid'}</button>${paid && !deducted ? `<button type="button" class="btn-xs bill-deduct-btn" data-idx="${i}">Deduct cash</button>`:''}`:''}<details class="row-actions"><summary aria-label="Actions for ${_escHtml(b.name)}">⋯</summary><div><button type="button" class="btn-xs bill-edit-btn" data-idx="${i}">Edit</button><button type="button" class="btn-xs btn-danger bill-delete-btn" data-idx="${i}">Delete</button></div></details></div>
+      ${date && paid ? `<p class="bill-deduct-note ${deducted?'is-deducted':'not-deducted'}">${deducted ? `${fmt(amount)} deducted from cash` : 'Cash expense not logged here'}</p>`:''}
+      <div class="bill-edit-form" id="bill-edit-${i}" style="display:none">
+        <label class="form-label" for="bill-edit-name-${i}">Bill name</label><input id="bill-edit-name-${i}" class="form-input bill-edit-name" value="${_escHtml(b.name)}">
+        <label class="form-label" for="bill-edit-amount-${i}">Scheduled amount ($)</label><input id="bill-edit-amount-${i}" class="form-input bill-edit-amount" type="number" value="${_escHtml(String(b.amount ?? ''))}" step="0.01" min="0.01" inputmode="decimal">
+        <label class="form-label" for="bill-edit-frequency-${i}">Repeats</label><select id="bill-edit-frequency-${i}" class="form-input bill-edit-frequency">${frequencies(frequency)}</select>
+        <label class="bill-schedule-day"${frequency!=='monthly'?' hidden':''}>Due day (1–31)<input class="form-input bill-edit-dueday" type="number" min="1" max="31" value="${Number(b.dueDay)||Number(anchor.slice(8))||1}"></label>
+        <label class="bill-schedule-date"${frequency==='monthly'?' hidden':''}>${frequency==='once'?'Due date':'First due date'}<input class="form-input bill-edit-date" type="date" value="${_escHtml(anchor)}"></label>
+        <label class="form-label" for="bill-edit-cat-${i}">Category</label><select id="bill-edit-cat-${i}" class="form-input bill-edit-cat">${getCategories().map(c=>`<option${c===b.category?' selected':''}>${_escHtml(c)}</option>`).join('')}</select>
+        ${debtAccts.length ? `<label class="form-label" for="bill-edit-link-${i}">Pays a loan or card (optional)</label><select id="bill-edit-link-${i}" class="form-input bill-link-select" data-idx="${i}">${linkOpts(b.linkedAccountId)}</select><p class="code-hint">Changing the link updates its recorded loan payments.</p>`:''}
+        <p class="code-hint">Changes apply to unrecorded occurrences. Recorded payments keep their original dates and amounts.</p><div class="bill-edit-actions"><button type="button" class="btn-sm bill-edit-save" data-idx="${i}">Save changes</button><button type="button" class="btn-xs bill-edit-cancel" data-idx="${i}">Cancel</button></div>
+      </div></article>`;
+  };
+  const scheduled = state.bills.map((b,i)=>({b,i,date:billOccurrenceDate(b,m)})).filter(row=>row.date).sort((a,b)=>Number(isBillPaidFor(a.b,m))-Number(isBillPaidFor(b.b,m)) || a.date.localeCompare(b.date) || a.i-b.i);
+  const other = state.bills.map((b,i)=>({b,i})).filter(({b})=>!billOccurrenceDate(b,m));
+  const total = scheduled.reduce((sum,{b})=>{const amount=billOccurrenceAmount(b,m);return sum+(Number.isFinite(amount)?amount:0);},0);
+  const unpaid = billsStillDueTotal(m);
+  const firstDay = new Date(mY,mM-1,1).getDay(), daysInMonth = new Date(mY,mM,0).getDate();
+  const dayHeaders=['S','M','T','W','T','F','S'].map(day=>`<div class="bcal-hdr">${day}</div>`).join('');
+  let cells='<div class="bcal-cell"></div>'.repeat(firstDay);
+  for(let day=1;day<=daysInMonth;day++) {
+    const date=`${m}-${String(day).padStart(2,'0')}`, rows=scheduled.filter(row=>row.date===date);
+    const status=!rows.length?'':rows.every(row=>isBillPaidFor(row.b,m))?'bill-paid':date<today()?'bill-overdue':'bill-soon';
+    cells+=`<div class="bcal-cell ${date===today()?'today':''} ${status}" data-day="${day}"${rows.length?` role="button" tabindex="0" aria-label="${date}, ${rows.length} bill${rows.length===1?'':'s'}"`:''}><span class="bcal-num">${day}</span>${rows.length?'<span class="bcal-dot"></span>':''}</div>`;
+  }
+  return `<div class="page bills-page"><h1 class="page-title">Bills</h1><p class="page-sub">What’s due, what’s paid, and what’s next</p>
+    <div class="bills-month-nav"><button type="button" class="bills-month-arrow" id="bills-month-prev" aria-label="Previous month">‹</button><div class="bills-month-label">${monthKeyLabel(m)}${isCurMonth?'':' <button type="button" class="bills-month-today" id="bills-month-today">Today</button>'}</div><button type="button" class="bills-month-arrow" id="bills-month-next" aria-label="Next month">›</button></div>
+    <div class="bills-sum3"><div class="bsum-blk"><span class="bsum-k">Total due</span><strong class="bsum-v">${fmt(total)}</strong></div><div class="bsum-blk"><span class="bsum-k">Remaining</span><strong id="bills-still-due" class="bsum-v">${fmt(unpaid)}</strong></div><div class="bsum-blk"><span class="bsum-k">Paid</span><strong id="bills-paid-total" class="bsum-v">${fmt(Math.max(0,total-unpaid))}</strong></div></div>
+    <div class="bills-view-options" role="group" aria-label="Bill view"><button type="button" data-bills-view="list" aria-pressed="${!calendar}">List</button><button type="button" data-bills-view="calendar" aria-pressed="${calendar}">Calendar</button><button type="button" id="bill-create-open">+ Add bill</button></div>
+    ${calendar?`<div class="bill-cal"><div class="bcal-grid" id="bcal-grid">${dayHeaders}${cells}</div><div id="bcal-day-detail" class="bcal-day-detail" style="display:none"></div><div class="bcal-legend3"><span><i class="lg-paid"></i>Paid</span><span><i class="lg-soon"></i>Due</span><span><i class="lg-over"></i>Overdue</span></div></div>`:''}
+    <div class="bills-list">${scheduled.length?scheduled.map(({b,i})=>billRow(b,i)).join(''):'<div class="overview-empty"><p>No bills due this month.</p><span>Add a bill or review your other schedules below.</span></div>'}</div>
+    ${other.length?`<details class="bill-other-schedules"><summary>Other schedules (${other.length})</summary>${other.map(({b,i})=>billRow(b,i)).join('')}</details>`:''}
+    <details class="bill-create" id="bill-create"${state.bills.length?'':' open'}><summary>Add a bill</summary><div class="form-card">
+      <label class="form-label" for="bill-name">Bill name</label><input id="bill-name" class="form-input" placeholder="e.g. Insurance">
+      <label class="form-label" for="bill-amount">Amount ($)</label><input id="bill-amount" class="form-input" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00">
+      <label class="form-label" for="bill-frequency">Repeats</label><select id="bill-frequency" class="form-input">${frequencies('monthly')}</select>
+      <label class="bill-schedule-day">Due day (1–31)<input id="bill-dueday" class="form-input" type="number" min="1" max="31" placeholder="e.g. 15"></label>
+      <label class="bill-schedule-date" hidden>First due date<input id="bill-date" class="form-input" type="date" value="${today()}"></label>
+      <label class="form-label" for="bill-cat">Category</label><select id="bill-cat" class="form-input">${getCategories().map(c=>`<option>${_escHtml(c)}</option>`).join('')}</select>
+      ${debtAccts.length?`<label class="form-label" for="bill-link">Pays a loan or card (optional)</label><select id="bill-link" class="form-input">${linkOpts('')}</select>`:''}
+      <p class="code-hint">Yearly and quarterly bills appear only in their due months. Dates at the end of short months use that month’s last day.</p>
+      <div id="bill-status" class="form-status" role="status"></div><button type="button" id="bill-add-btn" class="btn-primary">Add bill</button>
+    </div></details>
+  </div>`;
 }
+
 
 function refreshBillsView(billIndex) {
   const day = document.querySelector('.bcal-selected')?.dataset.day;
@@ -9206,6 +9312,13 @@ function refreshBillsView(billIndex) {
 }
 
 function attachBills() {
+  document.querySelectorAll('[data-bills-view]').forEach(button=>button.addEventListener('click',()=>{const settings=loadSettings();settings.billsView=button.dataset.billsView;saveSettings(settings);render();}));
+  document.getElementById('bill-create-open')?.addEventListener('click',()=>{const form=document.getElementById('bill-create');form.open=true;document.getElementById('bill-name').focus();});
+  document.querySelectorAll('#bill-frequency,.bill-edit-frequency').forEach(select=>select.addEventListener('change',()=>{
+    const form=select.closest('.bill-edit-form') || document.getElementById('bill-create');
+    form.querySelector('.bill-schedule-day').hidden=select.value!=='monthly';
+    form.querySelector('.bill-schedule-date').hidden=select.value==='monthly';
+  }));
   // Reconcile: make sure every linked + already-paid bill has its loan payment posted.
   // Covers bills linked (or paid) before this feature existed. The postLoanPayment guard
   // (skip if linkedTxns[month] already set) prevents duplicates and respects manual deletes.
@@ -9225,11 +9338,14 @@ function attachBills() {
     const amount  = parseFloat(document.getElementById('bill-amount').value);
     const dueDay  = parseInt(document.getElementById('bill-dueday').value);
     const category = document.getElementById('bill-cat').value;
+    const frequency=document.getElementById('bill-frequency').value;
+    const startDate=document.getElementById('bill-date').value;
     if (!name) { showStatus('bill-status', 'Enter a bill name.', 'error'); return; }
     if (isNaN(amount) || amount <= 0) { showStatus('bill-status', 'Enter a valid amount.', 'error'); return; }
-    if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) { showStatus('bill-status', 'Enter a day 1–31.', 'error'); return; }
+    if (frequency === 'monthly' && (isNaN(dueDay) || dueDay < 1 || dueDay > 31)) { showStatus('bill-status', 'Enter a day 1–31.', 'error'); return; }
+    if (frequency !== 'monthly' && !bankMatchDate(startDate)) { showStatus('bill-status','Choose a valid first due date.','error'); return; }
     const linkedAccountId = document.getElementById('bill-link')?.value || null;
-    state.bills.push({ id: Date.now(), name, amount, dueDay, category, paidMonths: [], loggedTxns: {}, linkedTxns: {}, linkedAccountId });
+    state.bills.push({ id: Date.now(), name, amount:+amount.toFixed(2), frequency, ...(frequency!=='monthly'?{startDate}:{}), dueDay:frequency==='monthly'?dueDay:Number(startDate.slice(8)), category, paidMonths: [], loggedTxns: {}, linkedTxns: {}, linkedAccountId });
     await api.saveBills(state.bills);
     render();
   });
@@ -9238,26 +9354,6 @@ function attachBills() {
   document.getElementById('bills-month-prev')?.addEventListener('click', () => { billsMonth = shiftMonthKey(billsMonth, -1); render(); });
   document.getElementById('bills-month-next')?.addEventListener('click', () => { billsMonth = shiftMonthKey(billsMonth, +1); render(); });
   document.getElementById('bills-month-today')?.addEventListener('click', () => { billsMonth = curMonthKey(); render(); });
-
-  // Link a bill to a loan/credit account — backfill payments for months already paid,
-  // and clean up payments on the previously-linked account.
-  document.querySelectorAll('.bill-link-select').forEach(sel => {
-    sel.addEventListener('change', async () => {
-      const i = parseInt(sel.dataset.idx);
-      const b = state.bills[i];
-      const newLink = sel.value || null;
-      // Remove any existing payments from the OLD account (while linkedAccountId still points there)
-      for (const mKey of Object.keys(billLinkedTxns(b))) removeLoanPayment(b, mKey);
-      b.linkedAccountId = newLink;
-      // Post a payment for every month this bill is currently marked paid
-      if (newLink) for (const mKey of billPaidMonths(b)) postLoanPayment(b, mKey);
-      await api.saveBills(state.bills);
-      const acctName = newLink ? (state.accounts.find(a => a.id === newLink)?.name) : null;
-      const n = newLink ? billPaidMonths(b).length : 0;
-      if (acctName) showAlert(n ? `🔗 Linked to ${acctName} — posted ${n} payment${n !== 1 ? 's' : ''}` : `🔗 Linked to ${acctName}`);
-      render();
-    });
-  });
 
   // Deduct cash for a bill that's marked paid but never logged the expense (recovers a
   // missed deduction without unmarking/re-marking).
@@ -9269,13 +9365,13 @@ function attachBills() {
       if (billLoggedTxns(b)[m]) { render(); return; }   // already deducted
       const billTxnId = 'billtxn-' + Date.now().toString(36);
       await api.addTransaction({
-        type: 'expense', amount: b.amount, description: b.name,
+        type: 'expense', amount: billOccurrenceAmount(b,m), description: b.name,
         category: b.category, date: today(),
         account: currentAccountId, _billTxnId: billTxnId,
       });
       markBillPaid(b, m, billTxnId);
       await api.saveBills(state.bills);
-      showAlert(`✓ ${fmt(b.amount)} deducted for ${b.name}`);
+      showAlert(`✓ ${fmt(billOccurrenceAmount(b,m))} deducted for ${b.name}`);
       render();
     });
   });
@@ -9299,7 +9395,7 @@ function attachBills() {
         if (txnIdx === -1) {
           // Fallback: an expense in that month matching this bill's name + amount
           const bName = (b2.name || '').trim().toLowerCase();
-          const bAmt  = +b2.amount;
+          const bAmt  = billOccurrenceAmount(b2,m);
           for (let j = state.transactions.length - 1; j >= 0; j--) {
             const t = state.transactions[j];
             if (t.type === 'expense' && isBillTxn(t) && +t.amount === bAmt &&
@@ -9309,7 +9405,7 @@ function attachBills() {
         }
         await api.saveBills(state.bills);
         if (txnIdx !== -1) {
-          await api.deleteTransaction(txnIdx);
+          await api.deleteTransaction(txnIdx,{undo:false});
           showAlert(`↩ ${b2.name} marked unpaid — expense removed from ledger`);
         } else {
           showAlert(`↩ ${b2.name} marked unpaid`);
@@ -9327,14 +9423,14 @@ function attachBills() {
         showConfirmModal({
           title: 'Mark Paid',
           message: linkName
-            ? `Paid ${fmt(b.amount)} toward ${_escHtml(linkName)} — its balance is updated. Also deduct this from your ${_escHtml(curAcctName)} balance as an expense?`
-            : `"${_escHtml(b.name)}" is now marked paid for ${monthKeyLabel(m)}. Also log a ${fmt(b.amount)} expense and deduct it from your balance? Skip this if you've already recorded the payment.`,
+            ? `Paid ${fmt(billOccurrenceAmount(b,m))} toward ${_escHtml(linkName)} — its balance is updated. Also deduct this from your ${_escHtml(curAcctName)} balance as an expense?`
+            : `"${_escHtml(b.name)}" is now marked paid for ${monthKeyLabel(m)}. Also log a ${fmt(billOccurrenceAmount(b,m))} expense and deduct it from your balance? Skip this if you've already recorded the payment.`,
           confirmText: 'Log & Deduct',
           cancelText: 'Just Mark Paid',
           onConfirm: async () => {
             const billTxnId = 'billtxn-' + Date.now().toString(36);
             await api.addTransaction({
-              type: 'expense', amount: b.amount, description: b.name,
+              type: 'expense', amount: billOccurrenceAmount(b,m), description: b.name,
               category: b.category, date: today(),
               account: currentAccountId, _billTxnId: billTxnId,
             });
@@ -9376,10 +9472,25 @@ function attachBills() {
       const amount = parseFloat(form.querySelector('.bill-edit-amount').value);
       const dueDay = parseInt(form.querySelector('.bill-edit-dueday').value);
       const category = form.querySelector('.bill-edit-cat').value;
+      const frequency=form.querySelector('.bill-edit-frequency').value;
+      const startDate=form.querySelector('.bill-edit-date').value;
+      const newLink=form.querySelector('.bill-link-select')?.value || null;
       if (!name) { showAlert('Enter a bill name.'); return; }
       if (isNaN(amount) || amount <= 0) { showAlert('Enter a valid amount.'); return; }
-      if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) { showAlert('Enter a day 1–31.'); return; }
-      b.name = name; b.amount = amount; b.dueDay = dueDay; b.category = category;
+      if (frequency === 'monthly' && (isNaN(dueDay) || dueDay < 1 || dueDay > 31)) { showAlert('Enter a day 1–31.'); return; }
+      if (frequency !== 'monthly' && !bankMatchDate(startDate)) { showAlert('Choose a valid first due date.'); return; }
+      for (const month of billPaidMonths(b)) rememberBillOccurrence(b,month);
+      if (newLink !== (b.linkedAccountId || null) && billPaidMonths(b).length) {
+        if (!await confirmAsync({title:'Change payment link?',message:'This updates the linked loan payments for this bill’s recorded paid occurrences.',confirmText:'Update link'})) return;
+      }
+      if (newLink !== (b.linkedAccountId || null)) {
+        for (const month of Object.keys(billLinkedTxns(b))) removeLoanPayment(b,month);
+        b.linkedAccountId=newLink;
+        if (newLink) for (const month of billPaidMonths(b)) postLoanPayment(b,month);
+      }
+      b.name=name; b.amount=+amount.toFixed(2); b.category=category; b.frequency=frequency;
+      b.dueDay=frequency==='monthly'?dueDay:Number(startDate.slice(8));
+      if (frequency==='monthly') delete b.startDate; else b.startDate=startDate;
       await api.saveBills(state.bills);
       render();
     });
@@ -9399,7 +9510,7 @@ function attachBills() {
           // Remove every logged expense for this bill (re-find each time — indices shift on delete)
           for (const id of loggedIds) {
             const ti = state.transactions.findIndex(t => t._billTxnId === id);
-            if (ti !== -1) await api.deleteTransaction(ti);
+            if (ti !== -1) await api.deleteTransaction(ti,{undo:false});
           }
           // Reverse every linked loan payment this bill made
           for (const mKey of Object.keys(billLinkedTxns(b))) await removeLoanPayment(b, mKey);
@@ -9419,7 +9530,7 @@ function attachBills() {
   document.querySelectorAll('#bcal-grid .bcal-cell[data-day]').forEach(cell => {
     cell.addEventListener('click', () => {
       const day = parseInt(cell.dataset.day);
-      const bills = state.bills.filter(b => billDueDay(b.dueDay, curM2) === day);
+      const bills = state.bills.filter(b => billOccurrenceDate(b,curM2) === `${curM2}-${String(day).padStart(2,'0')}`);
       if (!bills.length) return;
 
       // Toggle off if clicking the same day
@@ -9443,7 +9554,7 @@ function attachBills() {
             <span class="cat-dot" style="background:${color}"></span>
             <div class="bcal-detail-info">
               <div class="bcal-detail-name">${_escHtml(b.name)}</div>
-              <div class="bcal-detail-meta">${_escHtml(b.category)} · ${fmt(b.amount)}</div>
+              <div class="bcal-detail-meta">${_escHtml(b.category)} · ${fmt(billOccurrenceAmount(b,curM2))}</div>
             </div>
             <button class="btn-xs bcal-quick-paid" data-bidx="${billIdx}" data-paid="${paid}"
               style="${paid ? 'background:rgba(50,215,75,.15);color:var(--success);border-color:rgba(50,215,75,.3)' : ''}">
@@ -9464,7 +9575,7 @@ function attachBills() {
           const wasPaid = btn.dataset.paid === 'true';
           if (wasPaid) {
             const txnId = markBillUnpaid(state.bills[bi], curM2);
-            if (txnId) { const ti = state.transactions.findIndex(t => t._billTxnId === txnId); if (ti !== -1) await api.deleteTransaction(ti); }
+            if (txnId) { const ti = state.transactions.findIndex(t => t._billTxnId === txnId); if (ti !== -1) await api.deleteTransaction(ti,{undo:false}); }
             if (state.bills[bi].linkedAccountId) await removeLoanPayment(state.bills[bi], curM2);
           } else {
             markBillPaid(state.bills[bi], curM2, null);
@@ -10346,9 +10457,9 @@ async function checkBillNotifications() {
   if (!due.length) return;
   const reg = await navigator.serviceWorker?.ready.catch(() => null);
   due.forEach(b => {
-    const d = getDaysUntilDue(b.dueDay);
+    const d = billDaysUntil(b);
     const when = billDueLabel(d);
-    const opts = { body: `${fmt(b.amount)} — ${when}`, icon: 'icon-192.png', badge: 'icon-192.png', tag: `bill-${b.id||b.name}` };
+    const opts = { body: `${fmt(billOccurrenceAmount(b,localMonthKey()))} — ${when}`, icon: 'icon-192.png', badge: 'icon-192.png', tag: `bill-${b.id||b.name}` };
     if (reg) reg.showNotification(`📑 ${b.name}`, opts);
     else new Notification(`📑 ${b.name}`, opts);
   });
@@ -10358,7 +10469,7 @@ async function checkBillNotifications() {
 
 // ── retirement hub ─────────────────────────────────────────────────────────
 function renderRetirement() {
-  const accts  = state.accounts.filter(a => RETIRE_TYPES.includes(a.type));
+  const accts  = activeAccounts().filter(a => RETIRE_TYPES.includes(a.type));
   const curYear = new Date().getFullYear();
 
   if (!accts.length) {
@@ -10367,7 +10478,7 @@ function renderRetirement() {
         <div class="ret-empty-icon">
           <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
         </div>
-        <div class="ret-empty-title">No Retirement Accounts</div>
+        <div class="ret-empty-title">No Active Retirement Accounts</div>
         <div class="ret-empty-sub">Add a Roth IRA, Traditional IRA, 401(k), or HSA in Manage Accounts to start tracking your future.</div>
         <button class="ret-empty-btn" id="ret-go-accounts">Manage Accounts</button>
       </div>
@@ -11363,7 +11474,7 @@ function _ytdContributions(acctId) {
 
 function _buildAccountCards() {
   const _calSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
-  return state.accounts.map((a) => {
+  return state.accounts.filter(a => !a.archived).map((a) => {
     const isDebtAcct   = a.type === 'credit' || a.type === 'loan';
     const isRetireAcct = RETIRE_TYPES.includes(a.type);
     const dueDay = a.payment_due_day || '';
@@ -11388,7 +11499,7 @@ function _buildAccountCards() {
       .join('');
     // Paycheck accounts available to link to a retirement account
     const paycheckAcctOpts = state.accounts
-      .filter(ac => ac.type !== 'credit' && ac.type !== 'loan' && !RETIRE_TYPES.includes(ac.type) && ac.paySchedule?.enabled)
+      .filter(ac => !ac.archived && ac.type !== 'credit' && ac.type !== 'loan' && !RETIRE_TYPES.includes(ac.type) && ac.paySchedule?.enabled)
       .map(ac => `<option value="${ac.id}"${ac.id === a.linkedPaycheckAcctId ? ' selected' : ''}>${_escHtml(ac.name)}</option>`)
       .join('');
     const retireFields = isRetireAcct ? `
@@ -11582,6 +11693,7 @@ function _buildAccountCards() {
         ${retireFields}
         <div class="acct-settings-actions" style="margin-top:10px">
           <button class="btn-xs btn-accent acct-edit-save-btn" data-id="${a.id}">Save</button>
+          <button type="button" class="btn-xs acct-archive-btn" data-id="${a.id}">Archive</button>
           ${a.id !== 'main' ? `<button class="btn-xs btn-danger acct-delete-btn" data-id="${a.id}">Delete</button>` : ''}
         </div>
       </div>
@@ -11612,8 +11724,9 @@ function renderAccounts() {
 
       <div class="form-card">
         <h2 class="section-title" style="margin-bottom:4px">Your Accounts</h2>
-        <p class="code-hint" style="margin-bottom:12px">Edit name or type, then tap Save. Delete removes all data for that account permanently.</p>
+        <p class="code-hint" style="margin-bottom:12px">Edit name or type, then tap Save. Archive a closed account at $0 to keep its history. Delete permanently removes its data.</p>
         <div class="accounts-list">${accountCards}</div>
+        ${state.accounts.some(a => a.archived) ? `<details class="archived-accounts"><summary>Archived accounts (${state.accounts.filter(a => a.archived).length})</summary>${state.accounts.filter(a=>a.archived).map(a=>`<div class="archived-account"><span><strong>${_escHtml(a.name)}</strong><small>History kept · schedules paused</small></span><button type="button" class="btn-sm acct-restore-btn" data-id="${_escHtml(a.id)}">Restore</button></div>`).join('')}</details>` : ''}
         <span id="acct-status" class="form-status" style="font-size:11px"></span>
       </div>
 
@@ -11635,6 +11748,18 @@ function renderAccounts() {
 }
 
 function attachAccounts() {
+  document.querySelectorAll('.acct-archive-btn').forEach(button => button.addEventListener('click', async () => {
+    const reason = accountArchiveReason(button.dataset.id);
+    if (reason) { _toast(reason,5000); return; }
+    const ok = await confirmAsync({title:'Archive this account?',message:'Its history and balances are kept. It leaves everyday account lists, and automatic entries and reminders pause. Restore it from Manage accounts at any time.',confirmText:'Archive'});
+    if (!ok) return;
+    try { await setAccountArchived(button.dataset.id,true); showingAccountPicker=false; currentTab='accounts'; render(); _toast('Account archived. History kept.'); }
+    catch(error) { _toast(error.message,5000); }
+  }));
+  document.querySelectorAll('.acct-restore-btn').forEach(button => button.addEventListener('click', async () => {
+    try { await setAccountArchived(button.dataset.id,false); render(); _toast('Account restored. Review schedules before enabling them again.'); }
+    catch(error) { _toast(error.message,5000); }
+  }));
   // Auto-expand a specific account card (e.g. when navigating from dashboard edit button)
   if (_pendingAccountExpand) {
     const targetCard = document.querySelector(`.acct-settings-card .acct-card-header[data-id="${_pendingAccountExpand}"]`)?.closest('.acct-settings-card');
@@ -12247,7 +12372,7 @@ function getDawgNotifications() {
   const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   (state.bills||[]).forEach(b => {
     if (isBillPaidFor(b, curMonth)) return; // already paid this month
-    const d = getDaysUntilDue(b.dueDay);
+    const d = billDaysUntil(b);
     if (d <= 3) {
       notes.push({ type:'bill', icon:'📄', title:`${b.name} ${d < 0 ? 'overdue' : 'due'}`, body: billDueLabel(d) });
     }
@@ -12299,7 +12424,7 @@ function toggleDawgAcctDropdown() {
   // Always position below the fixed topbar
   panel.style.top    = 'calc(var(--topbar-h) + var(--safe-top) + 8px)';
   panel.style.bottom = 'auto';
-  const rows = (state.accounts || []).map(a => {
+  const rows = activeAccounts().map(a => {
     const isActive = a.id === currentAccountId;
     return `<button class="dawg-acct-dd-row${isActive ? ' active' : ''}" data-id="${a.id}">
       <span class="dawg-acct-dd-icon">${_ACCT_SVG[a.type] || _ACCT_SVG.checking}</span>
@@ -12383,7 +12508,7 @@ function showDashboardLimitMath(kind = 'daily') {
 
 function attachDashboardDawg() {
   attachOverviewSparkline();
-  const resetLedger = () => { ledgerFilter = ''; ledgerCatFilter = ''; ledgerTypeFilter = 'all'; ledgerAllAccounts = false; ledgerDateFrom = ''; ledgerDateTo = ''; ledgerView = 'transactions'; };
+  const resetLedger = () => { ledgerStatusFilter='all'; ledgerFilter = ''; ledgerCatFilter = ''; ledgerTypeFilter = 'all'; ledgerAllAccounts = false; ledgerDateFrom = ''; ledgerDateTo = ''; ledgerView = 'transactions'; };
   document.querySelectorAll('[data-overview-go]').forEach(button => button.addEventListener('click', () => {
     if (button.dataset.overviewGo === 'ledger') resetLedger();
     if (button.dataset.overviewGo === 'bills') billsMonth = localMonthKey();
@@ -12720,7 +12845,7 @@ function _showFastAdd() {
   if (document.getElementById('fast-add-sheet')) return;
   const cats     = getCategoriesByUsage();
   const todayStr = today();
-  const accounts = state.accounts || [];
+  const accounts = activeAccounts();
   const multiAcct = accounts.length > 1;
   const tmpls    = getCommonTemplates();
 
@@ -12772,6 +12897,7 @@ function _showFastAdd() {
           ${cats.map((c, i) => `<button class="fas-cat-chip${i === 0 ? ' fas-cat-active' : ''}" data-cat="${_escHtml(c)}">${_escHtml(c)}</button>`).join('')}
         </div>
       </div>
+      <label class="fas-pending" id="fas-pending-row"><input type="checkbox" id="fas-pending"> Pending purchase</label>
       <input type="text" id="fas-desc" class="fas-desc-input" placeholder="Description (optional)" autocomplete="off">
       <button id="fas-submit" class="fas-submit-btn btn-primary">Add</button>
     </div>`;
@@ -12787,6 +12913,7 @@ function _showFastAdd() {
 
   function applyType(type) {
     selType = type;
+    overlay.querySelector('#fas-pending-row').hidden = type !== 'expense';
     overlay.querySelectorAll('.fas-type-btn').forEach(b =>
       b.classList.remove('fas-expense-active','fas-income-active','fas-transfer-active'));
     const cls = type === 'income' ? 'fas-income-active' : type === 'transfer' ? 'fas-transfer-active' : 'fas-expense-active';
@@ -12902,7 +13029,9 @@ function _showFastAdd() {
   overlay._closeFromPop = () => close(true);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
-  overlay.querySelector('#fas-submit').addEventListener('click', async () => {
+  overlay.querySelector('#fas-submit').addEventListener('click', async event => {
+    const submit=event.currentTarget;if(submit.disabled)return;submit.disabled=true;
+    try {
     const amount = parseFloat(overlay.querySelector('#fas-amount').value);
     if (!amount || amount <= 0) { overlay.querySelector('#fas-amount').focus(); return; }
     const desc = overlay.querySelector('#fas-desc').value.trim();
@@ -12949,13 +13078,16 @@ function _showFastAdd() {
       date: todayStr,
       ts: Date.now(),
     };
-    _postTxnToAccount(fromAcct, t);
+    if (selType === 'expense') t.status = overlay.querySelector('#fas-pending').checked ? 'pending' : 'posted';
+    appendAccountTransactions(fromAcct,[t]);
     if (fromAcct === currentAccountId) await autoUpdateWeeklyPlan();
     haptic([10]);
     if (selType === 'expense') { showRobbery(amount, finalDesc, fromAcct, selCat); checkRoast(selCat); checkSpendingAlert(selCat); }
     else showPayday(amount, finalDesc, fromAcct, incomeCategory);
     close();
     render();
+    } catch(error) { _toast(error.message || 'The entry could not be saved.',5000); }
+    finally { if(!_closing)submit.disabled=false; }
   });
 }
 
@@ -13006,6 +13138,12 @@ async function autoUpdateWeeklyPlan() {
 }
 
 function attachAdd() {
+  document.getElementById('add-return-review')?.addEventListener('click', returnToBankReview);
+  document.querySelectorAll('[data-entry-option]').forEach(button => button.addEventListener('click', () => {
+    document.getElementById('add-options').open = true;
+    const option=document.getElementById(button.dataset.entryOption);
+    if (option) { option.checked=true; option.dispatchEvent(new Event('change',{bubbles:true})); option.focus(); }
+  }));
   // Pre-select type if arriving from Quick Add tile
   if (_quickAddType) {
     const radio = document.querySelector(`input[name="etype"][value="${_quickAddType}"]`);
@@ -13159,6 +13297,8 @@ function attachAdd() {
   document.querySelectorAll('input[name="etype"]').forEach(radio => {
     radio.addEventListener('change', () => {
       const isTransfer = radio.value === 'transfer';
+      document.getElementById('add-purchase-status').hidden = radio.value !== 'expense';
+      document.getElementById('entry-shortcuts').hidden = isTransfer || isSimpleMode();
       const toRow      = document.getElementById('add-to-acct-row');
       const catRow     = document.getElementById('add-cat-row');
       const recurRow   = document.getElementById('add-recurring-row');
@@ -13175,7 +13315,11 @@ function attachAdd() {
     });
   });
 
-  document.getElementById('add-btn')?.addEventListener('click', async () => {
+  document.getElementById('add-purchase-status').hidden = document.querySelector('input[name="etype"]:checked')?.value !== 'expense';
+  document.querySelector('input[name="etype"]:checked')?.dispatchEvent(new Event('change'));
+  document.getElementById('add-btn')?.addEventListener('click', async event => {
+    const submit=event.currentTarget; if(submit.disabled)return; submit.disabled=true;
+    try {
     const amtVal = document.getElementById('add-amount').value;
     const amount = parseFloat(amtVal);
     if (!amtVal || isNaN(amount) || amount <= 0) {
@@ -13187,6 +13331,9 @@ function attachAdd() {
     }
     const type = document.querySelector('input[name="etype"]:checked').value;
     const date = document.getElementById('add-date').value || today();
+    const purchaseState = type === 'expense' && document.querySelector('input[name="purchase-status"]:checked')?.value === 'pending' ? 'pending' : 'posted';
+    const destination = state.accounts.find(a=>a.id===document.getElementById('add-acct').value);
+    if (!destination || destination.archived) { showStatus('add-status','Choose an active account.','error'); return; }
 
     // ── Split transaction mode ─────────────────────────────────────────────
     if (document.getElementById('split-toggle')?.checked && type !== 'transfer') {
@@ -13199,18 +13346,20 @@ function attachAdd() {
       const acct        = document.getElementById('add-acct').value;
       const isRecurring = document.getElementById('add-recurring').checked;
       const isExclude   = document.getElementById('add-exclude-budget')?.checked;
-      let count = 0;
+      let count = 0; const entries=[];
       const stamp = Date.now();
       for (const row of _splitRows) {
         const splitAmt = parseFloat(row.amount);
         if (!splitAmt || splitAmt <= 0) continue;
         const t = { type, amount: splitAmt, description: desc, category: row.cat,
                     account: acct, date, recurring: isRecurring, ts: stamp + count };
+        if (type === 'expense') t.status=purchaseState;
         if (isRecurring) t.recur_month = localMonthKey();
         if (isExclude)   t.excludeFromBudget = true;
-        await api.addTransaction(t);
+        entries.push(t);
         count++;
       }
+      appendAccountTransactions(acct,entries);
       showStatus('add-status', `✓ Split into ${count} entries (${fmt(amount)} total)`, 'success');
       document.getElementById('add-amount').value = '';
       document.getElementById('add-desc').value   = '';
@@ -13222,6 +13371,8 @@ function attachAdd() {
       document.getElementById('add-cat-row').style.display   = '';
       playSound(type);
       haptic([30]);
+      await autoUpdateWeeklyPlan();
+      if (_returnToBankReview) await returnToBankReview();
       return;
     }
 
@@ -13254,7 +13405,7 @@ function attachAdd() {
       playSound('transfer');
       haptic([20, 40, 20]);
       showTransfer(amount, (toIsDebt ? 'Payment → ' : 'Transfer → ') + toAcctName);
-      render(); return;
+      if (_returnToBankReview) await returnToBankReview(); else render(); return;
     }
 
     const isRecurring = document.getElementById('add-recurring').checked;
@@ -13279,6 +13430,7 @@ function attachAdd() {
       recurring:   isRecurring,
       ts:          Date.now()
     };
+    if (type === 'expense') t.status=purchaseState;
     if (isRecurring) t.recur_month = localMonthKey();
     if (isExclude)   t.excludeFromBudget = true;
     // Duplicate guard: warn if an identical entry was just added (same type/amount/desc/cat < 2 min ago)
@@ -13296,7 +13448,7 @@ function attachAdd() {
     }
     let prevBal = 0;
     for (const tx of state.transactions) prevBal += tx.type==='income' ? tx.amount : -tx.amount;
-    await api.addTransaction(t);
+    appendAccountTransactions(t.account,[t]);
     await autoUpdateWeeklyPlan(); // runs on every transaction so dashboard always matches planner
     const newBal = prevBal + (t.type==='income' ? t.amount : -t.amount);
     showStatus('add-status', `✓ Added ${t.type}: ${fmt(t.amount)} (${t.category})`, 'success');
@@ -13312,6 +13464,9 @@ function attachAdd() {
     if (t.type === 'expense') { checkRoast(t.category); checkSpendingAlert(t.category); }
     checkMilestones(prevBal, newBal);
     checkWeekMilestone();
+    if (_returnToBankReview) await returnToBankReview();
+    } catch(error) { showStatus('add-status',error.message || 'The entry could not be saved.','error',0); }
+    finally { if(submit.isConnected)submit.disabled=false; }
   });
 }
 
@@ -13337,7 +13492,7 @@ function exportCSV(allAccounts = false) {
   let running = allAccounts ? 0 : (state.startingBalance || 0);
   const rows = [[
     'Date', 'Type', 'Category', 'Description', 'Amount',
-    'Signed Amount', 'Running Balance', 'Account', 'Recurring',
+    'Signed Amount', 'Running Balance', 'Account', 'Recurring', 'Status',
   ]];
   for (const t of txns) {
     const signed = t.type === 'income' ? t.amount : -t.amount;
@@ -13352,6 +13507,7 @@ function exportCSV(allAccounts = false) {
       running.toFixed(2),
       t._acctName || 'Main',
       t.recurring ? 'Yes' : 'No',
+      purchaseStatus(t) === 'pending' ? 'Pending' : 'Posted',
     ]);
   }
 
@@ -13381,6 +13537,13 @@ function exportCSVTemplate() {
 }
 
 function attachLedger() {
+  document.getElementById('ledger-status-filter')?.addEventListener('change',event=>{ledgerStatusFilter=event.target.value;render();});
+  document.getElementById('ledger-undo-dismiss')?.addEventListener('click',()=>{_ledgerUndo=null;render();});
+  document.getElementById('ledger-undo')?.addEventListener('click',async()=>{
+    try { undoLedgerChange(); await autoUpdateWeeklyPlan();
+      refreshLedgerUndoStorage(); render(); _toast('Change undone.'); }
+    catch(error) { _toast(error.message,5000); }
+  });
   document.getElementById('ledger-bank-match')?.addEventListener('click', showReconcileModal);
   document.getElementById('ledger-filter-options')?.addEventListener('toggle', e => { if (e.target.isConnected) ledgerFiltersOpen = e.target.open; });
   document.getElementById('ledger-tools-options')?.addEventListener('toggle', e => { if (e.target.isConnected) ledgerToolsOpen = e.target.open; });
@@ -13434,7 +13597,7 @@ function attachLedger() {
   });
 
   document.getElementById('ledger-clear-filters')?.addEventListener('click', () => {
-    ledgerFilter = ''; ledgerTypeFilter = 'all'; ledgerCatFilter = '';
+    ledgerFilter = ''; ledgerTypeFilter = 'all'; ledgerStatusFilter = 'all'; ledgerCatFilter = '';
     ledgerDateFrom = ''; ledgerDateTo = '';
     render();
   });
@@ -13460,26 +13623,30 @@ function attachLedger() {
       message: `This removes ${n} selected transaction${n !== 1 ? 's' : ''}. A restore point is saved first, so you can undo it from Import → Restore points.`,
       confirmText: 'Delete',
       onConfirm: async () => {
-        takeSnapshot('before-bulk-delete');
+        try {
+        if (!_demoMode && !takeSnapshot('before-bulk-delete')) throw new Error('A restore point could not be saved. Download a backup and free storage before deleting.');
         const objs = _selectedTxnObjs();
-        state.transactions = state.transactions.filter(t => !objs.has(t));
-        _save();
+        changeLedgerWithUndo(`${n} transactions deleted`,()=>{state.transactions = state.transactions.filter(t => !objs.has(t));});
         await autoUpdateWeeklyPlan();
+      refreshLedgerUndoStorage();
         _ledgerSelectMode = false; _ledgerSelected.clear();
         rerenderKeepScroll();
+        } catch(error) { _toast(error.message,5000); }
       },
     });
   });
   document.getElementById('lsb-recat')?.addEventListener('click', () => {
     if (!_ledgerSelected.size) return;
     _showBulkRecatModal(async cat => {
-      takeSnapshot('before-bulk-delete');
+      try {
+      if (!_demoMode && !takeSnapshot('before-category-change')) throw new Error('A restore point could not be saved. Download a backup and free storage before editing.');
       const objs = _selectedTxnObjs();
-      state.transactions.forEach(t => { if (objs.has(t)) t.category = cat; });
-      _save();
+      changeLedgerWithUndo('Categories updated',()=>{state.transactions.forEach(t => { if (objs.has(t)) t.category = cat; });});
       await autoUpdateWeeklyPlan();
+      refreshLedgerUndoStorage();
       _ledgerSelectMode = false; _ledgerSelected.clear();
       rerenderKeepScroll();
+      } catch(error) { _toast(error.message,5000); }
     });
   });
 }
@@ -13578,12 +13745,22 @@ async function _onLedgerListClick(e) {
     return;
   }
 
+  const postButton = e.target.closest('.ledger-post-btn');
+  if (postButton) {
+    e.stopPropagation();
+    try { await api.patchTransaction(Number(postButton.dataset.idx),{status:'posted'}); rerenderKeepScroll(); }
+    catch(error) { _toast(error.message,5000); }
+    return;
+  }
   const saveBtn = e.target.closest('.ie-save');
   if (saveBtn) {
     e.stopPropagation();
     const idx  = parseInt(saveBtn.dataset.idx);
     const edit = saveBtn.closest('.ledger-inline-edit');
-    await api.patchTransaction(idx, {
+    const amount=Number(edit.querySelector('.ie-amount').value), date=edit.querySelector('.ie-date').value;
+    if (!Number.isFinite(amount) || amount<=0 || !bankMatchDate(date)) { _toast('Enter a valid amount and date.'); return; }
+    try { await api.patchTransaction(idx, {
+      status:      edit.querySelector('.ie-status')?.value || 'posted',
       type:        edit.querySelector('.ie-type').value,
       date:        edit.querySelector('.ie-date').value,
       category:    edit.querySelector('.ie-cat').value,
@@ -13591,8 +13768,8 @@ async function _onLedgerListClick(e) {
       amount:      parseFloat(edit.querySelector('.ie-amount').value) || 0,
       excludeFromBudget: !!edit.querySelector('.ie-exclude')?.checked,
     });
-    await autoUpdateWeeklyPlan(); // keep dashboard per-week/day in sync after the edit
-    rerenderKeepScroll();
+    await autoUpdateWeeklyPlan(); refreshLedgerUndoStorage(); // keep dashboard per-week/day in sync after the edit
+    rerenderKeepScroll(); } catch(error) { _toast(error.message,5000); }
     return;
   }
 
@@ -13611,9 +13788,9 @@ async function _onLedgerListClick(e) {
     const t   = state.transactions[idx];
     showConfirmModal({
       title: 'Delete Transaction', danger: true,
-      message: `Delete "${_escHtml(t.description)}" (${fmt(t.amount)})? This cannot be undone.`,
+      message: `Delete "${_escHtml(t.description)}" (${fmt(t.amount)})? You can undo this from the Ledger banner.`,
       confirmText: 'Delete',
-      onConfirm: async () => { await api.deleteTransaction(idx); selectedLedgerIdx = null; rerenderKeepScroll(); },
+      onConfirm: async () => { try { await api.deleteTransaction(idx); selectedLedgerIdx = null; rerenderKeepScroll(); } catch(error) { _toast(error.message,5000); } },
     });
     return;
   }
@@ -13867,6 +14044,7 @@ function attachImport() {
         // Map common column-name aliases to canonical names
         const alias = {
           date:        ['date','transaction date','trans date','posting date','posted date','value date'],
+          status:      ['status','purchase status','transaction status'],
           type:        ['type','transaction type','trans type','debit/credit'],
           amount:      ['amount','transaction amount','trans amount','debit amount','credit amount','withdrawal','deposit','sum'],
           description: ['description','desc','memo','narrative','details','payee','merchant','name','note','notes'],
@@ -13930,6 +14108,7 @@ function attachImport() {
 
             const _desc = get('description');
             parsed.push({
+              status: type==='expense' && get('status').toLowerCase()==='pending' ? 'pending' : 'posted',
               date,
               type,
               category:    get('category') || _guessCategory(_desc, type, _learned),
@@ -14031,13 +14210,13 @@ function attachImport() {
 function updateAccountSwitcher() {
   const sel = document.getElementById('account-switcher');
   if (!sel) return;
-  if (state.accounts.length <= 1) {
+  if (activeAccounts().length <= 1) {
     sel.style.display = 'none';
     document.getElementById('acct-home-btn')?.remove();
     return;
   }
   sel.style.display = '';
-  sel.innerHTML = state.accounts.map(a =>
+  sel.innerHTML = activeAccounts().map(a =>
     `<option value="${a.id}"${a.id === currentAccountId ? ' selected' : ''}>${_escHtml(a.name)}</option>`
   ).join('');
   // Inject home/picker button once
@@ -14721,6 +14900,8 @@ window.addEventListener('popstate', () => {
   // Close the quick-add sheet first if it's open (its history entry was just consumed)
   const fastAdd = document.getElementById('fast-add-overlay');
   if (fastAdd) { (fastAdd._closeFromPop || (() => fastAdd.remove()))(); return; }
+  const bankReview=document.getElementById('reconcile-overlay');
+  if (bankReview) { bankReview.querySelector('#reconcile-cancel').click(); history.pushState({dawgNav:true},''); return; }
   // Close any open modal/drawer first before actually going back
   const drawer = document.getElementById('dawg-drawer');
   if (drawer && !drawer.classList.contains('hidden')) { closeDawgDrawer(); history.pushState({ dawgNav: true }, ''); return; }
