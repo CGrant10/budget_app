@@ -1,0 +1,38 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const source = fs.readFileSync(require('node:path').join(__dirname, '../docs/app.js'), 'utf8');
+const values = new Map(); let fail = false;
+const ctx = vm.createContext({ console, Date, localStorage:{setItem:(k,v)=>{if(fail)throw new Error('Quota');values.set(k,v)},getItem:k=>values.get(k)||null},_calcVer:0,_showSaveError:()=>{},currentAccountId:'main',accountDataKey:id=>'data_'+id,today:()=> '2026-11-25',fmt:n=>'$'+Number(n).toFixed(2),state:{accounts:[{id:'main',type:'checking'}],transactions:[],startingBalance:100,weekly_plan:{daily_limit:30},bills:[],budgets:{Food:100},goals:[],challenges:[],reconciliation:null}});
+for(const name of ['bankMatchCents','bankMatchDate','bankMatchKey','bankMatchRows','bankMatchSelection','bankMatchSummary','bankLedgerStamp','bankMatchStatus','saveBankMatch','_save','_loadAccountData']){
+ const start=source.indexOf(`function ${name}(`);assert(start>=0,name);vm.runInContext(source.slice(start,source.indexOf('\n}',start)+2),ctx);
+}
+const tx=[{date:'2026-11-20',type:'expense',amount:'20.10',description:'Groceries',ts:1},{date:'2026-11-21',type:'income',amount:30.2,description:'Refund',ts:2},{date:'2026-11-22',type:'expense',amount:5.15,description:'Pending',ts:3},{date:'2026-12-01',type:'expense',amount:999,description:'Future',ts:4}];
+const selected=new Set([0,1,3]); const before=JSON.stringify(tx);
+let r=ctx.bankMatchSummary(tx,100,false,'2026-11-25',110.1,selected);assert.equal(r.cleared,110.1);assert.equal(r.difference,0);assert.equal(r.recorded,104.95);assert.equal(r.unchecked,1);assert.equal(r.future,1);assert.equal(JSON.stringify(tx),before);
+r=ctx.bankMatchSummary(tx,100,true,'2026-11-25',89.9,selected);assert.equal(r.cleared,89.9);assert.equal(r.difference,0);
+assert.equal(ctx.bankMatchSummary([{date:'2026-11-25',type:'expense',amount:.2}],.1,false,'2026-11-25',-.1,new Set([0])).difference,0,'negative cash balances');
+assert.equal(ctx.bankMatchSummary([{date:'2026-11-25',type:'income',amount:110}],100,true,'2026-11-25',-10,new Set([0])).difference,0,'credit overpayments remain signed');
+for(const v of ['', '  ',null,undefined,true,[],{},'Infinity','bad',Number.MAX_VALUE])assert.equal(ctx.bankMatchCents(v),null,String(v));
+assert(ctx.bankMatchDate('2024-02-29'));for(const d of ['2026-02-29','2026-11-31','','2026-2-01'])assert(!ctx.bankMatchDate(d),d);
+assert.equal(ctx.bankMatchSummary(tx,100,false,'2026-11-25','',selected),null);assert.equal(ctx.bankMatchSummary([{date:'2026-11-25',type:'expense',amount:'bad'}],100,false,'2026-11-25',100,new Set()),null);
+const special=[{date:'2026-11-25',type:'expense',amount:20,_xfer:true,description:'Transfer'},{date:'2026-11-25',type:'expense',amount:10,_billId:'bill',description:'Bill'},{date:'2026-11-25',type:'income',amount:5,excludeFromBudget:true,category:'Adjustment'}];assert.equal(ctx.bankMatchSummary(special,100,false,'2026-11-25',75,new Set([0,1,2])).difference,0,'transfers, bills, and adjustments count once as recorded');
+const duplicates=[{date:'2026-11-25',type:'expense',amount:5,description:'Coffee'},{date:'2026-11-25',type:'expense',amount:5,description:'Coffee'}];
+assert.equal(ctx.bankMatchSelection(duplicates,{matched:[ctx.bankMatchKey(duplicates[0])]}).size,1,'duplicate matching uses a multiset');
+ctx.state.transactions=JSON.parse(before);
+const args={accountId:'main',transactions:JSON.parse(before),opening:100,asOf:'2026-11-25',target:110.1,selected};
+const financial=JSON.stringify({transactions:ctx.state.transactions,plan:ctx.state.weekly_plan,budgets:ctx.state.budgets});
+ctx.saveBankMatch(args);assert.equal(ctx.state.reconciliation.matched.length,2);assert.equal(JSON.stringify({transactions:ctx.state.transactions,plan:ctx.state.weekly_plan,budgets:ctx.state.budgets}),financial,'saving never edits money or budgets');
+assert.equal(JSON.parse(values.get('data_main')).reconciliation.balance,110.1);assert(!ctx.bankMatchStatus().includes('changed'));
+ctx._loadAccountData('main');assert.equal(ctx.state.reconciliation.balance,110.1);assert.equal(ctx.bankMatchSelection(ctx.state.transactions,ctx.state.reconciliation).size,2,'reload retains selected entries');
+const checkpoint=JSON.stringify(ctx.state.reconciliation);
+assert.throws(()=>ctx.saveBankMatch({...args,expectedStorage:'stale'}),/changed in storage/,'another tab cannot be overwritten');
+const stored=values.get('data_main');values.set('data_main',JSON.stringify({...JSON.parse(stored),startingBalance:999}));assert.throws(()=>ctx.saveBankMatch(args),/changed in storage/);values.set('data_main',stored);
+assert.throws(()=>ctx.saveBankMatch({...args,target:100}),/must match/);assert.equal(JSON.stringify(ctx.state.reconciliation),checkpoint);
+assert.throws(()=>ctx.saveBankMatch({...args,asOf:'2026-11-26'}),/earlier/);
+ctx.currentAccountId='other';assert.throws(()=>ctx.saveBankMatch(args),/Ledger changed/);ctx.currentAccountId='main';
+ctx.state.transactions[0].amount=99;assert(ctx.bankMatchStatus().includes('changed'));assert.equal(ctx.bankMatchSelection(ctx.state.transactions,ctx.state.reconciliation).size,1,'edited entries need checking again');assert.throws(()=>ctx.saveBankMatch(args),/Ledger changed/);
+ctx.state.transactions=JSON.parse(before);fail=true;assert.throws(()=>ctx.saveBankMatch(args),/could not be saved/);assert.equal(JSON.stringify(ctx.state.reconciliation),checkpoint,'quota failure retains previous checkpoint');fail=false;
+ctx.state.startingBalance=50;assert.throws(()=>ctx.saveBankMatch(args),/Ledger changed/);ctx.state.startingBalance=100;
+ctx.currentAccountId='other';ctx._loadAccountData('other');assert.equal(ctx.state.reconciliation,null,'account isolation');
+console.log('Bank match checks passed: exact cents, posted/future dates, pending exclusions, debt/credit/negative balances, bills/transfers/refunds, duplicate counts, persistence, edited entries, account isolation, stale reviews, invalid input, quota rollback, and unchanged transactions/budgets.');

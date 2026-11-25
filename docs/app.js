@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.72.0';
+const VERSION = '5.73.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -1058,12 +1058,15 @@ function showPinSetupModal(onSuccess) {
 // this is the neutral version for things that aren't errors.
 function _toast(msg, ms = 3200) {
   const el = document.createElement('div');
+  el.className = 'app-toast';
   el.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:10002;'
     + 'background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 18px;'
     + 'border-radius:10px;font-size:.85rem;font-weight:600;pointer-events:none;text-align:center;'
     + 'max-width:78vw;box-shadow:0 6px 24px rgba(0,0,0,.4)';
   el.textContent = msg;
   document.body.appendChild(el);
+  const reminder = document.getElementById('backup-resume-notice');
+  if (reminder) el.style.bottom = (reminder.offsetHeight + 102) + 'px';
   setTimeout(() => el.remove(), ms);
 }
 
@@ -2339,8 +2342,10 @@ function _save() {
       goals:           state.goals,
       challenges:      state.challenges,
       startingBalance: state.startingBalance,
+      ...(state.reconciliation ? { reconciliation: state.reconciliation } : {}),
     }));
-  } catch(e) { _showSaveError(); }
+    return true;
+  } catch(e) { _showSaveError(); return false; }
 }
 function _saveAccounts() {
   try {
@@ -2572,6 +2577,7 @@ function _loadAccountData(id) {
   state.goals           = d.goals           || [];
   state.challenges      = d.challenges      || [];
   state.startingBalance = parseFloat(d.startingBalance) || 0;
+  state.reconciliation = d.reconciliation || null;
   // Every load replaces the calculation inputs, including direct Accounts-page
   // switches, browser-back navigation, and restores of the same account ID.
   _calcVer++;
@@ -3064,7 +3070,7 @@ function renderEverydayDashboard(balance, inputs, gamblingMonth, gamblingAll) {
       ${renderMonthComparison(!!activeSkin(), dashMonth, true)}${renderPaydayForecast(!!activeSkin())}
       <details class="home-chart overview-history" id="home-chart"><summary>Balance history</summary><div class="dawg-sparkline-wrap"><canvas id="dawg-sparkline"></canvas></div><div class="dawg-time-btns"><span class="dawg-tbtn-pill"></span>${[['1w','1W'],['1m','1M'],['3m','3M'],['6m','6M'],['1y','1Y'],['all','ALL']].map(([range,label]) => `<button type="button" class="dawg-tbtn${range === 'all' ? ' dawg-tbtn-active' : ''}" data-range="${range}">${label}</button>`).join('')}</div></details>
       <details class="overview-gambling"><summary>Gambling summary</summary><div class="gambling-card">${_gamblingTrackerBody(gamblingMonth,gamblingAll)}</div></details>
-      <div class="overview-secondary-actions"><button type="button" class="overview-link" data-overview-go="insights">Open Insights ${arrow}</button><button type="button" class="overview-link" id="dash-reconcile">Reconcile balance</button><button type="button" class="overview-link" id="dash-month-prev">Previous month</button></div>
+      <div class="overview-secondary-actions"><button type="button" class="overview-link" data-overview-go="insights">Open Insights ${arrow}</button><button type="button" class="overview-link" id="dash-reconcile">Match my bank</button><button type="button" class="overview-link" id="dash-month-prev">Previous month</button></div>
     </div></details>
   </div>`;
 }
@@ -3604,11 +3610,13 @@ async function chooseAutoBackupFile() {
     types: [{ description: 'Budget DAWGs backup', accept: { 'application/json': ['.json'] } }],
   });
   await _fsPutHandle(handle);
+  document.getElementById('backup-resume-notice')?.remove();
   return _writeAutoBackup(handle, { force: true });   // brand-new file, nothing to protect
 }
 
 async function disableAutoBackup() {
   await _fsDelHandle();
+  document.getElementById('backup-resume-notice')?.remove();
   const s = loadSettings();
   s.autoBackup = false; delete s.autoBackupName; delete s.lastAutoBackup;
   saveSettings(s);
@@ -3629,7 +3637,7 @@ async function maybeAutoBackup(getHandle = _fsGetHandle) {
   if (!handle) { return { state: 'no-handle' }; }
   let perm = 'denied';
   try { perm = await handle.queryPermission({ mode: 'readwrite' }); } catch {}
-  if (perm !== 'granted') return { state: 'needs-permission' };
+  if (perm !== 'granted') return { state: 'needs-permission', handle };
   try {
     const r = await _writeAutoBackup(handle);
     return r.ok ? { state: 'written', txns: r.txns } : { state: 'refused', reason: r.reason };
@@ -3639,52 +3647,75 @@ async function maybeAutoBackup(getHandle = _fsGetHandle) {
   }
 }
 
-// Boot wiring. Runs the daily write and, for the two outcomes the user has to know
-// about, says so instead of failing quietly:
-//   needs-permission → a tap is required, so offer one (a toast is not enough).
-//   refused          → the empty-state guard fired; that is worth interrupting for,
-//                      because it means this launch has no data and the file does.
-function _runAutoBackupCheck() {
-  maybeAutoBackup().then(r => {
-    if (!r || r.state === 'off' || r.state === 'done-today' || r.state === 'written') return;
-    if (r.state === 'needs-permission') {
-      showConfirmModal({
-        title: 'Resume daily backup?',
-        message: 'Your browser needs permission again before it can update the backup file. '
-               + 'This happens after a restart and only takes one tap.',
-        confirmText: 'Allow',
-        onConfirm: () => resumeAutoBackup().then(res => {
-          if (res.state === 'written') _toast('✓ Backup updated');
-        }),
-      });
-      return;
-    }
-    if (r.state === 'refused') {
-      showConfirmModal({
-        title: 'Backup not overwritten', danger: true,
-        message: 'This app currently has no transactions, but your backup file does — so it was '
-               + 'left alone rather than replaced with an empty one. If your data is missing, '
-               + 'import that file before doing anything else.',
-        confirmText: 'Got it', cancelText: 'Open Import',
-        onCancel: () => { currentTab = 'import'; render(); },
-      });
-      return;
-    }
-    if (r.state === 'no-handle') _toast('Auto-backup needs the file choosing again');
+// One unobtrusive action before the browser's own file-access prompt.
+function showBackupResumeNotice(handle) {
+  if (document.getElementById('backup-resume-notice')) return;
+  const notice = document.createElement('aside');
+  notice.id = 'backup-resume-notice';
+  notice.className = 'backup-resume-notice';
+  notice.setAttribute('aria-label', 'Daily backup');
+  notice.innerHTML = `<div><strong>Daily backup paused</strong><p id="backup-resume-message" role="status">Resume to update your backup file.</p></div><button type="button" id="backup-resume-action">Resume</button><button type="button" id="backup-resume-dismiss" aria-label="Dismiss backup reminder">×</button>`;
+  document.body.appendChild(notice);
+  document.querySelectorAll('.app-toast').forEach(toast => { toast.style.bottom = (notice.offsetHeight + 102) + 'px'; });
+  notice.querySelector('#backup-resume-dismiss').addEventListener('click', () => notice.remove());
+  notice.querySelector('#backup-resume-action').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    // Use the handle already loaded at boot. No IndexedDB task may consume the
+    // click's transient activation before the native permission request.
+    const result = await resumeAutoBackup(() => handle);
+    if (result.state === 'written') { notice.remove(); _toast('✓ Backup updated'); return; }
+    if (result.state === 'refused') { notice.remove(); showAutoBackupOutcome(result); return; }
+    button.disabled = false;
+    notice.querySelector('#backup-resume-message').textContent = result.state === 'denied'
+      ? 'File access was not granted. Your backup is unchanged.'
+      : 'Could not update the file. Try again from Backup tools.';
   });
 }
 
-// Called from a click, so requestPermission() has the gesture it needs.
-async function resumeAutoBackup(getHandle = _fsGetHandle) {
-  const handle = await getHandle();
-  if (!handle) return { state: 'no-handle' };
-  let perm = 'denied';
-  try { perm = await handle.requestPermission({ mode: 'readwrite' }); } catch {}
-  if (perm !== 'granted') return { state: 'denied' };
-  try {
-    const r = await _writeAutoBackup(handle);
-    return r.ok ? { state: 'written', txns: r.txns } : { state: 'refused', reason: r.reason };
-  } catch (e) { return { state: 'error', reason: e && e.message }; }
+function showAutoBackupOutcome(result) {
+  if (!result) return;
+  if (result.state === 'needs-permission') { showBackupResumeNotice(result.handle); return; }
+  if (result.state === 'refused') {
+    showConfirmModal({
+      title: 'Backup not overwritten', danger: true,
+      message: 'This app currently has no transactions, but your backup file does — so it was '
+             + 'left alone rather than replaced with an empty one. If your data is missing, '
+             + 'import that file before doing anything else.',
+      confirmText: 'Got it', cancelText: 'Open Import',
+      onCancel: () => { currentTab = 'import'; render(); },
+    });
+  } else if (result.state === 'no-handle') _toast('Auto-backup needs the file choosing again');
+  else if (result.state === 'error') _toast('Backup could not update. Check Backup tools.');
+}
+
+let _autoBackupCheckTask = null;
+function _runAutoBackupCheck() {
+  if (_autoBackupCheckTask || document.getElementById('backup-resume-notice')) return _autoBackupCheckTask;
+  _autoBackupCheckTask = maybeAutoBackup().then(showAutoBackupOutcome)
+    .catch(() => _toast('Backup could not update. Check Backup tools.'))
+    .finally(() => { _autoBackupCheckTask = null; });
+  return _autoBackupCheckTask;
+}
+
+let _backupResumeTask = null;
+// A supplied handle is used synchronously, preserving the button's activation.
+// Coalesce repeated requests so one click sequence cannot open two permission
+// prompts or race two writes to the same file.
+function resumeAutoBackup(getHandle = _fsGetHandle) {
+  if (_backupResumeTask) return _backupResumeTask;
+  _backupResumeTask = (async () => {
+    try {
+      const source = getHandle();
+      const handle = source && typeof source.then === 'function' ? await source : source;
+      if (!handle) return { state: 'no-handle' };
+      const perm = await handle.requestPermission({ mode: 'readwrite' });
+      if (perm !== 'granted') return { state: 'denied' };
+      const result = await _writeAutoBackup(handle);
+      return result.ok ? { state: 'written', txns: result.txns } : { state: 'refused', reason: result.reason };
+    } catch (error) { return { state: 'error', reason: error && error.message }; }
+  })().finally(() => { _backupResumeTask = null; });
+  return _backupResumeTask;
 }
 
 // ── restore points (automatic local snapshots) ──────────────────────────────
@@ -3718,6 +3749,7 @@ function _buildBackupPayload() {
     goals:          state.goals,
     challenges:     state.challenges,
     startingBalance: state.startingBalance,
+    ...(state.reconciliation ? { reconciliation: state.reconciliation } : {}),
   };
 }
 
@@ -3773,7 +3805,7 @@ function restoreBackupWithUndo(raw) {
     const expected = new Map([[ACCOUNTS_KEY, JSON.stringify(accounts)], [NOTES_KEY, JSON.stringify(data.notes || [])]]);
     if (data.settings) expected.set(SETTINGS_KEY, JSON.stringify(data.settings));
     if (data._multiAccount) accounts.forEach(account => expected.set(accountDataKey(account.id), JSON.stringify(data.accountData[account.id] || {})));
-    else expected.set(accountDataKey(currentAccountId), JSON.stringify({transactions:data.transactions || [], weekly_plan:data.weekly_plan || {}, budgets:data.budgets || {}, bills:data.bills || [], goals:data.goals || [], challenges:data.challenges || [], startingBalance:Number(data.startingBalance) || 0}));
+    else expected.set(accountDataKey(currentAccountId), JSON.stringify({transactions:data.transactions || [], weekly_plan:data.weekly_plan || {}, budgets:data.budgets || {}, bills:data.bills || [], goals:data.goals || [], challenges:data.challenges || [], startingBalance:Number(data.startingBalance) || 0, ...(data.reconciliation ? {reconciliation:data.reconciliation} : {})}));
     if ([...expected].some(([key, value]) => localStorage.getItem(key) !== value)) throw new Error('Backup could not be saved completely');
   } catch (error) {
     // Remove newly written values first, freeing space for the original values.
@@ -3853,6 +3885,7 @@ function _applyBackupPayload(data) {
     state.goals        = data.goals        || [];
     state.challenges   = data.challenges   || [];
     state.startingBalance = Number(data.startingBalance) || 0;
+    state.reconciliation = data.reconciliation || null;
     state.accounts = acctList.length ? acctList : defaultAccounts();
     currentAccountId = state.accounts.find(a => a.id === data.currentAccountId)?.id || state.accounts.find(a => a.id === 'main')?.id || state.accounts[0].id;
     state.accounts.filter(account => account.id !== currentAccountId).forEach(account => localStorage.setItem(accountDataKey(account.id), '{}'));
@@ -4070,71 +4103,179 @@ function openCalcKeypad(target) {
   refresh();
 }
 
-// ── reconcile to bank ────────────────────────────────────────────────────────
-// Sets the current account's balance to a number you type by logging a one-line
-// adjustment transaction (excluded from weekly spending).
-function showReconcileModal() {
-  const acct   = state.accounts.find(a => a.id === currentAccountId);
-  const isDebt = acct && (acct.type === 'credit' || acct.type === 'loan');
-  const { income, expense } = totals();
-  const net     = income - expense;
-  const start   = state.startingBalance || 0;
-  const current = isDebt ? Math.max(0, start - net) : (start + net);
-  const ov = document.createElement('div');
-  ov.id = 'reconcile-overlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center';
-  ov.innerHTML = `
-    <div class="reconcile-card" role="dialog" aria-label="Reconcile balance">
-      <div class="reconcile-title">Reconcile ${acct?.name || 'account'}</div>
-      <div class="reconcile-cur">In the app now: <strong>${fmt(current)}</strong>${isDebt ? ' owed' : ''}</div>
-      <label class="form-label" style="font-size:.74rem;margin-top:10px;display:block">${isDebt ? 'Actual balance owed ($)' : 'Actual balance from your bank ($)'}</label>
-      <input type="number" id="reconcile-input" class="form-input" inputmode="decimal" step="0.01" placeholder="${current.toFixed(2)}">
-      <div id="reconcile-diff" class="reconcile-diff"></div>
-      <div class="reconcile-actions">
-        <button id="reconcile-cancel" class="calc-cancel">Cancel</button>
-        <button id="reconcile-save" class="calc-done">Adjust</button>
-      </div>
-    </div>`;
-  document.body.appendChild(ov);
-  const input  = ov.querySelector('#reconcile-input');
-  const diffEl = ov.querySelector('#reconcile-diff');
-  const close  = () => ov.remove();
-  const calcDelta = () => {
-    const target = parseFloat(input.value);
-    return isFinite(target) ? { target, delta: +(target - current).toFixed(2) } : null;
-  };
-  const refresh = () => {
-    const r = calcDelta();
-    if (!r) { diffEl.textContent = ''; return; }
-    if (Math.abs(r.delta) < 0.005) { diffEl.innerHTML = '<span style="color:var(--success)">✓ Already matches</span>'; return; }
-    const word = isDebt
-      ? (r.delta > 0 ? `record a ${fmt(r.delta)} charge` : `record a ${fmt(-r.delta)} payment`)
-      : (r.delta > 0 ? `add ${fmt(r.delta)} income` : `add a ${fmt(-r.delta)} expense`);
-    diffEl.innerHTML = `Off by <strong>${fmt(Math.abs(r.delta))}</strong> — will ${word}`;
-  };
-  input.addEventListener('input', refresh);
-  setTimeout(() => input.focus(), 50);
-  ov.addEventListener('click', e => { if (e.target === ov) close(); });
-  ov.querySelector('#reconcile-cancel').addEventListener('click', close);
-  ov.querySelector('#reconcile-save').addEventListener('click', async () => {
-    const r = calcDelta();
-    if (!r || Math.abs(r.delta) < 0.005) { close(); return; }
-    let type, amount;
-    if (isDebt) {
-      if (r.target > current) { type = 'expense'; amount = r.target - current; }  // more owed = charge
-      else                    { type = 'income';  amount = current - r.target; }  // less owed = payment
-    } else {
-      if (r.delta > 0) { type = 'income';  amount = r.delta; }
-      else             { type = 'expense'; amount = -r.delta; }
-    }
-    await api.addTransaction({
-      type, amount: +amount.toFixed(2), description: 'Balance adjustment',
-      category: 'Adjustment', date: today(), account: currentAccountId, excludeFromBudget: true,
-    });
-    close();
-    showAlert(`✓ Reconciled to ${fmt(r.target)}`);
-    render();
+// ── Match bank statements without changing recorded money ───────────────────
+function bankMatchCents(value) {
+  if (!['number', 'string'].includes(typeof value) || String(value).trim() === '') return null;
+  const cents = Math.round(Number(value) * 100);
+  return Number.isSafeInteger(cents) ? cents : null;
+}
+
+function bankMatchDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
+  const date = new Date(value + 'T12:00:00Z');
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function bankMatchKey(transaction, duplicate = false) {
+  return JSON.stringify([transaction.date, transaction.type, bankMatchCents(transaction.amount),
+    String(transaction.description || '').trim().toLowerCase(), ...(duplicate ? [] : [transaction.ts ?? null])]);
+}
+
+function bankMatchRows(transactions, asOf) {
+  if (!bankMatchDate(asOf)) return [];
+  return (transactions || []).flatMap((transaction, index) => {
+    if (!bankMatchDate(transaction.date) || transaction.date > asOf ||
+        !['income', 'expense'].includes(transaction.type)) return [];
+    const cents = bankMatchCents(transaction.amount);
+    return cents !== null && cents >= 0 ? [{ transaction, index, cents }] : [];
   });
+}
+
+function bankMatchSelection(transactions, checkpoint) {
+  const remaining = new Map();
+  for (const key of Array.isArray(checkpoint?.matched) ? checkpoint.matched : []) remaining.set(key, (remaining.get(key) || 0) + 1);
+  const selected = new Set();
+  (transactions || []).forEach((transaction, index) => {
+    const key = bankMatchKey(transaction), count = remaining.get(key) || 0;
+    if (count > 0) { selected.add(index); remaining.set(key, count - 1); }
+  });
+  return selected;
+}
+
+function bankMatchSummary(transactions, opening, debt, asOf, target, selected) {
+  const openingCents = bankMatchCents(opening), targetCents = bankMatchCents(target);
+  if (openingCents === null || targetCents === null || !bankMatchDate(asOf)) return null;
+  const rows = bankMatchRows(transactions, asOf);
+  // Refuse to silently ignore malformed recorded amounts/dates in imported data.
+  const invalid = (transactions || []).some(t => !bankMatchDate(t.date) ||
+    (t.date <= asOf && (!['income', 'expense'].includes(t.type) || bankMatchCents(t.amount) === null || bankMatchCents(t.amount) < 0)));
+  if (invalid) return null;
+  let cleared = openingCents, recorded = openingCents, count = 0;
+  for (const { transaction, index, cents } of rows) {
+    const movement = cents * (transaction.type === 'income' ? 1 : -1) * (debt ? -1 : 1);
+    recorded += movement;
+    if (selected.has(index)) { cleared += movement; count++; }
+  }
+  const difference = targetCents - cleared;
+  if (![recorded, cleared, difference].every(Number.isSafeInteger)) return null;
+  return { cleared: cleared / 100, recorded: recorded / 100, difference: difference / 100,
+    matched: count, unchecked: rows.length - count, future: (transactions || []).length - rows.length };
+}
+
+function bankLedgerStamp(transactions, opening, asOf) {
+  return JSON.stringify([bankMatchCents(opening), bankMatchRows(transactions, asOf).map(row => bankMatchKey(row.transaction)).sort()]);
+}
+
+function bankMatchStatus() {
+  const checkpoint = state.reconciliation;
+  if (!checkpoint || !bankMatchDate(checkpoint.asOf) || bankMatchCents(checkpoint.balance) === null) return 'Check posted transactions against your bank.';
+  const changed = checkpoint.stamp !== bankLedgerStamp(state.transactions, state.startingBalance || 0, checkpoint.asOf);
+  return `Last matched ${checkpoint.asOf} · ${fmt(checkpoint.balance)}${changed ? ' · Ledger changed; review again' : ''}`;
+}
+
+function saveBankMatch({ accountId, transactions, opening, asOf, target, selected, expectedStorage }) {
+  if (currentAccountId !== accountId || JSON.stringify(state.transactions) !== JSON.stringify(transactions) || state.startingBalance !== opening) {
+    throw new Error('Your Ledger changed. Close this review and open Match my bank again.');
+  }
+  const storedRaw = localStorage.getItem(accountDataKey(accountId));
+  const stored = storedRaw ? JSON.parse(storedRaw) : null;
+  if ((expectedStorage !== undefined && storedRaw !== expectedStorage) || (stored &&
+      (JSON.stringify(stored.transactions || []) !== JSON.stringify(transactions) || Number(stored.startingBalance || 0) !== Number(opening || 0)))) {
+    throw new Error('Your Ledger changed in storage. Reload the app and start this review again.');
+  }
+  if (asOf > today()) throw new Error('Choose today or an earlier statement date.');
+  const account = state.accounts.find(a => a.id === accountId);
+  const result = bankMatchSummary(transactions, opening || 0, ['credit','loan'].includes(account?.type), asOf, target, selected);
+  if (!result || result.difference !== 0) throw new Error('The checked balance must match your bank before saving.');
+  const previous = state.reconciliation;
+  state.reconciliation = { asOf, balance: bankMatchCents(target) / 100, savedAt: new Date().toISOString(),
+    matched: bankMatchRows(transactions, asOf).filter(row => selected.has(row.index)).map(row => bankMatchKey(row.transaction)),
+    stamp: bankLedgerStamp(transactions, opening || 0, asOf) };
+  if (!_save()) { state.reconciliation = previous; throw new Error('The match could not be saved. Your previous match has been kept.'); }
+  return result;
+}
+
+function showReconcileModal() {
+  if (document.getElementById('reconcile-overlay')) return;
+  const accountId = currentAccountId, account = state.accounts.find(a => a.id === accountId);
+  const transactions = JSON.parse(JSON.stringify(state.transactions)), opening = state.startingBalance;
+  const expectedStorage = localStorage.getItem(accountDataKey(accountId));
+  const debt = ['credit','loan'].includes(account?.type);
+  const selected = bankMatchSelection(transactions, state.reconciliation);
+  const overlay = document.createElement('div');
+  overlay.id = 'reconcile-overlay';
+  overlay.className = 'bank-match-overlay';
+  overlay.innerHTML = `<section class="reconcile-card bank-match-card" role="dialog" aria-modal="true" aria-labelledby="bank-match-title">
+    <header class="bank-match-heading"><div><h2 id="bank-match-title">Match my bank</h2><p>${_escHtml(account?.name || 'Account')}</p></div><button type="button" id="reconcile-cancel" class="bank-match-close" aria-label="Close bank review">×</button></header>
+    <div class="bank-match-body">
+      <p class="bank-match-help">Use your bank’s posted ${debt ? 'balance owed' : 'balance'}, excluding pending purchases. Check each entry that appears on your statement.</p>
+      <div class="bank-match-fields"><label>Statement date<input type="date" id="reconcile-date" class="form-input" value="${today()}" max="${today()}" required></label><label>${debt ? 'Balance owed' : 'Posted balance'} ($)<input type="number" id="reconcile-input" class="form-input" inputmode="decimal" step="0.01" placeholder="0.00" required></label></div>
+      ${debt ? '<p class="bank-match-help">A negative balance owed represents a credit on your account.</p>' : ''}
+      <div id="reconcile-diff" class="bank-match-summary" aria-live="polite"></div>
+      <div class="bank-match-list-heading"><h3>Statement entries</h3><span id="reconcile-count"></span></div>
+      <input id="reconcile-search" class="form-input" type="search" placeholder="Find an entry" aria-label="Find a statement entry">
+      <div class="bank-match-tools"><button type="button" id="reconcile-select">Check visible</button><button type="button" id="reconcile-clear">Uncheck visible</button></div>
+      <div id="reconcile-entries" class="bank-match-entries"></div>
+      <button type="button" id="reconcile-more" class="bank-match-more" hidden>Show more entries</button>
+      <p class="bank-match-help">Opening balance: ${fmt(opening || 0)}${debt ? ' owed' : ''}. Bills and transfers are included once as recorded. Unchecked entries stay in your Ledger and budget.</p>
+      <p class="bank-match-help">Missing an entry? Close this review and add or edit it in Ledger, then return here. No balance adjustment is added by this review.</p>
+      <p id="reconcile-error" role="alert" class="bank-match-error"></p>
+    </div>
+    <footer class="bank-match-footer"><p id="reconcile-result">Enter a balance to compare.</p><button type="button" id="reconcile-save" class="btn-primary" disabled>Save match</button></footer>
+  </section>`;
+  document.body.appendChild(overlay);
+  const input = overlay.querySelector('#reconcile-input'), date = overlay.querySelector('#reconcile-date');
+  const search = overlay.querySelector('#reconcile-search'), save = overlay.querySelector('#reconcile-save');
+  const error = overlay.querySelector('#reconcile-error');
+  let visible = [], limit = 100;
+  const close = () => { overlay.remove(); releaseFocus(); };
+  const releaseFocus = manageModalFocus(overlay, input, close);
+  function refreshSummary() {
+    const result = bankMatchSummary(transactions, opening || 0, debt, date.value, input.value, selected);
+    const valid = !!result && date.value <= today();
+    save.disabled = !valid || result.difference !== 0;
+    const rows = bankMatchRows(transactions, date.value), checked = rows.filter(row => selected.has(row.index)).length;
+    overlay.querySelector('#reconcile-count').textContent = `${checked} of ${rows.length} checked`;
+    overlay.querySelector('#reconcile-diff').innerHTML = `<div><span>Checked balance${debt ? ' owed' : ''}</span><strong>${result ? fmt(result.cleared) : '—'}</strong></div><div><span>Bank balance${debt ? ' owed' : ''}</span><strong>${result ? fmt(Number(input.value)) : '—'}</strong></div><div class="bank-match-difference"><span>Difference</span><strong>${result ? fmt(Math.abs(result.difference)) : '—'}</strong></div>`;
+    const message = !bankMatchDate(date.value) || date.value > today() ? 'Choose today or an earlier statement date.'
+      : !result ? (input.value === '' ? 'Enter a balance to compare.' : 'Check your balance and any invalid Ledger entries.')
+      : result.difference === 0 ? `Ready to save · ${result.unchecked} unchecked${result.future ? ` · ${result.future} later entries excluded` : ''}`
+      : `Your bank is ${fmt(Math.abs(result.difference))} ${result.difference > 0 ? (debt ? 'more owed' : 'higher') : (debt ? 'less owed' : 'lower')} than the checked balance.`;
+    overlay.querySelector('#reconcile-result').textContent = message;
+    overlay.querySelector('#reconcile-diff').classList.toggle('is-matched', valid && result.difference === 0);
+  }
+  function refreshEntries() {
+    const rows = bankMatchRows(transactions, date.value), duplicates = new Map();
+    rows.forEach(row => { const key = bankMatchKey(row.transaction, true); duplicates.set(key, (duplicates.get(key) || 0) + 1); });
+    const query = search.value.trim().toLowerCase();
+    const filtered = rows.filter(({ transaction: t }) => `${t.description || ''} ${t.category || ''} ${t.amount} ${t.date}`.toLowerCase().includes(query)).sort((a,b) => b.transaction.date.localeCompare(a.transaction.date) || b.index-a.index);
+    visible = filtered.slice(0, limit);
+    overlay.querySelector('#reconcile-more').hidden = filtered.length <= limit;
+    overlay.querySelector('#reconcile-more').textContent = `Show more entries (${visible.length} of ${filtered.length})`;
+    overlay.querySelector('#reconcile-entries').innerHTML = visible.length ? visible.map(({ transaction: t, index }) => `<label class="bank-match-row"><input type="checkbox" data-bank-index="${index}"${selected.has(index) ? ' checked' : ''}><span class="bank-match-description"><strong>${_escHtml(t.description || t.category || 'Transaction')}</strong><small>${_escHtml(t.date)} · ${_escHtml(t.category || 'Other')}${duplicates.get(bankMatchKey(t, true)) > 1 ? '<span class="bank-match-duplicate">Possible duplicate — review both</span>' : ''}</small></span><span class="bank-match-amount">${t.type === 'income' ? '+' : '−'}${fmt(t.amount)}</span></label>`).join('') : '<p class="bank-match-help">No entries for this date or search.</p>';
+    refreshSummary();
+  }
+  input.addEventListener('input', refreshSummary);
+  date.addEventListener('input', () => { limit = 100; refreshEntries(); });
+  search.addEventListener('input', () => { limit = 100; refreshEntries(); });
+  overlay.querySelector('#reconcile-more').addEventListener('click', () => { limit += 100; refreshEntries(); });
+  overlay.querySelector('#reconcile-entries').addEventListener('change', event => {
+    const index = Number(event.target.dataset.bankIndex);
+    if (!Number.isInteger(index) || !event.target.matches('[data-bank-index]')) return;
+    if (event.target.checked) selected.add(index); else selected.delete(index);
+    refreshSummary();
+  });
+  overlay.querySelector('#reconcile-select').addEventListener('click', () => { visible.forEach(row => selected.add(row.index)); refreshEntries(); });
+  overlay.querySelector('#reconcile-clear').addEventListener('click', () => { visible.forEach(row => selected.delete(row.index)); refreshEntries(); });
+  overlay.querySelector('#reconcile-cancel').addEventListener('click', close);
+  overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+  save.addEventListener('click', () => {
+    save.disabled = true;
+    try { saveBankMatch({ accountId, transactions, opening, asOf: date.value, target: input.value, selected, expectedStorage }); }
+    catch (e) { error.textContent = e.message; return; }
+    close(); render(); _toast('✓ Bank match saved. Your transactions are unchanged.');
+  });
+  refreshEntries();
 }
 
 // ── sounds toggle ──────────────────────────────────────────────────────────
@@ -7939,6 +8080,7 @@ function renderLedger() {
     <div class="page">
       <h1 class="page-title">Ledger</h1>
       <p class="page-sub">${rows.length} ${ledgerView === 'bills' ? 'bill' : 'transaction'}${rows.length !== 1 ? 's' : ''}${_crossAcct ? ' · all accounts (read-only)' : ''}</p>
+      <div class="ledger-bank-match"><button type="button" id="ledger-bank-match" class="overview-link">Match my bank ${ICONS.chevronRight || '→'}</button><p>${_escHtml(bankMatchStatus())}</p></div>
       <div class="ledger-view-tabs">
         <button class="lv-tab${ledgerView === 'transactions' ? ' active' : ''}" data-view="transactions">Transactions${_allTxnRows.length ? ` <span class="lv-count">${_allTxnRows.length}</span>` : ''}</button>
         <button class="lv-tab${ledgerView === 'bills' ? ' active' : ''}" data-view="bills">Bill payments${_allBillRows.length ? ` <span class="lv-count">${_allBillRows.length}</span>` : ''}</button>
@@ -13239,6 +13381,7 @@ function exportCSVTemplate() {
 }
 
 function attachLedger() {
+  document.getElementById('ledger-bank-match')?.addEventListener('click', showReconcileModal);
   document.getElementById('ledger-filter-options')?.addEventListener('toggle', e => { if (e.target.isConnected) ledgerFiltersOpen = e.target.open; });
   document.getElementById('ledger-tools-options')?.addEventListener('toggle', e => { if (e.target.isConnected) ledgerToolsOpen = e.target.open; });
   document.getElementById('ledger-search')?.addEventListener('input', _debounce(e => {
@@ -13596,15 +13739,27 @@ function attachImport() {
   };
   document.getElementById('autobk-setup')?.addEventListener('click', abPick);
   document.getElementById('autobk-change')?.addEventListener('click', abPick);
-  document.getElementById('autobk-now')?.addEventListener('click', async () => {
-    abStatus('Saving…');
-    const r = await resumeAutoBackup();          // also (re-)grants permission if needed
-    if (r.state === 'written') { abStatus(`✓ Saved ${r.txns} transaction${r.txns === 1 ? '' : 's'}.`, 'ok'); render(); }
-    else if (r.state === 'refused') abStatus(r.reason, 'bad');
-    else if (r.state === 'denied')  abStatus('Permission denied, so nothing was written.', 'bad');
-    else if (r.state === 'no-handle') abStatus('The file link was lost — choose the file again.', 'bad');
-    else abStatus('Could not save: ' + (r.reason || r.state), 'bad');
-  });
+  const saveNow = document.getElementById('autobk-now');
+  if (saveNow) {
+    // Warm IndexedDB before enabling the action, so requestPermission runs in
+    // the actual click rather than after an asynchronous storage transaction.
+    saveNow.disabled = true;
+    _fsGetHandle().then(handle => {
+      if (!saveNow.isConnected) return;
+      saveNow.disabled = false;
+      saveNow.addEventListener('click', async () => {
+        saveNow.disabled = true;
+        abStatus('Saving…');
+        const r = await resumeAutoBackup(() => handle);
+        if (r.state === 'written') { document.getElementById('backup-resume-notice')?.remove(); abStatus(`✓ Saved ${r.txns} transaction${r.txns === 1 ? '' : 's'}.`, 'ok'); render(); }
+        else if (r.state === 'refused') abStatus(r.reason, 'bad');
+        else if (r.state === 'denied') abStatus('Permission denied, so nothing was written.', 'bad');
+        else if (r.state === 'no-handle') abStatus('The file link was lost — choose the file again.', 'bad');
+        else abStatus('Could not save: ' + (r.reason || r.state), 'bad');
+        saveNow.disabled = false;
+      });
+    });
+  }
   document.getElementById('autobk-off')?.addEventListener('click', async () => {
     if (!await confirmAsync({ title: 'Turn off auto-backup?',
       message: 'The file already on disk is kept — it just stops being updated.',

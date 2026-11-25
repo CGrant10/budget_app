@@ -1,5 +1,14 @@
 [
  {
+  "version": "5.73.0",
+  "date": "2026-11-25",
+  "changes": [
+   "Match my bank in Ledger lets you compare a posted bank balance with checked statement entries. It shows the remaining difference, flags possible duplicates, excludes later dates, and saves a match only when the difference is zero. It does not change transactions or budgets.",
+   "Each account remembers its last bank match and checked entries across reloads and backups. Edited entries need checking again, and Ledger warns when earlier records change.",
+   "Daily backup uses a dismissible reminder instead of an extra Allow dialog. Resume opens the browser file-access request directly, and repeated taps share one backup operation. Existing protection against overwriting a populated backup with empty data remains."
+  ]
+ },
+ {
   "version": "5.72.0",
   "date": "2026-11-20",
   "changes": [

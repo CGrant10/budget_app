@@ -1,55 +1,45 @@
-# Theme presentation QA — v5.72.0
+# Bank matching and backup permission QA — v5.73.0
 
 final result: passed
 
-## Target and evidence
+## Scope and behavior
 
-The user likes the approved Daily Snapshot design, but found Bears uncomfortable and requested pleasing typography and colors across every theme. Keep the current page hierarchy, native seven-day graph, four Ledger entries, and workflows; refine theme presentation.
+The user approved account reconciliation and reported having to press Allow twice for backup on launch. The previous reconciliation sheet only added a balance-adjustment transaction. The new Match my bank flow compares a statement's posted balance against selected recorded entries, starting from the account's opening balance. It saves a checkpoint only at a zero-cent difference and leaves transaction amounts, balances, budgets, and pending entries intact.
 
-Fresh review used isolated demo data in Chromium at 390 × 844, November 20, 2026, America/Chicago. All 28 themes were captured on Home, Add, Weekly, and Accounts before and after changes. Browser screenshots use the same CSS-pixel density and require no normalization. Desktop checks use 1440 × 1000. Images are browser evidence, not generated UI mockups.
+The launch path previously opened an app confirmation labeled Allow before requesting native file access. It now shows a dismissible reminder. Resume requests browser permission directly from its click with the already loaded file handle. Concurrent resume requests share one operation. Save now preloads its handle before enabling the button. Granted file access continues to back up silently once daily; populated-backup protection remains.
 
-Evidence directory: `/workspace/setup-audit/theme-polish-5720`.
+## UI and evidence
 
-- `audit.md`: findings, severity, and resolution.
-- `before-board-1.png` through `before-board-4.png`, and matching `after-board-*`: all themes, opened and reviewed.
-- `comparison-bears.png`, `comparison-cmd.png`: direct before/after comparisons, opened and reviewed.
-- `after-bears-add.png`, `matrix-bears-wallet.png`, and Bears Ledger/Quiet/Grid skin wallet captures: individual controls, values, and surface treatments reviewed at readable size.
-- `font-settings-bears.png`, `final-bears-quick-add.png`, `final-bears-desktop.png`, `final-bears-offline.png`: focused final checks.
-- Metrics and test evidence: `before-theme-metrics.json`, `after-theme-metrics.json`, `matrix-results.json`, `resilience-results.json`.
+The new sheet uses existing theme surfaces, action colors, type families, quiet separators, and 44px buttons. Phone layouts use a scrollable body and fixed action footer; desktop uses a centered dialog. It supports statement dates, search, checking visible entries, advisory duplicate labels, and paging for long histories. Focus is trapped, the background is inert, Escape closes, and cancel leaves the saved checkpoint unchanged.
 
-## Final visual decisions
+Fresh Chromium evidence is in `/workspace/setup-audit/reconcile-5730`. Mobile captures use 390 × 844 CSS pixels, fixed November 25, 2026, 18:00 UTC, America/Chicago, and isolated test accounts. No pixel-density normalization was needed. Desktop uses 1440 × 1000. Visual reference is the approved Daily Snapshot style already in the app; this is a functional extension using its design language.
 
-Bears uses softer navy surfaces, neutral separators, warm orange content accents, and a deeper orange primary fill. Sports themes use system fonts and restrained weights. Ten saturated sports, terminal, and Pokémon palettes are balanced; CMD uses neutral body text with green highlights. Gengar retains its primary purple identity and Jakarta typography.
+Opened and reviewed: `gengar-ready.png`, `match-bears.png`, `match-light.png`, `match-powershell.png`, `match-bears-ledger.png`, `match-bears-quiet.png`, `match-desktop.png`, and the backup reminder. Captures include ready-to-save and empty-target states. `matrix-results.json` records the responsive checks. Offline evidence is `match-offline.png`.
 
-Content accents and action fills have separate tokens. Foreground roles are adjusted against the page and three panel surfaces, starting from raw theme colors so repeated application does not compound changes. Themes without a dedicated action fill use their adjusted accent. Sheets outside the main app share the action color and computed ink.
+The new date controls follow dark/light native color schemes so calendar affordances remain visible. Backup reminders and short confirmation toasts stack without covering the Resume action.
 
-Theme font follows the selected theme immediately. Explicit App font, System, and Terminal preferences persist across switches and reloads. Legacy System/Terminal choices are retained. Older auto-written font values follow the theme; the old format cannot distinguish a manually selected Default from an auto-written Default. Applying themes no longer modifies saved font settings.
+## Data and correctness
 
-The font selector has four choices, readable descriptions, and pressed states. Wide contribution values wrap at enlarged text sizes. Nine bundled sports/Pokémon mascot assets are precached so their visual identity remains available offline. Existing image assets and chart data are unchanged.
-
-## Findings fixed during review
-
-- Orange overuse and saturated Bears surfaces.
-- Stale theme fonts and overwritten font preferences.
-- Insufficient secondary/semantic foreground contrast on panel surfaces.
-- PowerShell contribution overflow at 200% text and 320px.
-- Missing team/Pokémon artwork on a first offline reload.
-
-No actionable P0/P1/P2 findings remain within the reviewed scope.
+- Calculations use integer cents and recorded dates. Later entries are excluded; unchecked entries remain part of the app's existing financial calculations.
+- Cash overdrafts and signed debt credits are supported. Bills, transfers, refunds, and adjustments count once as recorded.
+- Each account stores one latest checkpoint and a multiset of matched entry signatures. Duplicate rows retain independent counts. Changed entries need matching again; Ledger shows when earlier records or opening balances change.
+- Checkpoints survive account switches, reloads, full backups, legacy-shaped exports/restores, and undo restores. Older backups cannot inherit an unrelated current checkpoint.
+- Save refuses mismatches, malformed amounts/dates, future statement dates, changed review inputs, account switches, changed stored financial data, or storage changes while a review is open. Storage failure retains the previous checkpoint.
+- No transaction is added, removed, or edited by bank matching.
 
 ## Verification
 
-- Eleven Node test files passed, including meaningful new coverage for palette readability, custom extremes, repeatable adjustments, theme fonts, legacy settings, and explicit preferences. Financial regression suites passed.
-- Existing browser test suite: **30/30 passed**. Real transaction save, balance update, four Ledger links, privacy, graph expansion/cleanup, system light/dark repaint, font choices, and reload persistence passed.
-- **2,016** page/theme/skin/viewport states across all 28 themes, no skin plus all three skins, and 320px/390px. No horizontal overflow, unusable account-list height, or undersized visible native page buttons in tested states.
-- **224** resolved palette combinations: main text, muted, accent, secondary accent, success, warning, and danger measured at least **4.5:1** on all four tested surfaces; action ink also measured at least 4.5:1.
-- **224** final Settings/Retirement rechecks at 320px after font-description and wrapping corrections.
-- **16** portal/theme/skin combinations, including extreme custom accents and clearing dedicated action colors on theme switches.
-- **27** enlarged-text states at 200%/320px across Bears, Gengar, and PowerShell.
-- **32** desktop states across Bears, Light, Gengar, and PowerShell with remote fonts blocked, exercising fallback typography.
-- Offline reload preserved Bears, four Ledger entries, and Manage navigation. All sports/Pokémon themes rendered their mascot without network access; all nine assets were verified in the cache.
-- Zero uncaught page errors in completed functional, matrix, targeted, and resilience runs. Syntax and diff whitespace checked; release metadata synchronized.
+- All **13 Node test files passed**, including new bank-match and auto-backup coverage and expanded backup-restore tests. Existing financial regression suites passed.
+- Existing browser suite: **30/30 passed**.
+- Functional browser checks passed: entry selection, search, date changes, zero-difference save gating, cancellation/Escape, focus/inert state, unchanged financial data, reload persistence, edited-entry invalidation, debt matching, and empty-account isolation.
+- Backup browser checks used a substituted native file handle through the real UI: no app Allow modal, no native request during startup, one request after Resume with active user activation, duplicate startup coalescing, disabled repeated taps, one write, no repeat that day, and Save now activation.
+- **454** sheet/reminder/theme/skin/viewport/text states passed: all 28 themes, no skin plus all three skins, widths 320/390, and additional 200% text checks for Bears, Gengar, and PowerShell. No horizontal overflow, unusable body height, or undersized visible sheet buttons in tested states.
+- Desktop, advisory duplicate warnings, and a 250-entry paged/searchable history passed.
+- Offline v5.73.0 reload retained the checkpoint and checked entries. Reviewing and saving offline worked with external fonts blocked. Both full and legacy compatibility backup payloads included the checkpoint.
+- Zero uncaught page errors in successful functional, matrix, and offline runs. Source syntax, diff whitespace, and version/cache/changelog consistency checked.
 
-## Scope limits
+## Limits
 
-Token contrast measurements do not cover every composited color, dense calendar cell, or screen-reader behavior. These are browser-emulator and offline checks, not physical-device certification. Financial algorithms and saved financial data formats are unchanged; the font preference is an additive settings field.
+Browser-native permission presentation is controlled by Chrome/Edge and the operating system. Automated tests verify the application's request count and active click handling using a substituted handle; they do not certify every physical device's native permission UI. The app no longer adds its own Allow dialog. A browser may still require file access after a restart.
+
+This release provides manual statement matching. It does not connect to a bank or classify unchecked entries as a new financial transaction status. Unsaved checkbox changes are discarded when closing the review; saved matches persist. Duplicate labels are review hints, never automatic deletion.
