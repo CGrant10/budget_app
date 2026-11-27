@@ -11,10 +11,13 @@ for (const name of ['billOccurrenceDate','billOccurrenceAmount','billDaysUntil',
 const limits = (daily,daySpent,weekSpent,target=200,ceiling=400) => ctx.dashboardLimitStats({dailyLimit:daily,daySpent,weekSpent,weeklySummary:ctx.weeklySpendingSummary(ceiling,weekSpent,target)});
 let [day,week]=limits(25,5,55);
 assert.equal(day.left,25); assert.equal(day.spent,5); assert(Math.abs(day.percent-100/6)<1e-9);
+assert.equal(day.capped,false); assert.equal(day.weeklyReached,false);
 assert.equal(week.left,145); assert(Math.abs(week.percent-27.5)<1e-9);
-[day,week]=limits(25,5,195); assert.equal(day.left,5,'daily availability cannot exceed this week’s remaining money');
+[day,week]=limits(25,5,195); assert.equal(day.left,5,'daily availability cannot exceed this week’s remaining money');assert.equal(day.capped,true);assert.equal(day.weeklyReached,false);
 [day,week]=limits(25,8,215); assert.equal(day.left,0); assert.equal(week.over,15); assert.equal(week.percent,100);
-[day,week]=limits(0,0,0,0,0); assert.equal(day.percent,0); assert.equal(week.percent,0);
+[day,week]=limits(60,26.40,312,200,500);assert.equal(day.left,0);assert.equal(day.capped,true);assert.equal(day.weeklyReached,true);assert.equal(day.over,0,'weekly overage must not be misrepresented as a daily overage');assert.equal(week.over,112);
+[day,week]=limits(60,5,200,200,500);assert.equal(day.weeklyReached,true,'an exactly exhausted weekly limit also explains zero today');assert.equal(week.over,0);
+[day,week]=limits(0,0,0,0,0);assert.equal(day.weeklyReached,false,'an unconfigured empty account does not claim a weekly overage'); assert.equal(day.percent,0); assert.equal(week.percent,0);
 [day,week]=limits(10,-5,-20); assert.equal(day.spent,0); assert.equal(week.spent,0);
 [day,week]=limits(25,10,10,200,0); assert.equal(day.left,0); assert.equal(week.left,0); assert.equal(week.over,10);
 const bill=(name,dueDay,amount=20,extra={})=>({name,dueDay,amount,...extra});

@@ -1,5 +1,14 @@
 [
  {
+  "version": "5.75.0",
+  "date": "2026-11-27",
+  "changes": [
+   "Home follows the original Midnight Ledger mockup: a larger account balance, a full-width seven-day graph, side-by-side daily and weekly spending room, four recent Ledger entries, and compact upcoming bills.",
+   "Daily spending room now explains when it is capped by the weekly remainder. When the week is exhausted, Today says Weekly limit reached; the weekly amount keeps its over-limit total. Tap either amount for its calculation. Spending calculations and saved plans are unchanged.",
+   "Added matching category icons and a flat bottom navigation with a clear Home state. Theme colors, mascots, font choices, and skins remain supported, with responsive layouts and scrollable calculation dialogs for larger text."
+  ]
+ },
+ {
   "version": "5.74.1",
   "date": "2026-11-27",
   "changes": [

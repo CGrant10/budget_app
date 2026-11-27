@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.74.1';
+const VERSION = '5.75.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -1002,7 +1002,7 @@ function manageModalFocus(overlay, initial, dismiss) {
 function showConfirmModal({ title, message, confirmText = 'Confirm', cancelText = 'Cancel', danger = false, onConfirm, onCancel } = {}) {
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
-  ov.innerHTML = `<div style="background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:24px 20px;max-width:320px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.6)">
+  ov.innerHTML = `<div style="background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:24px 20px;max-width:320px;width:100%;max-height:calc(100dvh - 40px);overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.6)">
     ${title ? `<h2 id="confirm-modal-title" style="font-size:1rem;font-weight:800;color:var(--text);margin:0 0 8px">${title}</h2>` : ''}
     <p style="font-size:.87rem;color:var(--muted);margin:0 0 20px;line-height:1.55">${message}</p>
     <div style="display:flex;gap:10px">
@@ -2999,8 +2999,10 @@ function dashboardLimitStats(inputs) {
   const weekly = inputs.weeklySummary;
   const dayLeft = homeSpendingView('day', inputs.dailyLimit, weekly, null).amount;
   const daySpent = amount(inputs.daySpent), weekSpent = amount(inputs.weekSpent);
+  const dailyAllowance = amount(inputs.dailyLimit);
   return [
     {key:'day', label:'Today', left:amount(dayLeft), spent:daySpent, over:0,
+      capped:dailyAllowance - dayLeft >= .005, weeklyReached:weekly.left <= 0 && (weekly.limit > 0 || weekly.over > 0),
       percent:daySpent + dayLeft > 0 ? Math.min(100, daySpent / (daySpent + dayLeft) * 100) : 0},
     {key:'week', label:'This week', left:amount(weekly.left), spent:weekSpent, over:amount(weekly.over),
       percent:weekly.limit > 0 ? Math.min(100, weekSpent / weekly.limit * 100) : weekSpent > 0 ? 100 : 0},
@@ -3042,6 +3044,19 @@ function dashboardBalanceHistory(transactions, startingBalance, asOf = today()) 
   return dates.map(date => { balance += changes.get(date); return {date, balance:+balance.toFixed(2)}; });
 }
 
+function dashboardTransactionIcon(transaction) {
+  if (transaction.type === 'income') return 'arrow-down-left';
+  if (transaction._xfer) return 'arrow-up-right';
+  if (isBillTxn(transaction)) return 'calendar-blank';
+  const description = String(transaction.description || '').toLowerCase();
+  if (/\b(coffee|cafe|café|espresso|starbucks)\b/.test(description)) return 'coffee';
+  if (/\b(grocer(?:y|ies)?|supermarket|aldi|costco)\b/.test(description)) return 'shopping-cart';
+  if (transaction.category === 'Food') return 'fork-knife';
+  if (transaction.category === 'Gas') return 'gas-pump';
+  if (transaction.category === 'Car') return 'car';
+  return 'arrow-up-right';
+}
+
 function renderEverydayDashboard(balance, inputs, gamblingMonth, gamblingAll) {
   const stats = dashboardLimitStats(inputs);
   const bills = dashboardUpcomingBills(state.bills);
@@ -3059,21 +3074,21 @@ function renderEverydayDashboard(balance, inputs, gamblingMonth, gamblingAll) {
     <header class="overview-heading"><div class="overview-identity"><img class="overview-mark" src="${mascotSrc()}" alt=""><div><h1>Today, at a glance</h1><p>${date}</p></div></div><button type="button" class="overview-privacy dash-privacy-btn" id="dash-privacy-btn" aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden()}">${_eyeIconSvg(_amountsHidden())}</button></header>
     <section class="overview-balance" aria-label="Account balance and seven-day history">
       <div class="overview-balance-main"><span class="overview-eyebrow">${state.transactions.some(isPendingPurchase) ? 'Available balance' : 'Account balance'}</span><strong class="overview-balance-amount comparison-value${balance < 0 ? ' is-negative' : ''}">${fmt(balance)}</strong></div>
-      <button type="button" class="overview-spark" id="overview-history-preview" aria-label="View balance history for the last 7 days"><span class="overview-spark-label">7 days</span><span class="overview-spark-plot"><canvas id="overview-sparkline" aria-hidden="true"></canvas></span><span class="overview-spark-dates"><span>${shortDate(history[0].date)}</span><span>${shortDate(history[6].date)}</span></span></button>
+      <button type="button" class="overview-spark" id="overview-history-preview" aria-label="View balance history for the last 7 days"><span class="overview-spark-label">7 days</span><span class="overview-spark-plot"><canvas id="overview-sparkline" aria-hidden="true"></canvas></span><span class="overview-spark-dates"><span>${shortDate(history[0].date)}</span><span>${shortDate(history[3].date)}</span><span>Today</span></span></button>
     </section>
-    <section class="overview-spending" aria-labelledby="overview-spending-title"><h2 id="overview-spending-title">Spending room</h2><div class="overview-quickbar" aria-label="Daily and weekly limits">
-      ${stats.map(s => `<button type="button" class="overview-limit${s.over > 0 ? ' is-over' : ''}" data-overview-limit="${s.key}" data-overview-go="weekly" aria-label="${s.label}: ${fmt(s.over > 0 ? s.over : s.left)} ${s.over > 0 ? 'over limit' : 'left'}. Open weekly plan."><span class="overview-limit-heading"><span class="overview-limit-label">${s.label}</span><span class="overview-limit-value"><strong class="comparison-value">${fmt(s.over > 0 ? s.over : s.left)}</strong><span>${s.over > 0 ? 'over limit' : 'left'}</span></span></span>
+    <section class="overview-spending" aria-labelledby="overview-spending-title"><h2 id="overview-spending-title" class="sr-only">Spending room</h2><div class="overview-quickbar" aria-label="Daily and weekly limits">
+      ${stats.map(s => `<button type="button" class="overview-limit${s.over > 0 ? ' is-over' : ''}" data-overview-limit="${s.key}" aria-label="${s.label}: ${fmt(s.over > 0 ? s.over : s.left)} ${s.over > 0 ? 'over limit' : 'left'}${s.weeklyReached ? '. Weekly limit reached' : s.capped ? '. Capped by this week' : ''}. View calculation."><span class="overview-limit-heading"><span class="overview-limit-label">${s.label}</span><span class="overview-limit-value"><strong class="comparison-value">${fmt(s.over > 0 ? s.over : s.left)}</strong><span>${s.over > 0 ? 'over limit' : 'left'}</span></span></span>
         <span class="overview-meter" role="progressbar" aria-label="${s.label}: ${fmt(s.spent)} spent, ${fmt(s.left)} remaining${s.over > 0 ? ', '+fmt(s.over)+' over limit' : ''}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(s.percent)}"><i style="width:${s.percent.toFixed(2)}%"></i></span>
-        <span class="overview-limit-spent comparison-value">${fmt(s.spent)}${s.key === 'week' ? ' of '+fmt(inputs.weeklySummary.limit) : ''} spent</span></button>`).join('')}
+        <span class="overview-limit-spent comparison-value">${fmt(s.spent)}${s.key === 'week' ? ' of '+fmt(inputs.weeklySummary.limit) : ''} spent</span>${s.key === 'day' && (s.weeklyReached || s.capped) ? `<span class="overview-limit-caption">${s.weeklyReached ? 'Weekly limit reached' : 'Capped by this week'}</span>` : ''}</button>`).join('')}
       </div>${inputs.math.balance <= inputs.math.stopAt + inputs.math.bills ? '<p class="overview-reserve-note">Bills and buffer use your balance.</p>' : ''}
     </section>
     <div class="overview-columns">
       <section class="overview-activity" aria-labelledby="overview-activity-title"><div class="overview-section-heading"><h2 id="overview-activity-title">Recent activity</h2><div class="overview-activity-actions"><button type="button" class="overview-add" data-overview-go="add"><span class="overview-add-face">${add}<span>Add</span></span></button><button type="button" class="overview-link" data-overview-go="ledger">Ledger ${arrow}</button></div></div>
         ${recent.length ? `<div class="overview-list">${recent.map(t => `<button type="button" class="overview-activity-row" data-overview-txn="${t.index}">
-          <span class="overview-entry-icon" aria-hidden="true">${icon(t.type === 'income' ? 'arrow-down-left' : 'arrow-up-right')}</span><span class="overview-entry-main"><strong>${_escHtml(t.description || t.category || 'Entry')}</strong><small>${t.date === today() ? 'Today' : shortDate(t.date)}</small></span><span class="overview-entry-amount comparison-value${t.type === 'income' ? ' is-income' : ''}">${t.type === 'income' ? '+' : '−'}${fmt(Number(t.amount) || 0)}</span></button>`).join('')}</div>` : '<div class="overview-empty"><p>Your first entry starts here.</p><span>Tap Add to record a purchase or income.</span></div>'}
+          <span class="overview-entry-icon" aria-hidden="true">${icon(dashboardTransactionIcon(t))}</span><span class="overview-entry-main"><strong>${_escHtml(t.description || t.category || 'Entry')}</strong><small>${t.date === today() ? 'Today' : shortDate(t.date)}</small></span><span class="overview-entry-amount comparison-value${t.type === 'income' ? ' is-income' : ''}">${t.type === 'income' ? '+' : '−'}${fmt(Number(t.amount) || 0)}</span></button>`).join('')}</div>` : '<div class="overview-empty"><p>Your first entry starts here.</p><span>Tap Add to record a purchase or income.</span></div>'}
       </section>
       <section class="overview-bills" aria-labelledby="overview-bills-title"><div class="overview-section-heading"><div><h2 id="overview-bills-title">Upcoming bills</h2>${overdue ? `<p class="overview-overdue">${overdue} overdue</p>` : ''}</div><button type="button" class="overview-link" data-overview-go="bills">View all ${arrow}</button></div>
-        ${bills.length ? `<div class="overview-list">${bills.slice(0,2).map(b => `<button type="button" class="overview-bill-row" data-overview-bill="${b.index}" data-overview-month="${b.date.slice(0,7)}"><span class="overview-entry-icon${b.days < 0 ? ' is-overdue' : ''}" aria-hidden="true">${icon('calendar-blank')}</span><span class="overview-entry-main"><strong>${_escHtml(b.name)}</strong><small${b.days < 0 ? ' class="overview-overdue"' : ''}>${b.days < 0 ? 'Overdue · '+shortDate(b.date) : b.days === 0 ? 'Due today' : b.days === 1 ? 'Tomorrow · '+shortDate(b.date) : new Date(b.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'})+' · '+shortDate(b.date)}</small></span><span class="overview-entry-amount comparison-value">${fmt(b.amount)}</span></button>`).join('')}</div>` : '<div class="overview-empty"><p>No unpaid bills due in the next 7 days.</p><span>Review your full schedule in Bills.</span></div>'}
+        ${bills.length ? `<div class="overview-list">${bills.slice(0,2).map(b => `<button type="button" class="overview-bill-row" data-overview-bill="${b.index}" data-overview-month="${b.date.slice(0,7)}"><span class="overview-entry-icon${b.days < 0 ? ' is-overdue' : ''}" aria-hidden="true">${icon(/\b(internet|wifi|broadband)\b/i.test(b.name) ? 'wifi' : /\b(car|auto)\b/i.test(b.name) ? 'car' : 'calendar-blank')}</span><span class="overview-entry-main"><strong>${_escHtml(b.name)}</strong><small${b.days < 0 ? ' class="overview-overdue"' : ''}>${b.days < 0 ? 'Overdue · '+shortDate(b.date) : b.days === 0 ? 'Due today' : b.days === 1 ? 'Tomorrow · '+shortDate(b.date) : new Date(b.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'})+' · '+shortDate(b.date)}</small></span><span class="overview-entry-amount comparison-value">${fmt(b.amount)}</span></button>`).join('')}</div>` : '<div class="overview-empty"><p>No unpaid bills due in the next 7 days.</p><span>Review your full schedule in Bills.</span></div>'}
       </section>
     </div>
     <details class="overview-more"><summary>More insights</summary><div class="overview-more-body">
@@ -6840,6 +6855,7 @@ function renderDashboardDawg() {
     perDay: dynamicSpendingLimit(_dashLiveBal, _dashStopAt, _dashBills, _dashDays),
     perWeek: _livePerWeek,
     weeklyFromSaved: _dashAvail <= 0 && _livePerWeek > 0,
+    weeklyLeft: _weeklySummary.left, weeklySpent: weekSpent, weeklyLimit: _weeklySummary.limit, weeklyOver: _weeklySummary.over,
   };
 
   const homeSpendingInputs = {dailyLimit:_latestDashboardLimitMath.perDay, weeklySummary:_weeklySummary, daySpent, weekSpent, math:_latestDashboardLimitMath};
@@ -12539,12 +12555,17 @@ function showDashboardLimitMath(kind = 'daily') {
   const resultLine = !daily && m.weeklyFromSaved
     ? `<strong style="color:var(--accent);font-size:1rem">${fmt(result)} saved weekly limit</strong><br><span style="color:var(--muted)">Kept from your last positive calculation because the current available amount is ${fmt(available)}.</span>`
     : `${fmt(available)} ÷ ${periods} ${unit} remaining<br><strong style="color:var(--accent);font-size:1rem">= ${fmt(result)}</strong>`;
+  const cap = daily && Number.isFinite(m.weeklyLeft)
+    ? `<br><br>Weekly spending room: <strong>${fmt(m.weeklyLeft)}</strong>${m.weeklyOver > 0 ? ` (${fmt(m.weeklyOver)} over the weekly limit)` : ''}.<br>Today uses the lower of the dynamic daily allowance and the weekly remainder: <strong>${fmt(Math.min(Math.max(0,m.perDay),m.weeklyLeft))} left</strong>.${m.weeklyLeft <= 0 && m.weeklyOver > 0 ? '<br>Your weekly limit is reached. Any new spending adds to the weekly overage.' : m.perDay - m.weeklyLeft >= .005 ? '<br>The weekly cap is active, so Today and This week show the same amount.' : ''}`
+    : '';
+  const weeklyDetail = !daily && Number.isFinite(m.weeklyLeft)
+    ? `<br><br>${fmt(m.weeklySpent)} spent of ${fmt(m.weeklyLimit)}.<br><strong>${m.weeklyOver > 0 ? fmt(m.weeklyOver)+' over limit' : fmt(m.weeklyLeft)+' left this week'}</strong>` : '';
   const mismatch = m.billMismatch
     ? `<br><br><span style="color:var(--warn);font-weight:700">Bills reserve differs:</span> the plan reserves ${fmt(m.bills)}, while the Bills page has ${fmt(m.trackedBills)} still due.`
     : '';
   showConfirmModal({
     title: daily ? 'Daily allowance' : 'Weekly limit',
-    message: `${fmt(m.balance)} balance<br>− ${fmt(m.stopAt)} minimum balance<br>− ${fmt(m.bills)} bills still due<br><strong style="color:var(--text)">= ${fmt(available)} available</strong><br><br>${resultLine}${mismatch}`,
+    message: `${fmt(m.balance)} balance<br>− ${fmt(m.stopAt)} minimum balance<br>− ${fmt(m.bills)} bills still due<br><strong style="color:var(--text)">= ${fmt(available)} available</strong><br><br>${resultLine}${cap}${weeklyDetail}${mismatch}`,
     confirmText: 'Open Planner',
     cancelText: 'Close',
     onConfirm: () => showTab('weekly'),
@@ -12553,6 +12574,7 @@ function showDashboardLimitMath(kind = 'daily') {
 
 function attachDashboardDawg() {
   attachOverviewSparkline();
+  document.querySelectorAll('[data-overview-limit]').forEach(button => button.addEventListener('click', () => showDashboardLimitMath(button.dataset.overviewLimit === 'day' ? 'daily' : 'weekly')));
   const resetLedger = () => { ledgerStatusFilter='all'; ledgerFilter = ''; ledgerCatFilter = ''; ledgerTypeFilter = 'all'; ledgerAllAccounts = false; ledgerDateFrom = ''; ledgerDateTo = ''; ledgerView = 'transactions'; };
   document.querySelectorAll('[data-overview-go]').forEach(button => button.addEventListener('click', () => {
     if (button.dataset.overviewGo === 'ledger') resetLedger();

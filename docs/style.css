@@ -9551,3 +9551,104 @@ body.light .bills-page input[type="date"] { color-scheme: light; }
 .bank-match-consent input { flex-shrink: 0; width: 22px; height: 22px; accent-color: var(--accent); }
 .bank-match-resolution .form-input { display: block; width: 100%; margin: 6px 0; }
 .bank-match-resolution[hidden] { display: none; }
+
+/* Midnight Ledger: the user's original selected dashboard direction. */
+.overview-page { padding: 16px 18px 12px; }
+.overview-heading { margin-bottom: 16px; }
+.overview-heading h1 { font-size: 1.25rem; }
+.overview-heading p { font-size: .75rem; }
+.overview-mark { width: 32px; height: 36px; flex-basis: 32px; }
+.overview-balance { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding-bottom: 16px; }
+.overview-balance-amount { margin-top: 6px; font-size: clamp(2rem,9.4vw,2.75rem); line-height: 1.15; }
+.overview-spark { min-height: 66px; padding: 0; border-left: 0; }
+.overview-spark-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+.overview-spark-plot { height: 42px; margin-top: 0; }
+.overview-spark-dates { margin-top: 7px; font-size: .7rem; }
+.overview-spending { padding: 14px 0; }
+.overview-quickbar { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; margin-top: 0; }
+.overview-limit + .overview-limit { padding-left: 18px; border-left: 1px solid var(--border); border-radius: 0; }
+.overview-limit-heading { flex-direction: column; align-items: flex-start; gap: 6px; }
+.overview-limit-label { font-size: .875rem; }
+.overview-limit-value { justify-content: flex-start; gap: 3px 5px; }
+.overview-limit-value strong { font-size: clamp(1.2rem,5.9vw,1.6rem); line-height: 1.2; }
+.overview-limit-value > span { font-size: .75rem; }
+.overview-meter { height: 7px; margin: 9px 0 6px; }
+.overview-limit-spent { font-size: .7rem; }
+.overview-limit-caption { display: block; margin-top: 5px; font-size: .7rem; line-height: 1.4; color: var(--muted); }
+.overview-activity, .overview-bills { padding: 8px 0; }
+.overview-entry-icon { color: var(--muted); }
+.overview-entry-icon .overview-icon { width: 21px; height: 21px; flex-basis: 21px; }
+.overview-icon-coffee { --overview-icon: url('./icons/phosphor/coffee.svg'); }
+.overview-icon-fork-knife { --overview-icon: url('./icons/phosphor/fork-knife.svg'); }
+.overview-icon-shopping-cart { --overview-icon: url('./icons/phosphor/shopping-cart.svg'); }
+.overview-icon-gas-pump { --overview-icon: url('./icons/phosphor/gas-pump.svg'); }
+.overview-icon-wifi { --overview-icon: url('./icons/phosphor/wifi-high.svg'); }
+.overview-icon-car { --overview-icon: url('./icons/phosphor/car.svg'); }
+#app.daily-ui #dawg-bottom-nav { bottom: 0; left: 0; right: 0; height: calc(70px + var(--safe-bottom)); padding: 4px 8px calc(4px + var(--safe-bottom)); border: 0; border-top: 1px solid var(--border); border-radius: 0; background: var(--bg); box-shadow: none; }
+#app.daily-ui .dawg-nav-btn { position: relative; min-width: 0; gap: 5px; }
+#app.daily-ui .dawg-nav-icon { animation: none; }
+#app.daily-ui .dawg-nav-lbl { font-size: .65rem; letter-spacing: 0; }
+#app.daily-ui .dawg-nav-center-btn { flex: 1 !important; width: auto !important; height: 100%; padding: 0 4px; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none; gap: 2px !important; }
+#app.daily-ui .dawg-nav-center-btn .dawg-nav-dob { width: 30px !important; height: 30px !important; filter: none; animation: none; }
+#app.daily-ui .dawg-nav-center-btn::after { font-size: .65rem; }
+#app.daily-ui .dawg-nav-btn.dawg-nav-active { color: var(--accent) !important; }
+#app.daily-ui .dawg-nav-btn.dawg-nav-active::before { content: ''; position: absolute; bottom: 0; left: 34%; right: 34%; height: 2px; border-radius: 2px; background: var(--accent); }
+#app.daily-ui .dawg-nav-center-btn.dawg-nav-active::after { color: var(--accent); }
+@media (max-width: 359px) {
+  .overview-page { padding-inline: 14px; }
+  .overview-quickbar { gap: 12px; }
+  .overview-limit + .overview-limit { padding-left: 12px; }
+  .overview-limit-value strong { font-size: 1.2rem; }
+  .overview-limit-spent, .overview-limit-caption { font-size: .67rem; }
+}
+@media (min-width: 760px) {
+  .overview-page { padding: 28px; }
+  .overview-heading { margin-bottom: 22px; }
+  .overview-balance { gap: 16px; padding-bottom: 20px; }
+  .overview-balance-amount { font-size: 2.75rem; }
+  .overview-spark-plot { height: 70px; }
+  .overview-quickbar { gap: 24px; }
+  .overview-limit + .overview-limit { padding-left: 24px; }
+  .overview-limit-value strong { font-size: 1.6rem; }
+}
+/* Keep the mobile snapshot within one comfortable daily glance. */
+.overview-page { padding-top: 8px; }
+.overview-heading { margin-bottom: 12px; }
+.overview-balance { gap: 6px; padding-bottom: 10px; }
+.overview-balance-amount { font-size: clamp(2rem,10.7vw,2.625rem); line-height: 1.1; }
+.overview-spark { min-height: 54px; }
+.overview-spark-plot { height: 34px; }
+.overview-spark-dates { margin-top: 5px; }
+.overview-spending { padding: 10px 0; }
+.overview-limit-heading { gap: 4px; }
+.overview-activity, .overview-bills { padding: 4px 0; }
+.overview-activity-row, .overview-bill-row { min-height: 48px; padding: 6px 0; }
+.overview-entry-main { gap: 2px; }
+.overview-entry-main strong { line-height: 1.25; font-weight: 700; }
+.overview-entry-main small { line-height: 1.3; }
+.overview-entry-amount { font-size: .9375rem; font-weight: 700; }
+@media (min-width: 760px) {
+  .overview-page { padding-top: 28px; }
+  .overview-heading { margin-bottom: 22px; }
+  .overview-balance { gap: 16px; padding-bottom: 20px; }
+  .overview-balance-amount { font-size: 2.75rem; }
+  .overview-spark-plot { height: 70px; }
+  .overview-spending { padding: 20px 0; }
+  .overview-activity, .overview-bills { padding: 16px 0; }
+  .overview-activity-row, .overview-bill-row { min-height: 60px; padding: 10px 0; }
+}
+#app.daily-ui .dawg-topbar { background: var(--bg); border-bottom: 0; backdrop-filter: none; }
+#app.daily-ui :is(.dawg-hamburger,.dawg-bell-btn) { background: transparent; border-color: transparent; box-shadow: none; }
+
+#app.daily-ui { --nav-h: 70px; }
+.overview-spending { container-type: inline-size; }
+@container (max-width: 17rem) {
+  .overview-quickbar { grid-template-columns: minmax(0,1fr); gap: 12px; }
+  .overview-limit + .overview-limit { padding: 12px 0 0; border-left: 0; border-top: 1px solid var(--border); }
+}
+/* Large-text mode keeps the money readable and every nav label separate. */
+.overview-balance-amount { font-size: min(2.625rem,10.7vw); }
+#app.daily-ui { --nav-h: max(70px,4.375rem); }
+#app.daily-ui #dawg-bottom-nav { height: calc(var(--nav-h) + var(--safe-bottom)); }
+#app.daily-ui .dawg-nav-lbl, #app.daily-ui .dawg-nav-center-btn::after { max-width: 100%; overflow-wrap: anywhere; text-align: center; line-height: 1.2; }
+@media (min-width: 760px) { .overview-balance-amount { font-size: 2.75rem; } }
