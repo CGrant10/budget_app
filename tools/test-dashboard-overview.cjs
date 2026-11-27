@@ -10,16 +10,15 @@ for (const name of ['billOccurrenceDate','billOccurrenceAmount','billDaysUntil',
 }
 const limits = (daily,daySpent,weekSpent,target=200,ceiling=400) => ctx.dashboardLimitStats({dailyLimit:daily,daySpent,weekSpent,weeklySummary:ctx.weeklySpendingSummary(ceiling,weekSpent,target)});
 let [day,week]=limits(25,5,55);
-assert.equal(day.left,25); assert.equal(day.spent,5); assert(Math.abs(day.percent-100/6)<1e-9);
-assert.equal(day.capped,false); assert.equal(day.weeklyReached,false);
+assert.equal(day.left,25); assert.equal(day.spent,5); assert(Math.abs(day.percent-20)<1e-9);
 assert.equal(week.left,145); assert(Math.abs(week.percent-27.5)<1e-9);
-[day,week]=limits(25,5,195); assert.equal(day.left,5,'daily availability cannot exceed this week’s remaining money');assert.equal(day.capped,true);assert.equal(day.weeklyReached,false);
-[day,week]=limits(25,8,215); assert.equal(day.left,0); assert.equal(week.over,15); assert.equal(week.percent,100);
-[day,week]=limits(60,26.40,312,200,500);assert.equal(day.left,0);assert.equal(day.capped,true);assert.equal(day.weeklyReached,true);assert.equal(day.over,0,'weekly overage must not be misrepresented as a daily overage');assert.equal(week.over,112);
-[day,week]=limits(60,5,200,200,500);assert.equal(day.weeklyReached,true,'an exactly exhausted weekly limit also explains zero today');assert.equal(week.over,0);
-[day,week]=limits(0,0,0,0,0);assert.equal(day.weeklyReached,false,'an unconfigured empty account does not claim a weekly overage'); assert.equal(day.percent,0); assert.equal(week.percent,0);
+[day,week]=limits(25,5,195); assert.equal(day.left,25,'daily allowance matches Weekly even when its weekly remainder is smaller');
+[day,week]=limits(25,8,215); assert.equal(day.left,25); assert.equal(week.over,15); assert.equal(week.percent,100);
+[day,week]=limits(200,26.40,312,200,500);assert.equal(day.left,200);assert.equal(day.over,0,'weekly overage is not a daily overage');assert.equal(week.over,112);
+[day,week]=limits(60,5,200,200,500);assert.equal(day.left,60,'an exhausted weekly target does not erase the monthly daily allowance');assert.equal(week.over,0);
+[day,week]=limits(0,0,0,0,0);assert.equal(day.percent,0);assert.equal(week.percent,0);
 [day,week]=limits(10,-5,-20); assert.equal(day.spent,0); assert.equal(week.spent,0);
-[day,week]=limits(25,10,10,200,0); assert.equal(day.left,0); assert.equal(week.left,0); assert.equal(week.over,10);
+[day,week]=limits(0,10,10,200,0); assert.equal(day.left,0); assert.equal(week.left,0); assert.equal(week.over,10);
 const bill=(name,dueDay,amount=20,extra={})=>({name,dueDay,amount,...extra});
 const bills=[bill('Overdue',1),bill('Today',28),bill('Tomorrow',29),bill('Next month',2),bill('Later',6),bill('Paid now',28,30,{paidMonths:['2026-11']}),bill('Prepaid',2,35,{paidMonths:['2026-12']}),bill('Legacy paid',28,40,{paidMonth:'2026-11'}),bill('Bad',29,'bad'),bill('Negative',29,-10)];
 const before=JSON.stringify(bills);
@@ -41,7 +40,7 @@ rows=ctx.dashboardUpcomingBills([bill('No leap',31)],'2027-02-27'); assert.equal
 rows=ctx.dashboardUpcomingBills([bill('DST',9)],'2026-03-07'); assert.equal(rows[0].days,2);
 rows=ctx.dashboardUpcomingBills([bill('Boundary',26),bill('Outside',27)],'2026-11-19'); assert(rows.some(b=>b.name==='Boundary')); assert(!rows.some(b=>b.name==='Outside'));
 assert.equal(ctx.dashboardUpcomingBills([],'2026-11-19').length,0);
-console.log('Dashboard checks passed: daily/weekly availability, target and buffer caps, overspending, refunds/zero, bill dates, month/year/leap/DST boundaries, paid/prepaid status, invalid amounts, and non-mutating rendering.');
+console.log('Dashboard checks passed: daily allowance consistency, independent weekly targets and protected buffers, overspending, refunds/zero, bill dates, month/year/leap/DST boundaries, paid/prepaid status, invalid amounts, and non-mutating rendering.');
 
 const recorded=[
  {date:'2026-11-12',type:'income',amount:200},

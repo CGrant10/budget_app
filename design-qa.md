@@ -1,3 +1,51 @@
+# Daily allowance, manual bank matching, and compact entry — v5.76.0
+
+final result: passed
+
+## User requirements and resulting behavior
+
+This follow-up explicitly replaces the previous Home-only weekly cap. Home and Weekly now use the same monthly dynamic daily allowance and current-day progress calculation. Weekly target/overage stays independent. The reproduced example shows **$200 daily** in both places and **$112 over** the weekly target; the Home daily calculation explains the shared rule rather than capping it to zero.
+
+Manual bank matching opens as **Update balance**: one balance field, a clear Available/Posted choice, an adjustment preview, and one save action. There is no mandatory note or checkbox for this direct method. A dated, excluded-from-weekly-spending Adjustment entry records a nonzero difference; prior entries and opening balance are preserved. An exact match only saves the checkpoint. Available-balance matching carries recorded pending purchases once, keeps them pending, and saves the chosen basis per account. Credit/loan matching uses posted balance owed, not available credit. Detailed statement review remains a separate mode. Both methods retain separate draft inputs and existing review selections.
+
+A **Match bank** shortcut beside the dashboard balance opens this flow directly. Add Entry puts type, amount, description, and Save together. Collapsed Details retains account, category, pending state, date, splitting, recurrence, and frequent templates. Native form submission, amount Next, synchronous category inference on save, and non-submit split/calculator controls keep keyboard entry predictable.
+
+## Browser evidence
+
+Artifacts: `/workspace/setup-audit/ease-5760`.
+
+- Before captures opened: `before-add.png`, `before-bank.png` at 390 × 844.
+- Final captures opened: `after-add.png`, `after-bank.png`, `entry-short-final.png` (320 × 480), `daily-home.png`, `daily-weekly.png`. The Home/Weekly case is real calculation data, not mocked output values.
+- Additional captures: `final-entry-gengar.png`, `final-entry-bears.png`, `final-entry-light.png`, matching `final-bank-*` images, `zoom-*`, desktop entry/bank, `final-home.png`, and `offline.png`.
+- Date/time: November 27, 2026 at 18:00 UTC, America/Chicago; Chromium, isolated local test accounts, deviceScaleFactor 1. No customer data or bank connection is involved.
+
+## Findings and fixes
+
+- **[Resolved] Daily rule mismatch:** Home previously showed the lower of the monthly daily allowance and the weekly remainder; Weekly showed the allowance itself. Removed the extra cap and its explanatory caption, reused the common monthly calculation, aligned the daily bar, and clarified the displayed amount as daily allowance. Saved plans/targets are not rewritten by changing views.
+- **[Resolved] Manual matching required too many steps:** the direct method replaces transaction-by-transaction checking for a manual balance correction. The detailed review is still available. Currency input accepts ordinary dollar signs/grouping, with exact cents validation. Current and target balance basis is explicit, including pending amounts and historical dates.
+- **[Resolved] Entry core fields were separated by status/settings:** moved description immediately after amount and collapsed less-used fields. The default and short-phone core flow passes bounds checks with no field hidden behind Save.
+- **[Resolved] Sticky Save covered description at 320 × 480:** the shared page reserved navigation plus another 30px, causing the sticky footer to rise too far. The entry page now reserves exactly navigation space, and the cover uses that same height. Post-fix field and button rectangles do not overlap.
+- **[Resolved] Global keyboard Done blocked the compact form:** explicit handlers and the new native form now own Next/Save. Description blur runs category inference before saving; split buttons are explicitly non-submit. Tested typed entry, Pending, splitting, transfers, destination accounts, and missing-entry return to review.
+
+## Verification
+
+- All **14 Node suites passed**. Added coverage for independent daily/weekly values, the $200 daily/$112 weekly-over example, available versus posted manual matching, formatted/invalid inputs, negative and zero balances, pending carry/preservation, changed-pending detection, no-op matches, debt semantics, stale storage, and atomic rollback.
+- Browser functional workflow passed: shared daily allowance/progress, dashboard bank shortcut, keyboard entry, pending/split/transfer/selected-account routing, small-phone core field visibility, direct Available/Posted balance updates, preserved pending and weekly spend, exact matches, remembered basis, separate drafts across reload, detailed review, add-missing-entry return, stale-tab protection, quota rollback, and debt direction. No uncaught errors.
+- **1,134 static UI states passed:** 28 themes × four skin choices × 320/390px × five states (basic entry, entry details/split, quick match, detailed review, Home), plus 12 enlarged-text and two desktop states. Static checks use settled/reduced-motion pages and inspect the active modal rather than background inputs. Results: `matrix.json`.
+- **227 additional Home states passed** after the balance shortcut: all themes/skins/phone widths plus Gengar, Bears, and Light at 200% text. No horizontal overflow; balance shortcut remains usable.
+- v5.76.0 service-worker **offline** reload and persistence passed. While offline, direct balance matching updated the actual account without changing discretionary spending; keyboard entry/category inference saved, and a second reload retained both changes and the shared daily amount. Cache version verified.
+- Syntax, diff whitespace, cache/version/changelog consistency checked.
+
+## Visual and accessibility checks
+
+Existing theme color roles, mascot assets, typography preferences, and icon library remain. No new visual system, extra cards, security claims, or external bank services were added. The compact form uses normal 44–52px controls. Matching retains accessible modal focus, close/escape, labeled inputs and status/error feedback. Long detail/review content and large text can scroll; sticky actions remain reachable. The authentic Home layout and graph remain intact.
+
+## Limits
+
+Physical device keyboards and screen readers were not tested; verification uses Chromium emulation and real browser interaction. Available matching reflects **pending purchases recorded in this app**, which the UI states. Bank balance corrections are manual Ledger adjustments, not imported purchases. The dynamic daily amount is a monthly allowance, while the weekly target is an independent spending goal.
+
+---
+
 # Midnight Ledger dashboard QA — v5.75.0
 
 final result: passed

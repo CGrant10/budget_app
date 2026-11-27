@@ -9652,3 +9652,50 @@ body.light .bills-page input[type="date"] { color-scheme: light; }
 #app.daily-ui #dawg-bottom-nav { height: calc(var(--nav-h) + var(--safe-bottom)); }
 #app.daily-ui .dawg-nav-lbl, #app.daily-ui .dawg-nav-center-btn::after { max-width: 100%; overflow-wrap: anywhere; text-align: center; line-height: 1.2; }
 @media (min-width: 760px) { .overview-balance-amount { font-size: 2.75rem; } }
+
+/* Direct manual bank matching, with transaction review available separately. */
+.bank-match-modes { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px; margin: 12px 18px 0; padding: 3px; border-radius: 10px; background: var(--surface2); }
+.bank-match-modes button { min-width: 0; min-height: 44px; padding: 6px; border: 0; border-radius: 7px; font: inherit; font-size: .8rem; color: var(--muted); background: transparent; cursor: pointer; }
+.bank-match-modes button[aria-pressed="true"] { background: var(--card); color: var(--text); font-weight: 650; }
+.bank-match-body[hidden], .bank-match-footer[hidden] { display: none; }
+.bank-quick-label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: .85rem; }
+.bank-quick-label label { color: var(--text); }
+.bank-quick-label .form-input { width: auto; font-size: .8rem; }
+.bank-match-card .bank-quick-input { margin-top: 8px; min-height: 56px; font-size: 1.7rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.bank-quick-body .bank-match-summary { margin-top: 4px; border-bottom: 0; }
+.bank-quick-body .bank-match-resolution { margin-top: 0; }
+.bank-quick-footer { flex-direction: column; align-items: stretch; }
+.bank-quick-footer p { flex: auto; }
+.bank-quick-footer button { width: 100%; min-height: 48px; }
+.bank-match-shared-error { margin: 8px 18px; }
+.bank-match-shared-error:empty { display: none; }
+
+/* Everyday entry keeps amount, description and Save together. */
+#app.daily-ui .entry-page .page-title { margin-bottom: 14px; }
+#app.daily-ui .entry-form { padding-top: 0; }
+#app.daily-ui .entry-form > .form-row { margin-bottom: 12px; }
+#app.daily-ui .entry-form > .form-row .form-label:not(.sr-only) { margin-bottom: 5px; }
+#app.daily-ui .entry-form > .form-row .form-input { margin-bottom: 0; }
+#app.daily-ui .entry-form .amount-wrap .form-input { min-height: 52px; font-size: 1.4rem !important; font-weight: 650; }
+.entry-form > .form-row .entry-type-segments { width: 100%; }
+.entry-form .entry-options > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; }
+.entry-form .entry-options > summary .entry-details-label { flex-shrink: 0; padding: 0; margin: 0; color: var(--text); font-size: .85rem; }
+.entry-form .entry-options > summary #entry-details-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; margin: 0; color: var(--muted); font-size: .75rem; }
+.entry-form .entry-options-body > .form-row { margin: 0; }
+.entry-form .entry-purchase-status { margin-bottom: 0; }
+#app.daily-ui .entry-form .entry-save-bar { margin-top: 8px; padding-top: 8px; }
+.entry-form .tmpl-row { margin-bottom: 0; }
+#app.daily-ui .entry-form { gap: 10px; }
+#app.daily-ui .entry-form > .form-row { margin-bottom: 0; }
+#app.daily-ui .entry-form > .form-row .form-label:not(.sr-only) { margin-bottom: 0; }
+.bank-quick-label { flex-wrap: wrap; }
+.bank-quick-label select { appearance: auto; }
+.bank-match-modes { flex-shrink: 0; }
+/* The Save bar should sit above navigation, without the page's extra 30px reserve. */
+#app.daily-ui #main-content:has(.entry-page) { padding-bottom: calc(var(--nav-h) + var(--safe-bottom)); }
+#app.daily-ui .entry-save-bar::after { height: calc(var(--nav-h) + var(--safe-bottom)); }
+
+.overview-balance-match { display: block; width: 100%; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; }
+.overview-balance-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.overview-balance-action { display: inline-flex; align-items: center; gap: 5px; color: var(--accent); font-size: .75rem; font-weight: 600; }
+.overview-balance-action .overview-icon { width: 14px; height: 14px; flex-basis: 14px; }

@@ -18,7 +18,8 @@ for (const unavailable of [null,{status:'review'}]) {
 }
 assert.equal(context.homeSpendingView('invalid',25,weekly,forecast).period,'week');
 assert.equal(context.homeSpendingView('day',-20,weekly,forecast).amount,0);
-assert.equal(context.homeSpendingView('day',25,{left:10},forecast).amount,10,'today cannot exceed the amount left this week');
+assert.equal(context.homeSpendingView('day',25,{left:10},forecast).amount,25,'Today uses Weekly’s dynamic daily allowance rather than a second weekly cap');
+assert.equal(context.homeSpendingView('day',200,{left:0,over:112},forecast).amount,200,'weekly overage does not replace the daily allowance');
 assert.equal(JSON.stringify(weekly),JSON.stringify({limit:200,left:145}),'switching views does not rewrite the plan');
 assert.equal(context.goalSavedAmount({saved:1450}),1450,'legacy saved progress is retained');
 assert.equal(context.goalSavedAmount({current:0,saved:1450}),0,'an explicit newer zero remains authoritative');

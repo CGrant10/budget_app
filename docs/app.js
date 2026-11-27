@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.75.0';
+const VERSION = '5.76.0';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -2952,11 +2952,11 @@ function renderPaydayForecast(skinned = false) {
 
 
 // The selector changes the displayed period, never the saved spending plan.
-// Reuse plan/forecast amounts; today's amount also stays within the weekly remainder.
+// Reuse the same dynamic daily/monthly allowance as Weekly; track the weekly target separately.
 function homeSpendingView(period, dailyLimit, weeklySummary, forecast) {
   const canForecast = forecast?.status === 'ready';
   const selected = period === 'day' ? 'day' : period === 'payday' && canForecast ? 'payday' : 'week';
-  return {period:selected, amount:selected === 'day' ? Math.min(Math.max(0, dailyLimit || 0), weeklySummary.left) : selected === 'payday' ? forecast.allowance : weeklySummary.left};
+  return {period:selected, amount:selected === 'day' ? (Number.isFinite(Number(dailyLimit)) ? Math.max(0, Number(dailyLimit)) : 0) : selected === 'payday' ? forecast.allowance : weeklySummary.left};
 }
 
 function renderHomeSpending(inputs, skinned = false) {
@@ -2966,9 +2966,9 @@ function renderHomeSpending(inputs, skinned = false) {
   const savedPeriod = loadSettings().homeSpendPeriod || (forecast?.status === 'ready' ? 'payday' : 'week');
   const view = homeSpendingView(savedPeriod, dailyLimit, weeklySummary, forecast);
   const payday = view.period === 'payday';
-  const label = view.period === 'day' ? 'Available today' : payday ? 'Cash available until payday' : 'Left to spend this week';
+  const label = view.period === 'day' ? 'Daily allowance' : payday ? 'Cash available until payday' : 'Left to spend this week';
   const date = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
-  const explanation = view.period === 'day' ? 'Daily allowance, capped by what’s left this week' : payday
+  const explanation = view.period === 'day' ? 'Dynamic daily allowance · same as Weekly' : payday
     ? `Cash forecast through ${date(forecast.payDate)} · bills and buffer reserved`
     : weeklySummary.target > 0 ? 'Your weekly target, capped by the available limit' : 'Weekly allowance from your monthly plan';
   return `<section class="${skinned ? 'sk-card' : 'dawg-section-card'} home-spending" aria-label="Available to spend">
@@ -2982,7 +2982,7 @@ function renderHomeSpending(inputs, skinned = false) {
     ${payday && forecast.gap > 0 ? `<p class="home-spend-warning comparison-value">${fmt(forecast.gap)} gap after bills and your protected balance. Review before spending.</p>` : ''}
     ${payday ? renderPaydayTimeline(forecast) : `<details class="pace-method"><summary>How this amount is calculated</summary>
       <dl class="home-math"><div><dt>Balance used by your plan</dt><dd class="comparison-value">${fmt(math.balance)}</dd></div><div><dt>Protected buffer</dt><dd class="comparison-value">${fmt(math.stopAt)}</dd></div><div><dt>${state.weekly_plan?.bills_source === 'tracked' ? 'Unpaid monthly bills' : 'Manual monthly bills reserve'}</dt><dd class="comparison-value">${fmt(math.bills)}</dd></div></dl>
-      <p>${view.period === 'day' ? `The remaining balance is spread over ${math.days} calendar days left in this month, including today, then capped by the amount left this week. Recorded purchases already reduce this balance.` : 'The available weekly limit comes from the remaining monthly balance. The amount left uses the lower of your preferred weekly target and that limit, minus this week’s discretionary spending.'} Bills, transfers, and excluded entries are outside discretionary spending. Refunds reduce spending.</p>
+      <p>${view.period === 'day' ? `The remaining balance is spread over ${math.days} calendar days left in this month, including today. This is the same daily allowance shown in Weekly. Your weekly target is tracked separately; it does not cap this amount. Recorded purchases already reduce this balance.` : 'The available weekly limit comes from the remaining monthly balance. The amount left uses the lower of your preferred weekly target and that limit, minus this week’s discretionary spending.'} Bills, transfers, and excluded entries are outside discretionary spending. Refunds reduce spending.</p>
       <p>Payday uses dated bills through the next paycheck, so its window can differ from the monthly plan.</p><button type="button" class="btn-secondary" data-payday-go="weekly">Review spending plan</button></details>`}
     ${forecast?.status !== 'ready' ? `<p class="home-schedule-note">${forecast?.status === 'review' ? 'Review your next paycheck date and amount.' : 'Set a paycheck schedule to unlock the payday view.'} <button type="button" data-payday-go="accounts">Accounts</button></p>` : ''}
     <button type="button" class="home-review-bills" data-payday-go="bills">Review bills · ${state.bills.filter(b => billOccurrenceDate(b,localMonthKey()) && !isBillPaidFor(b, localMonthKey())).length} unpaid this month</button>
@@ -2999,11 +2999,9 @@ function dashboardLimitStats(inputs) {
   const weekly = inputs.weeklySummary;
   const dayLeft = homeSpendingView('day', inputs.dailyLimit, weekly, null).amount;
   const daySpent = amount(inputs.daySpent), weekSpent = amount(inputs.weekSpent);
-  const dailyAllowance = amount(inputs.dailyLimit);
   return [
     {key:'day', label:'Today', left:amount(dayLeft), spent:daySpent, over:0,
-      capped:dailyAllowance - dayLeft >= .005, weeklyReached:weekly.left <= 0 && (weekly.limit > 0 || weekly.over > 0),
-      percent:daySpent + dayLeft > 0 ? Math.min(100, daySpent / (daySpent + dayLeft) * 100) : 0},
+      percent:dayLeft > 0 ? Math.min(100, daySpent / dayLeft * 100) : daySpent > 0 ? 100 : 0},
     {key:'week', label:'This week', left:amount(weekly.left), spent:weekSpent, over:amount(weekly.over),
       percent:weekly.limit > 0 ? Math.min(100, weekSpent / weekly.limit * 100) : weekSpent > 0 ? 100 : 0},
   ];
@@ -3073,13 +3071,13 @@ function renderEverydayDashboard(balance, inputs, gamblingMonth, gamblingAll) {
     ${gettingStartedHtml()}${backupBannerHtml()}
     <header class="overview-heading"><div class="overview-identity"><img class="overview-mark" src="${mascotSrc()}" alt=""><div><h1>Today, at a glance</h1><p>${date}</p></div></div><button type="button" class="overview-privacy dash-privacy-btn" id="dash-privacy-btn" aria-label="Toggle balance privacy" aria-pressed="${_amountsHidden()}">${_eyeIconSvg(_amountsHidden())}</button></header>
     <section class="overview-balance" aria-label="Account balance and seven-day history">
-      <div class="overview-balance-main"><span class="overview-eyebrow">${state.transactions.some(isPendingPurchase) ? 'Available balance' : 'Account balance'}</span><strong class="overview-balance-amount comparison-value${balance < 0 ? ' is-negative' : ''}">${fmt(balance)}</strong></div>
+      <button type="button" class="overview-balance-main overview-balance-match" id="overview-match-bank" aria-label="Match this account balance with your bank"><span class="overview-balance-label"><span class="overview-eyebrow">${state.transactions.some(isPendingPurchase) ? 'Available balance' : 'Account balance'}</span><span class="overview-balance-action">Match bank ${arrow}</span></span><strong class="overview-balance-amount comparison-value${balance < 0 ? ' is-negative' : ''}">${fmt(balance)}</strong></button>
       <button type="button" class="overview-spark" id="overview-history-preview" aria-label="View balance history for the last 7 days"><span class="overview-spark-label">7 days</span><span class="overview-spark-plot"><canvas id="overview-sparkline" aria-hidden="true"></canvas></span><span class="overview-spark-dates"><span>${shortDate(history[0].date)}</span><span>${shortDate(history[3].date)}</span><span>Today</span></span></button>
     </section>
     <section class="overview-spending" aria-labelledby="overview-spending-title"><h2 id="overview-spending-title" class="sr-only">Spending room</h2><div class="overview-quickbar" aria-label="Daily and weekly limits">
-      ${stats.map(s => `<button type="button" class="overview-limit${s.over > 0 ? ' is-over' : ''}" data-overview-limit="${s.key}" aria-label="${s.label}: ${fmt(s.over > 0 ? s.over : s.left)} ${s.over > 0 ? 'over limit' : 'left'}${s.weeklyReached ? '. Weekly limit reached' : s.capped ? '. Capped by this week' : ''}. View calculation."><span class="overview-limit-heading"><span class="overview-limit-label">${s.label}</span><span class="overview-limit-value"><strong class="comparison-value">${fmt(s.over > 0 ? s.over : s.left)}</strong><span>${s.over > 0 ? 'over limit' : 'left'}</span></span></span>
-        <span class="overview-meter" role="progressbar" aria-label="${s.label}: ${fmt(s.spent)} spent, ${fmt(s.left)} remaining${s.over > 0 ? ', '+fmt(s.over)+' over limit' : ''}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(s.percent)}"><i style="width:${s.percent.toFixed(2)}%"></i></span>
-        <span class="overview-limit-spent comparison-value">${fmt(s.spent)}${s.key === 'week' ? ' of '+fmt(inputs.weeklySummary.limit) : ''} spent</span>${s.key === 'day' && (s.weeklyReached || s.capped) ? `<span class="overview-limit-caption">${s.weeklyReached ? 'Weekly limit reached' : 'Capped by this week'}</span>` : ''}</button>`).join('')}
+      ${stats.map(s => `<button type="button" class="overview-limit${s.over > 0 ? ' is-over' : ''}" data-overview-limit="${s.key}" aria-label="${s.label}: ${fmt(s.over > 0 ? s.over : s.left)} ${s.key === 'day' ? 'daily allowance, same as Weekly' : s.over > 0 ? 'over limit' : 'left'}. View calculation."><span class="overview-limit-heading"><span class="overview-limit-label">${s.label}</span><span class="overview-limit-value"><strong class="comparison-value">${fmt(s.over > 0 ? s.over : s.left)}</strong><span>${s.key === 'day' ? 'daily' : s.over > 0 ? 'over limit' : 'left'}</span></span></span>
+        <span class="overview-meter" role="progressbar" aria-label="${s.label}: ${fmt(s.spent)} spent, ${fmt(s.left)} ${s.key === 'day' ? 'daily allowance' : 'remaining'}${s.over > 0 ? ', '+fmt(s.over)+' over limit' : ''}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(s.percent)}"><i style="width:${s.percent.toFixed(2)}%"></i></span>
+        <span class="overview-limit-spent comparison-value">${fmt(s.spent)}${s.key === 'week' ? ' of '+fmt(inputs.weeklySummary.limit) : ''} spent</span></button>`).join('')}
       </div>${inputs.math.balance <= inputs.math.stopAt + inputs.math.bills ? '<p class="overview-reserve-note">Bills and buffer use your balance.</p>' : ''}
     </section>
     <div class="overview-columns">
@@ -4220,19 +4218,51 @@ function bankMatchSummary(transactions, opening, debt, asOf, target, selected) {
     matched: count, unchecked: rows.length - count, future: (transactions || []).filter(t => t.date > asOf).length, pending: (transactions || []).filter(t => t.date <= asOf && isPendingPurchase(t)).length };
 }
 
+// Quick matching can compare the same available balance shown on Home, or a posted statement.
+function bankBalancePreview(transactions, opening, debt, asOf, target, balanceBasis = 'available') {
+  if (!['available','posted'].includes(balanceBasis) || (debt && balanceBasis !== 'posted')) return null;
+  let raw = typeof target === 'number' ? String(target) : typeof target === 'string' ? target.trim() : '';
+  raw = raw.replace(/^\$\s*/, '').replace(/^-\$\s*/, '-');
+  if (!/^-?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{0,2})?$/.test(raw) && !/^-?\.\d{1,2}$/.test(raw)) return null;
+  const targetCents = bankMatchCents(raw.replace(/,/g, ''));
+  if (targetCents === null) return null;
+  const rows = bankMatchRows(transactions, asOf), selected = new Set(rows.map(row => row.index));
+  const posted = bankMatchSummary(transactions, opening, debt, asOf, 0, selected);
+  if (!posted) return null;
+  const pending = (transactions || []).filter(t => t.date <= asOf && isPendingPurchase(t));
+  let pendingCents = 0;
+  for (const transaction of pending) {
+    const cents = bankMatchCents(transaction.amount);
+    if (cents === null || cents < 0) return null;
+    pendingCents += cents;
+  }
+  const currentCents = bankMatchCents(posted.recorded) - (balanceBasis === 'available' ? pendingCents : 0);
+  const postedTargetCents = targetCents + (balanceBasis === 'available' ? pendingCents : 0);
+  const differenceCents = targetCents - currentCents;
+  if (![pendingCents,currentCents,postedTargetCents,differenceCents].every(Number.isSafeInteger)) return null;
+  return {selected, bank:targetCents/100, current:currentCents/100, posted:posted.recorded,
+    postedTarget:postedTargetCents/100, difference:differenceCents/100, pending:pending.length, pendingAmount:pendingCents/100};
+}
+
+function bankPendingStamp(transactions, asOf) {
+  return JSON.stringify((transactions || []).filter(t => t.date <= asOf && isPendingPurchase(t)).map(t => bankMatchKey(t)).sort());
+}
+
 function bankLedgerStamp(transactions, opening, asOf) {
   return JSON.stringify([bankMatchCents(opening), bankMatchRows(transactions, asOf).map(row => bankMatchKey(row.transaction)).sort()]);
 }
 
 function bankMatchStatus() {
-  if (state.reconciliationDraft) return 'Unfinished bank review saved on this device.';
+  if (state.reconciliationDraft) return state.reconciliationDraft.mode === 'quick' ? 'Unfinished balance update saved on this device.' : 'Unfinished bank review saved on this device.';
   const checkpoint = state.reconciliation;
   if (!checkpoint || !bankMatchDate(checkpoint.asOf) || bankMatchCents(checkpoint.balance) === null) return 'Check posted transactions against your bank.';
-  const changed = checkpoint.stamp !== bankLedgerStamp(state.transactions, state.startingBalance || 0, checkpoint.asOf);
-  return `Last matched ${checkpoint.asOf} · ${fmt(checkpoint.balance)}${changed ? ' · Ledger changed; review again' : ''}`;
+  const available = checkpoint.balanceBasis === 'available' && bankMatchCents(checkpoint.bankBalance) !== null;
+  const changed = checkpoint.stamp !== bankLedgerStamp(state.transactions, state.startingBalance || 0, checkpoint.asOf) ||
+    (available && checkpoint.pendingStamp !== bankPendingStamp(state.transactions,checkpoint.asOf));
+  return `Last matched ${checkpoint.asOf} · ${fmt(available ? checkpoint.bankBalance : checkpoint.balance)}${available ? ' available' : ''}${changed ? ' · Ledger changed; review again' : ''}`;
 }
 
-function saveBankMatch({ accountId, transactions, opening, asOf, target, selected, expectedStorage, adjustmentReason = null }) {
+function saveBankMatch({ accountId, transactions, opening, asOf, target, selected, expectedStorage, adjustmentReason = null, balanceBasis = 'posted' }) {
   if (currentAccountId !== accountId || JSON.stringify(state.transactions) !== JSON.stringify(transactions) || state.startingBalance !== opening) {
     throw new Error('Your Ledger changed. Close this review and open Match my bank again.');
   }
@@ -4245,7 +4275,11 @@ function saveBankMatch({ accountId, transactions, opening, asOf, target, selecte
   if (asOf > today()) throw new Error('Choose today or an earlier statement date.');
   const account = state.accounts.find(a => a.id === accountId);
   const debt = ['credit','loan'].includes(account?.type);
-  let result = bankMatchSummary(transactions, opening || 0, debt, asOf, target, selected);
+  const availablePreview = balanceBasis === 'available' ? bankBalancePreview(transactions, opening || 0, debt, asOf, target, balanceBasis) : null;
+  if (!['available','posted'].includes(balanceBasis) || (balanceBasis === 'available' && !availablePreview)) throw new Error('Enter a valid bank balance.');
+  const postedTarget = availablePreview ? availablePreview.postedTarget : target;
+  let result = bankMatchSummary(transactions, opening || 0, debt, asOf, postedTarget, selected);
+  if (balanceBasis === 'available' && result?.unchecked) throw new Error('Available balance matching uses all posted entries.');
   if (!result) throw new Error('Enter a valid balance and review any invalid Ledger entries.');
   const adjusting = adjustmentReason !== null;
   if (adjusting && (!String(adjustmentReason).trim() || String(adjustmentReason).trim().length > 160)) {
@@ -4262,10 +4296,11 @@ function saveBankMatch({ accountId, transactions, opening, asOf, target, selecte
       excludeFromBudget:true, _bankAdjustment:true, ts:Date.now()};
     state.transactions = [...transactions, adjustment];
     finalSelected.add(transactions.length);
-    result = bankMatchSummary(state.transactions, opening || 0, debt, asOf, target, finalSelected);
+    result = bankMatchSummary(state.transactions, opening || 0, debt, asOf, postedTarget, finalSelected);
   }
   state.reconciliationDraft = null;
-  state.reconciliation = { asOf, balance: bankMatchCents(target) / 100, savedAt: new Date().toISOString(),
+  state.reconciliation = { asOf, balance: bankMatchCents(postedTarget) / 100, balanceBasis,
+    ...(availablePreview ? {bankBalance:availablePreview.bank, pendingStamp:bankPendingStamp(state.transactions,asOf)} : {}), savedAt: new Date().toISOString(),
     matched: bankMatchRows(state.transactions, asOf).filter(row => finalSelected.has(row.index)).map(row => bankMatchKey(row.transaction)),
     stamp: bankLedgerStamp(state.transactions, opening || 0, asOf) };
   if (!_save()) {
@@ -4286,12 +4321,25 @@ function showReconcileModal() {
     ? bankMatchSelection(transactions, draft ? {matched:draft.selected} : state.reconciliation)
     : new Set(bankMatchRows(transactions, today()).map(row => row.index));
   const draftDate = draft && bankMatchDate(draft.asOf) && draft.asOf <= today() ? draft.asOf : today();
+  const quick = draft?.quick || {};
+  const quickDate = bankMatchDate(quick.asOf) && quick.asOf <= today() ? quick.asOf : today();
+  const quickBalanceBasis = ['available','posted'].includes(quick.balanceBasis) ? quick.balanceBasis : state.reconciliation?.balanceBasis === 'posted' ? 'posted' : 'available';
+  let mode = draft?.mode === 'review' ? 'review' : 'quick';
   const overlay = document.createElement('div');
   overlay.id = 'reconcile-overlay';
   overlay.className = 'bank-match-overlay';
   overlay.innerHTML = `<section class="reconcile-card bank-match-card" role="dialog" aria-modal="true" aria-labelledby="bank-match-title">
     <header class="bank-match-heading"><div><h2 id="bank-match-title">Match my bank</h2><p>${_escHtml(account?.name || 'Account')}</p></div><button type="button" id="reconcile-cancel" class="bank-match-close" aria-label="Close bank review">×</button></header>
-    <div class="bank-match-body">
+    <div class="bank-match-modes" role="group" aria-label="Bank matching method"><button type="button" data-bank-mode="quick">Update balance</button><button type="button" data-bank-mode="review">Review entries</button></div>
+    <div class="bank-match-body bank-quick-body" id="reconcile-quick-body">
+      <p class="bank-match-help">Enter the balance shown by your bank. Preview the difference, then update your app balance.</p>
+      <div class="bank-quick-label"><label for="reconcile-quick-input">Bank ${debt ? 'balance owed' : 'balance'} ($)</label>${debt ? '<input type="hidden" id="reconcile-quick-basis" value="posted">' : `<select id="reconcile-quick-basis" class="form-input" aria-label="Bank balance type"><option value="available"${quickBalanceBasis !== 'posted' ? ' selected' : ''}>Available</option><option value="posted"${quickBalanceBasis === 'posted' ? ' selected' : ''}>Posted</option></select>`}</div>
+      <input type="text" id="reconcile-quick-input" class="form-input bank-quick-input" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="0.00" value="${_escHtml(String(quick.target ?? ''))}">
+      <div id="reconcile-quick-summary" class="bank-match-summary" aria-live="polite"></div>
+      <p id="reconcile-quick-pending" class="bank-match-help"></p>
+      <details class="bank-match-resolution"><summary>Date &amp; adjustment note</summary><label class="bank-match-help">As of<input type="date" id="reconcile-quick-date" class="form-input" value="${quickDate}" max="${today()}"></label><label class="bank-match-help">Note (optional)<input type="text" id="reconcile-quick-note" class="form-input" maxlength="160" placeholder="Bank balance adjustment" value="${_escHtml(String(quick.note || ''))}"></label></details>
+    </div>
+    <div class="bank-match-body" id="reconcile-review-body" hidden>
       <p class="bank-match-help">Enter your bank’s <strong>posted ${debt ? 'balance owed' : 'balance'}</strong>, not its available balance. Review the entries below; pending purchases are kept separate.</p>
       <div class="bank-match-fields"><label>Statement date<input type="date" id="reconcile-date" class="form-input" value="${draftDate}" max="${today()}" required></label><label>${debt ? 'Balance owed' : 'Posted balance'} ($)<input type="number" id="reconcile-input" class="form-input" inputmode="decimal" step="0.01" placeholder="0.00" value="${_escHtml(String(draft?.target ?? ''))}" required></label></div>
       ${debt ? '<p class="bank-match-help">A negative balance owed represents a credit on your account.</p>' : ''}
@@ -4304,19 +4352,23 @@ function showReconcileModal() {
       <button type="button" id="reconcile-add-entry" class="bank-match-more">Add missing transaction</button>
       <details id="reconcile-adjustment" class="bank-match-resolution" hidden><summary>Resolve a remaining difference</summary><p class="bank-match-help">Add missing purchases or income first. If you have checked every posted entry and still need to correct the balance, record a separate adjustment. It changes your account balance, stays in Ledger, and is excluded from weekly spending.</p><p id="reconcile-adjustment-preview" class="bank-match-help"></p><label class="bank-match-help">Reason<input type="text" id="reconcile-adjustment-reason" class="form-input" maxlength="160" placeholder="e.g. Correct opening balance"></label><label class="bank-match-consent"><input type="checkbox" id="reconcile-adjustment-confirm"> Record this adjustment and match my bank</label></details>
       <details class="bank-match-resolution"><summary>Review details</summary><p class="bank-match-help">Opening balance: ${fmt(opening || 0)}${debt ? ' owed' : ''}. Bills and transfers count once. Unchecked entries stay in Ledger and your budget. Your review saves on this device, including when you add a missing transaction.</p><button type="button" id="reconcile-discard" class="bank-match-more">Discard this draft</button></details>
-      <p id="reconcile-error" role="alert" class="bank-match-error"></p><button type="button" id="reconcile-close-unsaved" class="bank-match-more" hidden>Close without saving draft</button>
     </div>
-    <footer class="bank-match-footer"><p id="reconcile-result">Enter a balance to compare.</p><button type="button" id="reconcile-save" class="btn-primary" disabled>Save match</button></footer>
+    <p id="reconcile-error" role="alert" class="bank-match-error bank-match-shared-error"></p><button type="button" id="reconcile-close-unsaved" class="bank-match-more" hidden>Close without saving draft</button>
+    <footer class="bank-match-footer bank-quick-footer" id="reconcile-quick-footer"><p id="reconcile-quick-result">Enter your bank balance.</p><button type="button" id="reconcile-quick-save" class="btn-primary" disabled>Update balance</button></footer>
+    <footer class="bank-match-footer" id="reconcile-review-footer" hidden><p id="reconcile-result">Enter a balance to compare.</p><button type="button" id="reconcile-save" class="btn-primary" disabled>Save match</button></footer>
   </section>`;
   document.body.appendChild(overlay);
   const input = overlay.querySelector('#reconcile-input'), date = overlay.querySelector('#reconcile-date');
   const search = overlay.querySelector('#reconcile-search'), save = overlay.querySelector('#reconcile-save');
   const error = overlay.querySelector('#reconcile-error');
+  const quickInput=overlay.querySelector('#reconcile-quick-input'), quickAsOf=overlay.querySelector('#reconcile-quick-date');
+  const quickBasis=overlay.querySelector('#reconcile-quick-basis'), quickNote=overlay.querySelector('#reconcile-quick-note'), quickSave=overlay.querySelector('#reconcile-quick-save');
   let visible = [], filtered = [], limit = 100, completed = false, draftTimer = null, dirty = !!draft;
   function saveDraft() {
     clearTimeout(draftTimer);
     if (completed || !dirty) return true;
-    const saved = {asOf:date.value, target:input.value, selected:[...selected].map(i => bankMatchKey(transactions[i])), savedAt:new Date().toISOString()};
+    const saved = {mode, asOf:date.value, target:input.value, selected:[...selected].map(i => bankMatchKey(transactions[i])),
+      quick:{asOf:quickAsOf.value,target:quickInput.value,balanceBasis:quickBasis.value,note:quickNote.value}, savedAt:new Date().toISOString()};
     try { persistBankReviewDraft(accountId,saved); return true; }
     catch { error.textContent = 'This draft could not be saved. You can keep reviewing or close without saving it.'; overlay.querySelector('#reconcile-close-unsaved').hidden=false; return false; }
   }
@@ -4325,7 +4377,48 @@ function showReconcileModal() {
   const close = () => { if(!saveDraft())return false; window.removeEventListener('pagehide',saveDraft); document.removeEventListener('visibilitychange',hidden); overlay.remove(); releaseFocus(); return true; };
   window.addEventListener('pagehide',saveDraft);
   document.addEventListener('visibilitychange',hidden);
-  const releaseFocus = manageModalFocus(overlay, input, close);
+  const releaseFocus = manageModalFocus(overlay, mode === 'quick' ? quickInput : input, close);
+  function refreshQuick() {
+    const result = bankBalancePreview(transactions, opening || 0, debt, quickAsOf.value, quickInput.value, quickBasis.value);
+    const current = result || bankBalancePreview(transactions, opening || 0, debt, quickAsOf.value, 0, quickBasis.value);
+    const valid = !!result && quickAsOf.value <= today();
+    quickSave.disabled = !valid;
+    quickSave.textContent = valid && result.difference === 0 ? 'Save match' : 'Update balance';
+    const label = debt ? 'Posted balance owed' : quickBasis.value === 'available' ? 'App available balance' : 'App posted balance';
+    overlay.querySelector('#reconcile-quick-summary').innerHTML = `<div><span>${label}</span><strong>${current ? fmt(current.current) : '—'}</strong></div><div class="bank-match-difference"><span>${result?.difference === 0 ? 'Balances match' : 'Adjustment'}</span><strong>${result ? (result.difference < 0 ? '−' : result.difference > 0 ? '+' : '')+fmt(Math.abs(result.difference)) : '—'}</strong></div>`;
+    overlay.querySelector('#reconcile-quick-summary').classList.toggle('is-matched',valid && result.difference === 0);
+    overlay.querySelector('#reconcile-quick-pending').textContent = current?.pending
+      ? `${fmt(current.pendingAmount)} pending ${quickBasis.value === 'available' ? 'included in this available balance' : 'excluded from this posted balance'}. Pending entries stay pending.`
+      : debt ? 'Use the balance owed, not available credit. A negative amount means your account has a credit.' : 'Available includes pending purchases recorded in this app. Posted excludes them.';
+    overlay.querySelector('#reconcile-quick-result').textContent = !bankMatchDate(quickAsOf.value) || quickAsOf.value > today()
+      ? 'Choose today or an earlier date.' : !current ? 'Review the opening balance and any invalid Ledger dates or amounts first.' : !result ? (quickInput.value.trim() ? 'Enter a valid amount, such as 1,234.56.' : 'Enter your bank balance.')
+      : result.difference === 0 ? 'Already matched. Your transactions stay unchanged.'
+      : `Records a ${fmt(Math.abs(result.difference))} ${((result.difference > 0) !== debt) ? 'income' : 'expense'} adjustment. Your ${debt ? 'posted balance owed' : quickBasis.value+' balance'} becomes ${fmt(result.bank)}${quickAsOf.value === today() ? '' : ' as of '+quickAsOf.value}. Excluded from weekly spending.`;
+    queueDraft();
+  }
+  function setMode(next, focus = true) {
+    mode = next;
+    for (const key of ['quick','review']) {
+      overlay.querySelector('#reconcile-'+key+'-body').hidden = key !== mode;
+      overlay.querySelector('#reconcile-'+key+'-footer').hidden = key !== mode;
+      overlay.querySelector(`[data-bank-mode="${key}"]`).setAttribute('aria-pressed',String(key===mode));
+    }
+    if (focus) (mode === 'quick' ? quickInput : input).focus({preventScroll:true});
+    queueDraft();
+  }
+  overlay.querySelectorAll('[data-bank-mode]').forEach(button=>button.addEventListener('click',()=>{dirty=true;setMode(button.dataset.bankMode);}));
+  for (const field of [quickInput,quickAsOf,quickBasis,quickNote]) field.addEventListener('input',()=>{dirty=true;refreshQuick();});
+  quickBasis.addEventListener('change',()=>{dirty=true;refreshQuick();});
+  quickInput.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing){event.preventDefault();if(!quickSave.disabled)quickSave.click();}});
+  quickSave.addEventListener('click',()=>{
+    const result=bankBalancePreview(transactions,opening||0,debt,quickAsOf.value,quickInput.value,quickBasis.value);
+    if (!result || quickSave.disabled) return;
+    quickSave.disabled=true;
+    try { saveBankMatch({accountId,transactions,opening,asOf:quickAsOf.value,target:result.bank,selected:result.selected,expectedStorage,
+      balanceBasis:quickBasis.value,adjustmentReason:result.difference!==0 ? quickNote.value.trim() || 'Bank balance adjustment' : null}); }
+    catch(e){error.textContent=e.message;refreshQuick();return;}
+    completed=true;clearTimeout(draftTimer);close();render();_toast(result.difference===0 ? '✓ Bank match saved.' : '✓ Balance updated. Adjustment recorded in Ledger.');
+  });
   function refreshSummary() {
     const result = bankMatchSummary(transactions, opening || 0, debt, date.value, input.value, selected);
     const comparison = result || bankMatchSummary(transactions, opening || 0, debt, date.value, 0, selected);
@@ -4405,7 +4498,7 @@ function showReconcileModal() {
     catch (e) { error.textContent = e.message; refreshSummary(); return; }
     completed = true; clearTimeout(draftTimer); close(); render(); _toast(adjusting ? '✓ Adjustment recorded and bank matched.' : '✓ Bank match saved. Your transactions are unchanged.');
   });
-  refreshEntries();
+  refreshEntries(); refreshQuick(); setMode(mode,false);
 }
 
 // ── sounds toggle ──────────────────────────────────────────────────────────
@@ -8134,25 +8227,11 @@ function renderAdd() {
   return `
     <div class="page entry-page">
       <h1 class="page-title">Add Entry</h1>
-      <p class="page-sub">Record a purchase, income, or transfer</p>
       ${_returnToBankReview ? '<div class="entry-review-return"><span>Bank review saved</span><button type="button" class="overview-link" id="add-return-review">Return to review →</button></div>' : ''}
-      <div class="form-card entry-card entry-form">
-        ${(() => {
-          const tmpls = getCommonTemplates();
-          if (!tmpls.length) return '';
-          return `<div class="form-row tmpl-row" id="add-tmpl-row">
-          <label class="form-label">Frequent</label>
-          <div class="tmpl-chips" id="add-tmpl-chips">
-            ${tmpls.map((t, i) => `<button type="button" class="tmpl-chip" data-tmpl="${i}" title="Tap to fill — logged ~daily">
-              <span class="cat-dot" style="background:${catColor(t.category, '#9896a4')}"></span>
-              <span class="tmpl-chip-lbl">${_escHtml(t.description || t.category)}</span>
-              <span class="tmpl-chip-amt">${fmt(t.amount)}</span>
-            </button>`).join('')}
-          </div>
-        </div>`;
-        })()}
+      <form class="form-card entry-card entry-form" id="entry-form" autocomplete="off">
+
         <div class="form-row">
-          <label class="form-label">Type</label>
+          <label class="form-label sr-only">Entry type</label>
           <div class="radio-group entry-type-segments">
             <label class="radio-label"><input type="radio" name="etype" value="expense" checked> Expense</label>
             <label class="radio-label"><input type="radio" name="etype" value="income"> Income</label>
@@ -8162,19 +8241,22 @@ function renderAdd() {
         <div class="form-row">
           <label class="form-label" for="add-amount">Amount ($)</label>
           <div class="amount-wrap">
-            <input type="number" id="add-amount" aria-describedby="add-amount-error" class="form-input" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
+            <input type="number" id="add-amount" enterkeyhint="next" aria-describedby="add-amount-error" class="form-input" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
             <button type="button" id="add-calc-btn" class="calc-trigger" aria-label="Open calculator" title="Calculator">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8" y2="11"/><line x1="12" y1="11" x2="12" y2="11"/><line x1="16" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="8" y2="15"/><line x1="12" y1="15" x2="12" y2="15"/><line x1="16" y1="15" x2="16" y2="18"/></svg>
             </button>
           </div>
           <div id="add-amount-error" class="form-status" aria-live="polite"></div>
         </div>
-        <fieldset class="entry-purchase-status" id="add-purchase-status"><legend>Purchase status</legend><div class="entry-status-segments"><label><input type="radio" name="purchase-status" value="posted" checked><span>Posted</span></label><label><input type="radio" name="purchase-status" value="pending"><span>Pending</span></label></div><p class="code-hint">Pending purchases reserve money on their entry date. Posting won’t deduct again.</p></fieldset>
+
         <div class="form-row" id="add-desc-row">
           <label class="form-label" for="add-desc">Description</label>
-          <input type="text" id="add-desc" class="form-input" placeholder="What was this for?" list="desc-suggestions" autocomplete="off">
+          <input type="text" id="add-desc" enterkeyhint="done" class="form-input" placeholder="What was this for?" list="desc-suggestions" autocomplete="off">
           <datalist id="desc-suggestions">${_descSugg}</datalist>
         </div>
+        <details class="entry-options" id="add-options">
+          <summary><span class="entry-details-label">Details</span><span id="entry-details-summary">Account, category &amp; date</span></summary>
+          <div class="entry-options-body">
         <div class="form-row" id="add-cat-row">
           <label class="form-label" for="add-cat">Category</label>
           <div style="flex:1">
@@ -8191,9 +8273,8 @@ function renderAdd() {
           <select id="add-to-acct" class="form-input form-select">${toAcctOptions}</select>
         </div>
         <div class="entry-shortcuts" id="entry-shortcuts"><button type="button" data-entry-option="split-toggle">Split categories</button><button type="button" data-entry-option="add-recurring">Repeat monthly</button></div>
-        <details class="entry-options" id="add-options">
-          <summary>More options <span>Date, split &amp; recurring</span></summary>
-          <div class="entry-options-body">
+
+        <fieldset class="entry-purchase-status" id="add-purchase-status"><legend>Purchase status</legend><div class="entry-status-segments"><label><input type="radio" name="purchase-status" value="posted" checked><span>Posted</span></label><label><input type="radio" name="purchase-status" value="pending"><span>Pending</span></label></div><p class="code-hint">Pending purchases reserve money on their entry date. Posting won’t deduct again.</p></fieldset>
         <div class="form-row">
           <label class="form-label" for="add-date">Date</label>
           <input type="date" id="add-date" class="form-input" value="${_returnToBankReview?.date || today()}">
@@ -8219,10 +8300,24 @@ function renderAdd() {
             </div>
           </div>
         </div>
+        ${(() => {
+          const tmpls = getCommonTemplates();
+          if (!tmpls.length) return '';
+          return `<div class="form-row tmpl-row" id="add-tmpl-row">
+          <label class="form-label">Frequent</label>
+          <div class="tmpl-chips" id="add-tmpl-chips">
+            ${tmpls.map((t, i) => `<button type="button" class="tmpl-chip" data-tmpl="${i}" title="Tap to fill — logged ~daily">
+              <span class="cat-dot" style="background:${catColor(t.category, '#9896a4')}"></span>
+              <span class="tmpl-chip-lbl">${_escHtml(t.description || t.category)}</span>
+              <span class="tmpl-chip-amt">${fmt(t.amount)}</span>
+            </button>`).join('')}
+          </div>
+        </div>`;
+        })()}
           </div>
         </details>
-        <div class="entry-save-bar"><div id="add-status" class="form-status" role="status"></div><button id="add-btn" class="btn-primary">Add transaction</button></div>
-      </div>
+        <div class="entry-save-bar"><div id="add-status" class="form-status" role="status"></div><button type="submit" id="add-btn" class="btn-primary">Add transaction</button></div>
+      </form>
     </div>`;
 }
 
@@ -8357,7 +8452,7 @@ function renderLedger() {
       <h1 class="page-title">Ledger</h1>
       <p class="page-sub">${rows.length} ${ledgerView === 'bills' ? 'bill' : 'transaction'}${rows.length !== 1 ? 's' : ''}${_crossAcct ? ' · all accounts (read-only)' : ''}</p>
       ${ledgerUndoHtml()}
-      <div class="ledger-bank-match"><button type="button" id="ledger-bank-match" class="overview-link">${state.reconciliationDraft ? 'Resume bank review' : 'Match my bank'} ${ICONS.chevronRight || '→'}</button><p>${_escHtml(bankMatchStatus())}</p></div>
+      <div class="ledger-bank-match"><button type="button" id="ledger-bank-match" class="overview-link">${state.reconciliationDraft ? state.reconciliationDraft.mode === 'quick' ? 'Resume balance update' : 'Resume bank review' : 'Match my bank'} ${ICONS.chevronRight || '→'}</button><p>${_escHtml(bankMatchStatus())}</p></div>
       <div class="ledger-view-tabs">
         <button class="lv-tab${ledgerView === 'transactions' ? ' active' : ''}" data-view="transactions">Transactions${_allTxnRows.length ? ` <span class="lv-count">${_allTxnRows.length}</span>` : ''}</button>
         <button class="lv-tab${ledgerView === 'bills' ? ' active' : ''}" data-view="bills">Bill payments${_allBillRows.length ? ` <span class="lv-count">${_allBillRows.length}</span>` : ''}</button>
@@ -12555,9 +12650,7 @@ function showDashboardLimitMath(kind = 'daily') {
   const resultLine = !daily && m.weeklyFromSaved
     ? `<strong style="color:var(--accent);font-size:1rem">${fmt(result)} saved weekly limit</strong><br><span style="color:var(--muted)">Kept from your last positive calculation because the current available amount is ${fmt(available)}.</span>`
     : `${fmt(available)} ÷ ${periods} ${unit} remaining<br><strong style="color:var(--accent);font-size:1rem">= ${fmt(result)}</strong>`;
-  const cap = daily && Number.isFinite(m.weeklyLeft)
-    ? `<br><br>Weekly spending room: <strong>${fmt(m.weeklyLeft)}</strong>${m.weeklyOver > 0 ? ` (${fmt(m.weeklyOver)} over the weekly limit)` : ''}.<br>Today uses the lower of the dynamic daily allowance and the weekly remainder: <strong>${fmt(Math.min(Math.max(0,m.perDay),m.weeklyLeft))} left</strong>.${m.weeklyLeft <= 0 && m.weeklyOver > 0 ? '<br>Your weekly limit is reached. Any new spending adds to the weekly overage.' : m.perDay - m.weeklyLeft >= .005 ? '<br>The weekly cap is active, so Today and This week show the same amount.' : ''}`
-    : '';
+  const dailyNote = daily ? `<br><br>This is the same dynamic daily allowance shown in Weekly. It spreads your remaining monthly spending money across the days left in this month.${Number.isFinite(m.weeklyLeft) ? `<br><br>Your weekly target is tracked separately: <strong>${m.weeklyOver > 0 ? fmt(m.weeklyOver)+' over the weekly limit' : fmt(m.weeklyLeft)+' left this week'}</strong>. It does not cap the daily allowance.` : ''}` : '';
   const weeklyDetail = !daily && Number.isFinite(m.weeklyLeft)
     ? `<br><br>${fmt(m.weeklySpent)} spent of ${fmt(m.weeklyLimit)}.<br><strong>${m.weeklyOver > 0 ? fmt(m.weeklyOver)+' over limit' : fmt(m.weeklyLeft)+' left this week'}</strong>` : '';
   const mismatch = m.billMismatch
@@ -12565,7 +12658,7 @@ function showDashboardLimitMath(kind = 'daily') {
     : '';
   showConfirmModal({
     title: daily ? 'Daily allowance' : 'Weekly limit',
-    message: `${fmt(m.balance)} balance<br>− ${fmt(m.stopAt)} minimum balance<br>− ${fmt(m.bills)} bills still due<br><strong style="color:var(--text)">= ${fmt(available)} available</strong><br><br>${resultLine}${cap}${weeklyDetail}${mismatch}`,
+    message: `${fmt(m.balance)} balance<br>− ${fmt(m.stopAt)} minimum balance<br>− ${fmt(m.bills)} bills still due<br><strong style="color:var(--text)">= ${fmt(available)} available</strong><br><br>${resultLine}${dailyNote}${weeklyDetail}${mismatch}`,
     confirmText: 'Open Planner',
     cancelText: 'Close',
     onConfirm: () => showTab('weekly'),
@@ -12613,6 +12706,7 @@ function attachDashboardDawg() {
     setTimeout(() => document.getElementById('backup-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
   });
   document.getElementById('dash-reconcile')?.addEventListener('click', showReconcileModal);
+  document.getElementById('overview-match-bank')?.addEventListener('click', showReconcileModal);
   document.getElementById('dash-privacy-btn')?.addEventListener('click', toggleAmountsHidden);
   document.querySelectorAll('.limit-info-btn').forEach(btn =>
     btn.addEventListener('click', () => showDashboardLimitMath(btn.dataset.limitKind)));
@@ -13074,6 +13168,7 @@ function _showFastAdd() {
       }
       overlay.querySelectorAll('#fas-tmpls .tmpl-chip').forEach(c => c.classList.remove('tmpl-chip-active'));
       chip.classList.add('tmpl-chip-active');
+      updateEntryDetails();
       if (amtEl) { amtEl.focus(); amtEl.select(); }
       haptic([8]);
     });
@@ -13205,6 +13300,30 @@ async function autoUpdateWeeklyPlan() {
 }
 
 function attachAdd() {
+  function updateEntryDetails() {
+    const type=document.querySelector('input[name="etype"]:checked')?.value || 'expense';
+    const account=document.getElementById('add-acct')?.selectedOptions[0]?.textContent || 'Account';
+    const category=document.getElementById('add-cat')?.value;
+    const chosen=category === '__custom__' ? document.getElementById('add-cat-custom')?.value || 'Custom category' : category;
+    const date=document.getElementById('add-date')?.value;
+    const parts=[account];
+    if(type==='transfer') parts.push('to '+(document.getElementById('add-to-acct')?.selectedOptions[0]?.textContent || 'account'));
+    else parts.push(document.getElementById('split-toggle')?.checked ? 'Split categories' : chosen);
+    if(type==='expense') parts.push(document.querySelector('input[name="purchase-status"]:checked')?.value === 'pending' ? 'Pending' : 'Posted');
+    if(date && date!==today()) parts.push(date);
+    if(document.getElementById('add-recurring')?.checked)parts.push('Repeats monthly');
+    const summary=document.getElementById('entry-details-summary');
+    if(summary)summary.textContent=parts.filter(Boolean).join(' · ');
+  }
+  document.getElementById('entry-form')?.addEventListener('submit',event=>{event.preventDefault();document.getElementById('add-btn')?.click();});
+  for(const event of ['input','change']) document.getElementById('entry-form')?.addEventListener(event,updateEntryDetails);
+  document.getElementById('add-amount')?.addEventListener('keydown',event=>{
+    if(event.key!=='Enter'||event.isComposing)return;
+    event.preventDefault();
+    const transfer=document.querySelector('input[name="etype"]:checked')?.value==='transfer';
+    if(transfer)document.getElementById('add-options').open=true;
+    document.getElementById(transfer?'add-to-acct':'add-desc')?.focus();
+  });
   document.getElementById('add-return-review')?.addEventListener('click', returnToBankReview);
   document.querySelectorAll('[data-entry-option]').forEach(button => button.addEventListener('click', () => {
     document.getElementById('add-options').open = true;
@@ -13291,7 +13410,7 @@ function attachAdd() {
         <input type="number" class="form-input split-amount" data-idx="${i}"
           value="${row.amount}" placeholder="$0.00" step="0.01" min="0" inputmode="decimal"
           style="width:92px;padding:6px 8px;font-size:13px">
-        ${_splitRows.length > 2 ? `<button class="btn-xs btn-danger split-del-row" data-idx="${i}"
+        ${_splitRows.length > 2 ? `<button type="button" class="btn-xs btn-danger split-del-row" data-idx="${i}"
           style="flex-shrink:0">✕</button>` : ''}
       </div>`).join('');
     updateSplitSummary();
@@ -13353,7 +13472,7 @@ function attachAdd() {
       if (etype !== 'expense') return;
       const guess = _guessCategory(_descEl.value.trim(), 'expense');
       if (guess && guess !== 'Other' && [..._catEl.options].some(o => o.value === guess)) {
-        _catEl.value = guess;
+        _catEl.value = guess; updateEntryDetails();
       }
     };
     _descEl.addEventListener('input', _debounce(_autoCat, 350));
@@ -13364,6 +13483,7 @@ function attachAdd() {
   document.querySelectorAll('input[name="etype"]').forEach(radio => {
     radio.addEventListener('change', () => {
       const isTransfer = radio.value === 'transfer';
+      if(isTransfer) document.getElementById('add-options').open=true;
       document.getElementById('add-purchase-status').hidden = radio.value !== 'expense';
       document.getElementById('entry-shortcuts').hidden = isTransfer || isSimpleMode();
       const toRow      = document.getElementById('add-to-acct-row');
@@ -13384,7 +13504,10 @@ function attachAdd() {
 
   document.getElementById('add-purchase-status').hidden = document.querySelector('input[name="etype"]:checked')?.value !== 'expense';
   document.querySelector('input[name="etype"]:checked')?.dispatchEvent(new Event('change'));
+  updateEntryDetails();
   document.getElementById('add-btn')?.addEventListener('click', async event => {
+    event.preventDefault();
+    document.getElementById('add-desc')?.blur();
     const submit=event.currentTarget; if(submit.disabled)return; submit.disabled=true;
     try {
     const amtVal = document.getElementById('add-amount').value;
@@ -13533,7 +13656,7 @@ function attachAdd() {
     checkWeekMilestone();
     if (_returnToBankReview) await returnToBankReview();
     } catch(error) { showStatus('add-status',error.message || 'The entry could not be saved.','error',0); }
-    finally { if(submit.isConnected)submit.disabled=false; }
+    finally { updateEntryDetails(); if(submit.isConnected)submit.disabled=false; }
   });
 }
 
@@ -14945,11 +15068,12 @@ document.getElementById('pwa-install-btn')?.addEventListener('click', async () =
 });
 
 
-// Keyboard "Done" / checkmark — blur the focused input to dismiss the keyboard.
-// Prevents accidental form submission and lets the user review before hitting Save.
+// Default keyboard Done dismisses the keyboard; the compact entry form and
+// explicit input handlers own their Next/Save behavior.
 document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
+  if (e.key !== 'Enter' || e.defaultPrevented || e.isComposing) return;
   const el = e.target;
+  if (el.closest('#entry-form')) return;
   if (el.tagName !== 'INPUT' && el.tagName !== 'SELECT') return;
   // Let date inputs handle Enter natively
   if (el.type === 'date') return;

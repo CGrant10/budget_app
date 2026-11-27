@@ -1,5 +1,16 @@
 [
  {
+  "version": "5.76.0",
+  "date": "2026-11-27",
+  "changes": [
+   "Home now shows the same dynamic daily allowance and daily progress calculation as Weekly. The weekly target and any overage stay separate; the extra Home-only weekly cap is removed.",
+   "Match bank is available beside the Home balance. Enter your bank balance, review the adjustment, and update without checking every transaction or entering a required note. Choose available or posted balance; recorded pending purchases are handled once.",
+   "Manual balance updates create an excluded-from-weekly-spending Ledger adjustment while preserving history and opening balance. The last balance type is remembered per account. Detailed statement review remains available, with separate saved draft inputs for both methods.",
+   "Add Entry keeps type, amount, description and Save together. Account, category, pending status, date, splitting, recurring options and frequent templates remain in collapsed Details. Amount Next moves to description, and the compact form supports keyboard submission.",
+   "The entry Save bar now reserves the correct navigation space on short phone screens."
+  ]
+ },
+ {
   "version": "5.75.0",
   "date": "2026-11-27",
   "changes": [
