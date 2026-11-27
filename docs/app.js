@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '5.74.0';
+const VERSION = '5.74.1';
 const DEFAULT_CATEGORIES = ['Food','Gas','Car','Boat','Tools','Home','Entertainment','Health','Gambling','Other'];
 
 function getCategories() {
@@ -4145,7 +4145,7 @@ function refreshLedgerUndoStorage() {
   }
 }
 
-// ── Match bank statements without changing recorded money ───────────────────
+// ── Review posted balances; corrections require an explicit Ledger adjustment ──
 function bankMatchCents(value) {
   if (!['number', 'string'].includes(typeof value) || String(value).trim() === '') return null;
   const cents = Math.round(Number(value) * 100);
@@ -4217,7 +4217,7 @@ function bankMatchStatus() {
   return `Last matched ${checkpoint.asOf} · ${fmt(checkpoint.balance)}${changed ? ' · Ledger changed; review again' : ''}`;
 }
 
-function saveBankMatch({ accountId, transactions, opening, asOf, target, selected, expectedStorage }) {
+function saveBankMatch({ accountId, transactions, opening, asOf, target, selected, expectedStorage, adjustmentReason = null }) {
   if (currentAccountId !== accountId || JSON.stringify(state.transactions) !== JSON.stringify(transactions) || state.startingBalance !== opening) {
     throw new Error('Your Ledger changed. Close this review and open Match my bank again.');
   }
@@ -4229,14 +4229,34 @@ function saveBankMatch({ accountId, transactions, opening, asOf, target, selecte
   }
   if (asOf > today()) throw new Error('Choose today or an earlier statement date.');
   const account = state.accounts.find(a => a.id === accountId);
-  const result = bankMatchSummary(transactions, opening || 0, ['credit','loan'].includes(account?.type), asOf, target, selected);
-  if (!result || result.difference !== 0) throw new Error('The checked balance must match your bank before saving.');
-  const previous = state.reconciliation, previousDraft = state.reconciliationDraft;
+  const debt = ['credit','loan'].includes(account?.type);
+  let result = bankMatchSummary(transactions, opening || 0, debt, asOf, target, selected);
+  if (!result) throw new Error('Enter a valid balance and review any invalid Ledger entries.');
+  const adjusting = adjustmentReason !== null;
+  if (adjusting && (!String(adjustmentReason).trim() || String(adjustmentReason).trim().length > 160)) {
+    throw new Error('Add a reason for the adjustment (up to 160 characters).');
+  }
+  if (result.difference !== 0 && (!adjusting || result.unchecked)) {
+    throw new Error('The checked balance must match your bank before saving. Check all posted entries before recording an adjustment.');
+  }
+  const previous = state.reconciliation, previousDraft = state.reconciliationDraft, previousTransactions = state.transactions;
+  const finalSelected = new Set(selected);
+  if (adjusting && result.difference !== 0) {
+    const adjustment = {date:asOf, type:(result.difference > 0) !== debt ? 'income' : 'expense',
+      amount:Math.abs(result.difference), category:'Adjustment', description:String(adjustmentReason).trim(),
+      excludeFromBudget:true, _bankAdjustment:true, ts:Date.now()};
+    state.transactions = [...transactions, adjustment];
+    finalSelected.add(transactions.length);
+    result = bankMatchSummary(state.transactions, opening || 0, debt, asOf, target, finalSelected);
+  }
   state.reconciliationDraft = null;
   state.reconciliation = { asOf, balance: bankMatchCents(target) / 100, savedAt: new Date().toISOString(),
-    matched: bankMatchRows(transactions, asOf).filter(row => selected.has(row.index)).map(row => bankMatchKey(row.transaction)),
-    stamp: bankLedgerStamp(transactions, opening || 0, asOf) };
-  if (!_save()) { state.reconciliation = previous; state.reconciliationDraft = previousDraft; throw new Error('The match could not be saved. Your previous match has been kept.'); }
+    matched: bankMatchRows(state.transactions, asOf).filter(row => finalSelected.has(row.index)).map(row => bankMatchKey(row.transaction)),
+    stamp: bankLedgerStamp(state.transactions, opening || 0, asOf) };
+  if (!_save()) {
+    state.transactions = previousTransactions; state.reconciliation = previous; state.reconciliationDraft = previousDraft;
+    throw new Error('The match could not be saved. Your transactions and previous match have been kept.');
+  }
   return result;
 }
 
@@ -4247,7 +4267,9 @@ function showReconcileModal() {
   const expectedStorage = localStorage.getItem(accountDataKey(accountId));
   const debt = ['credit','loan'].includes(account?.type);
   const draft = state.reconciliationDraft;
-  const selected = bankMatchSelection(transactions, draft ? {matched:draft.selected} : state.reconciliation);
+  const selected = draft || state.reconciliation
+    ? bankMatchSelection(transactions, draft ? {matched:draft.selected} : state.reconciliation)
+    : new Set(bankMatchRows(transactions, today()).map(row => row.index));
   const draftDate = draft && bankMatchDate(draft.asOf) && draft.asOf <= today() ? draft.asOf : today();
   const overlay = document.createElement('div');
   overlay.id = 'reconcile-overlay';
@@ -4255,17 +4277,18 @@ function showReconcileModal() {
   overlay.innerHTML = `<section class="reconcile-card bank-match-card" role="dialog" aria-modal="true" aria-labelledby="bank-match-title">
     <header class="bank-match-heading"><div><h2 id="bank-match-title">Match my bank</h2><p>${_escHtml(account?.name || 'Account')}</p></div><button type="button" id="reconcile-cancel" class="bank-match-close" aria-label="Close bank review">×</button></header>
     <div class="bank-match-body">
-      <p class="bank-match-help">Check entries against your bank’s posted ${debt ? 'balance owed' : 'balance'}. Pending purchases are excluded here and still reserve money in your budget.</p>
-      <div class="bank-match-fields"><label>Statement date<input type="date" id="reconcile-date" class="form-input" value="${draftDate}" max="${today()}" required></label><label>${debt ? 'Balance owed' : 'Posted balance'} ($)<input type="number" id="reconcile-input" class="form-input" inputmode="decimal" step="0.01" placeholder="0.00" value="${_escHtml(String(draft?.target || ''))}" required></label></div>
+      <p class="bank-match-help">Enter your bank’s <strong>posted ${debt ? 'balance owed' : 'balance'}</strong>, not its available balance. Review the entries below; pending purchases are kept separate.</p>
+      <div class="bank-match-fields"><label>Statement date<input type="date" id="reconcile-date" class="form-input" value="${draftDate}" max="${today()}" required></label><label>${debt ? 'Balance owed' : 'Posted balance'} ($)<input type="number" id="reconcile-input" class="form-input" inputmode="decimal" step="0.01" placeholder="0.00" value="${_escHtml(String(draft?.target ?? ''))}" required></label></div>
       ${debt ? '<p class="bank-match-help">A negative balance owed represents a credit on your account.</p>' : ''}
-      <div id="reconcile-diff" class="bank-match-summary" aria-live="polite"></div>
+      <div id="reconcile-diff" class="bank-match-summary" aria-live="polite"></div><p id="reconcile-pending" class="bank-match-help"></p>
       <div class="bank-match-list-heading"><h3>Statement entries</h3><span id="reconcile-count"></span></div>
       <input id="reconcile-search" class="form-input" type="search" placeholder="Find an entry" aria-label="Find a statement entry">
-      <div class="bank-match-tools"><button type="button" id="reconcile-select">Check visible</button><button type="button" id="reconcile-clear">Uncheck visible</button></div>
+      <div class="bank-match-tools"><button type="button" id="reconcile-select">Check all posted</button><button type="button" id="reconcile-clear">Uncheck all posted</button></div>
       <div id="reconcile-entries" class="bank-match-entries"></div>
       <button type="button" id="reconcile-more" class="bank-match-more" hidden>Show more entries</button>
-      <p class="bank-match-help">Opening balance: ${fmt(opening || 0)}${debt ? ' owed' : ''}. Bills and transfers are included once as recorded. Unchecked entries stay in your Ledger and budget.</p>
-      <p class="bank-match-help">Your unfinished review saves on this device. Add a missing entry and return to the same review.</p><button type="button" id="reconcile-add-entry" class="bank-match-more">Add missing transaction</button><button type="button" id="reconcile-discard" class="bank-match-more">Discard this draft</button>
+      <button type="button" id="reconcile-add-entry" class="bank-match-more">Add missing transaction</button>
+      <details id="reconcile-adjustment" class="bank-match-resolution" hidden><summary>Resolve a remaining difference</summary><p class="bank-match-help">Add missing purchases or income first. If you have checked every posted entry and still need to correct the balance, record a separate adjustment. It changes your account balance, stays in Ledger, and is excluded from weekly spending.</p><p id="reconcile-adjustment-preview" class="bank-match-help"></p><label class="bank-match-help">Reason<input type="text" id="reconcile-adjustment-reason" class="form-input" maxlength="160" placeholder="e.g. Correct opening balance"></label><label class="bank-match-consent"><input type="checkbox" id="reconcile-adjustment-confirm"> Record this adjustment and match my bank</label></details>
+      <details class="bank-match-resolution"><summary>Review details</summary><p class="bank-match-help">Opening balance: ${fmt(opening || 0)}${debt ? ' owed' : ''}. Bills and transfers count once. Unchecked entries stay in Ledger and your budget. Your review saves on this device, including when you add a missing transaction.</p><button type="button" id="reconcile-discard" class="bank-match-more">Discard this draft</button></details>
       <p id="reconcile-error" role="alert" class="bank-match-error"></p><button type="button" id="reconcile-close-unsaved" class="bank-match-more" hidden>Close without saving draft</button>
     </div>
     <footer class="bank-match-footer"><p id="reconcile-result">Enter a balance to compare.</p><button type="button" id="reconcile-save" class="btn-primary" disabled>Save match</button></footer>
@@ -4274,7 +4297,7 @@ function showReconcileModal() {
   const input = overlay.querySelector('#reconcile-input'), date = overlay.querySelector('#reconcile-date');
   const search = overlay.querySelector('#reconcile-search'), save = overlay.querySelector('#reconcile-save');
   const error = overlay.querySelector('#reconcile-error');
-  let visible = [], limit = 100, completed = false, draftTimer = null, dirty = !!draft;
+  let visible = [], filtered = [], limit = 100, completed = false, draftTimer = null, dirty = !!draft;
   function saveDraft() {
     clearTimeout(draftTimer);
     if (completed || !dirty) return true;
@@ -4290,16 +4313,32 @@ function showReconcileModal() {
   const releaseFocus = manageModalFocus(overlay, input, close);
   function refreshSummary() {
     const result = bankMatchSummary(transactions, opening || 0, debt, date.value, input.value, selected);
+    const comparison = result || bankMatchSummary(transactions, opening || 0, debt, date.value, 0, selected);
     const valid = !!result && date.value <= today();
-    save.disabled = !valid || result.difference !== 0;
+    const canAdjust = valid && result.difference !== 0 && result.unchecked === 0;
+    const consent = overlay.querySelector('#reconcile-adjustment-confirm');
+    const reason = overlay.querySelector('#reconcile-adjustment-reason');
+    overlay.querySelector('#reconcile-adjustment').hidden = !canAdjust;
+    if (!canAdjust) consent.checked = false;
+    const adjusting = canAdjust && consent.checked && !!reason.value.trim();
+    save.disabled = !valid || (result.difference !== 0 && !adjusting);
+    save.textContent = adjusting ? 'Add adjustment & match' : 'Save match';
     queueDraft();
     const rows = bankMatchRows(transactions, date.value), checked = rows.filter(row => selected.has(row.index)).length;
     overlay.querySelector('#reconcile-count').textContent = `${checked} of ${rows.length} checked`;
-    overlay.querySelector('#reconcile-diff').innerHTML = `<div><span>Checked balance${debt ? ' owed' : ''}</span><strong>${result ? fmt(result.cleared) : '—'}</strong></div><div><span>Bank balance${debt ? ' owed' : ''}</span><strong>${result ? fmt(Number(input.value)) : '—'}</strong></div><div class="bank-match-difference"><span>Difference</span><strong>${result ? fmt(Math.abs(result.difference)) : '—'}</strong></div>`;
+    overlay.querySelector('#reconcile-diff').innerHTML = `<div><span>Reviewed balance${debt ? ' owed' : ''}</span><strong>${comparison ? fmt(comparison.cleared) : '—'}</strong></div><div><span>Bank balance${debt ? ' owed' : ''}</span><strong>${result ? fmt(Number(input.value)) : '—'}</strong></div><div class="bank-match-difference"><span>${result?.difference === 0 ? 'Balances match' : 'Remaining difference'}</span><strong>${result ? fmt(Math.abs(result.difference)) : '—'}</strong></div>`;
+    const pending = transactions.filter(t => bankMatchDate(t.date) && t.date <= date.value && isPendingPurchase(t));
+    const pendingTotal = pending.reduce((sum,t) => sum + (bankMatchCents(t.amount) || 0),0) / 100;
+    overlay.querySelector('#reconcile-pending').textContent = pending.length
+      ? `${pending.length} pending · ${fmt(pendingTotal)} reserved in your budget, excluded from this posted balance.`
+      : 'Posted entries only. No pending purchases on this date.';
+    overlay.querySelector('#reconcile-adjustment-preview').textContent = canAdjust
+      ? `This adds a ${fmt(Math.abs(result.difference))} ${((result.difference > 0) !== debt) ? 'income' : 'expense'} adjustment dated ${date.value}. Your posted ${debt ? 'balance owed' : 'balance'} becomes ${fmt(Number(input.value))}.`
+      : '';
     const message = !bankMatchDate(date.value) || date.value > today() ? 'Choose today or an earlier statement date.'
-      : !result ? (input.value === '' ? 'Enter a balance to compare.' : 'Check your balance and any invalid Ledger entries.')
-      : result.difference === 0 ? `Ready to save · ${result.unchecked} unchecked${result.pending ? ` · ${result.pending} pending excluded` : ''}${result.future ? ` · ${result.future} later entries excluded` : ''}`
-      : `Your bank is ${fmt(Math.abs(result.difference))} ${result.difference > 0 ? (debt ? 'more owed' : 'higher') : (debt ? 'less owed' : 'lower')} than the checked balance.`;
+      : !result ? (input.value === '' ? 'Enter your posted bank balance.' : 'Check your balance and any invalid Ledger entries.')
+      : result.difference === 0 ? `Balances match · ${result.unchecked} unchecked${result.future ? ` · ${result.future} later entries excluded` : ''}`
+      : `Bank is ${fmt(Math.abs(result.difference))} ${result.difference > 0 ? (debt ? 'more owed' : 'higher') : (debt ? 'less owed' : 'lower')}.${result.unchecked ? ` Review ${result.unchecked} unchecked ${result.unchecked === 1 ? 'entry' : 'entries'}.` : ' Add missing entries or review the difference below.'}`;
     overlay.querySelector('#reconcile-result').textContent = message;
     overlay.querySelector('#reconcile-diff').classList.toggle('is-matched', valid && result.difference === 0);
   }
@@ -4307,15 +4346,19 @@ function showReconcileModal() {
     const rows = bankMatchRows(transactions, date.value), duplicates = new Map();
     rows.forEach(row => { const key = bankMatchKey(row.transaction, true); duplicates.set(key, (duplicates.get(key) || 0) + 1); });
     const query = search.value.trim().toLowerCase();
-    const filtered = rows.filter(({ transaction: t }) => `${t.description || ''} ${t.category || ''} ${t.amount} ${t.date}`.toLowerCase().includes(query)).sort((a,b) => b.transaction.date.localeCompare(a.transaction.date) || b.index-a.index);
+    filtered = rows.filter(({ transaction: t }) => `${t.description || ''} ${t.category || ''} ${t.amount} ${t.date}`.toLowerCase().includes(query)).sort((a,b) => b.transaction.date.localeCompare(a.transaction.date) || b.index-a.index);
     visible = filtered.slice(0, limit);
+    overlay.querySelector('#reconcile-select').textContent = query ? `Check results (${filtered.length})` : `Check all posted (${filtered.length})`;
+    overlay.querySelector('#reconcile-clear').textContent = query ? 'Uncheck results' : 'Uncheck all posted';
     overlay.querySelector('#reconcile-more').hidden = filtered.length <= limit;
     overlay.querySelector('#reconcile-more').textContent = `Show more entries (${visible.length} of ${filtered.length})`;
     overlay.querySelector('#reconcile-entries').innerHTML = visible.length ? visible.map(({ transaction: t, index }) => `<label class="bank-match-row"><input type="checkbox" data-bank-index="${index}"${selected.has(index) ? ' checked' : ''}><span class="bank-match-description"><strong>${_escHtml(t.description || t.category || 'Transaction')}</strong><small>${_escHtml(t.date)} · ${_escHtml(t.category || 'Other')}${duplicates.get(bankMatchKey(t, true)) > 1 ? '<span class="bank-match-duplicate">Possible duplicate — review both</span>' : ''}</small></span><span class="bank-match-amount">${t.type === 'income' ? '+' : '−'}${fmt(t.amount)}</span></label>`).join('') : '<p class="bank-match-help">No entries for this date or search.</p>';
     refreshSummary();
   }
-  input.addEventListener('input', () => { dirty=true; refreshSummary(); });
-  date.addEventListener('input', () => { dirty=true; limit = 100; refreshEntries(); });
+  overlay.querySelector('#reconcile-adjustment-confirm').addEventListener('change', refreshSummary);
+  overlay.querySelector('#reconcile-adjustment-reason').addEventListener('input', refreshSummary);
+  input.addEventListener('input', () => { dirty=true; overlay.querySelector('#reconcile-adjustment-confirm').checked=false; refreshSummary(); });
+  date.addEventListener('input', () => { dirty=true; overlay.querySelector('#reconcile-adjustment-confirm').checked=false; limit = 100; refreshEntries(); });
   search.addEventListener('input', () => { limit = 100; refreshEntries(); });
   overlay.querySelector('#reconcile-more').addEventListener('click', () => { limit += 100; refreshEntries(); });
   overlay.querySelector('#reconcile-entries').addEventListener('change', event => {
@@ -4325,8 +4368,8 @@ function showReconcileModal() {
     if (event.target.checked) selected.add(index); else selected.delete(index);
     refreshSummary();
   });
-  overlay.querySelector('#reconcile-select').addEventListener('click', () => { dirty=true; visible.forEach(row => selected.add(row.index)); refreshEntries(); });
-  overlay.querySelector('#reconcile-clear').addEventListener('click', () => { dirty=true; visible.forEach(row => selected.delete(row.index)); refreshEntries(); });
+  overlay.querySelector('#reconcile-select').addEventListener('click', () => { dirty=true; filtered.forEach(row => selected.add(row.index)); refreshEntries(); });
+  overlay.querySelector('#reconcile-clear').addEventListener('click', () => { dirty=true; filtered.forEach(row => selected.delete(row.index)); refreshEntries(); });
   overlay.querySelector('#reconcile-add-entry').addEventListener('click', () => {
     dirty=true; if(!close())return; _returnToBankReview = {accountId, date:date.value}; showTab('add');
   });
@@ -4341,9 +4384,11 @@ function showReconcileModal() {
   overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
   save.addEventListener('click', () => {
     save.disabled = true;
-    try { saveBankMatch({ accountId, transactions, opening, asOf: date.value, target: input.value, selected, expectedStorage }); }
-    catch (e) { error.textContent = e.message; return; }
-    completed = true; clearTimeout(draftTimer); close(); render(); _toast('✓ Bank match saved. Your transactions are unchanged.');
+    const adjusting = overlay.querySelector('#reconcile-adjustment-confirm').checked;
+    try { saveBankMatch({ accountId, transactions, opening, asOf: date.value, target: input.value, selected, expectedStorage,
+      adjustmentReason:adjusting ? overlay.querySelector('#reconcile-adjustment-reason').value : null }); }
+    catch (e) { error.textContent = e.message; refreshSummary(); return; }
+    completed = true; clearTimeout(draftTimer); close(); render(); _toast(adjusting ? '✓ Adjustment recorded and bank matched.' : '✓ Bank match saved. Your transactions are unchanged.');
   });
   refreshEntries();
 }

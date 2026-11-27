@@ -1,5 +1,14 @@
 [
  {
+  "version": "5.74.1",
+  "date": "2026-11-27",
+  "changes": [
+   "Match my bank starts a new review with posted entries included, shows pending money separately, and keeps balances visible before you enter a bank amount. Existing reviews retain their selections.",
+   "Check all posted and search-result selection now include entries beyond the first 100 shown. Review details stay collapsible to keep the balance comparison clear.",
+   "Resolve a reviewed balance difference with an explicit, dated Ledger adjustment and a required reason. Adjustments change account balance without counting as weekly spending; ordinary matches leave transactions unchanged. Saved drafts, stale-data protection, and rollback on storage failures remain."
+  ]
+ },
+ {
   "version": "5.74.0",
   "date": "2026-11-25",
   "changes": [
